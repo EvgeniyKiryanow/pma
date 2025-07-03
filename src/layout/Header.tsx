@@ -1,4 +1,5 @@
 import { useUserStore } from '../stores/userStore';
+import BackupControls from './BackupControls';
 
 export default function Header() {
     const openUserFormForAdd = useUserStore((s) => s.openUserFormForAdd);
@@ -27,6 +28,7 @@ export default function Header() {
                         Log out
                     </button>
                 </div>
+                <BackupControls />
             </div>
         </header>
     );
