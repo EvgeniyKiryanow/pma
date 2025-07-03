@@ -5,7 +5,7 @@ import { getDbPath } from '../database/db';
 export function registerDbHandlers() {
     ipcMain.handle('download-db', async () => {
         try {
-            const dbPath = getDbPath(); // получаем актуальный путь к базе
+            const dbPath = getDbPath();
             if (!fs.existsSync(dbPath)) {
                 console.error('DB file not found:', dbPath);
                 return false;

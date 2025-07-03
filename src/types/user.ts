@@ -17,7 +17,7 @@ export type RelativeContact = {
     email?: string;
     notes?: string;
 };
-
+// образование добавить
 export type User = {
     id: number;
     photo?: string; // photo URL or local path
