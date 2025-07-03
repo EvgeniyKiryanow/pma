@@ -9,18 +9,35 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "release": "vite build && electron-forge package && electron-forge make"
   },
   "build": {
-  "publish": [
-    {
-      "provider": "github",
-      "owner": "EvgeniyKiryanow",
-      "repo": "pma"
-    }
-  ]
-},
-
+    "appId": "com.your.app",
+    "productName": "PersonnelManager",
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": ["zip"],
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "linux": {
+      "target": ["AppImage"]
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "EvgeniyKiryanow",
+        "repo": "pma"
+      }
+    ]
+  },
   "keywords": [],
   "author": {
     "name": "Evgeniy Kiryanow",
@@ -43,6 +60,7 @@
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "electron": "37.2.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.32.0",
     "ts-node": "^10.9.2",
