@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useUserStore } from '../stores/userStore';
-import { LogOut, PlusCircle, Settings, Clock } from 'lucide-react';
+import { LogOut, PlusCircle, Clock, Gift } from 'lucide-react';
+import type { User } from '../types/user';
 
 type HeaderProps = {
     currentTab: 'manager' | 'backups';
@@ -10,6 +11,8 @@ type HeaderProps = {
 export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     const openUserFormForAdd = useUserStore((s) => s.openUserFormForAdd);
     const [now, setNow] = useState<string>(() => formatDateTime(new Date()));
+    const [upcomingBirthdays, setUpcomingBirthdays] = useState<User[]>([]);
+    const [showBirthdayModal, setShowBirthdayModal] = useState(false);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -18,25 +21,63 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
         return () => clearInterval(interval);
     }, []);
 
+    useEffect(() => {
+        const loadUpcoming = async () => {
+            const users = await window.electronAPI.fetchUsers();
+            const today = new Date();
+            const todayYear = today.getFullYear();
+
+            const upcoming = users.filter((user: User) => {
+                if (!user.dateOfBirth) return false;
+
+                const dob = new Date(user.dateOfBirth);
+                const nextBirthday = new Date(todayYear, dob.getMonth(), dob.getDate());
+
+                if (nextBirthday < today) {
+                    nextBirthday.setFullYear(todayYear + 1);
+                }
+
+                const diffDays = Math.floor(
+                    (nextBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+                );
+                return diffDays >= 0 && diffDays <= 7;
+            });
+
+            setUpcomingBirthdays(upcoming);
+        };
+
+        loadUpcoming();
+    }, []);
+
     const handleLogout = () => {
         window.location.href = '/login';
     };
 
     return (
-        <header className="bg-white shadow border-b">
+        <header className="bg-white shadow border-b relative">
             {/* Top Bar */}
             <div className="flex items-center justify-between px-4 sm:px-10 py-3">
-                {/* Time + Title */}
+                <h1 className="text-lg font-bold tracking-tight">Personnel Manager</h1>
                 <div className="flex items-center gap-6 text-gray-700">
                     <div className="flex items-center gap-1 text-sm text-gray-500">
                         <Clock className="w-4 h-4" />
                         <span>{now}</span>
                     </div>
-                    <h1 className="text-lg font-bold tracking-tight">Personnel Manager</h1>
                 </div>
 
-                {/* Buttons */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 cursor-pointer">
+                    {upcomingBirthdays.length > 0 && (
+                        <button
+                            onClick={() => setShowBirthdayModal(true)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-yellow-100 text-yellow-800 border border-yellow-300 cursor-pointer transition hover:bg-yellow-200"
+                            title="View upcoming birthdays"
+                        >
+                            <Gift className="w-4 h-4" />
+                            {upcomingBirthdays.length} upcoming birthday
+                            {upcomingBirthdays.length > 1 ? 's' : ''}
+                        </button>
+                    )}
+
                     {currentTab === 'manager' && (
                         <button
                             onClick={openUserFormForAdd}
@@ -46,13 +87,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                             Add new Person
                         </button>
                     )}
-                    <button
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 hover:bg-gray-300 text-gray-700 transition"
-                        onClick={() => alert('Settings coming soon')}
-                    >
-                        <Settings className="w-4 h-4" />
-                        Settings
-                    </button>
+
                     <button
                         onClick={handleLogout}
                         className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-red-500 hover:bg-red-600 text-white shadow-sm transition"
@@ -88,11 +123,47 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                     </button>
                 </div>
             </nav>
+
+            {/* Birthday Modal */}
+            {showBirthdayModal && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+                    <div className="bg-white max-w-md w-full rounded-lg p-6 shadow-lg border relative">
+                        <h2 className="text-lg font-bold mb-4">🎂 Upcoming Birthdays</h2>
+
+                        <ul className="space-y-2 max-h-[300px] overflow-y-auto">
+                            {upcomingBirthdays.map((user) => {
+                                const dob = new Date(user.dateOfBirth!);
+                                const dateStr = dob.toLocaleDateString('uk-UA', {
+                                    day: '2-digit',
+                                    month: 'long',
+                                });
+
+                                return (
+                                    <li
+                                        key={user.id}
+                                        className="flex justify-between items-center text-sm text-gray-800"
+                                    >
+                                        <span>{user.fullName}</span>
+                                        <span className="text-gray-500">{dateStr}</span>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+
+                        <button
+                            onClick={() => setShowBirthdayModal(false)}
+                            className="absolute top-2 right-3 text-gray-500 hover:text-red-600 text-lg font-bold"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
         </header>
     );
 }
 
-// Helper function
+// Helper
 function formatDateTime(date: Date): string {
     return date.toLocaleString('uk-UA', {
         weekday: 'short',

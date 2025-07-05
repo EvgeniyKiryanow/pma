@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow, dialog, screen } from 'electron';
 import path from 'path';
 import started from 'electron-squirrel-startup';
 import { registerDbHandlers } from './ipc';
@@ -6,7 +6,13 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
-const iconPath = path.join(__dirname, '..', 'build', 'icons', process.platform === 'win32' ? 'appIcon.ico' : 'appIcon.icns');
+const iconPath = path.join(
+    __dirname,
+    '..',
+    'build',
+    'icons',
+    process.platform === 'win32' ? 'appIcon.ico' : 'appIcon.icns',
+);
 
 const isDev = !app.isPackaged;
 
@@ -56,9 +62,10 @@ autoUpdater.on('update-downloaded', () => {
 });
 
 const createWindow = () => {
+    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
     const mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
+        width: Math.floor(width * 0.9),
+        height: Math.floor(height * 0.9),
         icon: iconPath,
         frame: false,
         titleBarStyle: 'hidden',

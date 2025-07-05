@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { ipcMain } from 'electron';
 import { getDb } from '../database/db';
 
