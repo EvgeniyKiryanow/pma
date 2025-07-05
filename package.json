@@ -44,6 +44,14 @@
         "nsis"
       ]
     },
+    "nsis": {
+  "oneClick": false,
+  "perMachine": false,
+  "allowToChangeInstallationDirectory": true,
+  "createDesktopShortcut": true,
+  "createStartMenuShortcut": true,
+  "shortcutName": "Personnel Manager"
+},
     "linux": {
       "icon": "assets/icons/appIcon.png",
       "target": [
