@@ -1,4 +1,5 @@
 import { CommentOrHistoryEntry } from '../../types/user';
+import { Trash2 } from 'lucide-react';
 
 type Props = {
     entry: CommentOrHistoryEntry;
@@ -7,30 +8,30 @@ type Props = {
 
 export default function HistoryItem({ entry, onDelete }: Props) {
     return (
-        <li className="bg-gray-100 p-4 rounded shadow relative">
+        <li className="bg-white p-6 rounded-lg shadow-md border border-gray-200 relative hover:shadow-lg transition-shadow">
             <button
                 onClick={() => onDelete(entry.id)}
-                className="absolute top-2 right-2 text-red-600 hover:text-red-900 font-bold text-lg"
-                title="Delete history entry"
-                type="button"
+                className="absolute top-3 right-3 text-red-600 hover:text-red-800"
+                title="Delete entry"
             >
-                ×
+                <Trash2 className="w-5 h-5" />
             </button>
 
-            <p className="text-sm text-gray-600 mb-1">
-                <strong>{entry.type.toUpperCase()}</strong> —{' '}
+            <p className="text-sm text-gray-500 mb-1">
+                <strong className="uppercase">{entry.type}</strong> —{' '}
                 {new Date(entry.date).toLocaleDateString()}
-                {entry.author && ` by ${entry.author}`}
             </p>
 
-            {entry.description && <p className="font-medium mb-2">{entry.description}</p>}
+            {entry.description && (
+                <p className="font-semibold text-gray-800 mb-3">{entry.description}</p>
+            )}
 
             {entry.files?.length > 0 && (
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-4 mt-3">
                     {entry.files.map((file, i) => (
                         <div
                             key={i}
-                            className="border rounded p-2 max-w-[160px] max-h-[160px] flex flex-col items-center"
+                            className="border rounded-lg p-3 bg-gray-50 max-w-[200px] max-h-[200px] flex flex-col items-center justify-center text-center shadow-sm"
                         >
                             {file.dataUrl ? (
                                 file.type === 'application/pdf' ? (
@@ -41,7 +42,7 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                                         rel="noopener noreferrer"
                                         className="text-xs underline text-blue-600"
                                     >
-                                        PDF: {file.name}
+                                        📄 PDF: {file.name}
                                     </a>
                                 ) : file.type.startsWith('image/') ? (
                                     <a
@@ -52,7 +53,7 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                                         <img
                                             src={file.dataUrl}
                                             alt={file.name}
-                                            className="w-32 h-32 object-contain rounded"
+                                            className="w-[180px] h-[180px] object-contain rounded"
                                         />
                                     </a>
                                 ) : (
@@ -61,7 +62,7 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                                         download={file.name}
                                         className="text-xs underline text-blue-600 break-words"
                                     >
-                                        {file.name}
+                                        📎 {file.name}
                                     </a>
                                 )
                             ) : (
@@ -70,6 +71,10 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                         </div>
                     ))}
                 </div>
+            )}
+
+            {entry.type === 'text' && entry.content && (
+                <p className="text-sm text-blue-600 mt-3 break-words">{entry.content}</p>
             )}
         </li>
     );

@@ -36,6 +36,7 @@ declare global {
             //  --- History CRUD ---
             getUserHistory: (userId: number, filter: string) => Promise<CommentOrHistoryEntry[]>;
             addUserHistory: (userId: number, newEntry: any) => Promise<CommentOrHistoryEntry[]>;
+            deleteUserHistory: (id: number) => Promise<boolean>;
         };
     }
 }

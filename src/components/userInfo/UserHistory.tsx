@@ -33,12 +33,11 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
     const [history, setHistory] = useState<CommentOrHistoryEntry[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-
+    const loadHistory = async () => {
+        const data = await window.electronAPI.getUserHistory(userId, selectedFilter);
+        setHistory(data);
+    };
     useEffect(() => {
-        const loadHistory = async () => {
-            const history = await window.electronAPI.getUserHistory(userId, selectedFilter);
-            setHistory(history);
-        };
         loadHistory();
     }, [userId, selectedFilter]);
 
@@ -63,6 +62,14 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
             reader.readAsDataURL(file);
         });
         e.target.value = '';
+    };
+
+    const handleDeleteHistory = async (id: number) => {
+        const confirmed = window.confirm('Are you sure you want to delete this history entry?');
+        if (!confirmed) return;
+
+        await window.electronAPI.deleteUserHistory(id);
+        await loadHistory();
     };
 
     const removeFile = (index: number) => {
@@ -145,7 +152,7 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
             ) : (
                 <ul className="space-y-4">
                     {filteredHistory.map((entry: any) => (
-                        <HistoryItem key={entry.id} entry={entry} onDelete={onDeleteHistory} />
+                        <HistoryItem key={entry.id} entry={entry} onDelete={handleDeleteHistory} />
                     ))}
                 </ul>
             )}

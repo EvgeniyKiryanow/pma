@@ -112,6 +112,22 @@ export function registerUserHandlers() {
         );
         return { success: true };
     });
+    ipcMain.handle('deleteUserHistory', async (_, id: number) => {
+        const db = await getDb();
+        const users = await db.all('SELECT id, history FROM users');
+        for (const user of users) {
+            const history = JSON.parse(user.history || '[]');
+            const updated = history.filter((item: any) => item.id !== id);
+            if (updated.length !== history.length) {
+                await db.run(
+                    'UPDATE users SET history = ? WHERE id = ?',
+                    JSON.stringify(updated),
+                    user.id,
+                );
+            }
+        }
+        return true;
+    });
 }
 export function getFilterDate(filter: string): Date {
     const now = new Date();
