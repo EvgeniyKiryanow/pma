@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog } from 'electron';
 import path from 'path';
 import started from 'electron-squirrel-startup';
-import { registerDbHandlers } from './ipc/dbHandlers';
+import { registerDbHandlers } from './ipc';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { initializeDb } from './database/db';
