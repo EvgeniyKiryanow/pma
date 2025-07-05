@@ -57,7 +57,10 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
         <header className="bg-white shadow border-b relative">
             {/* Top Bar */}
             <div className="flex items-center justify-between px-4 sm:px-10 py-3">
-                <h1 className="text-lg font-bold tracking-tight">Personnel Manager</h1>
+                <div className="flex items-center gap-3">
+                    <img src="./assets/icons/appIcon.png" alt="Logo" className="w-8 h-8" />
+                    <h1 className="text-lg font-bold tracking-tight">Personnel Manager</h1>
+                </div>
                 <div className="flex items-center gap-6 text-gray-700">
                     <div className="flex items-center gap-1 text-sm text-gray-500">
                         <Clock className="w-4 h-4" />
