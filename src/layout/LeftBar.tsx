@@ -28,8 +28,6 @@ export default function LeftBar({ users }: Props) {
             user.rights,
             user.conscriptionInfo,
             user.notes,
-            user.education,
-            user.awards,
         ];
 
         const relativesText =
@@ -46,19 +44,26 @@ export default function LeftBar({ users }: Props) {
     });
 
     return (
-        <nav className="w-72 bg-white border-r border-gray-300 shadow-sm flex flex-col h-screen">
-            <h2 className="text-xl font-semibold p-5 border-b border-gray-300 flex-shrink-0">
-                <p>Personnel List</p>
-                <p>Total Personnel: {filteredUsers.length}</p>
-            </h2>
-            <input
-                type="text"
-                placeholder="Search by name, rank, or ID..."
-                className="m-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-300 flex-shrink-0"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-            />
-            <ul className="flex-1 overflow-y-auto pt-[5px]">
+        <nav className="w-72 pb-[35px] bg-white border-r border-gray-300 shadow-sm flex flex-col h-full">
+            {/* Header */}
+            <div className="p-5 border-b border-gray-300 flex-shrink-0">
+                <h2 className="text-xl font-semibold">Personnel List</h2>
+                <p className="text-sm text-gray-500">Total Personnel: {filteredUsers.length}</p>
+            </div>
+
+            {/* Search */}
+            <div className="p-2 border-b border-gray-200 flex-shrink-0">
+                <input
+                    type="text"
+                    placeholder="Search by name, rank, or ID..."
+                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-300"
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                />
+            </div>
+
+            {/* Scrollable User List */}
+            <ul className="flex-1 overflow-y-auto">
                 {filteredUsers.length > 0 ? (
                     filteredUsers.map((user, index) => (
                         <li

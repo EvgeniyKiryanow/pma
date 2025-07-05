@@ -67,7 +67,7 @@ export default function RightBar() {
     }
 
     return (
-        <aside className="flex-1 bg-white px-4 sm:px-6 md:px-10 overflow-y-auto shadow-inner">
+        <aside className="flex-1 bg-white px-4 sm:px-6 md:px-10 shadow-inner overflow-y-auto max-h-[calc(100vh-56px)]">
             {/* Sticky Controls */}
             <section className="sticky top-0 z-10 bg-white pt-4 pb-3 border-b mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 {/* Buttons */}
