@@ -49,6 +49,9 @@ declare global {
             >;
             installUpdate: () => Promise<boolean>;
             getAppVersion: () => Promise<string>;
+
+            // avatar
+            getDefaultAvatarPath: () => Promise<any>;
         };
     }
 }

@@ -53,13 +53,13 @@ export default function CustomTitleBar() {
                 className="flex gap-2"
                 style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
-                <button
+                {/* <button
                     className="p-1 hover:bg-blue-600 rounded"
                     title="Check for updates"
                     onClick={handleCheckUpdate}
                 >
                     <Download className="w-4 h-4" />
-                </button>
+                </button> */}
 
                 <button
                     className="p-1 hover:bg-green-600 rounded"
