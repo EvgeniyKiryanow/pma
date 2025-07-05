@@ -1,10 +1,8 @@
 import { ipcMain } from 'electron';
 import { getDb } from '../database/db';
-import dayjs from 'dayjs';
 import { CommentOrHistoryEntry } from 'src/types/user';
 
 export function registerUserHandlers() {
-    // Fetch all users
     ipcMain.handle('fetch-users', async () => {
         const db = await getDb();
         const rows = await db.all('SELECT * FROM users');
@@ -25,7 +23,6 @@ export function registerUserHandlers() {
         }));
     });
 
-    // Add user
     ipcMain.handle('add-user', async (_event, user) => {
         const db = await getDb();
         const stmt = await db.prepare(`
@@ -61,7 +58,6 @@ export function registerUserHandlers() {
         };
     });
 
-    // Update user
     ipcMain.handle('update-user', async (_event, user) => {
         const db = await getDb();
         await db.run(
@@ -92,7 +88,6 @@ export function registerUserHandlers() {
         return user;
     });
 
-    // Delete user
     ipcMain.handle('delete-user', async (_event, userId: number) => {
         const db = await getDb();
         await db.run('DELETE FROM users WHERE id = ?', userId);
@@ -107,7 +102,7 @@ export function registerUserHandlers() {
 
         const history: CommentOrHistoryEntry[] = JSON.parse(user.history);
 
-        const fromDate = getFilterDate(filter); // returns date N days ago
+        const fromDate = getFilterDate(filter);
         return history.filter((entry) => new Date(entry.date) >= fromDate);
     });
     ipcMain.handle('history:add-entry', async (_event, userId: number, newEntry: any) => {
@@ -148,7 +143,6 @@ export function registerUserHandlers() {
         return JSON.parse(user.comments);
     });
 
-    // Add new comment
     ipcMain.handle('comments:add-user-comment', async (_event, userId: number, newComment: any) => {
         const db = await getDb();
         const user = await db.get('SELECT comments FROM users WHERE id = ?', userId);
@@ -189,7 +183,7 @@ export function getFilterDate(filter: string): Date {
         '7days': 7,
         '14days': 14,
         '30days': 30,
-        all: 100 * 365, // basically no limit
+        all: 100 * 365,
     };
 
     const days = map[filter] ?? 30;

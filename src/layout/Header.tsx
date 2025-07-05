@@ -50,8 +50,8 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     }, []);
 
     const handleLogout = () => {
-        localStorage.removeItem('authToken'); // remove token
-        window.location.reload(); // reload the app to trigger login screen
+        localStorage.removeItem('authToken');
+        window.location.reload();
     };
 
     return (
@@ -167,7 +167,6 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     );
 }
 
-// Helper
 function formatDateTime(date: Date): string {
     return date.toLocaleString('uk-UA', {
         weekday: 'short',

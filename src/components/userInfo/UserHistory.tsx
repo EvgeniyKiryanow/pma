@@ -1,9 +1,8 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import type { CommentOrHistoryEntry } from '../../types/user';
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import HistoryItem from './HistoryItem';
 import AddHistoryModal from './AddHistoryModal';
-// import clsx from 'clsx';
 
 const FILTER_OPTIONS = [
     { label: '1 Day', value: '1day' },
@@ -90,7 +89,7 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
         try {
             await window.electronAPI.addUserHistory(userId, newEntry);
             const refreshed = await window.electronAPI.getUserHistory(userId, selectedFilter);
-            setHistory(refreshed); // 🔄 update history list
+            setHistory(refreshed);
 
             setDescription('');
             setFiles([]);

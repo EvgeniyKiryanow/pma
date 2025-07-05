@@ -42,7 +42,6 @@ export default function CustomTitleBar() {
 
         const success = await window.electronAPI.resetDb();
         if (success) {
-            // Clear any saved tokens before restarting the app
             localStorage.removeItem('authToken');
             sessionStorage.removeItem('authToken');
 

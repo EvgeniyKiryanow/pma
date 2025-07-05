@@ -6,7 +6,6 @@ import { app } from "electron";
 let dbInstance: any;
 
 export async function getDbPath(): Promise<string> {
-  // Wait until Electron is ready
   if (!app.isReady()) {
     await app.whenReady();
   }
@@ -27,7 +26,6 @@ export async function getDb() {
 export async function initializeDb() {
   const db = await getDb();
 
-  // user
   await db.exec(`
     CREATE TABLE IF NOT EXISTS auth_user (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +42,6 @@ export async function initializeDb() {
     await db.exec(`ALTER TABLE auth_user ADD COLUMN recovery_hint TEXT;`);
   }
 
-  // Create main users table (if missing)
   await db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,7 +63,6 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
   `);
-  // histore
   await db.exec(`
     CREATE TABLE IF NOT EXISTS user_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,7 +77,6 @@ CREATE TABLE IF NOT EXISTS users (
 );
   `);
 
-  // comments
   await db.exec(`
     CREATE TABLE IF NOT EXISTS comments (
     id INTEGER PRIMARY KEY,
@@ -94,7 +89,6 @@ CREATE TABLE IF NOT EXISTS users (
 );
   `);
 
-  // Handle migration for existing DB
   const userColumns = await db.all(`PRAGMA table_info(users);`);
 
   const colNames = userColumns.map((c: any) => c.name);

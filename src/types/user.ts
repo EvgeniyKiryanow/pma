@@ -2,32 +2,32 @@ export type MediaType = 'text' | 'pdf' | 'audio' | 'image' | 'video' | 'history'
 
 export type CommentOrHistoryEntry = {
     files: any[];
-    id: number; // unique id for each entry
-    date: string; // ISO date string when the entry was made
-    author?: string; // who wrote/added the entry (optional)
+    id: number; 
+    date: string; 
+    author?: string; 
     type: MediaType;
-    content: string; // could be plain text or a file path/URL for pdf/audio/image/video
-    description?: string; // optional short description or title
+    content: string; 
+    description?: string; 
 };
 
 export type RelativeContact = {
     name: string;
-    relationship: string; // e.g. "mother", "brother", "wife"
+    relationship: string; 
     phone?: string;
     email?: string;
     notes?: string;
 };
 export type User = {
     id: number;
-    photo?: string; // photo URL or local path
-    fullName: string; // ФИО
+    photo?: string; 
+    fullName: string; 
     phoneNumber: any;
     email?: string;
-    dateOfBirth: string; // ISO date string
-    position: string; // посада (job/role)
-    rank: string; // звание
-    rights: string; // права (permissions/licenses/clearances)
-    conscriptionInfo: string; // где когда и кем призивался (where, when, by whom conscripted)
+    dateOfBirth: string;
+    position: string; 
+    rank: string; 
+    rights: string; 
+    conscriptionInfo: string; 
     notes: string;
     education?: string; 
     awards?: string; 

@@ -31,7 +31,6 @@ export function registerBackupHandlers() {
         return backupDir;
     });
 
-    // 🔁 BACKUP CURRENT DATABASE
     ipcMain.handle('download-db', async () => {
         try {
             const dbPath = await getDbPath();
@@ -70,23 +69,17 @@ export function registerBackupHandlers() {
             const backupPath = filePaths[0];
             const dbPath = await getDbPath();
 
-            // Step 1: Save existing auth_user
             const currentDb = await open({ filename: dbPath, driver: sqlite3.Database });
             const existingAuthUsers = await currentDb.all('SELECT * FROM auth_user');
 
-            // Step 2: Overwrite DB with backup
             await fs.copyFile(backupPath, dbPath);
 
-            // Step 3: Open the new DB
             const newDb = await open({ filename: dbPath, driver: sqlite3.Database });
 
-            // Step 4: Check if we should restore old auth_user
             const hadLocalUser = existingAuthUsers.length > 0;
             if (hadLocalUser) {
-                // Remove auth_user from backup DB
                 await newDb.exec('DELETE FROM auth_user');
 
-                // Insert only the local user(s)
                 for (const user of existingAuthUsers) {
                     await newDb.run(
                         `INSERT INTO auth_user (id, username, password, recovery_hint) VALUES (?, ?, ?, ?)`,
@@ -120,7 +113,6 @@ export function registerBackupHandlers() {
         }
     });
 
-    // 🔁 REPLACE EXISTING DATABASE WITH ANOTHER FILE
     ipcMain.handle('replace-db', async () => {
         try {
             const dbPath = await getDbPath();
@@ -135,7 +127,6 @@ export function registerBackupHandlers() {
 
             const selectedFile = filePaths[0];
 
-            // Optional: create backup before overwrite
             if (existsSync(dbPath)) {
                 const backupPath = dbPath + '.bak';
                 await fs.copyFile(dbPath, backupPath);
@@ -168,6 +159,5 @@ export function registerBackupHandlers() {
         return app.getVersion();
     });
 
-    // 🔁 Start backup schedule on app load
     getBackupIntervalInDays().then(startScheduledBackup);
 }

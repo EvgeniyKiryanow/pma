@@ -10,7 +10,7 @@ type CommentsModalProps = {
 type UploadedFile = {
     name: string;
     type: string;
-    dataUrl?: string; // for preview
+    dataUrl?: string;
 };
 
 export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
@@ -28,7 +28,6 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
         };
         fetch();
     }, [userId]);
-    // Filter comments by search term (author, content, file names)
     const filteredComments = useMemo(() => {
         const term = searchTerm.toLowerCase().trim();
         if (!term) return comments;
