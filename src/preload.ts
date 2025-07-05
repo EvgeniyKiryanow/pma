@@ -1,12 +1,7 @@
-import { app, contextBridge, ipcRenderer } from 'electron';
+import { app, contextBridge, ipcRenderer, shell } from 'electron';
 import { CommentOrHistoryEntry, User } from './types/user';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    //Avatar default
-    getDefaultAvatarPath: () => {
-        const path = require('path');
-        return path.join(app.getAppPath(), 'assets', 'icons', 'default-avatar.jpg');
-    },
     // DB
     downloadDb: () => ipcRenderer.invoke('download-db'),
     replaceDb: () => ipcRenderer.invoke('replace-db'),

@@ -21,6 +21,7 @@ export function Main() {
                 <div className="flex items-center justify-center min-h-screen bg-gray-100">
                     <p className="text-sm text-gray-500">Loading...</p>
                 </div>
+                <Footer />
             </>
         );
     }
@@ -45,6 +46,25 @@ export function Main() {
             ) : (
                 <App />
             )}
+            <Footer />
         </>
+    );
+}
+
+function Footer() {
+    return (
+        <footer className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white text-center py-2 text-sm shadow-md">
+            Made by{' '}
+            <a
+                href="https://www.linkedin.com/in/yevhenii-kirianov-54b8081ba/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-blue-300"
+            >
+                Evgeniy Kiriyanov
+            </a>
+            . If you have any suggestions or improvements — I’m happy to review your
+            proposition!{' '}
+        </footer>
     );
 }
