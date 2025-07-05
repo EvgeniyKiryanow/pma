@@ -33,6 +33,8 @@ export default function UserFormModalUpdate({ userToEdit, onClose }: UserFormMod
         notes: '',
         email: '',
         phoneNumber: '',
+        education: '',
+        awards: '',
         photo: '',
         relatives: [],
         comments: [],

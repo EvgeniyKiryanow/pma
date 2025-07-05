@@ -58,8 +58,8 @@ export async function initializeDb() {
       rights TEXT,
       conscriptionInfo TEXT,
       notes TEXT,
-      education TEXT,  -- 🆕
-      awards TEXT,     -- 🆕
+      education TEXT,
+      awards TEXT,
       relatives TEXT,
       comments TEXT,
       history TEXT
@@ -93,14 +93,14 @@ export async function initializeDb() {
 );
   `);
 
-  // Handle migration for existing DB
-  const userColumns = await db.all(`PRAGMA table_info(users);`);
+  // // Handle migration for existing DB
+  // const userColumns = await db.all(`PRAGMA table_info(users);`);
 
-  const colNames = userColumns.map((c: any) => c.name);
-  if (!colNames.includes("education")) {
-    await db.exec(`ALTER TABLE users ADD COLUMN education TEXT;`);
-  }
-  if (!colNames.includes("awards")) {
-    await db.exec(`ALTER TABLE users ADD COLUMN awards TEXT;`);
-  }
+  // const colNames = userColumns.map((c: any) => c.name);
+  // if (!colNames.includes("education")) {
+  //   await db.exec(`ALTER TABLE users ADD COLUMN education TEXT;`);
+  // }
+  // if (!colNames.includes("awards")) {
+  //   await db.exec(`ALTER TABLE users ADD COLUMN awards TEXT;`);
+  // }
 }

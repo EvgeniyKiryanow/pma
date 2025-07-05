@@ -19,47 +19,26 @@ export function registerUserHandlers() {
     // Add user
     ipcMain.handle('add-user', async (_event, user) => {
         const db = await getDb();
-        const stmt = await db.prepare(`
-      INSERT INTO users (
-        fullName, photo, phoneNumber, email, dateOfBirth,
-        position, rank, rights, conscriptionInfo, notes,
-        relatives, comments, history
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-        const result = await stmt.run(
-            user.fullName,
-            user.photo,
-            user.phoneNumber,
-            user.email,
-            user.dateOfBirth,
-            user.position,
-            user.rank,
-            user.rights,
-            user.conscriptionInfo,
-            user.notes,
-            JSON.stringify(user.relatives || []),
-            JSON.stringify(user.comments || []),
-            JSON.stringify(user.history || []),
-        );
-        const inserted = await db.get('SELECT * FROM users WHERE id = ?', result.lastID);
-        return {
-            ...inserted,
-            relatives: JSON.parse(inserted.relatives || '[]'),
-            comments: JSON.parse(inserted.comments || '[]'),
-            history: JSON.parse(inserted.history || '[]'),
-        };
-    });
 
-    // Update user
-    ipcMain.handle('update-user', async (_event, user) => {
-        const db = await getDb();
-        await db.run(
+        const result = await db.run(
             `
-      UPDATE users SET
-        fullName = ?, photo = ?, phoneNumber = ?, email = ?, dateOfBirth = ?,
-        position = ?, rank = ?, rights = ?, conscriptionInfo = ?, notes = ?,
-        relatives = ?, comments = ?, history = ?
-      WHERE id = ?
+    INSERT INTO users (
+      fullName,
+      photo,
+      phoneNumber,
+      email,
+      dateOfBirth,
+      position,
+      rank,
+      rights,
+      conscriptionInfo,
+      notes,
+      education,
+      awards,
+      relatives,
+      comments,
+      history
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
             user.fullName,
             user.photo,
@@ -71,11 +50,59 @@ export function registerUserHandlers() {
             user.rights,
             user.conscriptionInfo,
             user.notes,
+            user.education || '',
+            user.awards || '',
+            JSON.stringify(user.relatives || []),
+            JSON.stringify(user.comments || []),
+            JSON.stringify(user.history || []),
+        );
+
+        const insertedUser = { ...user, id: result.lastID };
+        return insertedUser;
+    });
+
+    // Update user
+    ipcMain.handle('update-user', async (_event, user) => {
+        const db = await getDb();
+
+        await db.run(
+            `
+    UPDATE users SET
+      fullName = ?,
+      photo = ?,
+      phoneNumber = ?,
+      email = ?,
+      dateOfBirth = ?,
+      position = ?,
+      rank = ?,
+      rights = ?,
+      conscriptionInfo = ?,
+      notes = ?,
+      education = ?,
+      awards = ?,
+      relatives = ?,
+      comments = ?,
+      history = ?
+    WHERE id = ?
+    `,
+            user.fullName,
+            user.photo,
+            user.phoneNumber,
+            user.email,
+            user.dateOfBirth,
+            user.position,
+            user.rank,
+            user.rights,
+            user.conscriptionInfo,
+            user.notes,
+            user.education || '',
+            user.awards || '',
             JSON.stringify(user.relatives || []),
             JSON.stringify(user.comments || []),
             JSON.stringify(user.history || []),
             user.id,
         );
+
         return user;
     });
 
