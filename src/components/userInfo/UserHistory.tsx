@@ -1,6 +1,8 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import type { CommentOrHistoryEntry } from '../../types/user';
 import { Plus, X } from 'lucide-react';
+import HistoryItem from './HistoryItem';
+import AddHistoryModal from './AddHistoryModal';
 // import clsx from 'clsx';
 
 const FILTER_OPTIONS = [
@@ -142,148 +144,24 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
                 <p className="text-gray-500 italic">No history records found.</p>
             ) : (
                 <ul className="space-y-4">
-                    {filteredHistory.map((h) => (
-                        <li key={h.id} className="bg-gray-100 p-4 rounded shadow relative">
-                            <button
-                                onClick={() => onDeleteHistory(h.id)}
-                                className="absolute top-2 right-2 text-red-600 hover:text-red-900 font-bold text-lg"
-                                title="Delete history entry"
-                                type="button"
-                            >
-                                ×
-                            </button>
-                            <p className="text-sm text-gray-600 mb-1">
-                                <strong>{h.type.toUpperCase()}</strong> —{' '}
-                                {new Date(h.date).toLocaleDateString()}
-                                {h.author && ` by ${h.author}`}
-                            </p>
-                            {h.description && <p className="font-medium mb-2">{h.description}</p>}
-                            {h.files?.length > 0 && (
-                                <div className="flex flex-wrap gap-3">
-                                    {h.files.map((file, i) => (
-                                        <div
-                                            key={i}
-                                            className="border rounded p-2 max-w-[160px] max-h-[160px] flex flex-col items-center"
-                                        >
-                                            {file.dataUrl ? (
-                                                file.type === 'application/pdf' ? (
-                                                    <a
-                                                        href={file.dataUrl}
-                                                        download={file.name}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-xs underline text-blue-600"
-                                                    >
-                                                        PDF: {file.name}
-                                                    </a>
-                                                ) : file.type.startsWith('image/') ? (
-                                                    <a
-                                                        href={file.dataUrl}
-                                                        download={file.name}
-                                                        title={`Download ${file.name}`}
-                                                    >
-                                                        <img
-                                                            src={file.dataUrl}
-                                                            alt={file.name}
-                                                            className="w-32 h-32 object-contain rounded"
-                                                        />
-                                                    </a>
-                                                ) : (
-                                                    <a
-                                                        href={file.dataUrl}
-                                                        download={file.name}
-                                                        className="text-xs underline text-blue-600 break-words"
-                                                    >
-                                                        {file.name}
-                                                    </a>
-                                                )
-                                            ) : (
-                                                <span className="text-xs">{file.name}</span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </li>
+                    {filteredHistory.map((entry: any) => (
+                        <HistoryItem key={entry.id} entry={entry} onDelete={onDeleteHistory} />
                     ))}
                 </ul>
             )}
 
             {/* Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center">
-                    <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 relative animate-fade-in">
-                        <button
-                            onClick={() => setIsModalOpen(false)}
-                            className="absolute top-3 right-3 text-gray-500 hover:text-red-600"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                        <h4 className="text-lg font-semibold mb-4">Add History Entry</h4>
-
-                        <label className="block mb-2 text-sm font-medium text-gray-700">
-                            Description
-                        </label>
-                        <textarea
-                            className="border border-gray-300 rounded px-3 py-2 w-full mb-4 resize-none focus:outline-blue-500 focus:ring-1"
-                            rows={3}
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Enter description..."
-                        />
-
-                        <label className="block mb-2 text-sm font-medium text-gray-700 cursor-pointer inline-flex items-center gap-2">
-                            📎 Attach Files
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                multiple
-                                onChange={handleFileChange}
-                                accept="image/*,audio/*,application/pdf"
-                                className="hidden"
-                            />
-                        </label>
-
-                        {files.length > 0 && (
-                            <div className="flex flex-wrap gap-3 mb-4">
-                                {files.map((file, i) => (
-                                    <div
-                                        key={i}
-                                        className="border rounded p-2 max-w-[80px] max-h-[80px] flex flex-col items-center relative bg-gray-50"
-                                    >
-                                        {file.type.startsWith('image/') ? (
-                                            <img
-                                                src={file.dataUrl}
-                                                alt={file.name}
-                                                className="w-16 h-16 object-contain rounded"
-                                            />
-                                        ) : (
-                                            <span className="text-xs text-center break-words px-1">
-                                                {file.name}
-                                            </span>
-                                        )}
-                                        <button
-                                            onClick={() => removeFile(i)}
-                                            className="absolute top-0 right-0 text-red-600 font-bold hover:text-red-900"
-                                            title="Remove file"
-                                            type="button"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        <button
-                            onClick={handleSubmit}
-                            className="w-full px-5 py-2 mt-2 bg-green-600 hover:bg-green-700 text-white rounded shadow"
-                        >
-                            Add History Entry
-                        </button>
-                    </div>
-                </div>
-            )}
+            <AddHistoryModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                description={description}
+                setDescription={setDescription}
+                files={files}
+                setFiles={setFiles}
+                removeFile={removeFile}
+                onSubmit={handleSubmit}
+                onFileChange={handleFileChange}
+            />
         </div>
     );
 }
