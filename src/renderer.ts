@@ -32,10 +32,12 @@ declare global {
     interface Window {
         electronAPI: {
             downloadDb: () => Promise<boolean>;
+             fetchUsers: () => Promise<User[]>;
         };
     }
 }
 
 import './index';
+import { User } from './types/user';
 
 console.log('👋 This message is being logged by "renderer.ts", included via Vite');

@@ -1,38 +1,37 @@
 import './index.css';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Header from './layout/Header';
 import LeftBar from './layout/LeftBar';
 import RightBar from './layout/RightBar';
 import UserFormModalUpdate from './components/userFormModal';
-import { useUserStore } from './stores/userStore';
+import type { User } from './types/user';
 
 export default function App() {
-    const {
-        users,
-        selectedUser,
-        setSelectedUser,
-        fetchUsers,
-        isUserFormOpen,
-        editingUser,
-        closeUserForm,
-    } = useUserStore();
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isUserFormOpen, setUserFormOpen] = useState(false);
 
-    useEffect(() => {
-        fetchUsers();
-    }, [fetchUsers]);
+  useEffect(() => {
+    const loadUsers = async () => {
+      const result = await window.electronAPI.fetchUsers();
+      setUsers(result);
+    };
 
-    return (
-        <div className="h-screen flex flex-col bg-gray-50">
-            <Header />
-            <div className="flex flex-1 overflow-hidden">
-                <LeftBar users={users} selectedUser={selectedUser} onSelectUser={setSelectedUser} />
-                <RightBar user={selectedUser} />
-            </div>
+    loadUsers();
+  }, []);
 
-            {/* ⬇️ Mount the modal here so it can show globally */}
-            {isUserFormOpen && (
-                <UserFormModalUpdate userToEdit={editingUser} onClose={closeUserForm} />
-            )}
-        </div>
-    );
+  return (
+    <div className="h-screen flex flex-col bg-gray-50">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <LeftBar users={users} selectedUser={selectedUser} onSelectUser={setSelectedUser} />
+        <RightBar user={selectedUser} />
+      </div>
+
+      {isUserFormOpen && (
+        <UserFormModalUpdate userToEdit={editingUser} onClose={() => setUserFormOpen(false)} />
+      )}
+    </div>
+  );
 }

@@ -4,6 +4,7 @@ import started from 'electron-squirrel-startup';
 import { registerDbHandlers } from './ipc/dbHandlers';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
+import { initializeDb } from './database/db';
 
 if (started) {
     app.quit();
@@ -68,6 +69,7 @@ const createWindow = () => {
 
 app.whenReady().then(async () => {
     registerDbHandlers();
+    await initializeDb(); 
     createWindow();
 
     // Check for updates only after app is ready and window created
