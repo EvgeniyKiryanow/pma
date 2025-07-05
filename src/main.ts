@@ -81,8 +81,8 @@ autoUpdater.on('update-downloaded', () => {
 const createWindow = () => {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
     const mainWindow = new BrowserWindow({
-        width: Math.floor(width * 0.9),
-        height: Math.floor(height * 0.9),
+        width: Math.floor(width),
+        height: Math.floor(height),
         icon: iconPath,
         frame: false,
         titleBarStyle: 'hidden',
