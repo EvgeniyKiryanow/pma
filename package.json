@@ -1,7 +1,7 @@
 {
   "name": "personnel-manager",
   "productName": "personnel-manager",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Personnel Manager for managering",
   "main": ".vite/build/main.js",
   "scripts": {
@@ -18,7 +18,7 @@
     "appId": "com.your.app",
     "productName": "PersonnelManager",
     "directories": {
-      "buildResources": "build/icons"
+      "buildResources": "assets/icons"
     },
     "files": [
       ".vite/build/main.js",

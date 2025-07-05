@@ -8,12 +8,17 @@ import { initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
 
 const iconPath = path.join(
-    __dirname,
-    '..',
-    'build',
-    'icons',
-    process.platform === 'win32' ? 'appIcon.ico' : 'appIcon.icns',
+  __dirname,
+  '..',
+  'assets',
+  'icons',
+  process.platform === 'win32'
+    ? 'appIcon.ico'
+    : process.platform === 'linux'
+    ? 'appIcon.png'
+    : 'appIcon.icns',
 );
+
 
 const isDev = !app.isPackaged;
 
