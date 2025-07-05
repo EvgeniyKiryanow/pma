@@ -5,7 +5,9 @@ import { registerDbHandlers } from './ipc/dbHandlers';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { initializeDb } from './database/db';
+
 const isDev = !app.isPackaged;
+
 if (started) {
     app.quit();
 }
@@ -15,7 +17,7 @@ log.transports.file.level = 'info';
 autoUpdater.logger = log;
 autoUpdater.logger.info('App starting…');
 
-// Handle update events
+// Auto updater events
 autoUpdater.on('checking-for-update', () => {
     log.info('Checking for updates...');
 });
@@ -31,20 +33,24 @@ autoUpdater.on('update-not-available', () => {
     log.info('No updates available.');
 });
 autoUpdater.on('error', (err) => {
-    log.error('Error in auto-updater:', err == null ? "unknown" : (err.stack || err).toString());
+    log.error('Error in auto-updater:', err == null ? 'unknown' : (err.stack || err).toString());
 });
 autoUpdater.on('download-progress', (progressObj) => {
-    log.info(`Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent.toFixed(2)}%`);
+    log.info(
+        `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent.toFixed(2)}%`,
+    );
 });
 autoUpdater.on('update-downloaded', () => {
     log.info('Update downloaded; will install now');
-    dialog.showMessageBox({
-        type: 'info',
-        title: 'Update Ready',
-        message: 'Update downloaded, application will quit and install now.',
-    }).then(() => {
-        autoUpdater.quitAndInstall();
-    });
+    dialog
+        .showMessageBox({
+            type: 'info',
+            title: 'Update Ready',
+            message: 'Update downloaded, application will quit and install now.',
+        })
+        .then(() => {
+            autoUpdater.quitAndInstall();
+        });
 });
 
 const createWindow = () => {
@@ -58,35 +64,30 @@ const createWindow = () => {
         },
     });
 
-    // if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    //     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
-    // } else {
-    //     mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
-    // }
     if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
-} else {
-    // Adjust path depending on your `vite` output config
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
-}
-
-    mainWindow.webContents.openDevTools();
+        mainWindow.loadURL('http://localhost:5173');
+        mainWindow.webContents.openDevTools();
+    } else {
+        const indexPath = path.join(app.getAppPath(), 'renderer_dist/index.html');
+        console.log('Loading production index.html from:', indexPath);
+        mainWindow.loadFile(indexPath);
+    }
 };
-process.on('unhandledRejection', (reason, promise) => {
+
+process.on('unhandledRejection', (reason) => {
     console.error('Unhandled Rejection:', reason);
 });
 
-app.whenReady().then(async () => {
-    registerDbHandlers();
-    await initializeDb(); 
-    createWindow();
-
-    // Check for updates only after app is ready and window created
-    autoUpdater.checkForUpdatesAndNotify();
-}).catch((err) => {
-  console.error('App failed to launch:', err);
-});
+app.whenReady()
+    .then(async () => {
+        registerDbHandlers();
+        await initializeDb();
+        createWindow();
+        autoUpdater.checkForUpdatesAndNotify();
+    })
+    .catch((err) => {
+        console.error('App failed to launch:', err);
+    });
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();

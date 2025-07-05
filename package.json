@@ -6,19 +6,21 @@
   "main": ".vite/build/main.js",
   "scripts": {
     "dev": "electron .",
-    "build": "vite build",
+      "build:main": "vite build --config vite.main.ts",
+  "build:preload": "vite build --config vite.preload.ts",
+  "build:renderer": "vite build --config vite.renderer.ts",
+  "build": "npm run build:main && npm run build:preload && npm run build:renderer",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "release": "npm run build && npm run dist",
-    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\""
+    "release": "npm run build && npm run dist"
   },
   "build": {
     "appId": "com.your.app",
     "productName": "PersonnelManager",
     "files": [
-      ".vite/**/*",
-      "build/**/*",
-      "dist/**/*",
+      ".vite/build/main.js",
+      ".vite/build/preload.js",
+      "renderer_dist/**/*",
       "node_modules/**/*",
       "package.json"
     ],
@@ -88,6 +90,7 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.11",
+    "@vitejs/plugin-react": "^4.6.0",
     "electron-log": "^5.4.1",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.6.2",

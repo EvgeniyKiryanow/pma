@@ -92,3 +92,4 @@ typings/
 out/
 build/
 dist/
+renderer_dist/
