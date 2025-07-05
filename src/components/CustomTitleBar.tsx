@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { X, RotateCcw, Upload, Trash2, Download } from 'lucide-react';
+import { X, RotateCcw, Upload, Trash2 } from 'lucide-react';
+import { useI18nStore } from '../stores/i18nStore';
 
 export default function CustomTitleBar() {
     const [version, setVersion] = useState('');
     const [checking, setChecking] = useState(false);
     const [hasUser, setHasUser] = useState<boolean | null>(null);
+    const { t } = useI18nStore();
 
     useEffect(() => {
         window.electronAPI.getAppVersion().then(setVersion);
@@ -17,38 +19,39 @@ export default function CustomTitleBar() {
         setChecking(false);
 
         if (result.status === 'error') {
-            alert('Error checking for updates: ' + result.message);
+            alert(t('titleBar.updateError') + ': ' + result.message);
         } else {
-            alert('Update check started. If a new version is found, it will be downloaded.');
+            alert(t('titleBar.updateStarted'));
         }
     };
 
     const handleRestore = async () => {
         if (!hasUser) {
-            alert('You must have a registered user to restore a backup.');
+            alert(t('titleBar.restoreNoUser'));
             return;
         }
 
         const success = await window.electronAPI.restoreDb();
-        if (success) window.location.reload();
-        else alert('Restore failed. Try again.');
+        if (success) {
+            window.location.reload();
+        } else {
+            alert(t('titleBar.restoreFail'));
+        }
     };
 
     const handleResetDb = async () => {
-        const confirm = window.confirm(
-            'Are you sure you want to reset the app?\nThis will delete all users and data!',
-        );
-        if (!confirm) return;
+        const confirmReset = window.confirm(t('titleBar.resetConfirm'));
+        if (!confirmReset) return;
 
         const success = await window.electronAPI.resetDb();
         if (success) {
             localStorage.removeItem('authToken');
             sessionStorage.removeItem('authToken');
 
-            alert('App has been reset. Restarting...');
+            alert(t('titleBar.resetSuccess'));
             window.location.reload();
         } else {
-            alert('Failed to reset database.');
+            alert(t('titleBar.resetFail'));
         }
     };
 
@@ -58,7 +61,7 @@ export default function CustomTitleBar() {
             style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
             <div className="flex items-center gap-4 text-sm font-semibold">
-                <span>Control Panel Manager</span>
+                <span>{t('titleBar.title')}</span>
                 {version && <span className="text-gray-400">v{version}</span>}
             </div>
 
@@ -66,9 +69,10 @@ export default function CustomTitleBar() {
                 className="flex gap-2"
                 style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
+                {/* Uncomment if you want update button */}
                 {/* <button
                     className="p-1 hover:bg-blue-600 rounded"
-                    title="Check for updates"
+                    title={t('titleBar.updateCheck')}
                     onClick={handleCheckUpdate}
                 >
                     <Download className="w-4 h-4" />
@@ -77,7 +81,7 @@ export default function CustomTitleBar() {
                 {hasUser && (
                     <button
                         className={`p-1 rounded ${hasUser ? 'hover:bg-green-600' : 'opacity-50 cursor-not-allowed'}`}
-                        title={'Restore Backup'}
+                        title={t('titleBar.restore')}
                         onClick={handleRestore}
                     >
                         <Upload className="w-4 h-4" />
@@ -86,7 +90,7 @@ export default function CustomTitleBar() {
 
                 <button
                     className="p-1 hover:bg-yellow-600 rounded"
-                    title="Reset App"
+                    title={t('titleBar.reset')}
                     onClick={handleResetDb}
                 >
                     <Trash2 className="w-4 h-4" />
@@ -94,7 +98,7 @@ export default function CustomTitleBar() {
 
                 <button
                     className="p-1 hover:bg-gray-600 rounded"
-                    title="Reload"
+                    title={t('titleBar.reload')}
                     onClick={() => window.location.reload()}
                 >
                     <RotateCcw className="w-4 h-4" />
@@ -102,7 +106,7 @@ export default function CustomTitleBar() {
 
                 <button
                     className="p-1 hover:bg-red-500 rounded"
-                    title="Close"
+                    title={t('titleBar.close')}
                     onClick={() => window.close()}
                 >
                     <X className="w-4 h-4" />
