@@ -34,11 +34,14 @@
     "mac": {
       "icon": "assets/icons/appIcon.icns",
       "target": [
-    {
-      "target": "zip",
-      "arch": ["x64", "arm64"]
-    }
-  ],
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
       "category": "public.app-category.utilities"
     },
     "win": {
@@ -48,13 +51,13 @@
       ]
     },
     "nsis": {
-  "oneClick": false,
-  "perMachine": false,
-  "allowToChangeInstallationDirectory": true,
-  "createDesktopShortcut": true,
-  "createStartMenuShortcut": true,
-  "shortcutName": "Personnel Manager"
-},
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Personnel Manager"
+    },
     "linux": {
       "icon": "assets/icons/appIcon.png",
       "target": [

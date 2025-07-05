@@ -6,6 +6,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
+
 const iconPath = path.join(
     __dirname,
     '..',
@@ -16,51 +17,62 @@ const iconPath = path.join(
 
 const isDev = !app.isPackaged;
 
+// Prevent squirrel auto-launch on Windows
 if (started) {
     app.quit();
 }
 
-// Configure electron-log
+// Setup logging for updater
 log.transports.file.level = 'info';
 autoUpdater.logger = log;
-autoUpdater.logger.info('App starting…');
+log.info('🟢 App starting…');
 
-// Auto updater events
+// ===== AUTO-UPDATER EVENTS =====
 autoUpdater.on('checking-for-update', () => {
-    log.info('Checking for updates...');
+    log.info('🔍 Checking for updates...');
 });
+
 autoUpdater.on('update-available', (info) => {
-    log.info('Update available:', info.version);
+    log.info(`⬇️ Update available: ${info.version}`);
     dialog.showMessageBox({
         type: 'info',
         title: 'Update Available',
-        message: `Version ${info.version} is available and will be downloaded in background.`,
+        message: `A new version (${info.version}) is available and is being downloaded.`,
     });
 });
+
 autoUpdater.on('update-not-available', () => {
-    log.info('No updates available.');
+    log.info('✅ No updates available.');
 });
+
 autoUpdater.on('error', (err) => {
-    log.error('Error in auto-updater:', err == null ? 'unknown' : (err.stack || err).toString());
+    log.error('❌ Error in auto-updater:', err?.stack || err?.message || err);
 });
-autoUpdater.on('download-progress', (progressObj) => {
-    log.info(
-        `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent.toFixed(2)}%`,
-    );
+
+autoUpdater.on('download-progress', (progress) => {
+    log.info(`📦 Downloading update... ${progress.percent.toFixed(2)}%`);
 });
+
 autoUpdater.on('update-downloaded', () => {
-    log.info('Update downloaded; will install now');
+    log.info('✅ Update downloaded');
+
     dialog
         .showMessageBox({
             type: 'info',
             title: 'Update Ready',
-            message: 'Update downloaded, application will quit and install now.',
+            message: 'A new update has been downloaded. Restart the app now to install it?',
+            buttons: ['Restart Now', 'Later'],
+            defaultId: 0,
+            cancelId: 1,
         })
-        .then(() => {
-            autoUpdater.quitAndInstall();
+        .then((result) => {
+            if (result.response === 0) {
+                autoUpdater.quitAndInstall();
+            }
         });
 });
 
+// ===== CREATE MAIN WINDOW =====
 const createWindow = () => {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
     const mainWindow = new BrowserWindow({
@@ -81,11 +93,11 @@ const createWindow = () => {
         mainWindow.webContents.openDevTools();
     } else {
         const indexPath = path.join(app.getAppPath(), 'renderer_dist/index.html');
-        console.log('Loading production index.html from:', indexPath);
         mainWindow.loadFile(indexPath);
     }
 };
 
+// ===== HANDLE APP STARTUP =====
 process.on('unhandledRejection', (reason) => {
     console.error('Unhandled Rejection:', reason);
 });
@@ -96,10 +108,14 @@ app.whenReady()
         await initializeDb();
         await upgradeDbSchema();
         createWindow();
-        autoUpdater.checkForUpdatesAndNotify();
+
+        // Trigger update check in production only
+        if (!isDev) {
+            autoUpdater.checkForUpdatesAndNotify();
+        }
     })
     .catch((err) => {
-        console.error('App failed to launch:', err);
+        console.error('❌ App failed to launch:', err);
     });
 
 app.on('window-all-closed', () => {

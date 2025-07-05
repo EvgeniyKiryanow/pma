@@ -38,4 +38,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     addUserComment: (userId: number, comment: CommentOrHistoryEntry) =>
         ipcRenderer.invoke('comments:add-user-comment', userId, comment),
     deleteUserComment: (id: number) => ipcRenderer.invoke('comments:delete-user-comment', id),
+
+    // Version
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+    installUpdate: () => ipcRenderer.invoke('install-update'),
+    getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 });

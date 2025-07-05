@@ -1,13 +1,30 @@
-import { X, RotateCcw, Upload, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, RotateCcw, Upload, Trash2, Download } from 'lucide-react';
 
 export default function CustomTitleBar() {
+    const [version, setVersion] = useState('');
+    const [checking, setChecking] = useState(false);
+
+    useEffect(() => {
+        window.electronAPI.getAppVersion().then(setVersion);
+    }, []);
+
+    const handleCheckUpdate = async () => {
+        setChecking(true);
+        const result = await window.electronAPI.checkForUpdates();
+        setChecking(false);
+
+        if (result.status === 'error') {
+            alert('Error checking for updates: ' + result.message);
+        } else {
+            alert('Update check started. If a new version is found, it will be downloaded.');
+        }
+    };
+
     const handleRestore = async () => {
         const success = await window.electronAPI.restoreDb();
-        if (success) {
-            window.location.reload();
-        } else {
-            alert('Restore failed. Try again.');
-        }
+        if (success) window.location.reload();
+        else alert('Restore failed. Try again.');
     };
 
     const handleResetDb = async () => {
@@ -15,14 +32,11 @@ export default function CustomTitleBar() {
             'Are you sure you want to reset the app?\nThis will delete all users and data!',
         );
         if (!confirm) return;
-
         const success = await window.electronAPI.resetDb();
         if (success) {
             alert('App has been reset. Restarting...');
             window.location.reload();
-        } else {
-            alert('Failed to reset database.');
-        }
+        } else alert('Failed to reset database.');
     };
 
     return (
@@ -30,12 +44,23 @@ export default function CustomTitleBar() {
             className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 bg-gray-800 text-white select-none shadow-md"
             style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
-            <div className="text-sm font-semibold">Control Panel Manager</div>
+            <div className="flex items-center gap-4 text-sm font-semibold">
+                <span>Control Panel Manager</span>
+                {version && <span className="text-gray-400">v{version}</span>}
+            </div>
 
             <div
                 className="flex gap-2"
                 style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
+                <button
+                    className="p-1 hover:bg-blue-600 rounded"
+                    title="Check for updates"
+                    onClick={handleCheckUpdate}
+                >
+                    <Download className="w-4 h-4" />
+                </button>
+
                 <button
                     className="p-1 hover:bg-green-600 rounded"
                     title="Restore Backup"

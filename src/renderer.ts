@@ -42,6 +42,13 @@ declare global {
             getUserComments: (userId: number) => Promise<CommentOrHistoryEntry[]>;
             addUserComment: (userId: number, newComment: any) => Promise<{ success: boolean }>;
             deleteUserComment: (id: number) => Promise<boolean>;
+
+            // ---Updater----
+            checkForUpdates: () => Promise<
+                { status: 'ok'; info?: any } | { status: 'error'; message: string }
+            >;
+            installUpdate: () => Promise<boolean>;
+            getAppVersion: () => Promise<string>;
         };
     }
 }

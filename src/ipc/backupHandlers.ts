@@ -1,4 +1,4 @@
-import { ipcMain, dialog, app } from 'electron';
+import { ipcMain, dialog, app, autoUpdater } from 'electron';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
@@ -122,6 +122,22 @@ export function registerBackupHandlers() {
             console.error('Replace DB error:', error);
             return false;
         }
+    });
+    ipcMain.handle('check-for-updates', async () => {
+        try {
+            const result = await autoUpdater.checkForUpdates();
+            return { status: 'ok', info: result };
+        } catch (err: any) {
+            return { status: 'error', message: err?.message || 'Unknown error' };
+        }
+    });
+
+    ipcMain.handle('install-update', () => {
+        autoUpdater.quitAndInstall();
+    });
+
+    ipcMain.handle('get-app-version', () => {
+        return app.getVersion();
     });
 
     // 🔁 Start backup schedule on app load
