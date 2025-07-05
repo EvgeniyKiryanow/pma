@@ -59,7 +59,7 @@ autoUpdater.on('update-downloaded', () => {
     dialog
         .showMessageBox({
             type: 'info',
-            title: 'Update Ready',
+            title: 'Update Ready for downloading',
             message: 'A new update has been downloaded. Restart the app now to install it?',
             buttons: ['Restart Now', 'Later'],
             defaultId: 0,
