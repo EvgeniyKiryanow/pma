@@ -6,6 +6,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
+const iconPath = path.join(__dirname, '..', 'build', 'icons', process.platform === 'win32' ? 'appIcon.ico' : 'appIcon.icns');
 
 const isDev = !app.isPackaged;
 
@@ -58,6 +59,7 @@ const createWindow = () => {
     const mainWindow = new BrowserWindow({
         width: 800,
         height: 600,
+        icon: iconPath,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,

@@ -17,28 +17,35 @@
   "build": {
     "appId": "com.your.app",
     "productName": "PersonnelManager",
+    "directories": {
+    "buildResources": "build/icons"
+  },
     "files": [
       ".vite/build/main.js",
       ".vite/build/preload.js",
       "renderer_dist/**/*",
       "node_modules/**/*",
+      "assets/icons/**/*",
       "package.json"
     ],
     "asarUnpack": [
       "node_modules/sqlite3/**"
     ],
     "mac": {
+      "icon": "assets/icons/appIcon.icns",
       "target": [
         "zip"
       ],
       "category": "public.app-category.utilities"
     },
     "win": {
+      "icon": "assets/icons/appIcon.ico",
       "target": [
         "nsis"
       ]
     },
     "linux": {
+      "icon": "assets/icons/appIcon.png",
       "target": [
         "AppImage"
       ]
