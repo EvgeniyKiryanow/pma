@@ -169,7 +169,7 @@ export default function RightBar() {
                         <ClipboardList className="w-5 h-5" /> History / Історія
                     </h2>
                     <UserHistory
-                        history={user.history}
+                        userId={user.id}
                         onAddHistory={handleAddHistory}
                         onDeleteHistory={handleDeleteHistory}
                     />

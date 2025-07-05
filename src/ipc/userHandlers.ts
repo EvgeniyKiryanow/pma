@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron';
 import { getDb } from '../database/db';
+import dayjs from 'dayjs';
+import { CommentOrHistoryEntry } from 'src/types/user';
 
 export function registerUserHandlers() {
     // Fetch all users
@@ -83,4 +85,30 @@ export function registerUserHandlers() {
         await db.run('DELETE FROM users WHERE id = ?', userId);
         return true;
     });
+
+    ipcMain.handle('history:get-user-history', async (_event, userId: number, filter: string) => {
+        const db = await getDb();
+
+        const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
+        if (!user || !user.history) return [];
+
+        const history: CommentOrHistoryEntry[] = JSON.parse(user.history);
+
+        const fromDate = getFilterDate(filter); // returns date N days ago
+        return history.filter((entry) => new Date(entry.date) >= fromDate);
+    });
+}
+export function getFilterDate(filter: string): Date {
+    const now = new Date();
+    const map: Record<string, number> = {
+        '1day': 1,
+        '7days': 7,
+        '14days': 14,
+        '30days': 30,
+        all: 100 * 365, // basically no limit
+    };
+
+    const days = map[filter] ?? 30;
+    now.setDate(now.getDate() - days);
+    return now;
 }

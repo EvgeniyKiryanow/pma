@@ -62,6 +62,20 @@ export async function initializeDb() {
       history TEXT
     );
   `);
+  // histore
+   await db.exec(`
+    CREATE TABLE IF NOT EXISTS user_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  userId INTEGER NOT NULL,
+  date TEXT NOT NULL,
+  author TEXT,
+  type TEXT,
+  content TEXT,
+  description TEXT,
+  files TEXT,
+  FOREIGN KEY (userId) REFERENCES users(id)
+);
+  `);
 
     // Handle migration for existing DB
     const userColumns = await db.all(`PRAGMA table_info(users);`);
