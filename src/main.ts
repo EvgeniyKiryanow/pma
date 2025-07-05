@@ -108,11 +108,7 @@ app.whenReady()
         await initializeDb();
         await upgradeDbSchema();
         createWindow();
-
-        // Trigger update check in production only
-        if (!isDev) {
-            autoUpdater.checkForUpdatesAndNotify();
-        }
+        autoUpdater.checkForUpdatesAndNotify();
     })
     .catch((err) => {
         console.error('❌ App failed to launch:', err);
