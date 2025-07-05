@@ -17,6 +17,16 @@ export const en = {
         searchPlaceholder: 'Search by name, rank, or ID...',
         noUsersFound: 'No users found',
     },
+    reminders: {
+        title: 'Reminders',
+        addLabel: 'Add a new reminder',
+        placeholder: 'What do you want to be reminded about?',
+        addButton: 'Add Reminder',
+        done: 'Done',
+        undone: 'Undone',
+        delete: 'Delete',
+    },
+
     rightBar: {
         selectPrompt: 'Select a user to see details',
         edit: 'Edit',

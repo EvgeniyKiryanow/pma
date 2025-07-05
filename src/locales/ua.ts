@@ -17,6 +17,15 @@ export const ua = {
         searchPlaceholder: 'Пошук за імʼям, званням або ID...',
         noUsersFound: 'Користувачів не знайдено',
     },
+    reminders: {
+        title: 'Нагадування',
+        addLabel: 'Додати нове нагадування',
+        placeholder: 'Про що потрібно нагадати?',
+        addButton: 'Додати нагадування',
+        done: 'Виконано',
+        undone: 'Не виконано',
+        delete: 'Видалити',
+    },
     rightBar: {
         selectPrompt: 'Виберіть користувача для перегляду деталей',
         edit: 'Редагувати',

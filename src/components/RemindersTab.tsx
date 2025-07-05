@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useI18nStore } from '../stores/i18nStore';
 
 type Todo = {
     id: number;
@@ -7,6 +8,7 @@ type Todo = {
 };
 
 export default function RemindersTab() {
+    const { t } = useI18nStore();
     const [todos, setTodos] = useState<Todo[]>([]);
     const [newTodo, setNewTodo] = useState('');
 
@@ -18,7 +20,7 @@ export default function RemindersTab() {
         const rawData = await window.electronAPI.getTodos();
         const data: Todo[] = rawData.map((item: any) => ({
             ...item,
-            completed: Boolean(item.completed), // Приводимо number → boolean
+            completed: Boolean(item.completed),
         }));
         setTodos(data);
     };
@@ -42,24 +44,24 @@ export default function RemindersTab() {
 
     return (
         <div className="p-6 max-w-4xl mx-auto text-gray-800">
-            <h2 className="text-3xl font-bold mb-6 text-blue-700">📝 Reminders</h2>
+            <h2 className="text-3xl font-bold mb-6 text-blue-700">📝 {t('reminders.title')}</h2>
 
             <div className="bg-white shadow-md rounded-lg p-6 mb-6">
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Add a new reminder
+                    {t('reminders.addLabel')}
                 </label>
                 <textarea
                     value={newTodo}
                     onChange={(e) => setNewTodo(e.target.value)}
                     rows={3}
-                    placeholder="What do you want to be reminded about?"
+                    placeholder={t('reminders.placeholder')}
                     className="w-full p-3 border border-gray-300 rounded-md resize-none focus:outline-blue-500 text-sm"
                 />
                 <button
                     onClick={handleAdd}
                     className="mt-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md shadow transition"
                 >
-                    Add Reminder
+                    {t('reminders.addButton')}
                 </button>
             </div>
 
@@ -89,13 +91,13 @@ export default function RemindersTab() {
                                         : 'bg-green-100 text-green-800 hover:bg-green-200'
                                 }`}
                             >
-                                {todo.completed ? 'Undone' : 'Done'}
+                                {todo.completed ? t('reminders.undone') : t('reminders.done')}
                             </button>
                             <button
                                 onClick={() => handleDelete(todo.id)}
                                 className="text-xs font-medium px-3 py-1 rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition"
                             >
-                                Delete
+                                {t('reminders.delete')}
                             </button>
                         </div>
                     </li>
