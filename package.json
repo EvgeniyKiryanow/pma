@@ -1,7 +1,7 @@
 {
   "name": "personnel-manager",
   "productName": "personnel-manager",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Personnel Manager for managering",
   "main": ".vite/build/main.js",
   "scripts": {
