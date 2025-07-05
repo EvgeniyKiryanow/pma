@@ -3,6 +3,7 @@ import { useUserStore } from '../stores/userStore';
 import { LogOut, PlusCircle, Clock, Gift } from 'lucide-react';
 import type { User } from '../types/user';
 import { useI18nStore } from '../stores/i18nStore';
+import LogoSvg from '../icons/LogoSvg';
 
 type HeaderProps = {
     currentTab: 'manager' | 'backups';
@@ -61,7 +62,9 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
             {/* Top Bar */}
             <div className="flex items-center justify-between px-4 sm:px-10 py-3">
                 <div className="flex items-center gap-3">
-                    <img src="./assets/icons/appIcon.png" alt="Logo" className="w-8 h-8" />
+                    <div className="w-[75px] h-[75px]">
+                        <LogoSvg />
+                    </div>
                     <h1 className="text-lg font-bold tracking-tight">{t('header.title')}</h1>
                 </div>
 
