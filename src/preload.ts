@@ -46,4 +46,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // clear token
     onClearToken: (callback: () => void) => ipcRenderer.on('clear-auth-token', callback),
+
+    // todo
+    getTodos: () => ipcRenderer.invoke('fetch-todos'),
+    addTodo: (content: string) => ipcRenderer.invoke('add-todos', content),
+    toggleTodo: (id: number) => ipcRenderer.invoke('toggle-todos', id),
+    deleteTodo: (id: number) => ipcRenderer.invoke('delete-todos', id),
 });

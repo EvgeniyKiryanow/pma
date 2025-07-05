@@ -52,6 +52,12 @@ declare global {
 
             // clear toke
             onClearToken: (callback: () => void) => Promise<any>;
+            
+            // --- Todos ---
+            getTodos: () => Promise<{ id: number; content: string; completed: number }[]>;
+            addTodo: (content: string) => Promise<void>;
+            toggleTodo: (id: number) => Promise<void>;
+            deleteTodo: (id: number) => Promise<void>;
         };
     }
 }

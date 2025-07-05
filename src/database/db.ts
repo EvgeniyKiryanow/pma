@@ -88,6 +88,14 @@ CREATE TABLE IF NOT EXISTS users (
     files TEXT
 );
   `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS todos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content TEXT NOT NULL,
+        completed INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+`);
 
   const userColumns = await db.all(`PRAGMA table_info(users);`);
 
