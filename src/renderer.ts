@@ -32,7 +32,10 @@ declare global {
             addUser: (user: Omit<User, 'id'>) => Promise<User>;
             updateUser: (user: User) => Promise<User>;
             deleteUser: (id: number) => Promise<boolean>;
+
+            //  --- History CRUD ---
             getUserHistory: (userId: number, filter: string) => Promise<CommentOrHistoryEntry[]>;
+            addUserHistory: (userId: number, newEntry: any) => Promise<CommentOrHistoryEntry[]>;
         };
     }
 }

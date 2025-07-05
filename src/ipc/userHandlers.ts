@@ -97,6 +97,21 @@ export function registerUserHandlers() {
         const fromDate = getFilterDate(filter); // returns date N days ago
         return history.filter((entry) => new Date(entry.date) >= fromDate);
     });
+    ipcMain.handle('history:add-entry', async (_event, userId: number, newEntry: any) => {
+        const db = await getDb();
+        const user = await db.get(`SELECT history FROM users WHERE id = ?`, userId);
+
+        const existingHistory = user?.history ? JSON.parse(user.history) : [];
+
+        existingHistory.push(newEntry);
+
+        await db.run(
+            `UPDATE users SET history = ? WHERE id = ?`,
+            JSON.stringify(existingHistory),
+            userId,
+        );
+        return { success: true };
+    });
 }
 export function getFilterDate(filter: string): Date {
     const now = new Date();

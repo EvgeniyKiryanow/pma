@@ -1,5 +1,7 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import type { CommentOrHistoryEntry } from '../../types/user';
+import { Plus, X } from 'lucide-react';
+// import clsx from 'clsx';
 
 const FILTER_OPTIONS = [
     { label: '1 Day', value: '1day' },
@@ -27,6 +29,7 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedFilter, setSelectedFilter] = useState('30days');
     const [history, setHistory] = useState<CommentOrHistoryEntry[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -64,7 +67,7 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
         setFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         const newEntry: CommentOrHistoryEntry = {
             id: Date.now(),
             type: 'history',
@@ -75,50 +78,66 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
             files,
         };
 
-        onAddHistory(newEntry);
-        setDescription('');
-        setFiles([]);
+        try {
+            await window.electronAPI.addUserHistory(userId, newEntry);
+            const refreshed = await window.electronAPI.getUserHistory(userId, selectedFilter);
+            setHistory(refreshed); // 🔄 update history list
+
+            setDescription('');
+            setFiles([]);
+            setIsModalOpen(false);
+        } catch (err) {
+            console.error('Failed to save history:', err);
+            alert('Error saving history. Please try again.');
+        }
     };
 
     const filteredHistory = useMemo(() => {
         if (!searchTerm.trim()) return history;
-
         const term = searchTerm.toLowerCase();
-
-        return history.filter((entry) => {
-            if (entry.description?.toLowerCase().includes(term)) return true;
-            if (entry.author?.toLowerCase().includes(term)) return true;
-            if (new Date(entry.date).toLocaleDateString().toLowerCase().includes(term)) return true;
-            if (entry.files?.some((file) => file.name.toLowerCase().includes(term))) return true;
-            return false;
-        });
+        return history.filter(
+            (entry) =>
+                [entry.description, entry.author, new Date(entry.date).toLocaleDateString()].some(
+                    (field) => field?.toLowerCase().includes(term),
+                ) || entry.files?.some((file) => file.name.toLowerCase().includes(term)),
+        );
     }, [history, searchTerm]);
 
     return (
-        <div className="mt-6">
+        <div className="relative">
+            {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold">User History</h3>
-                <select
-                    value={selectedFilter}
-                    onChange={(e) => setSelectedFilter(e.target.value)}
-                    className="px-2 py-1 border text-sm rounded bg-white"
-                >
-                    {FILTER_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                        </option>
-                    ))}
-                </select>
+                <div className="flex items-center gap-3">
+                    <select
+                        value={selectedFilter}
+                        onChange={(e) => setSelectedFilter(e.target.value)}
+                        className="px-2 py-1 border text-sm rounded bg-white"
+                    >
+                        {FILTER_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-1 text-sm px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded shadow"
+                    >
+                        <Plus className="w-4 h-4" /> Add History
+                    </button>
+                </div>
             </div>
 
             <input
                 type="text"
-                placeholder="Search history by description, author, date, or file name..."
+                placeholder="Search by description, author, date, or file..."
                 className="mb-6 w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-blue-500 focus:ring-1"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
             />
 
+            {/* History List */}
             {filteredHistory.length === 0 ? (
                 <p className="text-gray-500 italic">No history records found.</p>
             ) : (
@@ -133,15 +152,12 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
                             >
                                 ×
                             </button>
-
                             <p className="text-sm text-gray-600 mb-1">
                                 <strong>{h.type.toUpperCase()}</strong> —{' '}
                                 {new Date(h.date).toLocaleDateString()}
                                 {h.author && ` by ${h.author}`}
                             </p>
-
                             {h.description && <p className="font-medium mb-2">{h.description}</p>}
-
                             {h.files?.length > 0 && (
                                 <div className="flex flex-wrap gap-3">
                                     {h.files.map((file, i) => (
@@ -188,102 +204,86 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
                                     ))}
                                 </div>
                             )}
-
-                            {h.type === 'text' && h.content && (
-                                <p className="text-blue-600 text-sm break-all">{h.content}</p>
-                            )}
                         </li>
                     ))}
                 </ul>
             )}
 
-            <div className="mt-8 p-6 border rounded bg-white shadow-sm">
-                <h4 className="text-lg font-semibold mb-4">Add History Entry</h4>
+            {/* Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center">
+                    <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 relative animate-fade-in">
+                        <button
+                            onClick={() => setIsModalOpen(false)}
+                            className="absolute top-3 right-3 text-gray-500 hover:text-red-600"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                        <h4 className="text-lg font-semibold mb-4">Add History Entry</h4>
 
-                <label
-                    htmlFor="history-description"
-                    className="block mb-2 text-sm font-medium text-gray-700"
-                >
-                    Description
-                </label>
-                <textarea
-                    id="history-description"
-                    className="border border-gray-300 rounded px-3 py-2 w-full mb-4 resize-none focus:outline-blue-500 focus:ring-1"
-                    rows={3}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Enter description..."
-                />
-
-                <label className="block mb-2 text-sm font-medium text-gray-700 cursor-pointer inline-flex items-center gap-2">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 text-blue-600"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15.172 7l-6.586 6.586a2 2 0 11-2.828-2.828L12.344 4"
+                        <label className="block mb-2 text-sm font-medium text-gray-700">
+                            Description
+                        </label>
+                        <textarea
+                            className="border border-gray-300 rounded px-3 py-2 w-full mb-4 resize-none focus:outline-blue-500 focus:ring-1"
+                            rows={3}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Enter description..."
                         />
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"
-                        />
-                    </svg>
-                    Attach Files
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        onChange={handleFileChange}
-                        accept="image/*,audio/*,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        className="hidden"
-                    />
-                </label>
 
-                {files.length > 0 && (
-                    <div className="flex flex-wrap gap-3 mb-4">
-                        {files.map((file, i) => (
-                            <div
-                                key={i}
-                                className="border rounded p-2 max-w-[80px] max-h-[80px] flex flex-col items-center relative bg-gray-50"
-                            >
-                                {file.type.startsWith('image/') ? (
-                                    <img
-                                        src={file.dataUrl}
-                                        alt={file.name}
-                                        className="w-16 h-16 object-contain rounded"
-                                    />
-                                ) : (
-                                    <span className="text-xs text-center break-words px-1">
-                                        {file.name}
-                                    </span>
-                                )}
-                                <button
-                                    onClick={() => removeFile(i)}
-                                    className="absolute top-0 right-0 text-red-600 font-bold hover:text-red-900"
-                                    title="Remove file"
-                                    type="button"
-                                >
-                                    ×
-                                </button>
+                        <label className="block mb-2 text-sm font-medium text-gray-700 cursor-pointer inline-flex items-center gap-2">
+                            📎 Attach Files
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                onChange={handleFileChange}
+                                accept="image/*,audio/*,application/pdf"
+                                className="hidden"
+                            />
+                        </label>
+
+                        {files.length > 0 && (
+                            <div className="flex flex-wrap gap-3 mb-4">
+                                {files.map((file, i) => (
+                                    <div
+                                        key={i}
+                                        className="border rounded p-2 max-w-[80px] max-h-[80px] flex flex-col items-center relative bg-gray-50"
+                                    >
+                                        {file.type.startsWith('image/') ? (
+                                            <img
+                                                src={file.dataUrl}
+                                                alt={file.name}
+                                                className="w-16 h-16 object-contain rounded"
+                                            />
+                                        ) : (
+                                            <span className="text-xs text-center break-words px-1">
+                                                {file.name}
+                                            </span>
+                                        )}
+                                        <button
+                                            onClick={() => removeFile(i)}
+                                            className="absolute top-0 right-0 text-red-600 font-bold hover:text-red-900"
+                                            title="Remove file"
+                                            type="button"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
+                        )}
+
+                        <button
+                            onClick={handleSubmit}
+                            className="w-full px-5 py-2 mt-2 bg-green-600 hover:bg-green-700 text-white rounded shadow"
+                        >
+                            Add History Entry
+                        </button>
                     </div>
-                )}
-                <button
-                    onClick={handleSubmit}
-                    className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded shadow transition-colors"
-                >
-                    Add History Entry
-                </button>
-            </div>
+                </div>
+            )}
         </div>
     );
 }
