@@ -1,7 +1,7 @@
 {
   "name": "p-manager",
   "productName": "p-manager",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "P Manager for managering",
   "main": ".vite/build/main.js",
   "scripts": {

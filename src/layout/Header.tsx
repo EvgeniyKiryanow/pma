@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useUserStore } from '../stores/userStore';
 import { LogOut, PlusCircle, Clock, Gift } from 'lucide-react';
 import type { User } from '../types/user';
+import { useI18nStore } from '../stores/i18nStore';
 
 type HeaderProps = {
     currentTab: 'manager' | 'backups';
@@ -13,6 +14,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     const [now, setNow] = useState<string>(() => formatDateTime(new Date()));
     const [upcomingBirthdays, setUpcomingBirthdays] = useState<User[]>([]);
     const [showBirthdayModal, setShowBirthdayModal] = useState(false);
+    const { t, language, setLanguage } = useI18nStore();
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -60,8 +62,9 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
             <div className="flex items-center justify-between px-4 sm:px-10 py-3">
                 <div className="flex items-center gap-3">
                     <img src="./assets/icons/appIcon.png" alt="Logo" className="w-8 h-8" />
-                    <h1 className="text-lg font-bold tracking-tight">Personnel Manager</h1>
+                    <h1 className="text-lg font-bold tracking-tight">{t('header.title')}</h1>
                 </div>
+
                 <div className="flex items-center gap-6 text-gray-700">
                     <div className="flex items-center gap-1 text-sm text-gray-500">
                         <Clock className="w-4 h-4" />
@@ -73,12 +76,14 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                     {upcomingBirthdays.length > 0 && (
                         <button
                             onClick={() => setShowBirthdayModal(true)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-yellow-100 text-yellow-800 border border-yellow-300 cursor-pointer transition hover:bg-yellow-200"
-                            title="View upcoming birthdays"
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-yellow-100 text-yellow-800 border border-yellow-300 transition hover:bg-yellow-200"
+                            title={t('header.viewBirthdays')}
                         >
                             <Gift className="w-4 h-4" />
-                            {upcomingBirthdays.length} upcoming birthday
-                            {upcomingBirthdays.length > 1 ? 's' : ''}
+                            {upcomingBirthdays.length}{' '}
+                            {upcomingBirthdays.length === 1
+                                ? t('header.upcomingBirthday')
+                                : t('header.upcomingBirthdays')}
                         </button>
                     )}
 
@@ -88,7 +93,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition"
                         >
                             <PlusCircle className="w-4 h-4" />
-                            Add new Person
+                            {t('header.addUser')}
                         </button>
                     )}
 
@@ -97,8 +102,28 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-red-500 hover:bg-red-600 text-white shadow-sm transition"
                     >
                         <LogOut className="w-4 h-4" />
-                        Log out
+                        {t('header.logout')}
                     </button>
+
+                    {/* Language Switcher */}
+                    <div className="ml-2 flex gap-1 text-xs">
+                        <button
+                            onClick={() => setLanguage('en')}
+                            className={`px-2 py-1 rounded ${
+                                language === 'en' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+                            }`}
+                        >
+                            EN
+                        </button>
+                        <button
+                            onClick={() => setLanguage('ua')}
+                            className={`px-2 py-1 rounded ${
+                                language === 'ua' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+                            }`}
+                        >
+                            UA
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -113,7 +138,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                                 : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
                         }`}
                     >
-                        Manager
+                        {t('header.managerTab')}
                     </button>
                     <button
                         onClick={() => setCurrentTab('backups')}
@@ -123,7 +148,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                                 : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
                         }`}
                     >
-                        Backups
+                        {t('header.backupTab')}
                     </button>
                 </div>
             </nav>
@@ -132,7 +157,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
             {showBirthdayModal && (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
                     <div className="bg-white max-w-md w-full rounded-lg p-6 shadow-lg border relative">
-                        <h2 className="text-lg font-bold mb-4">🎂 Upcoming Birthdays</h2>
+                        <h2 className="text-lg font-bold mb-4">{t('header.birthdayTitle')}</h2>
 
                         <ul className="space-y-2 max-h-[300px] overflow-y-auto">
                             {upcomingBirthdays.map((user) => {

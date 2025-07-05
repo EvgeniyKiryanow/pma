@@ -17,12 +17,13 @@ import {
     Trash2,
     Search,
 } from 'lucide-react';
+import { useI18nStore } from '../stores/i18nStore';
 
 export default function RightBar() {
     const [showComments, setShowComments] = useState(false);
     const [search, setSearch] = useState('');
     const [dbComments, setDbComments] = useState<CommentOrHistoryEntry[]>([]);
-
+const { t } = useI18nStore();
     const user = useUserStore((s) => s.selectedUser);
     const updateUser = useUserStore((s) => s.updateUser);
     const deleteUser = useUserStore((s) => s.deleteUser);
