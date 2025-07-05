@@ -5,7 +5,7 @@ import { registerDbHandlers } from './ipc/dbHandlers';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { initializeDb } from './database/db';
-
+const isDev = !app.isPackaged;
 if (started) {
     app.quit();
 }
@@ -58,14 +58,24 @@ const createWindow = () => {
         },
     });
 
-    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-        mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
-    } else {
-        mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
-    }
+    // if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    //     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    // } else {
+    //     mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
+    // }
+    if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.webContents.openDevTools();
+} else {
+    // Adjust path depending on your `vite` output config
+    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+}
 
     mainWindow.webContents.openDevTools();
 };
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection:', reason);
+});
 
 app.whenReady().then(async () => {
     registerDbHandlers();
@@ -74,6 +84,8 @@ app.whenReady().then(async () => {
 
     // Check for updates only after app is ready and window created
     autoUpdater.checkForUpdatesAndNotify();
+}).catch((err) => {
+  console.error('App failed to launch:', err);
 });
 
 app.on('window-all-closed', () => {

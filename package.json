@@ -5,20 +5,25 @@
   "description": "Personnel Manager for managering",
   "main": ".vite/build/main.js",
   "scripts": {
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
-    "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx .",
-    "release": "vite build && electron-forge package && electron-forge make"
+      "dev": "electron .",
+  "build": "vite build",
+  "pack": "electron-builder --dir",
+  "dist": "electron-builder",             
+  "release": "npm run build && npm run dist"
+
   },
   "build": {
     "appId": "com.your.app",
     "productName": "PersonnelManager",
-    "files": [
+     "files": [
+      ".vite/**/*",
+      "build/**/*",
       "dist/**/*",
       "node_modules/**/*",
       "package.json"
+    ],
+        "asarUnpack": [
+      "node_modules/sqlite3/**"
     ],
     "mac": {
       "target": ["zip"],
