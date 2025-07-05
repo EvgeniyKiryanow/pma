@@ -135,6 +135,14 @@ export default function RightBar() {
                             <p>{user.rights || '—'}</p>
                         </div>
                         <div className="sm:col-span-2">
+                            <span className="block text-sm text-gray-500">Education / Освіта</span>
+                            <p>{user.education || '—'}</p>
+                        </div>
+                        <div className="sm:col-span-2">
+                            <span className="block text-sm text-gray-500">Awards / Нагороди</span>
+                            <p>{user.awards || '—'}</p>
+                        </div>
+                        <div className="sm:col-span-2">
                             <span className="block text-sm text-gray-500 flex items-center gap-1">
                                 <Info className="w-4 h-4" /> Conscription Info / Інфо про призов
                             </span>

@@ -26,21 +26,6 @@ export default function BackupControls() {
         fetchInitialData();
     }, []);
 
-    const handleDownload = async () => {
-        const success = await window.electronAPI.downloadDb();
-        alert(success ? '✅ Backup saved successfully!' : '❌ Backup failed!');
-    };
-
-    const handleRestore = async () => {
-        const success = await window.electronAPI.restoreDb();
-        alert(
-            success
-                ? '✅ Database restored successfully! Please restart the app.'
-                : '❌ Restore failed!',
-        );
-        if (success) window.location.reload();
-    };
-
     const handleSaveInterval = async () => {
         setIsSaving(true);
         try {
@@ -57,21 +42,6 @@ export default function BackupControls() {
     return (
         <div className="max-w-lg mx-auto p-6 bg-white rounded shadow border space-y-6">
             <h2 className="text-lg font-semibold text-gray-800">Backup Controls</h2>
-
-            <div className="flex gap-3">
-                <button
-                    onClick={handleDownload}
-                    className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded shadow"
-                >
-                    Download Backup
-                </button>
-                <button
-                    onClick={handleRestore}
-                    className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded shadow"
-                >
-                    Restore Backup
-                </button>
-            </div>
 
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

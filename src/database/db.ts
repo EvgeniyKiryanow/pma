@@ -27,7 +27,6 @@ export async function getDb() {
 export async function initializeDb() {
     const db = await getDb();
 
-    // Ensure auth_user table exists
     await db.exec(`
     CREATE TABLE IF NOT EXISTS auth_user (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,15 +35,13 @@ export async function initializeDb() {
     );
   `);
 
-    // ✅ Check for recovery_hint and add if missing
     const columns = await db.all(`PRAGMA table_info(auth_user);`);
     const hasRecoveryHint = columns.some((col: any) => col.name === 'recovery_hint');
-
     if (!hasRecoveryHint) {
         await db.exec(`ALTER TABLE auth_user ADD COLUMN recovery_hint TEXT;`);
     }
 
-    // Create users table
+    // Create main users table (if missing)
     await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,9 +55,22 @@ export async function initializeDb() {
       rights TEXT,
       conscriptionInfo TEXT,
       notes TEXT,
+      education TEXT,  -- 🆕
+      awards TEXT,     -- 🆕
       relatives TEXT,
       comments TEXT,
       history TEXT
     );
   `);
+
+    // Handle migration for existing DB
+    const userColumns = await db.all(`PRAGMA table_info(users);`);
+
+    const colNames = userColumns.map((c: any) => c.name);
+    if (!colNames.includes('education')) {
+        await db.exec(`ALTER TABLE users ADD COLUMN education TEXT;`);
+    }
+    if (!colNames.includes('awards')) {
+        await db.exec(`ALTER TABLE users ADD COLUMN awards TEXT;`);
+    }
 }

@@ -55,6 +55,8 @@ export default function UserFormModalUpdate({ userToEdit, onClose }: UserFormMod
                 conscriptionInfo: '',
                 notes: '',
                 email: '',
+                education: '',
+                awards: '',
                 phoneNumber: '',
                 photo: '',
                 relatives: [],
@@ -202,6 +204,26 @@ export default function UserFormModalUpdate({ userToEdit, onClose }: UserFormMod
                                 rows={3}
                                 value={form.notes || ''}
                                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="text-sm text-gray-700 block mb-1">
+                                Education / Освіта
+                            </label>
+                            <textarea
+                                className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
+                                value={form.education || ''}
+                                onChange={(e) => setForm({ ...form, education: e.target.value })}
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="text-sm text-gray-700 block mb-1">
+                                Awards / Нагороди
+                            </label>
+                            <input
+                                className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
+                                value={form.awards || ''}
+                                onChange={(e) => setForm({ ...form, awards: e.target.value })}
                             />
                         </div>
                     </div>

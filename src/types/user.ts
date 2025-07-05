@@ -29,6 +29,8 @@ export type User = {
     rights: string; // права (permissions/licenses/clearances)
     conscriptionInfo: string; // где когда и кем призивался (where, when, by whom conscripted)
     notes: string;
+    education?: string; 
+    awards?: string; 
     relatives: RelativeContact[];
     comments: CommentOrHistoryEntry[];
     history: CommentOrHistoryEntry[];
