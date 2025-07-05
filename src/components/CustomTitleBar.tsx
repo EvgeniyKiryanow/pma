@@ -27,7 +27,7 @@ export default function CustomTitleBar() {
 
     return (
         <div
-            className="flex items-center justify-between px-4 py-2 bg-gray-800 text-white select-none"
+            className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 bg-gray-800 text-white select-none shadow-md"
             style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
             <div className="text-sm font-semibold">Control Panel Manager</div>

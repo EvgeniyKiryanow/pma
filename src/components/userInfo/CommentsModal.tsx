@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { CommentOrHistoryEntry, User } from '../../types/user';
 import { useUserStore } from '../../stores/userStore';
 
 type CommentsModalProps = {
-    comments: CommentOrHistoryEntry[];
     onClose: () => void;
+    userId: any;
 };
 
 type UploadedFile = {
@@ -13,14 +13,21 @@ type UploadedFile = {
     dataUrl?: string; // for preview
 };
 
-export default function CommentsModal({ comments, onClose }: CommentsModalProps) {
+export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [newComment, setNewComment] = useState('');
     const [author, setAuthor] = useState('');
     const [files, setFiles] = useState<UploadedFile[]>([]);
     const updateUser = useUserStore((s) => s.updateUser);
     const selectedUser = useUserStore((s) => s.selectedUser);
-
+    const [comments, setComments] = useState<CommentOrHistoryEntry[]>([]);
+    useEffect(() => {
+        const fetch = async () => {
+            const res = await window.electronAPI.getUserComments(userId);
+            setComments(res);
+        };
+        fetch();
+    }, [userId]);
     // Filter comments by search term (author, content, file names)
     const filteredComments = useMemo(() => {
         const term = searchTerm.toLowerCase().trim();
@@ -35,39 +42,30 @@ export default function CommentsModal({ comments, onClose }: CommentsModalProps)
         });
     }, [comments, searchTerm]);
 
-    const handleAddComment = () => {
+    const handleAddComment = async () => {
         if (!newComment.trim() || !selectedUser) return;
 
-        const updatedUser: User = {
-            ...selectedUser,
-            comments: [
-                ...(selectedUser.comments || []),
-                {
-                    id: Date.now(),
-                    content: newComment.trim(),
-                    author: author || 'Anonymous',
-                    date: new Date().toISOString(),
-                    files,
-                    type: 'text',
-                },
-            ],
+        const newEntry: CommentOrHistoryEntry = {
+            id: Date.now(),
+            content: newComment.trim(),
+            author: author || 'Anonymous',
+            date: new Date().toISOString(),
+            files,
+            type: 'text',
         };
 
-        updateUser(updatedUser);
+        await window.electronAPI.addUserComment(userId, newEntry);
+        setComments((prev) => [...prev, newEntry]);
         setNewComment('');
         setAuthor('');
         setFiles([]);
     };
+    const handleDeleteComment = async (id: number) => {
+        const confirmed = window.confirm('Are you sure you want to delete this comment?');
+        if (!confirmed) return;
 
-    const handleDeleteComment = (id: number) => {
-        if (!selectedUser) return;
-
-        const updatedUser: User = {
-            ...selectedUser,
-            comments: selectedUser.comments.filter((c) => c.id !== id),
-        };
-
-        updateUser(updatedUser);
+        await window.electronAPI.deleteUserComment(id);
+        setComments((prev) => prev.filter((c) => c.id !== id));
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

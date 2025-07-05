@@ -128,6 +128,46 @@ export function registerUserHandlers() {
         }
         return true;
     });
+    ipcMain.handle('comments:get-user-comments', async (_event, userId: number) => {
+        const db = await getDb();
+        const user = await db.get('SELECT comments FROM users WHERE id = ?', userId);
+        if (!user || !user.comments) return [];
+        return JSON.parse(user.comments);
+    });
+
+    // Add new comment
+    ipcMain.handle('comments:add-user-comment', async (_event, userId: number, newComment: any) => {
+        const db = await getDb();
+        const user = await db.get('SELECT comments FROM users WHERE id = ?', userId);
+        const comments = user?.comments ? JSON.parse(user.comments) : [];
+        comments.push(newComment);
+        await db.run(
+            'UPDATE users SET comments = ? WHERE id = ?',
+            JSON.stringify(comments),
+            userId,
+        );
+        return { success: true };
+    });
+
+    ipcMain.handle('comments:delete-user-comment', async (_event, id: number) => {
+        const db = await getDb();
+        const users = await db.all('SELECT id, comments FROM users');
+
+        for (const user of users) {
+            const comments = JSON.parse(user.comments || '[]');
+            const updated = comments.filter((entry: any) => entry.id !== id);
+
+            if (updated.length !== comments.length) {
+                await db.run(
+                    'UPDATE users SET comments = ? WHERE id = ?',
+                    JSON.stringify(updated),
+                    user.id,
+                );
+            }
+        }
+
+        return true;
+    });
 }
 export function getFilterDate(filter: string): Date {
     const now = new Date();

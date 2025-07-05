@@ -1,33 +1,34 @@
-import { open } from 'sqlite';
-import sqlite3 from 'sqlite3';
-import path from 'path';
-import { app } from 'electron';
+import { open } from "sqlite";
+import sqlite3 from "sqlite3";
+import path from "path";
+import { app } from "electron";
 
 let dbInstance: any;
 
 export async function getDbPath(): Promise<string> {
-    // Wait until Electron is ready
-    if (!app.isReady()) {
-        await app.whenReady();
-    }
+  // Wait until Electron is ready
+  if (!app.isReady()) {
+    await app.whenReady();
+  }
 
-    return path.join(app.getPath('userData'), 'users.db');
+  return path.join(app.getPath("userData"), "users.db");
 }
 
 export async function getDb() {
-    const dbPath = await getDbPath();
-    if (!dbInstance) {
-        dbInstance = await open({
-            filename: dbPath,
-            driver: sqlite3.Database,
-        });
-    }
-    return dbInstance;
+  const dbPath = await getDbPath();
+  if (!dbInstance) {
+    dbInstance = await open({
+      filename: dbPath,
+      driver: sqlite3.Database,
+    });
+  }
+  return dbInstance;
 }
 export async function initializeDb() {
-    const db = await getDb();
+  const db = await getDb();
 
-    await db.exec(`
+  // user
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS auth_user (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
@@ -35,14 +36,16 @@ export async function initializeDb() {
     );
   `);
 
-    const columns = await db.all(`PRAGMA table_info(auth_user);`);
-    const hasRecoveryHint = columns.some((col: any) => col.name === 'recovery_hint');
-    if (!hasRecoveryHint) {
-        await db.exec(`ALTER TABLE auth_user ADD COLUMN recovery_hint TEXT;`);
-    }
+  const columns = await db.all(`PRAGMA table_info(auth_user);`);
+  const hasRecoveryHint = columns.some(
+    (col: any) => col.name === "recovery_hint"
+  );
+  if (!hasRecoveryHint) {
+    await db.exec(`ALTER TABLE auth_user ADD COLUMN recovery_hint TEXT;`);
+  }
 
-    // Create main users table (if missing)
-    await db.exec(`
+  // Create main users table (if missing)
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       fullName TEXT NOT NULL,
@@ -63,7 +66,7 @@ export async function initializeDb() {
     );
   `);
   // histore
-   await db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS user_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   userId INTEGER NOT NULL,
@@ -77,14 +80,27 @@ export async function initializeDb() {
 );
   `);
 
-    // Handle migration for existing DB
-    const userColumns = await db.all(`PRAGMA table_info(users);`);
+  // comments
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS comments (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    author TEXT,
+    content TEXT,
+    type TEXT,
+    date TEXT,
+    files TEXT
+);
+  `);
 
-    const colNames = userColumns.map((c: any) => c.name);
-    if (!colNames.includes('education')) {
-        await db.exec(`ALTER TABLE users ADD COLUMN education TEXT;`);
-    }
-    if (!colNames.includes('awards')) {
-        await db.exec(`ALTER TABLE users ADD COLUMN awards TEXT;`);
-    }
+  // Handle migration for existing DB
+  const userColumns = await db.all(`PRAGMA table_info(users);`);
+
+  const colNames = userColumns.map((c: any) => c.name);
+  if (!colNames.includes("education")) {
+    await db.exec(`ALTER TABLE users ADD COLUMN education TEXT;`);
+  }
+  if (!colNames.includes("awards")) {
+    await db.exec(`ALTER TABLE users ADD COLUMN awards TEXT;`);
+  }
 }

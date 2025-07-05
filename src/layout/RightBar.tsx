@@ -21,6 +21,7 @@ import {
 export default function RightBar() {
     const [showComments, setShowComments] = useState(false);
     const [search, setSearch] = useState('');
+    const [dbComments, setDbComments] = useState<CommentOrHistoryEntry[]>([]);
 
     const user = useUserStore((s) => s.selectedUser);
     const updateUser = useUserStore((s) => s.updateUser);
@@ -41,6 +42,12 @@ export default function RightBar() {
             history: (user.history || []).filter((h) => h.id !== id),
         };
         updateUser(updatedUser);
+    };
+    const handleShowComments = async () => {
+        if (!user) return;
+        const comments = await window.electronAPI.getUserComments(user.id);
+        setDbComments(comments);
+        setShowComments(true);
     };
 
     const handleDeleteUser = async () => {
@@ -177,7 +184,7 @@ export default function RightBar() {
             </div>
 
             {showComments && (
-                <CommentsModal comments={user.comments} onClose={() => setShowComments(false)} />
+                <CommentsModal userId={user.id} onClose={() => setShowComments(false)} />
             )}
         </aside>
     );

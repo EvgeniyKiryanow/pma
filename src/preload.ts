@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { User } from './types/user';
+import { CommentOrHistoryEntry, User } from './types/user';
 
 contextBridge.exposeInMainWorld('electronAPI', {
     // DB
@@ -20,7 +20,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // History
     getUserHistory: (userId: number, filter: string) =>
-    ipcRenderer.invoke('history:get-user-history', userId, filter),
+        ipcRenderer.invoke('history:get-user-history', userId, filter),
     addUserHistory: (userId: number, newEntry: any) =>
         ipcRenderer.invoke('history:add-entry', userId, newEntry),
     deleteUserHistory: (id: number) => ipcRenderer.invoke('deleteUserHistory', id),
@@ -32,4 +32,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getRecoveryHint: (u: string) => ipcRenderer.invoke('auth:get-recovery-hint', u),
     resetPassword: (u: string, h: string, np: string) =>
         ipcRenderer.invoke('auth:reset-password', u, h, np),
+
+    // Comments
+    getUserComments: (userId: number) => ipcRenderer.invoke('comments:get-user-comments', userId),
+    addUserComment: (userId: number, comment: CommentOrHistoryEntry) =>
+        ipcRenderer.invoke('comments:add-user-comment', userId, comment),
+    deleteUserComment: (id: number) => ipcRenderer.invoke('comments:delete-user-comment', id),
 });

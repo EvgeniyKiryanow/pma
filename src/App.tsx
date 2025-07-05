@@ -30,7 +30,7 @@ export default function App() {
     }, [users]);
 
     return (
-        <div className="h-screen flex flex-col bg-gray-50">
+        <div className="h-screen flex flex-col bg-gray-50 pt-[44px]">
             <Header currentTab={currentTab} setCurrentTab={setCurrentTab} />
             {currentTab === 'manager' ? (
                 <div className="flex flex-1 overflow-hidden">
