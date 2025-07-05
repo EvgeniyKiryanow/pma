@@ -5,6 +5,7 @@ import { registerDbHandlers } from './ipc';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { initializeDb } from './database/db';
+import { upgradeDbSchema } from './database/migrations';
 
 const isDev = !app.isPackaged;
 
@@ -82,6 +83,7 @@ app.whenReady()
     .then(async () => {
         registerDbHandlers();
         await initializeDb();
+        await upgradeDbSchema();
         createWindow();
         autoUpdater.checkForUpdatesAndNotify();
     })

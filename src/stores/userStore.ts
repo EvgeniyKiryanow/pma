@@ -1,60 +1,70 @@
-import { create } from "zustand";
-import type { User } from "../types/user";
-import mockUsers from "../mock/userMock";
+import { create } from 'zustand';
+import type { User } from '../types/user';
 
 type UserStore = {
-  clearUser: any;
-  users: User[];
-  selectedUser: User | null;
-  isUserFormOpen: boolean;
-  editingUser: User | null;
+    users: User[];
+    selectedUser: User | null;
+    editingUser: User | null;
+    isUserFormOpen: boolean;
 
-  openUserFormForAdd: () => void;
-  openUserFormForEdit: (user: User) => void;
-  closeUserForm: () => void;
+    clearUser: () => void;
+    openUserFormForAdd: () => void;
+    openUserFormForEdit: (user: User) => void;
+    closeUserForm: () => void;
 
-  addUser: (user: User) => void;
-  updateUser: (user: User) => void;
-  fetchUsers: () => void;
-  setSelectedUser: (user: User | null) => void;
-  userToEdit: null;
+    fetchUsers: () => Promise<void>;
+    addUser: (user: Omit<User, 'id'>) => Promise<void>;
+    updateUser: (user: User) => Promise<void>;
+    deleteUser: (userId: number) => Promise<void>;
+    setSelectedUser: (user: User | null) => void;
 };
 
-export const useUserStore = create<UserStore>((set) => ({
-  users: [],
-  selectedUser: null,
-  isUserFormOpen: false,
-  editingUser: null,
-  userToEdit: null,
-  clearUser: () =>
-    set({
-      selectedUser: null,
-      users: [],
-      isUserFormOpen: false,
-      editingUser: null,
-    }),
+export const useUserStore = create<UserStore>((set, get) => ({
+    users: [],
+    selectedUser: null,
+    editingUser: null,
+    isUserFormOpen: false,
 
-  openUserFormForAdd: () => set({ editingUser: null, isUserFormOpen: true }),
-  openUserFormForEdit: (user) =>
-    set({ editingUser: user, isUserFormOpen: true }),
-  closeUserForm: () => set({ isUserFormOpen: false, editingUser: null }),
+    clearUser: () =>
+        set({
+            users: [],
+            selectedUser: null,
+            editingUser: null,
+            isUserFormOpen: false,
+        }),
 
-  addUser: (user) => set((state) => ({ users: [...state.users, user] })),
-  updateUser: (updatedUser) =>
-    set((state) => ({
-      users: state.users.map((u) =>
-        u.id === updatedUser.id ? updatedUser : u
-      ),
-      selectedUser:
-        state.selectedUser?.id === updatedUser.id
-          ? updatedUser
-          : state.selectedUser,
-    })),
+    openUserFormForAdd: () => set({ editingUser: null, isUserFormOpen: true }),
+    openUserFormForEdit: (user) => set({ editingUser: user, isUserFormOpen: true }),
+    closeUserForm: () => set({ editingUser: null, isUserFormOpen: false }),
 
-  fetchUsers: async () => {
-    const users = await window.electronAPI.fetchUsers();
-    set({ users });
-  },
+    fetchUsers: async () => {
+        const users: User[] = await window.electronAPI.fetchUsers();
+        set({ users });
+    },
 
-  setSelectedUser: (user) => set({ selectedUser: user }),
+    addUser: async (user) => {
+        const newUser: User = await window.electronAPI.addUser(user);
+        set((state) => ({ users: [...state.users, newUser] }));
+    },
+
+    updateUser: async (user) => {
+        const updatedUser: User = await window.electronAPI.updateUser(user);
+        set((state) => ({
+            users: state.users.map((u) => (u.id === updatedUser.id ? updatedUser : u)),
+            selectedUser:
+                get().selectedUser?.id === updatedUser.id ? updatedUser : get().selectedUser,
+        }));
+    },
+
+    deleteUser: async (userId) => {
+        const success: boolean = await window.electronAPI.deleteUser(userId);
+        if (success) {
+            set((state) => ({
+                users: state.users.filter((u) => u.id !== userId),
+                selectedUser: get().selectedUser?.id === userId ? null : get().selectedUser,
+            }));
+        }
+    },
+
+    setSelectedUser: (user) => set({ selectedUser: user }),
 }));

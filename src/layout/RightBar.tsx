@@ -1,24 +1,23 @@
 import { useState } from 'react';
-import { useUserStore } from '../stores/userStore'; // <-- import your store
+import { useUserStore } from '../stores/userStore';
 import type { User, CommentOrHistoryEntry } from '../types/user';
 import UserCard from '../components/userInfo/UserCard';
 import UserRelatives from '../components/userInfo/UserRelatives';
 import UserHistory from '../components/userInfo/UserHistory';
-
-import UserFormModal from '../components/userFormModal'; // edit/add modal
-import CommentsModal from '../components/userInfo/CommentsModal'; // comments modal
+import CommentsModal from '../components/userInfo/CommentsModal';
 
 type RightBarProps = {
     user: User | null;
 };
 
 export default function RightBar({ user }: RightBarProps) {
-    const [editUser, setEditUser] = useState<User | null>(null);
     const [showComments, setShowComments] = useState(false);
 
     const updateUser = useUserStore((s) => s.updateUser);
+    const deleteUser = useUserStore((s) => s.deleteUser);
+    const openUserFormForEdit = useUserStore((s) => s.openUserFormForEdit);
+    const setSelectedUser = useUserStore((s) => s.setSelectedUser);
 
-    // New function to add history entry to the current user
     const handleAddHistory = (newEntry: CommentOrHistoryEntry) => {
         if (!user) return;
 
@@ -29,6 +28,7 @@ export default function RightBar({ user }: RightBarProps) {
 
         updateUser(updatedUser);
     };
+
     const handleDeleteHistory = (id: number) => {
         if (!user) return;
 
@@ -38,6 +38,16 @@ export default function RightBar({ user }: RightBarProps) {
         };
 
         updateUser(updatedUser);
+    };
+
+    const handleDeleteUser = async () => {
+        if (!user) return;
+
+        const confirmed = confirm(`Are you sure you want to delete ${user.fullName}?`);
+        if (!confirmed) return;
+
+        await deleteUser(user.id);
+        setSelectedUser(null); // clear the current view
     };
 
     if (!user) {
@@ -51,10 +61,9 @@ export default function RightBar({ user }: RightBarProps) {
     return (
         <aside className="flex-1 bg-white p-8 overflow-y-auto shadow-inner">
             <div className="max-w-3xl mx-auto">
-                {/* Edit and Comments buttons */}
                 <div className="flex justify-end gap-3 mb-6">
                     <button
-                        onClick={() => setEditUser(user)}
+                        onClick={() => openUserFormForEdit(user)}
                         className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded shadow"
                     >
                         Edit User / Редагувати
@@ -65,11 +74,16 @@ export default function RightBar({ user }: RightBarProps) {
                     >
                         Comments / Коментарі
                     </button>
+                    <button
+                        onClick={handleDeleteUser}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded shadow"
+                    >
+                        Delete / Видалити
+                    </button>
                 </div>
 
                 <UserCard user={user} />
                 <div className="space-y-4 text-gray-800">
-                    {/* Basic Info */}
                     <div>
                         <strong className="block text-sm text-gray-500">
                             Date of Birth/Дата Народження
@@ -97,8 +111,6 @@ export default function RightBar({ user }: RightBarProps) {
                 </div>
 
                 <UserRelatives relatives={user.relatives} />
-
-                {/* Pass onAddHistory to UserHistory */}
                 <UserHistory
                     history={user.history}
                     onAddHistory={handleAddHistory}
@@ -106,10 +118,6 @@ export default function RightBar({ user }: RightBarProps) {
                 />
             </div>
 
-            {/* Edit User Modal */}
-            {editUser && <UserFormModal userToEdit={editUser} onClose={() => setEditUser(null)} />}
-
-            {/* Comments Modal */}
             {showComments && (
                 <CommentsModal comments={user.comments} onClose={() => setShowComments(false)} />
             )}

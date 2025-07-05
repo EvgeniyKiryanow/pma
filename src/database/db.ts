@@ -28,7 +28,7 @@ export async function getDb() {
 export async function initializeDb() {
   const db = await getDb();
   await db.exec(`
-CREATE TABLE IF NOT EXISTS users (
+  CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     fullName TEXT NOT NULL,
     photo TEXT,
@@ -40,11 +40,10 @@ CREATE TABLE IF NOT EXISTS users (
     rights TEXT,
     conscriptionInfo TEXT,
     notes TEXT,
+    relatives TEXT,
+    comments TEXT,
+    history TEXT
+  );
+`);
 
-    relatives TEXT,  -- JSON.stringify(RelativeContact[])
-    comments TEXT,   -- JSON.stringify(CommentOrHistoryEntry[])
-    history TEXT     -- JSON.stringify(CommentOrHistoryEntry[])
-);
-
-    `);
 }
