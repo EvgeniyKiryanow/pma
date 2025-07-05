@@ -13,6 +13,7 @@ declare global {
       getRecoveryHint: (username: string) => Promise<string | null>;
       resetPassword: (username: string, hint: string, newPassword: string) => Promise<boolean>;
       getUserDataPath: () => Promise<string>;
+      getBackupPath: () => Promise<string>;
 
       // --- DB Management ---
       downloadDb: () => Promise<boolean>;

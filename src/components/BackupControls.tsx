@@ -14,14 +14,12 @@ export default function BackupControls() {
                 const current = await window.electronAPI.getBackupIntervalInDays();
                 setIntervalDays(current || 1);
 
-                if (typeof window.electronAPI.getUserDataPath === 'function') {
-                    const path = await window.electronAPI.getUserDataPath();
-                    if (path) {
-                        setAutoBackupDir(`${path}/auto-backups`);
-                    }
+                const path = await window.electronAPI.getBackupPath();
+                if (path) {
+                    setAutoBackupDir(`${path}`);
                 }
             } catch (err) {
-                console.error('Failed to fetch backup interval or user data path:', err);
+                console.error('Failed to fetch backup interval or path:', err);
             }
         };
 

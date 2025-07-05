@@ -24,6 +24,11 @@ export function registerBackupHandlers() {
         return app.getPath('userData');
     });
 
+    ipcMain.handle('backup:get-backup-path', () => {
+        const backupDir = path.join(process.cwd(), 'auto-backups');
+        return backupDir;
+    });
+
     // 🔁 BACKUP CURRENT DATABASE
     ipcMain.handle('download-db', async () => {
         try {

@@ -20,7 +20,7 @@ export async function getBackupIntervalInDays(): Promise<number> {
         const parsed = JSON.parse(data);
         return parsed.intervalDays || 1;
     } catch {
-        return 1; // Default to 1 day
+        return 14;
     }
 }
 
@@ -56,50 +56,27 @@ async function performBackup() {
     }
 }
 
-// export async function startScheduledBackup(initialDays?: number) {
-//     const days = initialDays || (await getBackupIntervalInDays());
-//     const ms = days * 24 * 60 * 60 * 1000;
-
-//     // 🕒 Check for missed backup
-//     const last = await getLastBackupTime();
-//     const now = new Date();
-
-//     if (!last || now.getTime() - last.getTime() >= ms) {
-//         console.log('[Auto Backup] Missed backup detected. Running now...');
-//         await performBackup();
-//     }
-
-//     // Start repeating interval
-//     if (backupInterval) clearInterval(backupInterval);
-
-//     backupInterval = setInterval(() => {
-//         performBackup();
-//     }, ms);
-
-//     console.log(`[Auto Backup] Started with interval: ${days} day(s)`);
-// }
 export async function startScheduledBackup(initialDays?: number) {
     const days = initialDays || (await getBackupIntervalInDays());
-    const ms = 60 * 1000; // 1 minute interval for testing
+    const ms = days * 24 * 60 * 60 * 1000;
 
     // 🕒 Check for missed backup
     const last = await getLastBackupTime();
     const now = new Date();
 
     if (!last || now.getTime() - last.getTime() >= ms) {
-        console.log('[Auto Backup] Missed or first backup detected. Running now...');
+        console.log('[Auto Backup] Missed backup detected. Running now...');
         await performBackup();
     }
 
-    // Clear existing interval if any
+    // Start repeating interval
     if (backupInterval) clearInterval(backupInterval);
 
-    // Set repeating backup
     backupInterval = setInterval(() => {
         performBackup();
     }, ms);
 
-    console.log(`[Auto Backup] Started with test interval: every ${ms / 1000} seconds`);
+    console.log(`[Auto Backup] Started with interval: ${days} day(s)`);
 }
 
 export function stopScheduledBackup() {

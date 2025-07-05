@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setBackupIntervalInDays: (days: number) => ipcRenderer.invoke('backup:set-interval', days),
     getBackupIntervalInDays: () => ipcRenderer.invoke('backup:get-interval'),
     getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
+    getBackupPath: () => ipcRenderer.invoke('backup:get-backup-path'),
 
     // User CRUD
     fetchUsers: () => ipcRenderer.invoke('fetch-users'),
