@@ -4,9 +4,11 @@ import { X, RotateCcw, Upload, Trash2, Download } from 'lucide-react';
 export default function CustomTitleBar() {
     const [version, setVersion] = useState('');
     const [checking, setChecking] = useState(false);
+    const [hasUser, setHasUser] = useState<boolean | null>(null);
 
     useEffect(() => {
         window.electronAPI.getAppVersion().then(setVersion);
+        window.electronAPI.hasUser().then(setHasUser);
     }, []);
 
     const handleCheckUpdate = async () => {
@@ -22,6 +24,11 @@ export default function CustomTitleBar() {
     };
 
     const handleRestore = async () => {
+        if (!hasUser) {
+            alert('You must have a registered user to restore a backup.');
+            return;
+        }
+
         const success = await window.electronAPI.restoreDb();
         if (success) window.location.reload();
         else alert('Restore failed. Try again.');
@@ -32,11 +39,18 @@ export default function CustomTitleBar() {
             'Are you sure you want to reset the app?\nThis will delete all users and data!',
         );
         if (!confirm) return;
+
         const success = await window.electronAPI.resetDb();
         if (success) {
+            // Clear any saved tokens before restarting the app
+            localStorage.removeItem('authToken');
+            sessionStorage.removeItem('authToken');
+
             alert('App has been reset. Restarting...');
             window.location.reload();
-        } else alert('Failed to reset database.');
+        } else {
+            alert('Failed to reset database.');
+        }
     };
 
     return (
@@ -61,13 +75,15 @@ export default function CustomTitleBar() {
                     <Download className="w-4 h-4" />
                 </button> */}
 
-                <button
-                    className="p-1 hover:bg-green-600 rounded"
-                    title="Restore Backup"
-                    onClick={handleRestore}
-                >
-                    <Upload className="w-4 h-4" />
-                </button>
+                {hasUser && (
+                    <button
+                        className={`p-1 rounded ${hasUser ? 'hover:bg-green-600' : 'opacity-50 cursor-not-allowed'}`}
+                        title={'Restore Backup'}
+                        onClick={handleRestore}
+                    >
+                        <Upload className="w-4 h-4" />
+                    </button>
+                )}
 
                 <button
                     className="p-1 hover:bg-yellow-600 rounded"

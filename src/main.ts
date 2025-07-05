@@ -6,6 +6,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
+import { ipcMain } from 'electron';
 
 const iconPath = path.join(
   __dirname,
@@ -33,6 +34,13 @@ autoUpdater.logger = log;
 log.info('🟢 App starting…');
 
 // ===== AUTO-UPDATER EVENTS =====
+app.on('before-quit', () => {
+    const windows = BrowserWindow.getAllWindows();
+    windows.forEach((win) => {
+        win.webContents.send('clear-auth-token');
+    });
+});
+
 autoUpdater.on('checking-for-update', () => {
     log.info('🔍 Checking for updates...');
 });

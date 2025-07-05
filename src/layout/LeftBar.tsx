@@ -22,6 +22,8 @@ export default function LeftBar({ users }: Props) {
             user.phoneNumber,
             user.email,
             user.dateOfBirth,
+            user.awards,
+            user.education,
             user.position,
             user.rights,
             user.conscriptionInfo,

@@ -50,7 +50,8 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     }, []);
 
     const handleLogout = () => {
-        window.location.href = '/login';
+        localStorage.removeItem('authToken'); // remove token
+        window.location.reload(); // reload the app to trigger login screen
     };
 
     return (

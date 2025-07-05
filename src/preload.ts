@@ -43,4 +43,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
     installUpdate: () => ipcRenderer.invoke('install-update'),
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+
+    // clear token
+    onClearToken: (callback: () => void) => ipcRenderer.on('clear-auth-token', callback),
 });

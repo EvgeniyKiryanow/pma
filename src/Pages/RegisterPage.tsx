@@ -10,6 +10,8 @@ export default function RegisterPage({ onRegisterSuccess }: { onRegisterSuccess:
         e.preventDefault();
         try {
             await window.electronAPI.register(username, password, recoveryHint);
+            const token = crypto.randomUUID();
+            localStorage.setItem('authToken', token);
             onRegisterSuccess();
         } catch (err) {
             console.error(err);

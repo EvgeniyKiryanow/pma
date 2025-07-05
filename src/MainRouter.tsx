@@ -11,7 +11,22 @@ export function Main() {
     const [showForgot, setShowForgot] = useState(false);
 
     useEffect(() => {
+        // ✅ Check if a token was temporarily saved during restore
+        const restoredToken = sessionStorage.getItem('restoredAuthToken');
+        if (restoredToken) {
+            localStorage.setItem('authToken', restoredToken);
+            sessionStorage.removeItem('restoredAuthToken');
+            setIsLoggedIn(true);
+        } else {
+            const token = localStorage.getItem('authToken');
+            if (token) setIsLoggedIn(true);
+        }
+
         window.electronAPI.hasUser().then(setHasUser);
+
+        window.electronAPI.onClearToken(() => {
+            localStorage.removeItem('authToken');
+        });
     }, []);
 
     if (hasUser === null) {
@@ -37,11 +52,19 @@ export function Main() {
                     />
                 ) : hasUser ? (
                     <LoginPage
-                        onLoginSuccess={() => setIsLoggedIn(true)}
+                        onLoginSuccess={() => {
+                            localStorage.setItem('authToken', crypto.randomUUID());
+                            setIsLoggedIn(true);
+                        }}
                         onForgotPassword={() => setShowForgot(true)}
                     />
                 ) : (
-                    <RegisterPage onRegisterSuccess={() => setIsLoggedIn(true)} />
+                    <RegisterPage
+                        onRegisterSuccess={() => {
+                            localStorage.setItem('authToken', crypto.randomUUID());
+                            setIsLoggedIn(true);
+                        }}
+                    />
                 )
             ) : (
                 <App />

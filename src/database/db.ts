@@ -46,24 +46,25 @@ export async function initializeDb() {
 
   // Create main users table (if missing)
   await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      fullName TEXT NOT NULL,
-      photo TEXT,
-      phoneNumber TEXT,
-      email TEXT,
-      dateOfBirth TEXT NOT NULL,
-      position TEXT,
-      rank TEXT,
-      rights TEXT,
-      conscriptionInfo TEXT,
-      notes TEXT,
-      education TEXT,
-      awards TEXT,
-      relatives TEXT,
-      comments TEXT,
-      history TEXT
-    );
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  fullName TEXT NOT NULL,
+  photo TEXT,
+  phoneNumber TEXT,
+  email TEXT,
+  dateOfBirth TEXT NOT NULL,
+  position TEXT,
+  rank TEXT,
+  rights TEXT,
+  conscriptionInfo TEXT,
+  notes TEXT,
+  education TEXT,
+  awards TEXT,
+  relatives TEXT,
+  comments TEXT,
+  history TEXT
+);
+
   `);
   // histore
   await db.exec(`
@@ -93,14 +94,14 @@ export async function initializeDb() {
 );
   `);
 
-  // // Handle migration for existing DB
-  // const userColumns = await db.all(`PRAGMA table_info(users);`);
+  // Handle migration for existing DB
+  const userColumns = await db.all(`PRAGMA table_info(users);`);
 
-  // const colNames = userColumns.map((c: any) => c.name);
-  // if (!colNames.includes("education")) {
-  //   await db.exec(`ALTER TABLE users ADD COLUMN education TEXT;`);
-  // }
-  // if (!colNames.includes("awards")) {
-  //   await db.exec(`ALTER TABLE users ADD COLUMN awards TEXT;`);
-  // }
+  const colNames = userColumns.map((c: any) => c.name);
+  if (!colNames.includes("education")) {
+    await db.exec(`ALTER TABLE users ADD COLUMN education TEXT;`);
+  }
+  if (!colNames.includes("awards")) {
+    await db.exec(`ALTER TABLE users ADD COLUMN awards TEXT;`);
+  }
 }

@@ -34,10 +34,14 @@ export default function LoginPage({ onLoginSuccess, onForgotPassword }: LoginPag
         try {
             if (isRegisterMode) {
                 await window.electronAPI.register(username, password, hint);
+                const token = crypto.randomUUID();
+                localStorage.setItem('authToken', token);
                 onLoginSuccess();
             } else {
                 const success = await window.electronAPI.login(username, password);
                 if (success) {
+                    const token = crypto.randomUUID();
+                    localStorage.setItem('authToken', token);
                     onLoginSuccess();
                 } else {
                     setError('Invalid username or password');

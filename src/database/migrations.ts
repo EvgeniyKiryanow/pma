@@ -19,6 +19,8 @@ export async function upgradeDbSchema() {
         rights: 'TEXT',
         conscriptionInfo: 'TEXT',
         notes: 'TEXT',
+        education: 'TEXT',
+        awards: 'TEXT',
         relatives: 'TEXT',
         comments: 'TEXT',
         history: 'TEXT',
