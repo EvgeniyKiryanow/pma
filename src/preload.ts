@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     downloadDb: () => ipcRenderer.invoke('download-db'),
     replaceDb: () => ipcRenderer.invoke('replace-db'),
     restoreDb: () => ipcRenderer.invoke('restore-db'),
+    resetDb: () => ipcRenderer.invoke('reset-db'),
 
     // User CRUD
     fetchUsers: () => ipcRenderer.invoke('fetch-users'),

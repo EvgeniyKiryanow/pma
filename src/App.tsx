@@ -6,7 +6,6 @@ import RightBar from './layout/RightBar';
 import UserFormModalUpdate from './components/userFormModal';
 import { useUserStore } from './stores/userStore';
 import BackupPanel from './components/BackupPanel';
-import CustomTitleBar from './components/CustomTitleBar';
 
 export default function App() {
     const currentTab = useUserStore((s) => s.currentTab);
@@ -32,7 +31,6 @@ export default function App() {
 
     return (
         <div className="h-screen flex flex-col bg-gray-50">
-            <CustomTitleBar />
             <Header currentTab={currentTab} setCurrentTab={setCurrentTab} />
             {currentTab === 'manager' ? (
                 <div className="flex flex-1 overflow-hidden">

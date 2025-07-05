@@ -3,6 +3,7 @@ import LoginPage from './Pages/LogIn';
 import RegisterPage from './Pages/RegisterPage';
 import ForgotPasswordPage from './Pages/ForgotPasswordPage';
 import App from './App';
+import CustomTitleBar from './components/CustomTitleBar';
 
 export function Main() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -13,27 +14,37 @@ export function Main() {
         window.electronAPI.hasUser().then(setHasUser);
     }, []);
 
-    if (hasUser === null) return <div>Loading...</div>;
-
-    if (!isLoggedIn) {
-        if (showForgot) {
-            return (
-                <ForgotPasswordPage
-                    onReset={() => setShowForgot(false)}
-                    onBackToLogin={() => setShowForgot(false)}
-                />
-            );
-        }
-
-        return hasUser ? (
-            <LoginPage
-                onLoginSuccess={() => setIsLoggedIn(true)}
-                onForgotPassword={() => setShowForgot(true)}
-            />
-        ) : (
-            <RegisterPage onRegisterSuccess={() => setIsLoggedIn(true)} />
+    if (hasUser === null) {
+        return (
+            <>
+                <CustomTitleBar />
+                <div className="flex items-center justify-center min-h-screen bg-gray-100">
+                    <p className="text-sm text-gray-500">Loading...</p>
+                </div>
+            </>
         );
     }
 
-    return <App />;
+    return (
+        <>
+            <CustomTitleBar />
+            {!isLoggedIn ? (
+                showForgot ? (
+                    <ForgotPasswordPage
+                        onReset={() => setShowForgot(false)}
+                        onBackToLogin={() => setShowForgot(false)}
+                    />
+                ) : hasUser ? (
+                    <LoginPage
+                        onLoginSuccess={() => setIsLoggedIn(true)}
+                        onForgotPassword={() => setShowForgot(true)}
+                    />
+                ) : (
+                    <RegisterPage onRegisterSuccess={() => setIsLoggedIn(true)} />
+                )
+            ) : (
+                <App />
+            )}
+        </>
+    );
 }

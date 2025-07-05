@@ -1,9 +1,10 @@
 import { ipcMain, dialog } from 'electron';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
+
 import path from 'path';
 
-import { getDbPath } from '../database/db';
+import { getDb, getDbPath } from '../database/db';
 
 export function registerBackupHandlers() {
     // 🔁 BACKUP CURRENT DATABASE
@@ -50,6 +51,21 @@ export function registerBackupHandlers() {
             return true;
         } catch (error) {
             console.error('Error restoring DB:', error);
+            return false;
+        }
+    });
+
+    ipcMain.handle('reset-db', async () => {
+        try {
+            const db = await getDb();
+
+            await db.exec('DELETE FROM auth_user;');
+            await db.exec('DELETE FROM users;');
+            console.log('Database tables cleared successfully.');
+
+            return true;
+        } catch (err) {
+            console.error('Failed to reset DB:', err);
             return false;
         }
     });
