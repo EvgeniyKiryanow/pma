@@ -6,6 +6,7 @@ import RightBar from './layout/RightBar';
 import UserFormModalUpdate from './components/userFormModal';
 import { useUserStore } from './stores/userStore';
 import BackupPanel from './layout/BackupPanel';
+import RemindersTab from './components/RemindersTab';
 
 export default function App() {
     const currentTab = useUserStore((s) => s.currentTab);
@@ -30,19 +31,22 @@ export default function App() {
     }, [users]);
 
     return (
-        <div className="h-screen flex flex-col bg-gray-50 pt-[44px]">
-            <Header currentTab={currentTab} setCurrentTab={setCurrentTab} />
-            {currentTab === 'manager' ? (
-                <div className="flex flex-1 overflow-hidden">
-                    <LeftBar users={users} />
-                    <RightBar />
-                </div>
-            ) : (
-                <BackupPanel />
-            )}
-            {isUserFormOpen && (
-                <UserFormModalUpdate userToEdit={editingUser} onClose={closeUserForm} />
-            )}
-        </div>
-    );
+    <div className="h-screen flex flex-col bg-gray-50 pt-[44px]">
+        <Header currentTab={currentTab} setCurrentTab={setCurrentTab} />
+        {currentTab === 'manager' ? (
+            <div className="flex flex-1 overflow-hidden">
+                <LeftBar users={users} />
+                <RightBar />
+            </div>
+        ) : currentTab === 'backups' ? (
+            <BackupPanel />
+        ) : currentTab === 'reminders' ? (
+            <RemindersTab />
+        ) : null}
+        {isUserFormOpen && (
+            <UserFormModalUpdate userToEdit={editingUser} onClose={closeUserForm} />
+        )}
+    </div>
+);
+
 }

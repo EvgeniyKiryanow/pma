@@ -9,6 +9,7 @@ export const en = {
         birthdayTitle: '🎂 Upcoming Birthdays',
         managerTab: 'Manager',
         backupTab: 'Backups',
+        remindersTab: 'Reminder',
     },
     leftBar: {
         title: 'Personnel List',
