@@ -3,13 +3,14 @@ import type { CommentOrHistoryEntry } from '../../types/user';
 import { Plus } from 'lucide-react';
 import HistoryItem from './HistoryItem';
 import AddHistoryModal from './AddHistoryModal';
+import { useI18nStore } from '../../stores/i18nStore';
 
 const FILTER_OPTIONS = [
-    { label: '1 Day', value: '1day' },
-    { label: '7 Days', value: '7days' },
-    { label: '14 Days', value: '14days' },
-    { label: '30 Days', value: '30days' },
-    { label: 'All Time', value: 'all' },
+    { labelKey: 'history.filters.1day', value: '1day' },
+    { labelKey: 'history.filters.7days', value: '7days' },
+    { labelKey: 'history.filters.14days', value: '14days' },
+    { labelKey: 'history.filters.30days', value: '30days' },
+    { labelKey: 'history.filters.all', value: 'all' },
 ];
 
 type FileWithDataUrl = {
@@ -32,10 +33,13 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
     const [history, setHistory] = useState<CommentOrHistoryEntry[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { t } = useI18nStore();
+
     const loadHistory = async () => {
         const data = await window.electronAPI.getUserHistory(userId, selectedFilter);
         setHistory(data);
     };
+
     useEffect(() => {
         loadHistory();
     }, [userId, selectedFilter]);
@@ -64,7 +68,7 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
     };
 
     const handleDeleteHistory = async (id: number) => {
-        const confirmed = window.confirm('Are you sure you want to delete this history entry?');
+        const confirmed = window.confirm(t('history.confirmDelete'));
         if (!confirmed) return;
 
         await window.electronAPI.deleteUserHistory(id);
@@ -96,7 +100,7 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
             setIsModalOpen(false);
         } catch (err) {
             console.error('Failed to save history:', err);
-            alert('Error saving history. Please try again.');
+            alert(t('history.saveError'));
         }
     };
 
@@ -115,7 +119,7 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
         <div className="relative">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold">User History</h3>
+                <h3 className="text-xl font-semibold">{t('history.title')}</h3>
                 <div className="flex items-center gap-3">
                     <select
                         value={selectedFilter}
@@ -124,7 +128,7 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
                     >
                         {FILTER_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
-                                {opt.label}
+                                {t(opt.labelKey)}
                             </option>
                         ))}
                     </select>
@@ -132,14 +136,14 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center gap-1 text-sm px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded shadow"
                     >
-                        <Plus className="w-4 h-4" /> Add History
+                        <Plus className="w-4 h-4" /> {t('history.add')}
                     </button>
                 </div>
             </div>
 
             <input
                 type="text"
-                placeholder="Search by description, author, date, or file..."
+                placeholder={t('history.searchPlaceholder')}
                 className="mb-6 w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-blue-500 focus:ring-1"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -147,7 +151,7 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
 
             {/* History List */}
             {filteredHistory.length === 0 ? (
-                <p className="text-gray-500 italic">No history records found.</p>
+                <p className="text-gray-500 italic">{t('history.noRecords')}</p>
             ) : (
                 <ul className="space-y-4">
                     {filteredHistory.map((entry: any) => (

@@ -68,12 +68,12 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                     <h1 className="text-lg font-bold tracking-tight">{t('header.title')}</h1>
                 </div>
 
-                <div className="flex items-center gap-6 text-gray-700">
+                {/* <div className="flex items-center gap-6 text-gray-700">
                     <div className="flex items-center gap-1 text-sm text-gray-500">
                         <Clock className="w-4 h-4" />
                         <span>{now}</span>
                     </div>
-                </div>
+                </div> */}
 
                 <div className="flex items-center gap-2 cursor-pointer">
                     {upcomingBirthdays.length > 0 && (

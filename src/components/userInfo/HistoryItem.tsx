@@ -1,5 +1,6 @@
 import { CommentOrHistoryEntry } from '../../types/user';
 import { Trash2 } from 'lucide-react';
+import { useI18nStore } from '../../stores/i18nStore';
 
 type Props = {
     entry: CommentOrHistoryEntry;
@@ -7,18 +8,20 @@ type Props = {
 };
 
 export default function HistoryItem({ entry, onDelete }: Props) {
+    const { t } = useI18nStore();
+
     return (
         <li className="bg-white p-6 rounded-lg shadow-md border border-gray-200 relative hover:shadow-lg transition-shadow">
             <button
                 onClick={() => onDelete(entry.id)}
                 className="absolute top-3 right-3 text-red-600 hover:text-red-800"
-                title="Delete entry"
+                title={t('historyItem.delete')}
             >
                 <Trash2 className="w-5 h-5" />
             </button>
 
             <p className="text-sm text-gray-500 mb-1">
-                <strong className="uppercase">{entry.type}</strong> —{' '}
+                <strong className="uppercase">{t(`historyItem.type.${entry.type}`)}</strong> —{' '}
                 {new Date(entry.date).toLocaleDateString()}
             </p>
 
@@ -42,13 +45,13 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                                         rel="noopener noreferrer"
                                         className="text-xs underline text-blue-600"
                                     >
-                                        📄 PDF: {file.name}
+                                        📄 {t('historyItem.pdf')}: {file.name}
                                     </a>
                                 ) : file.type.startsWith('image/') ? (
                                     <a
                                         href={file.dataUrl}
                                         download={file.name}
-                                        title={`Download ${file.name}`}
+                                        title={t('historyItem.download', { name: file.name })}
                                     >
                                         <img
                                             src={file.dataUrl}

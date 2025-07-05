@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { CommentOrHistoryEntry, User } from '../../types/user';
 import { useUserStore } from '../../stores/userStore';
+import { useI18nStore } from '../../stores/i18nStore';
 
 type CommentsModalProps = {
     onClose: () => void;
@@ -18,9 +19,11 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
     const [newComment, setNewComment] = useState('');
     const [author, setAuthor] = useState('');
     const [files, setFiles] = useState<UploadedFile[]>([]);
+    const [comments, setComments] = useState<CommentOrHistoryEntry[]>([]);
     const updateUser = useUserStore((s) => s.updateUser);
     const selectedUser = useUserStore((s) => s.selectedUser);
-    const [comments, setComments] = useState<CommentOrHistoryEntry[]>([]);
+    const { t } = useI18nStore();
+
     useEffect(() => {
         const fetch = async () => {
             const res = await window.electronAPI.getUserComments(userId);
@@ -28,6 +31,7 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
         };
         fetch();
     }, [userId]);
+
     const filteredComments = useMemo(() => {
         const term = searchTerm.toLowerCase().trim();
         if (!term) return comments;
@@ -47,7 +51,7 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
         const newEntry: CommentOrHistoryEntry = {
             id: Date.now(),
             content: newComment.trim(),
-            author: author || 'Anonymous',
+            author: author || t('comments.anonymous'),
             date: new Date().toISOString(),
             files,
             type: 'text',
@@ -59,8 +63,9 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
         setAuthor('');
         setFiles([]);
     };
+
     const handleDeleteComment = async (id: number) => {
-        const confirmed = window.confirm('Are you sure you want to delete this comment?');
+        const confirmed = window.confirm(t('comments.deleteConfirm'));
         if (!confirmed) return;
 
         await window.electronAPI.deleteUserComment(id);
@@ -118,42 +123,40 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white w-full max-w-xl rounded-lg shadow-2xl border border-gray-300 max-h-[80vh] overflow-y-auto p-6">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold">User Comments / Коментарі</h2>
+                    <h2 className="text-xl font-semibold">{t('comments.title')}</h2>
                     <button
                         onClick={onClose}
                         className="text-gray-500 hover:text-red-600 text-lg font-bold"
+                        title={t('comments.close')}
                     >
                         ✕
                     </button>
                 </div>
 
-                {/* Add New Comment */}
                 <div className="mb-4 space-y-2">
                     <input
                         className="w-full border rounded px-3 py-2 text-sm"
-                        placeholder="Author / Автор"
+                        placeholder={t('comments.authorPlaceholder')}
                         value={author}
                         onChange={(e) => setAuthor(e.target.value)}
                     />
                     <textarea
                         className="w-full border rounded px-3 py-2 text-sm"
                         rows={3}
-                        placeholder="Write a comment... / Напишіть коментар..."
+                        placeholder={t('comments.textPlaceholder')}
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                     />
 
-                    {/* File Upload */}
                     <div>
                         <label className="block mb-1 text-sm font-medium">
-                            Attach files / Додати файли
+                            {t('comments.attachLabel')}
                         </label>
                         <label
                             htmlFor="file-upload"
                             className="inline-block cursor-pointer rounded border border-gray-400 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:border-blue-500 transition"
-                            title="Click to select files"
                         >
-                            Select files
+                            {t('comments.selectFiles')}
                         </label>
                         <input
                             id="file-upload"
@@ -165,7 +168,6 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
                         />
                     </div>
 
-                    {/* Files Preview */}
                     {files.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-3">
                             {files.map((file, i) => (
@@ -176,7 +178,7 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
                                     {file.dataUrl ? (
                                         file.type === 'application/pdf' ? (
                                             <div className="w-20 h-20 flex items-center justify-center bg-gray-200 text-xs text-gray-700 p-1 select-none">
-                                                PDF Preview
+                                                PDF
                                             </div>
                                         ) : (
                                             <img
@@ -196,7 +198,7 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
                                         type="button"
                                         onClick={() => removeFile(i)}
                                         className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 text-xs font-bold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400"
-                                        title="Remove file / Видалити файл"
+                                        title={t('comments.removeFile')}
                                     >
                                         ×
                                     </button>
@@ -209,33 +211,32 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
                         onClick={handleAddComment}
                         className="mt-3 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
                     >
-                        Add Comment / Додати коментар
+                        {t('comments.add')}
                     </button>
                 </div>
 
-                {/* Search input */}
                 <input
                     type="text"
-                    placeholder="Search comments by author, text or file name..."
+                    placeholder={t('comments.search')}
                     className="mb-4 w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-blue-500 focus:ring-1"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
 
-                {/* Comments List */}
                 {filteredComments.length === 0 ? (
-                    <p className="text-gray-500">No comments available / Коментарів немає.</p>
+                    <p className="text-gray-500">{t('comments.none')}</p>
                 ) : (
                     <ul className="space-y-3">
                         {filteredComments.map((c) => (
                             <li key={c.id} className="bg-gray-100 p-3 rounded relative">
                                 <p className="text-sm text-gray-600 mb-1">
-                                    <span className="font-medium">{c.author || 'Anonymous'}</span> —{' '}
-                                    {new Date(c.date).toLocaleString()}
+                                    <span className="font-medium">
+                                        {c.author || t('comments.anonymous')}
+                                    </span>{' '}
+                                    — {new Date(c.date).toLocaleString()}
                                 </p>
                                 <p className="text-gray-800">{c.content}</p>
 
-                                {/* Show attached files */}
                                 {c.files && c.files.length > 0 && (
                                     <div className="mt-2 flex flex-wrap gap-2">
                                         {c.files.map((file, i) => (
@@ -280,7 +281,7 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
                                     className="absolute top-2 right-2 text-red-500 text-xs hover:underline"
                                     onClick={() => handleDeleteComment(c.id)}
                                 >
-                                    Delete
+                                    {t('comments.delete')}
                                 </button>
                             </li>
                         ))}

@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { X, Paperclip } from 'lucide-react';
 import type { CommentOrHistoryEntry } from '../../types/user';
+import { useI18nStore } from '../../stores/i18nStore';
 
 type FileWithDataUrl = {
     name: string;
@@ -31,6 +32,7 @@ export default function AddHistoryModal({
     onFileChange,
 }: AddHistoryModalProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { t } = useI18nStore();
 
     if (!isOpen) return null;
 
@@ -40,23 +42,23 @@ export default function AddHistoryModal({
                 <button
                     onClick={onClose}
                     className="absolute top-4 right-4 text-gray-500 hover:text-red-600"
-                    title="Close"
+                    title={t('historyModal.close')}
                 >
                     <X className="w-6 h-6" />
                 </button>
 
-                <h2 className="text-2xl font-bold mb-6 text-gray-800">Add History Entry</h2>
+                <h2 className="text-2xl font-bold mb-6 text-gray-800">{t('historyModal.title')}</h2>
 
                 <div className="mb-6">
                     <label className="block mb-2 text-sm font-medium text-gray-700">
-                        Description
+                        {t('historyModal.description')}
                     </label>
                     <textarea
                         rows={6}
                         className="border border-gray-300 rounded-lg px-4 py-3 w-full resize-none text-sm focus:outline-blue-500 focus:ring-1"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Enter detailed description for this history entry..."
+                        placeholder={t('historyModal.descriptionPlaceholder')}
                     />
                 </div>
 
@@ -67,7 +69,7 @@ export default function AddHistoryModal({
                         onClick={() => fileInputRef.current?.click()}
                     >
                         <Paperclip className="w-4 h-4" />
-                        Attach Files
+                        {t('historyModal.attach')}
                     </button>
                     <input
                         ref={fileInputRef}
@@ -98,7 +100,7 @@ export default function AddHistoryModal({
                                 <button
                                     onClick={() => removeFile(i)}
                                     className="absolute top-1 right-1 text-red-600 hover:text-red-800 font-bold"
-                                    title="Remove"
+                                    title={t('historyModal.remove')}
                                 >
                                     ×
                                 </button>
@@ -112,7 +114,7 @@ export default function AddHistoryModal({
                         onClick={onSubmit}
                         className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow font-semibold text-sm transition-colors"
                     >
-                        Save History Entry
+                        {t('historyModal.save')}
                     </button>
                 </div>
             </div>
