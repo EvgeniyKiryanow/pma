@@ -56,7 +56,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Personnel Manager"
+      "shortcutName": "PManager"
     },
     "linux": {
       "icon": "assets/icons/appIcon.png",
