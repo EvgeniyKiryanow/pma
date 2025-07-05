@@ -12,12 +12,15 @@ declare global {
       login: (username: string, password: string) => Promise<boolean>;
       getRecoveryHint: (username: string) => Promise<string | null>;
       resetPassword: (username: string, hint: string, newPassword: string) => Promise<boolean>;
+      getUserDataPath: () => Promise<string>;
 
       // --- DB Management ---
       downloadDb: () => Promise<boolean>;
       replaceDb: () => Promise<boolean>;
       restoreDb: () => Promise<boolean>;
       resetDb: () => Promise<boolean>;
+      setBackupIntervalInDays: (days: number) => Promise<void>;
+      getBackupIntervalInDays: () => Promise<number>;
 
       // --- User CRUD ---
       fetchUsers: () => Promise<User[]>;

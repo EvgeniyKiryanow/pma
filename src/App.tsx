@@ -5,7 +5,7 @@ import LeftBar from './layout/LeftBar';
 import RightBar from './layout/RightBar';
 import UserFormModalUpdate from './components/userFormModal';
 import { useUserStore } from './stores/userStore';
-import BackupPanel from './components/BackupPanel';
+import BackupPanel from './layout/BackupPanel';
 
 export default function App() {
     const currentTab = useUserStore((s) => s.currentTab);

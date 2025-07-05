@@ -7,6 +7,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     replaceDb: () => ipcRenderer.invoke('replace-db'),
     restoreDb: () => ipcRenderer.invoke('restore-db'),
     resetDb: () => ipcRenderer.invoke('reset-db'),
+    setBackupIntervalInDays: (days: number) => ipcRenderer.invoke('backup:set-interval', days),
+    getBackupIntervalInDays: () => ipcRenderer.invoke('backup:get-interval'),
+    getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
 
     // User CRUD
     fetchUsers: () => ipcRenderer.invoke('fetch-users'),

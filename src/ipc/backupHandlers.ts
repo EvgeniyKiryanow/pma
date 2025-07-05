@@ -1,12 +1,29 @@
-import { ipcMain, dialog } from 'electron';
+import { ipcMain, dialog, app } from 'electron';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
-
 import path from 'path';
 
 import { getDb, getDbPath } from '../database/db';
+import {
+    getBackupIntervalInDays,
+    setBackupIntervalInDays,
+    startScheduledBackup,
+} from '../backupScheduler';
 
 export function registerBackupHandlers() {
+    ipcMain.handle('backup:set-interval', async (_event, days: number) => {
+        await setBackupIntervalInDays(days);
+        return true;
+    });
+
+    ipcMain.handle('backup:get-interval', async () => {
+        return await getBackupIntervalInDays();
+    });
+
+    ipcMain.handle('get-user-data-path', () => {
+        return app.getPath('userData');
+    });
+
     // 🔁 BACKUP CURRENT DATABASE
     ipcMain.handle('download-db', async () => {
         try {
@@ -101,4 +118,7 @@ export function registerBackupHandlers() {
             return false;
         }
     });
+
+    // 🔁 Start backup schedule on app load
+    getBackupIntervalInDays().then(startScheduledBackup);
 }
