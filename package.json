@@ -75,6 +75,7 @@
     "@electron-forge/plugin-vite": "^7.8.1",
     "@electron/fuses": "^1.8.0",
     "@eslint/js": "^8.57.1",
+    "@types/bcrypt": "^5.0.2",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
@@ -98,6 +99,7 @@
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.11",
     "@vitejs/plugin-react": "^4.6.0",
+    "bcrypt": "^6.0.0",
     "electron-log": "^5.4.1",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.6.2",

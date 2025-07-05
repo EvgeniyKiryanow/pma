@@ -1,18 +1,24 @@
 import './index';
 import type { User } from './types/user';
 
-// console.log('👋 This message is being logged by "renderer.ts", included via Vite');
-
 export {};
 
 declare global {
   interface Window {
     electronAPI: {
-      // DB backup
+      // --- Auth ---
+      hasUser: () => Promise<boolean>;
+      register: (username: string, password: string, hint: string) => Promise<void>;
+      login: (username: string, password: string) => Promise<boolean>;
+      getRecoveryHint: (username: string) => Promise<string | null>;
+      resetPassword: (username: string, hint: string, newPassword: string) => Promise<boolean>;
+
+      // --- DB Backup ---
       downloadDb: () => Promise<boolean>;
-    replaceDb: () => Promise<boolean>;
-restoreDb: () => Promise<boolean>; 
-      // User CRUD
+      replaceDb: () => Promise<boolean>;
+      restoreDb: () => Promise<boolean>;
+
+      // --- User CRUD ---
       fetchUsers: () => Promise<User[]>;
       addUser: (user: Omit<User, 'id'>) => Promise<User>;
       updateUser: (user: User) => Promise<User>;
