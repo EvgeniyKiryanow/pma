@@ -6,6 +6,7 @@ type UserStore = {
     selectedUser: User | null;
     editingUser: User | null;
     isUserFormOpen: boolean;
+    currentTab: 'manager';
 
     clearUser: () => void;
     openUserFormForAdd: () => void;
@@ -17,6 +18,8 @@ type UserStore = {
     updateUser: (user: User) => Promise<void>;
     deleteUser: (userId: number) => Promise<void>;
     setSelectedUser: (user: User | null) => void;
+    refreshUsersFromDb: () => Promise<void>;
+    setCurrentTab: (tab: any) => void;
 };
 
 export const useUserStore = create<UserStore>((set, get) => ({
@@ -24,7 +27,8 @@ export const useUserStore = create<UserStore>((set, get) => ({
     selectedUser: null,
     editingUser: null,
     isUserFormOpen: false,
-
+    currentTab: 'manager',
+    setCurrentTab: (tab: any) => set({ currentTab: tab }),
     clearUser: () =>
         set({
             users: [],
@@ -37,6 +41,11 @@ export const useUserStore = create<UserStore>((set, get) => ({
     openUserFormForEdit: (user) => set({ editingUser: user, isUserFormOpen: true }),
     closeUserForm: () => set({ editingUser: null, isUserFormOpen: false }),
 
+    refreshUsersFromDb: async () => {
+        const users = await window.electronAPI.fetchUsers();
+        set({ users });
+    },
+
     fetchUsers: async () => {
         const users: User[] = await window.electronAPI.fetchUsers();
         set({ users });
@@ -45,6 +54,8 @@ export const useUserStore = create<UserStore>((set, get) => ({
     addUser: async (user) => {
         const newUser: User = await window.electronAPI.addUser(user);
         set((state) => ({ users: [...state.users, newUser] }));
+        const users = await window.electronAPI.fetchUsers();
+        set({ users });
     },
 
     updateUser: async (user) => {
@@ -54,6 +65,8 @@ export const useUserStore = create<UserStore>((set, get) => ({
             selectedUser:
                 get().selectedUser?.id === updatedUser.id ? updatedUser : get().selectedUser,
         }));
+        const users = await window.electronAPI.fetchUsers();
+        set({ users });
     },
 
     deleteUser: async (userId) => {
@@ -64,7 +77,9 @@ export const useUserStore = create<UserStore>((set, get) => ({
                 selectedUser: get().selectedUser?.id === userId ? null : get().selectedUser,
             }));
         }
+        const users = await window.electronAPI.fetchUsers();
+        set({ users });
     },
 
-    setSelectedUser: (user) => set({ selectedUser: user }),
+    setSelectedUser: (user: User | null) => set({ selectedUser: user }),
 }));

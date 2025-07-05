@@ -6,13 +6,10 @@ import UserRelatives from '../components/userInfo/UserRelatives';
 import UserHistory from '../components/userInfo/UserHistory';
 import CommentsModal from '../components/userInfo/CommentsModal';
 
-type RightBarProps = {
-    user: User | null;
-};
-
-export default function RightBar({ user }: RightBarProps) {
+export default function RightBar() {
     const [showComments, setShowComments] = useState(false);
 
+    const user = useUserStore((s) => s.selectedUser); // 👈 grab user from store
     const updateUser = useUserStore((s) => s.updateUser);
     const deleteUser = useUserStore((s) => s.deleteUser);
     const openUserFormForEdit = useUserStore((s) => s.openUserFormForEdit);
@@ -47,7 +44,7 @@ export default function RightBar({ user }: RightBarProps) {
         if (!confirmed) return;
 
         await deleteUser(user.id);
-        setSelectedUser(null); // clear the current view
+        setSelectedUser(null); // Clear user view after deletion
     };
 
     if (!user) {
@@ -86,7 +83,7 @@ export default function RightBar({ user }: RightBarProps) {
                 <div className="space-y-4 text-gray-800">
                     <div>
                         <strong className="block text-sm text-gray-500">
-                            Date of Birth/Дата Народження
+                            Date of Birth/Дата народження
                         </strong>
                         <p>{user.dateOfBirth || '—'}</p>
                     </div>
