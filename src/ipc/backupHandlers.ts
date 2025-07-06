@@ -104,6 +104,8 @@ export function registerBackupHandlers() {
 
             await db.exec('DELETE FROM auth_user;');
             await db.exec('DELETE FROM users;');
+            await db.exec('DELETE FROM todos;');
+            await db.exec('DELETE FROM comments;');
             console.log('Database tables cleared successfully.');
 
             return true;
