@@ -43,6 +43,8 @@ export const ua = {
         notes: 'Нотатки',
         relatives: 'Родичі',
         history: 'Історія',
+        showMore: 'Показати більше',
+        showLess: 'Сховати',
     },
     backupPanel: {
         title: 'Панель Резервного Копіювання',

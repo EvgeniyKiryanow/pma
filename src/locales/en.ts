@@ -44,6 +44,8 @@ export const en = {
         notes: 'Notes',
         relatives: 'Relatives',
         history: 'History',
+        showMore: 'Show all',
+        showLess: 'Show less',
     },
     backupPanel: {
         title: 'Backup Panel',
