@@ -29,9 +29,17 @@ export function registerUserHandlers() {
       INSERT INTO users (
         fullName, photo, phoneNumber, email, dateOfBirth,
         position, rank, rights, conscriptionInfo, notes,
-        relatives, comments, history, education, awards
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        relatives, comments, history, education, awards,
+        callsign, passportData, participantNumber, identificationNumber,
+        fitnessCategory, unitNumber, hasCriminalRecord, criminalRecordDetails,
+        militaryTicketInfo, militaryServiceHistory, civilProfession,
+        educationDetails, residenceAddress, registeredAddress,
+        healthConditions, maritalStatus, familyInfo, religion,
+        recruitingOffice, driverLicenses, bloodType, ubdNumber,
+        identNumber, militaryFitness, subdivisionNumber
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
+
         const result = await stmt.run(
             user.fullName,
             user.photo,
@@ -46,9 +54,35 @@ export function registerUserHandlers() {
             JSON.stringify(user.relatives || []),
             JSON.stringify(user.comments || []),
             JSON.stringify(user.history || []),
-            user.awards,
             user.education,
+            user.awards,
+            user.callsign,
+            user.passportData,
+            user.participantNumber,
+            user.identificationNumber,
+            user.fitnessCategory,
+            user.unitNumber,
+            user.hasCriminalRecord ? 1 : 0,
+            user.criminalRecordDetails,
+            user.militaryTicketInfo,
+            user.militaryServiceHistory,
+            user.civilProfession,
+            user.educationDetails,
+            user.residenceAddress,
+            user.registeredAddress,
+            user.healthConditions,
+            user.maritalStatus,
+            user.familyInfo,
+            user.religion,
+            user.recruitingOffice,
+            user.driverLicenses,
+            user.bloodType,
+            user.ubdNumber,
+            user.identNumber,
+            user.militaryFitness,
+            user.subdivisionNumber,
         );
+
         const inserted = await db.get('SELECT * FROM users WHERE id = ?', result.lastID);
         return {
             ...inserted,
@@ -65,7 +99,14 @@ export function registerUserHandlers() {
       UPDATE users SET
         fullName = ?, photo = ?, phoneNumber = ?, email = ?, dateOfBirth = ?,
         position = ?, rank = ?, rights = ?, conscriptionInfo = ?, notes = ?,
-        relatives = ?, comments = ?, history = ?,awards = ?, education = ?
+        relatives = ?, comments = ?, history = ?, education = ?, awards = ?,
+        callsign = ?, passportData = ?, participantNumber = ?, identificationNumber = ?,
+        fitnessCategory = ?, unitNumber = ?, hasCriminalRecord = ?, criminalRecordDetails = ?,
+        militaryTicketInfo = ?, militaryServiceHistory = ?, civilProfession = ?,
+        educationDetails = ?, residenceAddress = ?, registeredAddress = ?,
+        healthConditions = ?, maritalStatus = ?, familyInfo = ?, religion = ?,
+        recruitingOffice = ?, driverLicenses = ?, bloodType = ?, ubdNumber = ?,
+        identNumber = ?, militaryFitness = ?, subdivisionNumber = ?
       WHERE id = ?
     `,
             user.fullName,
@@ -81,8 +122,33 @@ export function registerUserHandlers() {
             JSON.stringify(user.relatives || []),
             JSON.stringify(user.comments || []),
             JSON.stringify(user.history || []),
-            user.awards,
             user.education,
+            user.awards,
+            user.callsign,
+            user.passportData,
+            user.participantNumber,
+            user.identificationNumber,
+            user.fitnessCategory,
+            user.unitNumber,
+            user.hasCriminalRecord ? 1 : 0,
+            user.criminalRecordDetails,
+            user.militaryTicketInfo,
+            user.militaryServiceHistory,
+            user.civilProfession,
+            user.educationDetails,
+            user.residenceAddress,
+            user.registeredAddress,
+            user.healthConditions,
+            user.maritalStatus,
+            user.familyInfo,
+            user.religion,
+            user.recruitingOffice,
+            user.driverLicenses,
+            user.bloodType,
+            user.ubdNumber,
+            user.identNumber,
+            user.militaryFitness,
+            user.subdivisionNumber,
             user.id,
         );
         return user;

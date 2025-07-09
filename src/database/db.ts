@@ -42,27 +42,53 @@ export async function initializeDb() {
     await db.exec(`ALTER TABLE auth_user ADD COLUMN recovery_hint TEXT;`);
   }
 
-  await db.exec(`
-CREATE TABLE IF NOT EXISTS users (
+ await db.exec(`
+CREATE TABLE users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  fullName TEXT NOT NULL,
+  fullName TEXT,
   photo TEXT,
   phoneNumber TEXT,
   email TEXT,
-  dateOfBirth TEXT NOT NULL,
+  dateOfBirth TEXT,
   position TEXT,
   rank TEXT,
   rights TEXT,
   conscriptionInfo TEXT,
   notes TEXT,
-  education TEXT,
-  awards TEXT,
   relatives TEXT,
   comments TEXT,
-  history TEXT
+  history TEXT,
+  education TEXT,
+  awards TEXT,
+  callsign TEXT,
+  passportData TEXT,
+  participantNumber TEXT,
+  identificationNumber TEXT,
+  fitnessCategory TEXT,
+  unitNumber TEXT,
+  hasCriminalRecord INTEGER,
+  criminalRecordDetails TEXT,
+  militaryTicketInfo TEXT,
+  militaryServiceHistory TEXT,
+  civilProfession TEXT,
+  educationDetails TEXT,
+  residenceAddress TEXT,
+  registeredAddress TEXT,
+  healthConditions TEXT,
+  maritalStatus TEXT,
+  familyInfo TEXT,
+  religion TEXT,
+  recruitingOffice TEXT,
+  driverLicenses TEXT,
+  bloodType TEXT,
+  ubdNumber TEXT,
+  identNumber TEXT,
+  militaryFitness TEXT,
+  subdivisionNumber TEXT
 );
 
-  `);
+`);
+
   await db.exec(`
     CREATE TABLE IF NOT EXISTS user_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

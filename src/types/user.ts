@@ -19,19 +19,47 @@ export type RelativeContact = {
 };
 export type User = {
     id: number;
-    photo?: string; 
-    fullName: string; 
-    phoneNumber: any;
+    photo?: string;
+    fullName: string;
+    phoneNumber: string;
     email?: string;
     dateOfBirth: string;
-    position: string; 
-    rank: string; 
-    rights: string; 
-    conscriptionInfo: string; 
+    position: string;
+    rank: string;
+    rights: string;
+    conscriptionInfo: string;
     notes: string;
-    education?: string; 
-    awards?: string; 
+    education?: string;
+    awards?: string;
     relatives: RelativeContact[];
     comments: CommentOrHistoryEntry[];
     history: CommentOrHistoryEntry[];
+
+    // ✅ New Fields
+    callsign?: string;
+    passportData?: string;
+    participantNumber?: string;
+    identificationNumber?: string;
+    fitnessCategory?: string;
+    unitNumber?: string;
+    hasCriminalRecord?: boolean;
+    criminalRecordDetails?: string;
+    militaryTicketInfo?: string;
+    militaryServiceHistory?: string;
+    civilProfession?: string;
+    educationDetails?: string;
+    residenceAddress?: string;
+    registeredAddress?: string;
+    healthConditions?: string;
+    maritalStatus?: string;
+    familyInfo?: string;
+    religion?: string;
+    recruitingOffice?: string;
+    driverLicenses?: string;
+    bloodType?: string;
+    ubdNumber?: string
+    identNumber?: string
+    militaryFitness?: string
+    subdivisionNumber?: string
 };
+

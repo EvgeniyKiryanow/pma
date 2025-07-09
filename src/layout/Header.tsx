@@ -153,7 +153,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                     >
                         {t('header.backupTab')}
                     </button>
-                    <button
+                    {/* <button
                         onClick={() => setCurrentTab('reminders')}
                         className={`px-4 py-1.5 text-sm rounded-t-md border-b-2 transition-all ${
                             currentTab === 'reminders'
@@ -162,7 +162,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         }`}
                     >
                         {t('header.remindersTab')}
-                    </button>
+                    </button> */}
                 </div>
             </nav>
 
