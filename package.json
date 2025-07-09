@@ -108,7 +108,8 @@
     "ts-node": "^10.9.2",
     "typescript": "~4.5.4",
     "typescript-eslint": "^7.18.0",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "vite-plugin-static-copy": "^3.1.0"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.11",
