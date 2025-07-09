@@ -1,31 +1,44 @@
-import { useUserStore } from '../stores/userStore';
-import { useEffect, useState } from 'react';
-import type { User } from '../types/user';
+import { useState } from 'react';
+import UploadReportsTab from '../components/tabs/UploadReportsTab';
+import SavedReportsTab from '../components/tabs/SavedReportsTab';
 import { useI18nStore } from '../stores/i18nStore';
+import { FilePlus, Users } from 'lucide-react';
 
 export default function ReportsTab() {
     const { t } = useI18nStore();
-    const [users, setUsers] = useState<User[]>([]);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            const result = await window.electronAPI.fetchUsers();
-            setUsers(result);
-        };
-        fetchData();
-    }, []);
+    const [tab, setTab] = useState<'upload' | 'saved'>('upload');
 
     return (
-        <div className="p-6 max-w-5xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4">{t('reports.title')}</h2>
+        <div className="h-full w-full flex flex-col">
+            {/* Tabs Header */}
+            <div className="flex gap-4 border-b bg-white px-6 py-3 text-sm font-medium">
+                <button
+                    onClick={() => setTab('upload')}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded ${
+                        tab === 'upload'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                >
+                    <FilePlus className="w-4 h-4" />
+                    {t('reports.uploadTab')}
+                </button>
+                <button
+                    onClick={() => setTab('saved')}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded ${
+                        tab === 'saved'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                >
+                    <Users className="w-4 h-4" />
+                    {t('reports.savedTab')}
+                </button>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Example report block */}
-                <div className="bg-white border shadow rounded p-4">
-                    <h3 className="text-lg font-semibold mb-2">{t('reports.totalUsers')}</h3>
-                    <p className="text-3xl font-bold text-blue-600">{users.length}</p>
-                </div>
-                {/* Add more analytics/report blocks here */}
+            {/* Tab content */}
+            <div className="flex-1 overflow-hidden">
+                {tab === 'upload' ? <UploadReportsTab /> : <SavedReportsTab />}
             </div>
         </div>
     );
