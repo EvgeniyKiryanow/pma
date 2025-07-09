@@ -10,7 +10,13 @@ export const ua = {
         managerTab: 'Менеджер',
         backupTab: 'Резервні копії',
         remindersTab: 'Задачі',
+        reportsTab: 'Рапорти',
     },
+    reports: {
+        title: 'Генерація звітів',
+        totalUsers: 'Загальна кількість особового складу',
+    },
+
     leftBar: {
         title: 'Список Персоналу',
         total: 'Усього Персоналу',

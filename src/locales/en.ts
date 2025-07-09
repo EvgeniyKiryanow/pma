@@ -10,6 +10,11 @@ export const en = {
         managerTab: 'Manager',
         backupTab: 'Backups',
         remindersTab: 'Reminder',
+        reportsTab: 'Reports',
+    },
+    reports: {
+        title: 'Generate Reports',
+        totalUsers: 'Total Personnel Count',
     },
     leftBar: {
         title: 'Personnel List',
