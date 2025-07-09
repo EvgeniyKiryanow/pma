@@ -23,15 +23,15 @@ export async function upgradeDbSchema() {
         comments: 'TEXT',
         history: 'TEXT',
 
-        // ✅ New fields
+        // New fields
+        callsign: 'TEXT',
         passportData: 'TEXT',
         participantNumber: 'TEXT',
         identificationNumber: 'TEXT',
         fitnessCategory: 'TEXT',
         unitNumber: 'TEXT',
-        hasCriminalRecord: 'INTEGER DEFAULT 0',
+        hasCriminalRecord: 'INTEGER',
         criminalRecordDetails: 'TEXT',
-        callsign: 'TEXT',
         militaryTicketInfo: 'TEXT',
         militaryServiceHistory: 'TEXT',
         civilProfession: 'TEXT',
@@ -45,6 +45,10 @@ export async function upgradeDbSchema() {
         recruitingOffice: 'TEXT',
         driverLicenses: 'TEXT',
         bloodType: 'TEXT',
+        ubdNumber: 'TEXT',
+        identNumber: 'TEXT',
+        militaryFitness: 'TEXT',
+        subdivisionNumber: 'TEXT',
     };
 
     const missingColumns: { name: string; type: string }[] = [];
@@ -56,7 +60,7 @@ export async function upgradeDbSchema() {
     }
 
     for (const { name, type } of missingColumns) {
-        await db.exec(`ALTER TABLE users ADD COLUMN ${name} ${type}`);
+        await db.exec(`ALTER TABLE users ADD COLUMN ${name} ${type};`);
     }
 
     if (missingColumns.length) {

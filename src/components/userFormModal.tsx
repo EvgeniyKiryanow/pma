@@ -53,9 +53,6 @@ export default function UserFormModalUpdate({
         recruitingOffice: '',
         driverLicenses: '',
         bloodType: '',
-        ubdNumber: '',
-        identNumber: '',
-        militaryFitness: '',
         subdivisionNumber: '',
     });
 

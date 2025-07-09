@@ -183,5 +183,6 @@ export const en = {
         add: 'Add',
         saveChanges: 'Save Changes',
         uploadPhoto: 'Download  photo',
+        save: 'Save',
     },
 };
