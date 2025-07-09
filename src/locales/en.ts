@@ -25,6 +25,7 @@ export const en = {
         savedTemplates: 'Saved Templates',
         previewError: 'Could not preview document',
         savedSuccessfully: 'Template saved successfully!',
+        noSavedTemplates: 'No saved templates',
     },
     leftBar: {
         title: 'Personnel List',

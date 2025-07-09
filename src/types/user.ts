@@ -2,17 +2,17 @@ export type MediaType = 'text' | 'pdf' | 'audio' | 'image' | 'video' | 'history'
 
 export type CommentOrHistoryEntry = {
     files: any[];
-    id: number; 
-    date: string; 
-    author?: string; 
+    id: number;
+    date: string;
+    author?: string;
     type: MediaType;
-    content: string; 
-    description?: string; 
+    content: string;
+    description?: string;
 };
 
 export type RelativeContact = {
     name: string;
-    relationship: string; 
+    relationship: string;
     phone?: string;
     email?: string;
     notes?: string;
@@ -34,8 +34,6 @@ export type User = {
     relatives: RelativeContact[];
     comments: CommentOrHistoryEntry[];
     history: CommentOrHistoryEntry[];
-
-    // ✅ New Fields
     callsign?: string;
     passportData?: string;
     participantNumber?: string;
@@ -58,4 +56,3 @@ export type User = {
     driverLicenses?: string;
     bloodType?: string;
 };
-

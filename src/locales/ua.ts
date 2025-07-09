@@ -27,6 +27,7 @@ export const ua = {
         savedTemplates: 'Збережені шаблони',
         previewError: 'Не вдалося переглянути документ',
         savedSuccessfully: 'Шаблон успішно збережено!',
+        noSavedTemplates: 'Шаблонів не було додано',
     },
 
     leftBar: {
