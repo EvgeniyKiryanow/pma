@@ -81,11 +81,7 @@ export async function initializeDb() {
       religion TEXT,
       recruitingOffice TEXT,
       driverLicenses TEXT,
-      bloodType TEXT,
-      ubdNumber TEXT,
-      identNumber TEXT,
-      militaryFitness TEXT,
-      subdivisionNumber TEXT
+      bloodType TEXT
     );
   `);
 
@@ -153,12 +149,8 @@ export async function initializeDb() {
     ['recruitingOffice', 'TEXT'],
     ['driverLicenses', 'TEXT'],
     ['bloodType', 'TEXT'],
-    ['ubdNumber', 'TEXT'],
-    ['identNumber', 'TEXT'],
-    ['militaryFitness', 'TEXT'],
-    ['subdivisionNumber', 'TEXT'],
     ['education', 'TEXT'],
-    ['awards', 'TEXT'],
+    ['awards', 'TEXT']
   ];
 
   for (const [colName, colType] of requiredUserColumns) {

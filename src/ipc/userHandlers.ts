@@ -35,9 +35,8 @@ export function registerUserHandlers() {
         militaryTicketInfo, militaryServiceHistory, civilProfession,
         educationDetails, residenceAddress, registeredAddress,
         healthConditions, maritalStatus, familyInfo, religion,
-        recruitingOffice, driverLicenses, bloodType, ubdNumber,
-        identNumber, militaryFitness, subdivisionNumber
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        recruitingOffice, driverLicenses, bloodType
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
         const result = await stmt.run(
@@ -77,10 +76,6 @@ export function registerUserHandlers() {
             user.recruitingOffice,
             user.driverLicenses,
             user.bloodType,
-            user.ubdNumber,
-            user.identNumber,
-            user.militaryFitness,
-            user.subdivisionNumber,
         );
 
         const inserted = await db.get('SELECT * FROM users WHERE id = ?', result.lastID);
@@ -105,8 +100,7 @@ export function registerUserHandlers() {
         militaryTicketInfo = ?, militaryServiceHistory = ?, civilProfession = ?,
         educationDetails = ?, residenceAddress = ?, registeredAddress = ?,
         healthConditions = ?, maritalStatus = ?, familyInfo = ?, religion = ?,
-        recruitingOffice = ?, driverLicenses = ?, bloodType = ?, ubdNumber = ?,
-        identNumber = ?, militaryFitness = ?, subdivisionNumber = ?
+        recruitingOffice = ?, driverLicenses = ?, bloodType = ?
       WHERE id = ?
     `,
             user.fullName,
@@ -145,10 +139,6 @@ export function registerUserHandlers() {
             user.recruitingOffice,
             user.driverLicenses,
             user.bloodType,
-            user.ubdNumber,
-            user.identNumber,
-            user.militaryFitness,
-            user.subdivisionNumber,
             user.id,
         );
         return user;

@@ -45,10 +45,6 @@ export async function upgradeDbSchema() {
         recruitingOffice: 'TEXT',
         driverLicenses: 'TEXT',
         bloodType: 'TEXT',
-        ubdNumber: 'TEXT',
-        identNumber: 'TEXT',
-        militaryFitness: 'TEXT',
-        subdivisionNumber: 'TEXT',
     };
 
     const missingColumns: { name: string; type: string }[] = [];

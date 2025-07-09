@@ -165,10 +165,6 @@ export const en = {
         recruitingOffice: 'Recruiting Office',
         driverLicenses: 'Driver Licenses',
         bloodType: 'Blood Type',
-        ubdNumber: 'UBD Number',
-        identNumber: 'Identification Code',
-        militaryFitness: 'Military Fitness',
-        subdivisionNumber: 'Subdivision Number',
         dateOfBirth: 'Date of Birth',
         rights: 'Rights',
         conscriptionInfo: 'Conscription Info',
@@ -184,5 +180,17 @@ export const en = {
         saveChanges: 'Save Changes',
         uploadPhoto: 'Download  photo',
         save: 'Save',
+        fitnessCategoryOption: {
+            fit: 'Fit for service',
+            limited: 'Limited fitness',
+        },
+    },
+    sections: {
+        basic: 'Basic Information',
+        military: 'Military Information',
+        legal: 'Legal Data',
+        health: 'Health',
+        background: 'Civil Background',
+        relatives: 'Relatives and Comments',
     },
 };

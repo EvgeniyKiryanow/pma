@@ -1,4 +1,3 @@
-// Updated with translation and typing improvements
 import { useEffect, useState } from 'react';
 import { useUserStore } from '../stores/userStore';
 import type { User, RelativeContact } from '../types/user';
@@ -53,7 +52,6 @@ export default function UserFormModalUpdate({
         recruitingOffice: '',
         driverLicenses: '',
         bloodType: '',
-        subdivisionNumber: '',
     });
 
     const [photoPreview, setPhotoPreview] = useState<string>('');
@@ -114,6 +112,61 @@ export default function UserFormModalUpdate({
         onClose();
     };
 
+    const renderField = (key: keyof User, isTextarea = false) => {
+        if (key === 'hasCriminalRecord') {
+            return (
+                <div key={key} className="col-span-1 flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        checked={!!form.hasCriminalRecord}
+                        onChange={(e) => handleChange('hasCriminalRecord', e.target.checked)}
+                    />
+                    <label className="text-sm text-gray-700">{t(`user.${key}`)}</label>
+                </div>
+            );
+        }
+
+        if (key === 'criminalRecordDetails' && !form.hasCriminalRecord) return null;
+
+        if (key === 'fitnessCategory') {
+            return (
+                <div key={key} className="col-span-1">
+                    <label className="text-sm text-gray-700 block mb-1">{t(`user.${key}`)}</label>
+                    <select
+                        className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
+                        value={form.fitnessCategory || ''}
+                        onChange={(e) => handleChange('fitnessCategory', e.target.value)}
+                    >
+                        <option value="Придатний">{t('user.fitnessCategoryOption.fit')}</option>
+                        <option value="Обмежено придатний">
+                            {t('user.fitnessCategoryOption.limited')}
+                        </option>
+                    </select>
+                </div>
+            );
+        }
+
+        return (
+            <div key={key} className="col-span-1">
+                <label className="text-sm text-gray-700 block mb-1">{t(`user.${key}`)}</label>
+                {isTextarea ? (
+                    <textarea
+                        className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
+                        rows={2}
+                        value={String(form[key] || '')}
+                        onChange={(e) => handleChange(key, e.target.value)}
+                    />
+                ) : (
+                    <input
+                        className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
+                        value={String(form[key] || '')}
+                        onChange={(e) => handleChange(key, e.target.value)}
+                    />
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white w-full max-w-4xl rounded-lg shadow-2xl border overflow-y-auto max-h-[90vh]">
@@ -127,6 +180,7 @@ export default function UserFormModalUpdate({
                 </div>
 
                 <div className="px-6 py-4 space-y-6">
+                    {/* Photo Upload */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             {t('user.photo')}
@@ -159,67 +213,84 @@ export default function UserFormModalUpdate({
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
-                        {(Object.keys(form) as (keyof User)[]).map((key) => {
-                            if (['photo', 'comments', 'history', 'relatives'].includes(key))
-                                return null;
+                    {/* Basic Section */}
+                    <section>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            {t('sections.basic')}
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            {renderField('fullName')}
+                            {renderField('callsign')}
+                            {renderField('dateOfBirth')}
+                            {renderField('email')}
+                            {renderField('phoneNumber')}
+                            {renderField('notes', true)}
+                        </div>
+                    </section>
 
-                            if (key === 'hasCriminalRecord') {
-                                return (
-                                    <div key={key} className="col-span-1 flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={!!form.hasCriminalRecord}
-                                            onChange={(e) =>
-                                                handleChange('hasCriminalRecord', e.target.checked)
-                                            }
-                                        />
-                                        <label className="text-sm text-gray-700">
-                                            {t(`user.${key}`)}
-                                        </label>
-                                    </div>
-                                );
-                            }
+                    {/* Military Section */}
+                    <section>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            {t('sections.military')}
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            {renderField('position')}
+                            {renderField('rank')}
+                            {renderField('rights')}
+                            {renderField('unitNumber')}
+                            {renderField('recruitingOffice')}
+                            {renderField('militaryTicketInfo', true)}
+                            {renderField('militaryServiceHistory', true)}
+                            {renderField('fitnessCategory')}
+                            {renderField('conscriptionInfo', true)}
+                        </div>
+                    </section>
 
-                            if (key === 'criminalRecordDetails' && !form.hasCriminalRecord)
-                                return null;
+                    {/* Legal Section */}
+                    <section>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            {t('sections.legal')}
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            {renderField('passportData')}
+                            {renderField('identificationNumber')}
+                            {renderField('participantNumber')}
+                            {renderField('hasCriminalRecord')}
+                            {renderField('criminalRecordDetails', true)}
+                        </div>
+                    </section>
 
-                            const isTextarea = [
-                                'notes',
-                                'education',
-                                'educationDetails',
-                                'militaryTicketInfo',
-                                'militaryServiceHistory',
-                                'civilProfession',
-                                'healthConditions',
-                                'criminalRecordDetails',
-                                'familyInfo',
-                            ].includes(key);
+                    {/* Health Section */}
+                    <section>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            {t('sections.health')}
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            {renderField('healthConditions', true)}
+                            {renderField('bloodType')}
+                        </div>
+                    </section>
 
-                            return (
-                                <div key={key} className="col-span-1">
-                                    <label className="text-sm text-gray-700 block mb-1">
-                                        {t(`user.${key}`)}
-                                    </label>
-                                    {isTextarea ? (
-                                        <textarea
-                                            className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
-                                            rows={2}
-                                            value={String(form[key] || '')}
-                                            onChange={(e) => handleChange(key, e.target.value)}
-                                        />
-                                    ) : (
-                                        <input
-                                            className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
-                                            value={String(form[key] || '')}
-                                            onChange={(e) => handleChange(key, e.target.value)}
-                                        />
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
+                    {/* Civil Section */}
+                    <section>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            {t('sections.background')}
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            {renderField('civilProfession')}
+                            {renderField('education')}
+                            {renderField('educationDetails', true)}
+                            {renderField('awards')}
+                            {renderField('maritalStatus')}
+                            {renderField('familyInfo', true)}
+                            {renderField('religion')}
+                            {renderField('residenceAddress')}
+                            {renderField('registeredAddress')}
+                            {renderField('driverLicenses')}
+                        </div>
+                    </section>
 
+                    {/* Relatives */}
                     <div>
                         <div className="flex justify-between items-center mb-2">
                             <h3 className="text-lg font-semibold text-gray-800">

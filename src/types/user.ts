@@ -57,9 +57,5 @@ export type User = {
     recruitingOffice?: string;
     driverLicenses?: string;
     bloodType?: string;
-    ubdNumber?: string
-    identNumber?: string
-    militaryFitness?: string
-    subdivisionNumber?: string
 };
 
