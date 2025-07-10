@@ -73,7 +73,10 @@ export default function SavedReportsTab() {
         }
     }, [selectedUser]);
     const handleGenerate = async () => {
-        if (!selectedTemplate || !selectedUser) return;
+        if (!selectedTemplate || !selectedUser) {
+            alert('❌ Шаблон або користувач не вибраний!');
+            return;
+        }
 
         const imageOpts = {
             centered: false,
@@ -99,26 +102,8 @@ export default function SavedReportsTab() {
             });
 
             const fullNameForms = await generateFullNameForms(selectedUser.fullName);
-            console.log(fullNameForms, 'fullNameForms');
-            // accusative
-            // :
-            // "Кирила Шапкина Олексійовича"
-            // dative
-            // :
-            // "Кирилу Шапкину Олексійовичу"
-            // genitive
-            // :
-            // "Кирила Шапкина Олексійовича"
-            // locative
-            // :
-            // "Кирилові Шапкинові Олексійовичу"
-            // nominative
-            // :
-            // "Кирило Шапкин Олексійович"
-            // vocative
-            // :
-            // "Кириле Шапкине Олексійовичу"
             const flattenedFullName = flattenFullNameForms(fullNameForms);
+
             const filteredUserData = Object.entries(selectedUser).reduce(
                 (acc, [key, value]) => {
                     acc[key] = includedFields[key] ? value : '   ';
@@ -142,13 +127,17 @@ export default function SavedReportsTab() {
                 try {
                     await renderAsync(buffer, previewRef.current);
                     console.log('✅ DOCX preview rendered');
+                    alert('✅ Шаблон успішно згенеровано!');
                 } catch (err) {
                     console.error('❌ Preview render failed:', err);
-                    previewRef.current.innerHTML = '❌ Failed to render preview.';
+                    previewRef.current.innerHTML = '❌ Не вдалося показати попередній перегляд.';
+                    alert('⚠️ Помилка під час відображення попереднього перегляду.');
                 }
             }
+            alert('✅ Шаблон успішно згенеровано!');
         } catch (err) {
             console.error('⚠️ Template generation failed:', err);
+            alert('❌ Помилка генерації шаблону.');
         }
     };
 

@@ -6,7 +6,6 @@ import RightBar from './layout/RightBar';
 import UserFormModalUpdate from './components/userFormModal';
 import { useUserStore } from './stores/userStore';
 import BackupPanel from './layout/BackupPanel';
-import RemindersTab from './components/RemindersTab';
 import ReportsTab from './layout/ReportsTab';
 
 export default function App() {
@@ -41,8 +40,6 @@ export default function App() {
                 </div>
             ) : currentTab === 'backups' ? (
                 <BackupPanel />
-            ) : currentTab === 'reminders' ? (
-                <RemindersTab />
             ) : currentTab === 'reports' ? (
                 <ReportsTab />
             ) : null}
