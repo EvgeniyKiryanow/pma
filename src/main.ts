@@ -7,20 +7,8 @@ import log from 'electron-log';
 import { initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
 import fs from 'fs';
-// export function copyDefaultTemplate() {
-//     const sourcePath = path.join(__dirname, 'assets/templates/Картка-данних.docx'); // із .vite/build
-//     const destPath = path.join(app.getPath('userData'), 'templates/Картка-данних.docx'); // системна user data
+import { exec } from 'child_process';
 
-//     // Створити директорію, якщо не існує
-//     fs.mkdirSync(path.dirname(destPath), { recursive: true });
-
-//     if (!fs.existsSync(destPath)) {
-//         fs.copyFileSync(sourcePath, destPath);
-//         console.log('✅ Default template copied to userData/templates/Картка-данних.docx');
-//     } else {
-//         console.log('ℹ️ Template already exists in userData');
-//     }
-// }
 export function copyAllTemplates() {
     const sourceDir = path.join(__dirname, 'assets/templates');
     const destDir = path.join(app.getPath('userData'), 'templates');
@@ -39,6 +27,53 @@ export function copyAllTemplates() {
         } else {
             console.log(`ℹ️ Already exists: ${file}`);
         }
+    });
+}
+export function resetUserTemplates() {
+    const userTemplatesDir = path.join(app.getPath('userData'), 'templates');
+    const defaultTemplatesDir = path.join(__dirname, 'assets/templates');
+
+    // Завантажити імена дефолтних шаблонів
+    const defaultFiles = fs
+        .readdirSync(defaultTemplatesDir)
+        .filter((file) => file.endsWith('.docx'));
+
+    if (fs.existsSync(userTemplatesDir)) {
+        const userFiles = fs.readdirSync(userTemplatesDir).filter((file) => file.endsWith('.docx'));
+
+        for (const file of userFiles) {
+            if (!defaultFiles.includes(file)) {
+                const fullPath = path.join(userTemplatesDir, file);
+                try {
+                    fs.unlinkSync(fullPath);
+                    console.log(`🗑 Deleted template: ${file}`);
+                } catch (err) {
+                    console.warn(`⚠️ Failed to delete ${file}:`, err);
+                }
+            }
+        }
+    }
+}
+
+export function convertDocxToPdf(inputPath: string, outputDir: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const libreOfficeCmd = `soffice --headless --convert-to pdf --outdir "${outputDir}" "${inputPath}"`;
+        exec(libreOfficeCmd, (error, stdout, stderr) => {
+            if (error) {
+                reject(`LibreOffice error: ${stderr || error.message}`);
+                return;
+            }
+
+            const outputFile = path.join(
+                outputDir,
+                path.basename(inputPath).replace(/\.docx$/, '.pdf'),
+            );
+            if (fs.existsSync(outputFile)) {
+                resolve(outputFile);
+            } else {
+                reject('PDF not created.');
+            }
+        });
     });
 }
 

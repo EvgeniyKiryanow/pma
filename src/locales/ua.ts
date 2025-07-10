@@ -30,6 +30,7 @@ export const ua = {
         noSavedTemplates: 'Шаблонів не було додано',
         generateFilledTemplate: 'Створити рапорт',
         download: 'Скачати рапорт',
+        fieldSelection: 'Вибір полів',
     },
 
     leftBar: {
@@ -203,6 +204,8 @@ export const ua = {
         uploadPhoto: 'Завантажити фото',
         photo: 'Фото',
         save: 'Зберігти',
+        comments: 'Коментарі',
+        history: 'Історія',
         fitnessCategoryOption: {
             fit: 'Придатний',
             limited: 'Обмежено придатний',

@@ -1,5 +1,7 @@
 import { app, contextBridge, ipcMain, ipcRenderer, shell } from 'electron';
 import { CommentOrHistoryEntry, User } from './types/user';
+import path from 'path';
+import fs from 'fs/promises';
 
 contextBridge.exposeInMainWorld('electronAPI', {
     // DB
@@ -57,4 +59,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAllReportTemplates: async () => {
         return await ipcRenderer.invoke('get-all-report-templates');
     },
+    convertDocxToPdf: (buffer: ArrayBuffer, fileName: string) =>
+        ipcRenderer.invoke('convert-docx-to-pdf', buffer, fileName),
 });

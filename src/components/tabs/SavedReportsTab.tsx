@@ -9,9 +9,19 @@ import { renderAsync } from 'docx-preview';
 // @ts-ignore
 import ImageModule from 'docxtemplater-image-module-free';
 import { CheckCircle } from 'lucide-react';
+import generateFullNameForms from '../../helpers/fullNameConverting';
 
+function flattenFullNameForms(fullNameForms: Record<string, string>) {
+    const flat: Record<string, string> = {};
+    for (const [key, value] of Object.entries(fullNameForms)) {
+        flat[`fullName_${key}`] = value;
+    }
+    return flat;
+}
 export default function SavedReportsTab() {
     const { t } = useI18nStore();
+    const [includedFields, setIncludedFields] = useState<Record<string, boolean>>({});
+
     const {
         savedTemplates,
         selectedUserId,
@@ -50,7 +60,18 @@ export default function SavedReportsTab() {
 
     const selectedUser = users.find((u) => u.id === selectedUserId);
     const selectedTemplate = savedTemplates.find((t) => t.id === selectedTemplateId);
-
+    useEffect(() => {
+        if (selectedUser) {
+            const defaultFields = Object.keys(selectedUser).reduce(
+                (acc, key) => {
+                    acc[key] = true;
+                    return acc;
+                },
+                {} as Record<string, boolean>,
+            );
+            setIncludedFields(defaultFields);
+        }
+    }, [selectedUser]);
     const handleGenerate = async () => {
         if (!selectedTemplate || !selectedUser) return;
 
@@ -77,9 +98,38 @@ export default function SavedReportsTab() {
                 delimiters: { start: '{', end: '}' },
             });
 
+            const fullNameForms = await generateFullNameForms(selectedUser.fullName);
+            console.log(fullNameForms, 'fullNameForms');
+            // accusative
+            // :
+            // "Кирила Шапкина Олексійовича"
+            // dative
+            // :
+            // "Кирилу Шапкину Олексійовичу"
+            // genitive
+            // :
+            // "Кирила Шапкина Олексійовича"
+            // locative
+            // :
+            // "Кирилові Шапкинові Олексійовичу"
+            // nominative
+            // :
+            // "Кирило Шапкин Олексійович"
+            // vocative
+            // :
+            // "Кириле Шапкине Олексійовичу"
+            const flattenedFullName = flattenFullNameForms(fullNameForms);
+            const filteredUserData = Object.entries(selectedUser).reduce(
+                (acc, [key, value]) => {
+                    acc[key] = includedFields[key] ? value : '   ';
+                    return acc;
+                },
+                {} as Record<string, any>,
+            );
+
             doc.setData({
-                ...selectedUser,
-                photo: selectedUser.photo || '',
+                ...filteredUserData,
+                ...flattenedFullName,
             });
 
             doc.render();
@@ -135,6 +185,33 @@ export default function SavedReportsTab() {
                     ))}
                 </ul>
             </aside>
+
+            {selectedUser && (
+                <div className="border-b ml-[15px]">
+                    <h4 className="text-lg font-semibold mb-2 text-gray-800">
+                        {t('reports.fieldSelection')}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-1 gap-2 max-h-140 overflow-y-auto">
+                        {Object.keys(includedFields).map((field) => (
+                            <div key={field} className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={includedFields[field]}
+                                    onChange={() =>
+                                        setIncludedFields((prev) => ({
+                                            ...prev,
+                                            [field]: !prev[field],
+                                        }))
+                                    }
+                                />
+                                <label className="text-sm text-gray-700">
+                                    {t(`user.${field}`) ?? field}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Saved Templates */}
             <main className="flex-1 p-6 overflow-y-auto bg-white">

@@ -2,6 +2,8 @@ import { app, ipcMain } from 'electron';
 import { getDb } from '../database/db';
 import path from 'path';
 import fs from 'fs';
+import { convertDocxToPdf } from 'src/main';
+import { exec } from 'child_process';
 
 export function registerTodoHandlers() {
     ipcMain.handle('fetch-todos', async () => {
@@ -51,6 +53,26 @@ export function registerTodoHandlers() {
                 timestamp: fs.statSync(fullPath).mtimeMs,
                 content: content.buffer,
             };
+        });
+    });
+    ipcMain.handle('convert-docx-to-pdf', async (_, buffer: ArrayBuffer, fileName: string) => {
+        const tempDir = path.join(app.getPath('temp'), 'docx-previews');
+        fs.mkdirSync(tempDir, { recursive: true });
+
+        const docxPath = path.join(tempDir, fileName);
+        const pdfPath = docxPath.replace(/\.docx$/, '.pdf');
+
+        fs.writeFileSync(docxPath, Buffer.from(buffer));
+
+        return new Promise<string>((resolve, reject) => {
+            const cmd = `soffice --headless --convert-to pdf --outdir "${tempDir}" "${docxPath}"`;
+            exec(cmd, (err: any) => {
+                if (err || !fs.existsSync(pdfPath)) {
+                    reject(err || 'PDF not created');
+                    return;
+                }
+                resolve(pdfPath);
+            });
         });
     });
 }

@@ -28,6 +28,7 @@ export const en = {
         noSavedTemplates: 'No saved templates',
         generateFilledTemplate: 'Generate report',
         download: 'Download report',
+        fieldSelection: 'Field Selection',
     },
     leftBar: {
         title: 'Personnel List',
@@ -200,6 +201,8 @@ export const en = {
         saveChanges: 'Save Changes',
         uploadPhoto: 'Download  photo',
         save: 'Save',
+        history: 'History',
+        comments: 'Comments',
         fitnessCategoryOption: {
             fit: 'Fit for service',
             limited: 'Limited fitness',

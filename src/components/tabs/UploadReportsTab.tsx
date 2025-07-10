@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useReportsStore } from '../../stores/reportsStore';
 import { useI18nStore } from '../../stores/i18nStore';
-import { renderAsync } from 'docx-preview';
 
 export default function UploadReportsTab() {
     const { templates, addTemplate, addSavedTemplate } = useReportsStore();
     const { t } = useI18nStore();
     const [previewBuffer, setPreviewBuffer] = useState<ArrayBuffer | null>(null);
     const [uploadedTemplateName, setUploadedTemplateName] = useState<string>('');
-    const previewRef = useRef<HTMLDivElement>(null);
+    const [pdfPath, setPdfPath] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
+
     const handleTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -27,29 +27,21 @@ export default function UploadReportsTab() {
     };
 
     useEffect(() => {
-        if (previewBuffer) {
-            const container = document.getElementById('docx-preview');
-            if (container) {
-                container.innerHTML = '';
-                renderAsync(previewBuffer, container, undefined, {
-                    debug: false,
-                    experimental: false,
-                    ignoreWidth: false,
-                    ignoreHeight: false,
-                    ignoreFonts: false,
-                    breakPages: true,
-                    ignoreLastRenderedPageBreak: false,
-                    renderHeaders: true,
-                    renderFooters: true,
-                    renderFootnotes: true,
-                    renderEndnotes: true,
-                }).catch((err) => {
-                    console.error('Preview render failed:', err);
-                    container.innerHTML = '<p style="color: red">Preview failed to load.</p>';
-                });
-            }
+        if (previewBuffer && uploadedTemplateName) {
+            const convertToPdf = async () => {
+                try {
+                    const pdfPath = await window.electronAPI.convertDocxToPdf(
+                        previewBuffer,
+                        uploadedTemplateName,
+                    );
+                    setPdfPath(pdfPath);
+                } catch (err) {
+                    console.error('PDF conversion failed:', err);
+                }
+            };
+            convertToPdf();
         }
-    }, [previewBuffer]);
+    }, [previewBuffer, uploadedTemplateName]);
 
     const handleSaveTemplate = () => {
         if (!previewBuffer || !uploadedTemplateName) return;
@@ -67,8 +59,7 @@ export default function UploadReportsTab() {
         // Clear preview, buffer, and name
         setPreviewBuffer(null);
         setUploadedTemplateName('');
-        const container = document.getElementById('docx-preview');
-        if (container) container.innerHTML = '';
+        setPdfPath(null);
 
         setTimeout(() => setShowSuccess(false), 3000);
     };
@@ -137,15 +128,16 @@ export default function UploadReportsTab() {
                 </div>
             )}
 
-            {/* DOCX Preview */}
-            {previewBuffer && (
+            {/* PDF Preview */}
+            {pdfPath && (
                 <div className="mb-6">
                     <h3 className="text-lg font-semibold mb-2 text-gray-700">
                         {t('reports.previewTitle')}: {uploadedTemplateName}
                     </h3>
-                    <div
-                        id="docx-preview"
-                        className="bg-white border rounded shadow overflow-auto max-h-[600px]"
+                    <iframe
+                        src={`file://${pdfPath}`}
+                        className="w-full h-[600px] border rounded shadow"
+                        title="PDF Preview"
                     />
                 </div>
             )}

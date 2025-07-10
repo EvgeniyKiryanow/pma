@@ -1,9 +1,10 @@
 import { ipcMain, dialog, app, autoUpdater } from 'electron';
 import fs from 'fs/promises';
-import { existsSync } from 'fs';
+import { existsSync, rmSync } from 'fs';
 import path from 'path';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import { resetUserTemplates } from '../main';
 
 import { getDb, getDbPath } from '../database/db';
 import {
@@ -102,12 +103,16 @@ export function registerBackupHandlers() {
         try {
             const db = await getDb();
 
+            // Clear all relevant tables
             await db.exec('DELETE FROM auth_user;');
             await db.exec('DELETE FROM users;');
             await db.exec('DELETE FROM todos;');
             await db.exec('DELETE FROM comments;');
-            console.log('Database tables cleared successfully.');
 
+            // Also delete all saved templates from disk
+            resetUserTemplates();
+
+            console.log('Database tables and templates cleared successfully.');
             return true;
         } catch (err) {
             console.error('Failed to reset DB:', err);

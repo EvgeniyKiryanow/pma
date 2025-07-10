@@ -130,6 +130,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.3",
+    "shevchenko": "^3.1.4",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "tailwindcss": "^4.1.11",

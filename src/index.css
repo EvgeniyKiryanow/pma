@@ -1,1 +1,5 @@
 @import "tailwindcss";
+section.docx {
+  padding: 40px !important; /* Customize as needed */
+  box-sizing: border-box;
+}

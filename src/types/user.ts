@@ -56,3 +56,21 @@ export type User = {
     driverLicenses?: string;
     bloodType?: string;
 };
+
+export type Gender = 'male' | 'female';
+
+export type FullName = {
+    lastName: string;
+    firstName: string;
+    middleName?: string;
+    gender: Gender;
+};
+
+export type DeclinedName = {
+    nominative: string;
+    genitive: string;
+    dative: string;
+    accusative: string;
+    instrumental: string;
+    locative: string;
+};
