@@ -26,6 +26,8 @@ export const en = {
         previewError: 'Could not preview document',
         savedSuccessfully: 'Template saved successfully!',
         noSavedTemplates: 'No saved templates',
+        generateFilledTemplate: 'Generate report',
+        download: 'Download report',
     },
     leftBar: {
         title: 'Personnel List',

@@ -28,6 +28,8 @@ export const ua = {
         previewError: 'Не вдалося переглянути документ',
         savedSuccessfully: 'Шаблон успішно збережено!',
         noSavedTemplates: 'Шаблонів не було додано',
+        generateFilledTemplate: 'Створити рапорт',
+        download: 'Скачати рапорт',
     },
 
     leftBar: {
