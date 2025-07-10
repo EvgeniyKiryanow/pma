@@ -19,13 +19,22 @@ export default defineConfig({
   },
    plugins: [
     {
-      name: 'copy-template-on-build',
+      name: 'copy-templates-on-build',
       closeBundle() {
-        const source = path.resolve(__dirname, 'src/assets/templates/Картка-данних.docx');
-        const dest = path.resolve(__dirname, '.vite/build/assets/templates/Картка-данних.docx');
-        fs.mkdirSync(path.dirname(dest), { recursive: true });
-        fs.copyFileSync(source, dest);
-        console.log('✅ Template copied to build');
+        const srcDir = path.resolve(__dirname, 'src/assets/templates');
+        const destDir = path.resolve(__dirname, '.vite/build/assets/templates');
+
+        fs.mkdirSync(destDir, { recursive: true });
+
+        const files = fs.readdirSync(srcDir).filter(f => f.endsWith('.docx'));
+
+        for (const file of files) {
+          const srcFile = path.join(srcDir, file);
+          const destFile = path.join(destDir, file);
+
+          fs.copyFileSync(srcFile, destFile);
+          console.log(`✅ Copied ${file}`);
+        }
       },
     },
   ],

@@ -61,7 +61,7 @@ declare global {
             deleteTodo: (id: number) => Promise<void>;
 
             //templates
-            getDefaultReportTemplate: () => Promise<any>;
+            getAllReportTemplates: () => Promise<any>;
         };
     }
 }

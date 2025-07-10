@@ -7,19 +7,39 @@ import log from 'electron-log';
 import { initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
 import fs from 'fs';
-export function copyDefaultTemplate() {
-    const sourcePath = path.join(__dirname, 'assets/templates/Картка-данних.docx'); // із .vite/build
-    const destPath = path.join(app.getPath('userData'), 'templates/Картка-данних.docx'); // системна user data
+// export function copyDefaultTemplate() {
+//     const sourcePath = path.join(__dirname, 'assets/templates/Картка-данних.docx'); // із .vite/build
+//     const destPath = path.join(app.getPath('userData'), 'templates/Картка-данних.docx'); // системна user data
 
-    // Створити директорію, якщо не існує
-    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+//     // Створити директорію, якщо не існує
+//     fs.mkdirSync(path.dirname(destPath), { recursive: true });
 
-    if (!fs.existsSync(destPath)) {
-        fs.copyFileSync(sourcePath, destPath);
-        console.log('✅ Default template copied to userData/templates/Картка-данних.docx');
-    } else {
-        console.log('ℹ️ Template already exists in userData');
-    }
+//     if (!fs.existsSync(destPath)) {
+//         fs.copyFileSync(sourcePath, destPath);
+//         console.log('✅ Default template copied to userData/templates/Картка-данних.docx');
+//     } else {
+//         console.log('ℹ️ Template already exists in userData');
+//     }
+// }
+export function copyAllTemplates() {
+    const sourceDir = path.join(__dirname, 'assets/templates');
+    const destDir = path.join(app.getPath('userData'), 'templates');
+
+    fs.mkdirSync(destDir, { recursive: true });
+
+    const files = fs.readdirSync(sourceDir).filter((f) => f.endsWith('.docx'));
+
+    files.forEach((file) => {
+        const sourcePath = path.join(sourceDir, file);
+        const destPath = path.join(destDir, file);
+
+        if (!fs.existsSync(destPath)) {
+            fs.copyFileSync(sourcePath, destPath);
+            console.log(`✅ Copied: ${file}`);
+        } else {
+            console.log(`ℹ️ Already exists: ${file}`);
+        }
+    });
 }
 
 const iconPath = path.join(
@@ -133,7 +153,7 @@ app.whenReady()
         registerDbHandlers();
         await initializeDb();
         await upgradeDbSchema();
-        copyDefaultTemplate();
+        copyAllTemplates();
         createWindow();
         autoUpdater.checkForUpdatesAndNotify();
     })

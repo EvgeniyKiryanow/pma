@@ -54,7 +54,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteTodo: (id: number) => ipcRenderer.invoke('delete-todos', id),
 
     //reports
-    getDefaultReportTemplate: async () => {
-        return await ipcRenderer.invoke('get-default-report-template');
+    getAllReportTemplates: async () => {
+        return await ipcRenderer.invoke('get-all-report-templates');
     },
 });

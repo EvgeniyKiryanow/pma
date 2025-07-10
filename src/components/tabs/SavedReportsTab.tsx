@@ -36,8 +36,8 @@ export default function SavedReportsTab() {
     useEffect(() => {
         const loadDefault = async () => {
             try {
-                const template = await window.electronAPI.getDefaultReportTemplate();
-                useReportsStore.getState().setSavedTemplates([template]);
+                const template = await window.electronAPI.getAllReportTemplates();
+                useReportsStore.getState().setSavedTemplates([...template]);
             } catch (e) {
                 console.error('Failed to load default template:', e);
             }
@@ -146,7 +146,7 @@ export default function SavedReportsTab() {
                         <ul className="space-y-2 text-sm text-gray-700">
                             {savedTemplates.map((tpl: any) => (
                                 <li
-                                    key={tpl.id}
+                                    key={tpl.id || Date.now}
                                     onClick={() => setSelectedTemplate(tpl.id)}
                                     className={`border p-3 rounded shadow-sm bg-gray-50 hover:bg-gray-100 cursor-pointer flex items-center justify-between ${
                                         selectedTemplateId === tpl.id
