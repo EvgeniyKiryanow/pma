@@ -6,29 +6,29 @@ import { app } from 'electron';
 let dbInstance: any;
 
 export async function getDbPath(): Promise<string> {
-  if (!app.isReady()) {
-    await app.whenReady();
-  }
+    if (!app.isReady()) {
+        await app.whenReady();
+    }
 
-  return path.join(app.getPath('userData'), 'users.db');
+    return path.join(app.getPath('userData'), 'users.db');
 }
 
 export async function getDb() {
-  const dbPath = await getDbPath();
-  if (!dbInstance) {
-    dbInstance = await open({
-      filename: dbPath,
-      driver: sqlite3.Database,
-    });
-  }
-  return dbInstance;
+    const dbPath = await getDbPath();
+    if (!dbInstance) {
+        dbInstance = await open({
+            filename: dbPath,
+            driver: sqlite3.Database,
+        });
+    }
+    return dbInstance;
 }
 
 export async function initializeDb() {
-  const db = await getDb();
+    const db = await getDb();
 
-  // Create auth table
-  await db.exec(`
+    // Create auth table
+    await db.exec(`
     CREATE TABLE IF NOT EXISTS auth_user (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
@@ -36,14 +36,14 @@ export async function initializeDb() {
     );
   `);
 
-  const authColumns = await db.all(`PRAGMA table_info(auth_user);`);
-  const hasRecoveryHint = authColumns.some((col: any) => col.name === 'recovery_hint');
-  if (!hasRecoveryHint) {
-    await db.exec(`ALTER TABLE auth_user ADD COLUMN recovery_hint TEXT;`);
-  }
+    const authColumns = await db.all(`PRAGMA table_info(auth_user);`);
+    const hasRecoveryHint = authColumns.some((col: any) => col.name === 'recovery_hint');
+    if (!hasRecoveryHint) {
+        await db.exec(`ALTER TABLE auth_user ADD COLUMN recovery_hint TEXT;`);
+    }
 
-  // Create base users table
-  await db.exec(`
+    // Create base users table
+    await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       fullName TEXT,
@@ -85,8 +85,8 @@ export async function initializeDb() {
     );
   `);
 
-  // Create user_history
-  await db.exec(`
+    // Create user_history
+    await db.exec(`
     CREATE TABLE IF NOT EXISTS user_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       userId INTEGER NOT NULL,
@@ -100,8 +100,8 @@ export async function initializeDb() {
     );
   `);
 
-  // Create comments
-  await db.exec(`
+    // Create comments
+    await db.exec(`
     CREATE TABLE IF NOT EXISTS comments (
       id INTEGER PRIMARY KEY,
       user_id INTEGER NOT NULL,
@@ -113,8 +113,8 @@ export async function initializeDb() {
     );
   `);
 
-  // Create todos
-  await db.exec(`
+    // Create todos
+    await db.exec(`
     CREATE TABLE IF NOT EXISTS todos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       content TEXT NOT NULL,
@@ -123,39 +123,39 @@ export async function initializeDb() {
     );
   `);
 
-  // Upgrade missing user columns
-  const userColumns = await db.all(`PRAGMA table_info(users);`);
-  const colNames = userColumns.map((c: any) => c.name);
+    // Upgrade missing user columns
+    const userColumns = await db.all(`PRAGMA table_info(users);`);
+    const colNames = userColumns.map((c: any) => c.name);
 
-  const requiredUserColumns: [string, string][] = [
-    ['callsign', 'TEXT'],
-    ['passportData', 'TEXT'],
-    ['participantNumber', 'TEXT'],
-    ['identificationNumber', 'TEXT'],
-    ['fitnessCategory', 'TEXT'],
-    ['unitNumber', 'TEXT'],
-    ['hasCriminalRecord', 'INTEGER'],
-    ['criminalRecordDetails', 'TEXT'],
-    ['militaryTicketInfo', 'TEXT'],
-    ['militaryServiceHistory', 'TEXT'],
-    ['civilProfession', 'TEXT'],
-    ['educationDetails', 'TEXT'],
-    ['residenceAddress', 'TEXT'],
-    ['registeredAddress', 'TEXT'],
-    ['healthConditions', 'TEXT'],
-    ['maritalStatus', 'TEXT'],
-    ['familyInfo', 'TEXT'],
-    ['religion', 'TEXT'],
-    ['recruitingOffice', 'TEXT'],
-    ['driverLicenses', 'TEXT'],
-    ['bloodType', 'TEXT'],
-    ['education', 'TEXT'],
-    ['awards', 'TEXT']
-  ];
+    const requiredUserColumns: [string, string][] = [
+        ['callsign', 'TEXT'],
+        ['passportData', 'TEXT'],
+        ['participantNumber', 'TEXT'],
+        ['identificationNumber', 'TEXT'],
+        ['fitnessCategory', 'TEXT'],
+        ['unitNumber', 'TEXT'],
+        ['hasCriminalRecord', 'INTEGER'],
+        ['criminalRecordDetails', 'TEXT'],
+        ['militaryTicketInfo', 'TEXT'],
+        ['militaryServiceHistory', 'TEXT'],
+        ['civilProfession', 'TEXT'],
+        ['educationDetails', 'TEXT'],
+        ['residenceAddress', 'TEXT'],
+        ['registeredAddress', 'TEXT'],
+        ['healthConditions', 'TEXT'],
+        ['maritalStatus', 'TEXT'],
+        ['familyInfo', 'TEXT'],
+        ['religion', 'TEXT'],
+        ['recruitingOffice', 'TEXT'],
+        ['driverLicenses', 'TEXT'],
+        ['bloodType', 'TEXT'],
+        ['education', 'TEXT'],
+        ['awards', 'TEXT'],
+    ];
 
-  for (const [colName, colType] of requiredUserColumns) {
-    if (!colNames.includes(colName)) {
-      await db.exec(`ALTER TABLE users ADD COLUMN ${colName} ${colType};`);
+    for (const [colName, colType] of requiredUserColumns) {
+        if (!colNames.includes(colName)) {
+            await db.exec(`ALTER TABLE users ADD COLUMN ${colName} ${colType};`);
+        }
     }
-  }
 }

@@ -6,20 +6,33 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
-import { ipcMain } from 'electron';
+import fs from 'fs';
+export function copyDefaultTemplate() {
+    const sourcePath = path.join(__dirname, 'assets/templates/Картка-данних.docx'); // із .vite/build
+    const destPath = path.join(app.getPath('userData'), 'templates/Картка-данних.docx'); // системна user data
+
+    // Створити директорію, якщо не існує
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+
+    if (!fs.existsSync(destPath)) {
+        fs.copyFileSync(sourcePath, destPath);
+        console.log('✅ Default template copied to userData/templates/Картка-данних.docx');
+    } else {
+        console.log('ℹ️ Template already exists in userData');
+    }
+}
 
 const iconPath = path.join(
-  __dirname,
-  '..',
-  'assets',
-  'icons',
-  process.platform === 'win32'
-    ? 'appIcon.ico'
-    : process.platform === 'linux'
-    ? 'appIcon.png'
-    : 'appIcon.icns',
+    __dirname,
+    '..',
+    'assets',
+    'icons',
+    process.platform === 'win32'
+        ? 'appIcon.ico'
+        : process.platform === 'linux'
+          ? 'appIcon.png'
+          : 'appIcon.icns',
 );
-
 
 const isDev = !app.isPackaged;
 
@@ -120,6 +133,7 @@ app.whenReady()
         registerDbHandlers();
         await initializeDb();
         await upgradeDbSchema();
+        copyDefaultTemplate();
         createWindow();
         autoUpdater.checkForUpdatesAndNotify();
     })

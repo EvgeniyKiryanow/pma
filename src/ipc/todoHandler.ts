@@ -1,5 +1,7 @@
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import { getDb } from '../database/db';
+import path from 'path';
+import fs from 'fs';
 
 export function registerTodoHandlers() {
     ipcMain.handle('fetch-todos', async () => {
@@ -30,5 +32,20 @@ export function registerTodoHandlers() {
         const db = await getDb();
         await db.run('DELETE FROM todos WHERE id = ?', id);
         return true;
+    });
+    ipcMain.handle('get-default-report-template', async () => {
+        const filePath = path.join(app.getPath('userData'), 'templates/Картка-данних.docx');
+
+        if (!fs.existsSync(filePath)) {
+            throw new Error('Template file not found at: ' + filePath);
+        }
+
+        const content = fs.readFileSync(filePath);
+        return {
+            id: '1234',
+            name: 'Картка Данних',
+            timestamp: Date.now(),
+            content: content.buffer, // ArrayBuffer for renderer
+        };
     });
 }

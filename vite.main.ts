@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import path from 'path';
+import fs from 'fs'
 
 export default defineConfig({
   build: {
@@ -16,4 +17,16 @@ export default defineConfig({
       },
     },
   },
+   plugins: [
+    {
+      name: 'copy-template-on-build',
+      closeBundle() {
+        const source = path.resolve(__dirname, 'src/assets/templates/Картка-данних.docx');
+        const dest = path.resolve(__dirname, '.vite/build/assets/templates/Картка-данних.docx');
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.copyFileSync(source, dest);
+        console.log('✅ Template copied to build');
+      },
+    },
+  ],
 });

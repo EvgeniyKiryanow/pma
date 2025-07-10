@@ -1,4 +1,4 @@
-import { app, contextBridge, ipcRenderer, shell } from 'electron';
+import { app, contextBridge, ipcMain, ipcRenderer, shell } from 'electron';
 import { CommentOrHistoryEntry, User } from './types/user';
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -52,4 +52,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     addTodo: (content: string) => ipcRenderer.invoke('add-todos', content),
     toggleTodo: (id: number) => ipcRenderer.invoke('toggle-todos', id),
     deleteTodo: (id: number) => ipcRenderer.invoke('delete-todos', id),
+
+    //reports
+    getDefaultReportTemplate: async () => {
+        return await ipcRenderer.invoke('get-default-report-template');
+    },
 });

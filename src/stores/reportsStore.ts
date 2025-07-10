@@ -23,6 +23,7 @@ type ReportsState = {
     addTemplate: (template: Template) => void;
     saveFilledTemplate: (template: Template) => void;
     addSavedTemplate: (tpl: SavedTemplate) => void;
+    setSavedTemplates: (templates: any[]) => void;
 };
 
 export const useReportsStore = create<ReportsState>((set) => ({
@@ -44,4 +45,5 @@ export const useReportsStore = create<ReportsState>((set) => ({
         set((state) => ({
             savedTemplates: [...state.savedTemplates, tpl],
         })),
+    setSavedTemplates: (templates) => set({ savedTemplates: templates }),
 }));

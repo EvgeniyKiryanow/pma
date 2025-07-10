@@ -6,13 +6,13 @@ import { FilePlus, Users } from 'lucide-react';
 
 export default function ReportsTab() {
     const { t } = useI18nStore();
-    const [tab, setTab] = useState<'upload' | 'saved'>('upload');
+    const [tab, setTab] = useState<'upload' | 'saved'>('saved');
 
     return (
         <div className="h-full w-full flex flex-col">
             {/* Tabs Header */}
             <div className="flex gap-4 border-b bg-white px-6 py-3 text-sm font-medium">
-                <button
+                {/* <button
                     onClick={() => setTab('upload')}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded ${
                         tab === 'upload'
@@ -22,7 +22,7 @@ export default function ReportsTab() {
                 >
                     <FilePlus className="w-4 h-4" />
                     {t('reports.uploadTab')}
-                </button>
+                </button> */}
                 <button
                     onClick={() => setTab('saved')}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded ${

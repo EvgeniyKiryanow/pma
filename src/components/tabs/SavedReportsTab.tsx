@@ -17,6 +17,7 @@ export default function SavedReportsTab() {
         setSelectedUser,
         setSelectedTemplate,
         selectedTemplateId,
+        setSavedTemplates,
     } = useReportsStore();
 
     const [users, setUsers] = useState<User[]>([]);
@@ -29,6 +30,20 @@ export default function SavedReportsTab() {
             setUsers(data);
         };
         loadUsers();
+    }, []);
+    useEffect(() => {
+        const loadDefault = async () => {
+            try {
+                const template = await window.electronAPI.getDefaultReportTemplate();
+                useReportsStore.getState().setSavedTemplates([template]);
+            } catch (e) {
+                console.error('Failed to load default template:', e);
+            }
+        };
+
+        if (savedTemplates.length === 0) {
+            loadDefault();
+        }
     }, []);
 
     const selectedUser = users.find((u) => u.id === selectedUserId);
