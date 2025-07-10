@@ -10,14 +10,9 @@ import { renderAsync } from 'docx-preview';
 import ImageModule from 'docxtemplater-image-module-free';
 import { CheckCircle } from 'lucide-react';
 import generateFullNameForms from '../../helpers/fullNameConverting';
+import flattenFullNameForms from '../../helpers/flattenNameConverting';
+import getImageOptions from '../../helpers/imageOptionHelper';
 
-function flattenFullNameForms(fullNameForms: Record<string, string>) {
-    const flat: Record<string, string> = {};
-    for (const [key, value] of Object.entries(fullNameForms)) {
-        flat[`fullName_${key}`] = value;
-    }
-    return flat;
-}
 export default function SavedReportsTab() {
     const { t } = useI18nStore();
     const [includedFields, setIncludedFields] = useState<Record<string, boolean>>({});
@@ -29,6 +24,8 @@ export default function SavedReportsTab() {
         setSelectedTemplate,
         selectedTemplateId,
         setSavedTemplates,
+        loadUsers,
+        loadDefaultTemplates,
     } = useReportsStore();
 
     const [users, setUsers] = useState<User[]>([]);
@@ -78,17 +75,7 @@ export default function SavedReportsTab() {
             return;
         }
 
-        const imageOpts = {
-            centered: false,
-            getImage: function (tagValue: string) {
-                const base64Data = tagValue.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
-                const buffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-                return buffer;
-            },
-            getSize: function () {
-                return [250, 250];
-            },
-        };
+        const imageOpts = getImageOptions();
 
         try {
             const zip = new PizZip(selectedTemplate.content);
