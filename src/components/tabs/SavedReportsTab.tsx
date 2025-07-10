@@ -192,23 +192,35 @@ export default function SavedReportsTab() {
                         {t('reports.fieldSelection')}
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-1 gap-2 max-h-140 overflow-y-auto">
-                        {Object.keys(includedFields).map((field) => (
-                            <div key={field} className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    checked={includedFields[field]}
-                                    onChange={() =>
-                                        setIncludedFields((prev) => ({
-                                            ...prev,
-                                            [field]: !prev[field],
-                                        }))
-                                    }
-                                />
-                                <label className="text-sm text-gray-700">
-                                    {t(`user.${field}`) ?? field}
-                                </label>
-                            </div>
-                        ))}
+                        {Object.keys(includedFields).map((field) => {
+                            const value = selectedUser?.[field as keyof typeof selectedUser];
+
+                            const isEmpty =
+                                value === null ||
+                                value === undefined ||
+                                (typeof value === 'string' && value.trim() === '') ||
+                                (Array.isArray(value) && value.length === 0);
+
+                            if (isEmpty) return null;
+
+                            return (
+                                <div key={field} className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={includedFields[field]}
+                                        onChange={() =>
+                                            setIncludedFields((prev) => ({
+                                                ...prev,
+                                                [field]: !prev[field],
+                                            }))
+                                        }
+                                    />
+                                    <label className="text-sm text-gray-700">
+                                        {t(`user.${field}`) ?? field}
+                                    </label>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}

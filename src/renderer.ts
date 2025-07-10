@@ -61,7 +61,7 @@ declare global {
             deleteTodo: (id: number) => Promise<void>;
 
             //templates
-            getAllReportTemplates: (buffer: any) => Promise<any>;
+            getAllReportTemplates: () => Promise<any>;
             convertDocxToPdf: (buffer: ArrayBuffer, fileName: string) => Promise<any>;
         };
     }
