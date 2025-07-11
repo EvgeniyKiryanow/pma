@@ -1,9 +1,11 @@
 import { app, ipcMain } from 'electron';
 import { getDb } from '../database/db';
 import path from 'path';
+import { readFile } from 'fs/promises';
 import fs from 'fs';
 import { convertDocxToPdf } from 'src/main';
 import { exec } from 'child_process';
+import { promises } from 'dns';
 
 export function registerReportsHandlers() {
     ipcMain.handle('get-all-report-templates', async () => {
@@ -77,3 +79,12 @@ export function registerReportsHandlers() {
         }
     });
 }
+ipcMain.handle('read-report-file-buffer', async (_event, filePath: string) => {
+    try {
+        const buffer = await readFile(filePath);
+        return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength); // ensure proper ArrayBuffer
+    } catch (error) {
+        console.error(`Failed to read file at ${filePath}:`, error);
+        throw error;
+    }
+});

@@ -69,4 +69,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('add-report-template', name, filePath),
     deleteReportTemplateFromDb: (id: number) => ipcRenderer.invoke('delete-report-template', id),
     getReportTemplatesFromDb: () => ipcRenderer.invoke('get-all-report-templates-from-db'),
+    readReportFileBuffer: (filePath: string) =>
+        ipcRenderer.invoke('read-report-file-buffer', filePath),
 });

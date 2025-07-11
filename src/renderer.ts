@@ -74,6 +74,7 @@ declare global {
             getReportTemplatesFromDb: () => Promise<
                 { id: number; name: string; filePath: string; createdAt: string }[]
             >;
+            readReportFileBuffer: (filePath: string) => Promise<ArrayBuffer>;
         };
     }
 }

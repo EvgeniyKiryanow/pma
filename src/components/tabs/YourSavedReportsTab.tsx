@@ -23,16 +23,27 @@ export default function YourSavedReportsTab() {
         const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
         selectedFiles.forEach(addFileFromDisk);
     };
+    const handleDownload = async (filePath: string, name: string) => {
+        try {
+            const buffer: ArrayBuffer = await window.electronAPI.readReportFileBuffer(filePath);
 
-    const handleDownload = (buffer: ArrayBuffer | undefined, name: string) => {
-        if (!buffer) return;
-        const blob = new Blob([buffer], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = name;
-        a.click();
-        URL.revokeObjectURL(url);
+            const blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // adjust for your file type
+            });
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name || 'downloaded-file.xlsx';
+
+            document.body.appendChild(a);
+            a.click();
+
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Failed to read file buffer or download:', error);
+        }
     };
 
     const filteredFiles = files.filter((file) =>
@@ -89,7 +100,7 @@ export default function YourSavedReportsTab() {
                                     </div>
                                     <div className="flex gap-3 items-center">
                                         <button
-                                            onClick={() => handleDownload(file.buffer, file.name)}
+                                            onClick={() => handleDownload(file.filePath, file.name)}
                                             className="text-blue-600 text-sm flex items-center gap-1 hover:underline"
                                         >
                                             <Download className="w-4 h-4" />
