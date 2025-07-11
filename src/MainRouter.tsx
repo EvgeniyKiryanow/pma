@@ -37,7 +37,7 @@ export function Main() {
                 <div className="flex items-center justify-center min-h-screen bg-gray-100">
                     <p className="text-sm text-gray-500">{t('main.loading')}</p>
                 </div>
-                <Footer />
+                {/* <Footer /> */}
             </>
         );
     }
@@ -70,7 +70,7 @@ export function Main() {
             ) : (
                 <App />
             )}
-            <Footer />
+            {/* <Footer /> */}
         </>
     );
 }

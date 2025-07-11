@@ -20,6 +20,9 @@ export default function SavedReportsTab() {
     const [searchQuery, setSearchQuery] = useState('');
     const [showPreview, setShowPreview] = useState(false);
     const [previewTpl, setPreviewTpl] = useState<any | null>(null);
+    const [searchUser1, setSearchUser1] = useState('');
+    const [searchUser2, setSearchUser2] = useState('');
+    const [showAdvanced, setShowAdvanced] = useState(false);
 
     const {
         savedTemplates,
@@ -214,137 +217,191 @@ export default function SavedReportsTab() {
         <div className="flex h-full">
             {/* User List */}
             <aside className="w-1/4 border-r p-4 overflow-y-auto bg-gray-50 space-y-6">
-                <div>
-                    <h3 className="text-lg font-semibold mb-2 text-gray-800">
+                <div className="border rounded-lg p-3 bg-white shadow-sm mb-4">
+                    <h3 className="text-md font-semibold mb-3 text-gray-800 border-b pb-2">
                         {t('reports.selectUser')}
                     </h3>
-                    <ul className="space-y-1">
-                        {users.map((u) => (
-                            <li
-                                key={u.id}
-                                onClick={() =>
-                                    setSelectedUser(selectedUserId === u.id ? null : u.id)
-                                }
-                                className={`cursor-pointer px-3 py-2 rounded-md border transition text-sm ${
-                                    selectedUserId === u.id
-                                        ? 'bg-blue-100 border-blue-400 font-medium'
-                                        : 'hover:bg-blue-50 border-transparent'
-                                }`}
-                            >
-                                👤 {u.fullName}
-                            </li>
-                        ))}
+
+                    <input
+                        type="text"
+                        placeholder="🔍 Пошук користувача..."
+                        className="w-full mb-3 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        value={searchUser1}
+                        onChange={(e) => setSearchUser1(e.target.value)}
+                    />
+
+                    <ul className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
+                        {users
+                            .filter((u) =>
+                                u.fullName.toLowerCase().includes(searchUser1.toLowerCase()),
+                            )
+                            .map((u) => (
+                                <li
+                                    key={u.id}
+                                    onClick={() =>
+                                        setSelectedUser(selectedUserId === u.id ? null : u.id)
+                                    }
+                                    className={`cursor-pointer px-3 py-2 rounded-md border transition text-sm ${
+                                        selectedUserId === u.id
+                                            ? 'bg-blue-100 border-blue-400 font-medium'
+                                            : 'hover:bg-blue-50 border-gray-200'
+                                    }`}
+                                >
+                                    👤 {u.fullName}
+                                </li>
+                            ))}
                     </ul>
                 </div>
-                <div>
-                    <h3 className="text-lg font-semibold mb-2 text-gray-800">
+
+                <div className="border rounded-lg p-3 bg-white shadow-sm">
+                    <h3 className="text-md font-semibold mb-3 text-gray-800 border-b pb-2">
                         Обрати другого користувача
                     </h3>
-                    <ul className="space-y-1">
-                        {users.map((u) => (
-                            <li
-                                key={u.id}
-                                onClick={() => {
-                                    const currentId = useReportsStore.getState().selectedUserId2;
-                                    useReportsStore
-                                        .getState()
-                                        .setSelectedUser2(currentId === u.id ? null : u.id);
-                                }}
-                                className={`cursor-pointer px-3 py-2 rounded-md border transition text-sm ${
-                                    useReportsStore.getState().selectedUserId2 === u.id
-                                        ? 'bg-green-100 border-green-400 font-medium'
-                                        : 'hover:bg-green-50 border-transparent'
-                                }`}
-                            >
-                                👥 {u.fullName}
-                            </li>
-                        ))}
+
+                    <input
+                        type="text"
+                        placeholder="🔍 Пошук другого користувача..."
+                        className="w-full mb-3 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-green-300"
+                        value={searchUser2}
+                        onChange={(e) => setSearchUser2(e.target.value)}
+                    />
+
+                    <ul className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
+                        {users
+                            .filter((u) =>
+                                u.fullName.toLowerCase().includes(searchUser2.toLowerCase()),
+                            )
+                            .map((u) => (
+                                <li
+                                    key={u.id}
+                                    onClick={() => {
+                                        const currentId =
+                                            useReportsStore.getState().selectedUserId2;
+                                        useReportsStore
+                                            .getState()
+                                            .setSelectedUser2(currentId === u.id ? null : u.id);
+                                    }}
+                                    className={`cursor-pointer px-3 py-2 rounded-md border transition text-sm ${
+                                        useReportsStore.getState().selectedUserId2 === u.id
+                                            ? 'bg-green-100 border-green-400 font-medium'
+                                            : 'hover:bg-green-50 border-gray-200'
+                                    }`}
+                                >
+                                    👥 {u.fullName}
+                                </li>
+                            ))}
                     </ul>
                 </div>
             </aside>
 
             {/* Fields Section */}
-            <div className="flex flex-col gap-6 p-4 w-[280px] max-w-[300px] overflow-y-auto border-r bg-white">
-                {selectedUser && (
-                    <div>
-                        <h4 className="text-md font-semibold mb-3 text-gray-700">
-                            {t('reports.fieldSelection')}
-                        </h4>
-                        <div className="space-y-2">
-                            {Object.keys(includedFields).map((field) => {
-                                const value = selectedUser?.[field as keyof typeof selectedUser];
-                                if (
-                                    value == null ||
-                                    (typeof value === 'string' && value.trim() === '') ||
-                                    (Array.isArray(value) && value.length === 0)
-                                )
-                                    return null;
-                                return (
-                                    <label key={field} className="flex items-center gap-2 text-sm">
-                                        <input
-                                            type="checkbox"
-                                            className="accent-indigo-600"
-                                            checked={includedFields[field]}
-                                            onChange={() =>
-                                                setIncludedFields((prev) => ({
-                                                    ...prev,
-                                                    [field]: !prev[field],
-                                                }))
-                                            }
-                                        />
-                                        <span className="text-gray-700">
-                                            {t(`user.${field}`) ?? field}
-                                        </span>
-                                    </label>
-                                );
-                            })}
+            {showAdvanced && (
+                <div className="flex flex-col gap-6 p-4 w-[280px] max-w-[300px] overflow-y-auto border-r bg-white">
+                    {selectedUser && (
+                        <div className="border rounded-lg p-4 bg-white shadow-sm mb-4">
+                            <h4 className="text-md font-semibold mb-3 text-gray-800 border-b pb-2">
+                                {t('reports.fieldSelection')}
+                            </h4>
+                            <div className="space-y-2">
+                                {Object.keys(includedFields).map((field) => {
+                                    const value =
+                                        selectedUser?.[field as keyof typeof selectedUser];
+                                    if (
+                                        value == null ||
+                                        (typeof value === 'string' && value.trim() === '') ||
+                                        (Array.isArray(value) && value.length === 0)
+                                    )
+                                        return null;
+
+                                    return (
+                                        <label
+                                            key={field}
+                                            className="flex items-center gap-3 p-2 border rounded-md hover:bg-gray-50 transition cursor-pointer"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                                checked={includedFields[field]}
+                                                onChange={() =>
+                                                    setIncludedFields((prev) => ({
+                                                        ...prev,
+                                                        [field]: !prev[field],
+                                                    }))
+                                                }
+                                            />
+                                            <span className="text-sm text-gray-800">
+                                                {t(`user.${field}`) ?? field}
+                                            </span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                )}
-                {selectedUser2 && (
-                    <div>
-                        <h4 className="text-md font-semibold mb-3 text-gray-700">
-                            Поля другого користувача
-                        </h4>
-                        <div className="space-y-2">
-                            {Object.keys(includedFields2).map((field) => {
-                                const value = selectedUser2?.[field as keyof typeof selectedUser2];
-                                if (
-                                    value == null ||
-                                    (typeof value === 'string' && value.trim() === '') ||
-                                    (Array.isArray(value) && value.length === 0)
-                                )
-                                    return null;
-                                return (
-                                    <label key={field} className="flex items-center gap-2 text-sm">
-                                        <input
-                                            type="checkbox"
-                                            className="accent-green-600"
-                                            checked={includedFields2[field]}
-                                            onChange={() =>
-                                                setIncludedFields2((prev) => ({
-                                                    ...prev,
-                                                    [field]: !prev[field],
-                                                }))
-                                            }
-                                        />
-                                        <span className="text-gray-700">
-                                            {t(`user.${field}`) ?? field}
-                                        </span>
-                                    </label>
-                                );
-                            })}
+                    )}
+
+                    {selectedUser2 && (
+                        <div className="border border-green-300 rounded-lg p-4 bg-white shadow-sm">
+                            <h4 className="text-md font-semibold mb-3 text-green-700 border-b border-green-200 pb-2">
+                                Поля другого користувача
+                            </h4>
+                            <div className="space-y-2">
+                                {Object.keys(includedFields2).map((field) => {
+                                    const value =
+                                        selectedUser2?.[field as keyof typeof selectedUser2];
+                                    if (
+                                        value == null ||
+                                        (typeof value === 'string' && value.trim() === '') ||
+                                        (Array.isArray(value) && value.length === 0)
+                                    )
+                                        return null;
+
+                                    return (
+                                        <label
+                                            key={field}
+                                            className="flex items-center gap-3 p-2 border border-green-100 rounded-md hover:bg-green-50 transition cursor-pointer"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
+                                                checked={includedFields2[field]}
+                                                onChange={() =>
+                                                    setIncludedFields2((prev) => ({
+                                                        ...prev,
+                                                        [field]: !prev[field],
+                                                    }))
+                                                }
+                                            />
+                                            <span className="text-sm text-gray-800">
+                                                {t(`user.${field}`) ?? field}
+                                            </span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
+            )}
 
             {/* Saved Templates */}
             <main className="flex-1 p-6 overflow-y-auto bg-white">
                 <h2 className="text-2xl font-bold mb-4 text-gray-800">
                     {t('reports.savedTemplates')}
                 </h2>
-                <div className="mt-6 flex gap-3 pb-[15px]">
+                <div className="mt-6 flex flex-wrap gap-3 pb-[15px] items-center">
+                    <button
+                        onClick={() => setShowAdvanced(!showAdvanced)}
+                        disabled={!selectedUser && !selectedUser2}
+                        className={`px-4 py-2 rounded-md border font-medium text-sm transition 
+        ${
+            !selectedUser && !selectedUser2
+                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+        }`}
+                    >
+                        {showAdvanced ? '⬆️ Приховати поля' : '⚙️ Розширені налаштування'}
+                    </button>
+
                     <button
                         onClick={handleGenerate}
                         disabled={!selectedUser || !selectedTemplate}
@@ -368,11 +425,6 @@ export default function SavedReportsTab() {
                         {t('reports.download')}
                     </button>
                 </div>
-                {/* {isPreviewStale && (
-                    <p className="text-xs text-red-500 mt-1">
-                        🔒 Ви змінили шаблон. Спочатку згенеруйте шаблон перед завантаженням.
-                    </p>
-                )} */}
 
                 <div className="mt-4 mb-2">
                     <input
