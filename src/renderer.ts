@@ -63,6 +63,17 @@ declare global {
             //templates
             getAllReportTemplates: () => Promise<any>;
             convertDocxToPdf: (buffer: ArrayBuffer, fileName: string) => Promise<any>;
+
+            // SQLite-backed template storage
+            saveReportFileToDisk: (buffer: ArrayBuffer, name: string) => Promise<string>;
+            addReportTemplateToDb: (
+                name: string,
+                filePath: string,
+            ) => Promise<{ success: boolean }>;
+            deleteReportTemplateFromDb: (id: number) => Promise<{ success: boolean }>;
+            getReportTemplatesFromDb: () => Promise<
+                { id: number; name: string; filePath: string; createdAt: string }[]
+            >;
         };
     }
 }

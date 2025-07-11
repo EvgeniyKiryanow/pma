@@ -5,6 +5,6 @@ export default function getImageOptions() {
             const base64Data = tagValue.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
             return Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
         },
-        getSize: () => [250, 250],
+        getSize: () => [150, 150],
     };
 }

@@ -29,6 +29,8 @@ export const en = {
         generateFilledTemplate: 'Generate report',
         download: 'Download report',
         fieldSelection: 'Field Selection',
+        yourSavedReportsTitle: 'Your Saved Reports',
+        yourSavedReportsEmpty: "You don't have any saved reports yet",
     },
     leftBar: {
         title: 'Personnel List',

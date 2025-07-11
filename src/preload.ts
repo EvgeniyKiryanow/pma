@@ -61,4 +61,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     convertDocxToPdf: (buffer: ArrayBuffer, fileName: string) =>
         ipcRenderer.invoke('convert-docx-to-pdf', buffer, fileName),
+
+    // SQLite-backed templates
+    saveReportFileToDisk: (buffer: ArrayBuffer, name: string) =>
+        ipcRenderer.invoke('save-report-file-to-disk', buffer, name),
+    addReportTemplateToDb: (name: string, filePath: string) =>
+        ipcRenderer.invoke('add-report-template', name, filePath),
+    deleteReportTemplateFromDb: (id: number) => ipcRenderer.invoke('delete-report-template', id),
+    getReportTemplatesFromDb: () => ipcRenderer.invoke('get-all-report-templates-from-db'),
 });

@@ -23,9 +23,6 @@ export default function SavedReportsTab() {
         setSelectedUser,
         setSelectedTemplate,
         selectedTemplateId,
-        setSavedTemplates,
-        loadUsers,
-        loadDefaultTemplates,
     } = useReportsStore();
 
     const [users, setUsers] = useState<User[]>([]);

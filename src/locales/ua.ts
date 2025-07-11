@@ -31,6 +31,8 @@ export const ua = {
         generateFilledTemplate: 'Створити рапорт',
         download: 'Скачати рапорт',
         fieldSelection: 'Вибір полів',
+        yourSavedReportsTitle: 'Ваші збережені звіти',
+        yourSavedReportsEmpty: 'У вас ще немає збережених звітів',
     },
 
     leftBar: {

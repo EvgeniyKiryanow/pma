@@ -123,6 +123,16 @@ export async function initializeDb() {
     );
   `);
 
+    // for your saved reports
+    await db.exec(`
+  CREATE TABLE IF NOT EXISTS report_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    filePath TEXT NOT NULL,
+    createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
     // Upgrade missing user columns
     const userColumns = await db.all(`PRAGMA table_info(users);`);
     const colNames = userColumns.map((c: any) => c.name);

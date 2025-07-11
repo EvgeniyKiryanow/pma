@@ -46,4 +46,34 @@ export function registerReportsHandlers() {
             });
         });
     });
+    ipcMain.handle('add-report-template', async (_, name: string, filePath: string) => {
+        const db = await getDb();
+        await db.run('INSERT INTO report_templates (name, filePath) VALUES (?, ?)', name, filePath);
+        return { success: true };
+    });
+
+    ipcMain.handle('delete-report-template', async (_, id: number) => {
+        const db = await getDb();
+        await db.run('DELETE FROM report_templates WHERE id = ?', id);
+        return { success: true };
+    });
+    ipcMain.handle('get-all-report-templates-from-db', async () => {
+        const db = await getDb();
+        const templates = await db.all('SELECT * FROM report_templates ORDER BY createdAt DESC');
+        return templates;
+    });
+    ipcMain.handle('save-report-file-to-disk', async (_, buffer: ArrayBuffer, name: string) => {
+        try {
+            const reportsDir = path.join(app.getPath('userData'), 'reports');
+            const filePath = path.join(reportsDir, name);
+
+            fs.mkdirSync(reportsDir, { recursive: true });
+            fs.writeFileSync(filePath, Buffer.from(buffer));
+
+            return filePath;
+        } catch (err) {
+            console.error('Failed to save report file to disk:', err);
+            throw err;
+        }
+    });
 }

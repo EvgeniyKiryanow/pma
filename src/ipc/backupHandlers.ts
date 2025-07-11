@@ -1,6 +1,6 @@
 import { ipcMain, dialog, app, autoUpdater } from 'electron';
 import fs from 'fs/promises';
-import { existsSync, rmSync } from 'fs';
+import { existsSync, rmSync, readdirSync, unlinkSync } from 'fs';
 import path from 'path';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
@@ -108,14 +108,22 @@ export function registerBackupHandlers() {
             await db.exec('DELETE FROM users;');
             await db.exec('DELETE FROM todos;');
             await db.exec('DELETE FROM comments;');
+            await db.exec('DELETE FROM report_templates;');
 
-            // Also delete all saved templates from disk
-            resetUserTemplates();
+            // Delete all report files from disk
+            const reportsDir = path.join(app.getPath('userData'), 'reports');
+            if (existsSync(reportsDir)) {
+                const files = readdirSync(reportsDir);
+                for (const file of files) {
+                    const fullPath = path.join(reportsDir, file);
+                    unlinkSync(fullPath);
+                }
+            }
 
-            console.log('Database tables and templates cleared successfully.');
+            console.log('✅ Database and report templates fully reset.');
             return true;
         } catch (err) {
-            console.error('Failed to reset DB:', err);
+            console.error('❌ Failed to reset DB:', err);
             return false;
         }
     });
