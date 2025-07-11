@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Download, UploadCloud, Trash2 } from 'lucide-react';
+import { Download, UploadCloud, Trash2, CheckCircle } from 'lucide-react';
 import { useI18nStore } from '../../stores/i18nStore';
 import { useReportFilesStore } from '../../stores/reportFilesStore';
 
@@ -22,16 +22,17 @@ export default function YourSavedReportsTab() {
         selectedFiles.forEach(addFileFromDisk);
     };
 
-    const handleDownload = (buffer: ArrayBuffer, name: string) => {
-        const blob = new Blob([buffer], {
-            type: 'application/octet-stream',
-        });
+    const handleDownload = (buffer: ArrayBuffer | undefined, name: string) => {
+        if (!buffer) return;
+
+        const blob = new Blob([buffer], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
 
         const a = document.createElement('a');
         a.href = url;
         a.download = name;
         a.click();
+
         URL.revokeObjectURL(url);
     };
 
@@ -54,34 +55,44 @@ export default function YourSavedReportsTab() {
             </div>
 
             {/* File List */}
-            <div className="space-y-2">
+            <div className="space-y-2 text-sm text-gray-700">
                 {files.length === 0 ? (
                     <p className="text-gray-400">{t('reports.yourSavedReportsEmpty')}</p>
                 ) : (
-                    files.map((file) => (
-                        <div
-                            key={file.id}
-                            className="flex items-center justify-between px-4 py-2 bg-gray-50 border rounded"
-                        >
-                            <span className="text-sm truncate max-w-xs">{file.name}</span>
-                            <div className="flex gap-3 items-center">
-                                <button
-                                    onClick={() => handleDownload(file.buffer, file.name)}
-                                    className="text-blue-600 text-sm flex items-center gap-1 hover:underline"
+                    <div>
+                        <h3 className="font-bold pb-[15px] text-2xl">Список збереженних звітів</h3>
+                        <ul className="space-y-2">
+                            {files.map((file) => (
+                                <li
+                                    key={file.id}
+                                    className="border p-3 rounded shadow-sm bg-gray-50 hover:bg-gray-100 flex items-center justify-between"
                                 >
-                                    <Download className="w-4 h-4" />
-                                    {t('reports.download')}
-                                </button>
-                                <button
-                                    onClick={() => removeFileById(file.id)}
-                                    className="text-red-500 hover:text-red-700"
-                                    title="Remove file"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    ))
+                                    <div>
+                                        <div className="font-medium">📁 {file.name}</div>
+                                        <div className="text-xs text-gray-500">
+                                            {new Date(file.createdAt).toLocaleString()}
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3 items-center">
+                                        <button
+                                            onClick={() => handleDownload(file.buffer, file.name)}
+                                            className="text-blue-600 text-sm flex items-center gap-1 hover:underline"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            {t('reports.download')}
+                                        </button>
+                                        <button
+                                            onClick={() => removeFileById(file.id)}
+                                            className="text-red-500 hover:text-red-700"
+                                            title="Remove file"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
                 )}
             </div>
         </div>
