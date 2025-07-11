@@ -494,7 +494,6 @@ export default function SavedReportsTab() {
                     <p className="text-gray-500 text-sm">{t('reports.noSavedTemplates')}</p>
                 )}
             </main>
-            {/* preview */}
             {showPreview && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                     <div className="bg-white shadow-xl rounded-lg max-w-4xl w-full mx-4 relative overflow-hidden animate-fade-in">
