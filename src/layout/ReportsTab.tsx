@@ -51,7 +51,7 @@ export default function ReportsTab() {
             </div>
 
             {/* Tab content */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden  pb-[50px]">
                 {tab === 'upload' && <UploadReportsTab />}
                 {tab === 'saved' && <SavedReportsTab />}
                 {tab === 'yourSaved' && <YourSavedReportsTab />}
