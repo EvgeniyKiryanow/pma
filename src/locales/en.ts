@@ -11,7 +11,9 @@ export const en = {
         backupTab: 'Backups',
         remindersTab: 'Reminder',
         reportsTab: 'Reports',
+        tablesTab: 'Tables',
     },
+    tables: {},
     reports: {
         uploadTab: 'Add Template',
         savedTab: 'Saved Reports',

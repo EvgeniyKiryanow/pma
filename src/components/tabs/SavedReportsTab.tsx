@@ -96,6 +96,7 @@ export default function SavedReportsTab() {
                 {} as Record<string, any>,
             );
 
+            console.log(flattenedFullName, 'flattenedFullName');
             doc.setData({
                 ...filteredUserData,
                 ...flattenedFullName,

@@ -6,8 +6,8 @@ import { useI18nStore } from '../stores/i18nStore';
 import LogoSvg from '../icons/LogoSvg';
 
 type HeaderProps = {
-    currentTab: 'manager' | 'backups' | 'reminders' | 'reports';
-    setCurrentTab: (tab: 'manager' | 'backups' | 'reminders' | 'reports') => void;
+    currentTab: 'manager' | 'backups' | 'reminders' | 'reports' | 'tables';
+    setCurrentTab: (tab: 'manager' | 'backups' | 'reminders' | 'reports' | 'tables') => void;
 };
 
 export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
@@ -153,6 +153,16 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                     >
                         {t('header.reportsTab')}
                     </button>
+                    {/* <button
+                        onClick={() => setCurrentTab('tables')}
+                        className={`px-4 py-1.5 text-sm rounded-t-md border-b-2 transition-all ${
+                            currentTab === 'tables'
+                                ? 'text-blue-600 border-blue-600 font-semibold bg-white'
+                                : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
+                        }`}
+                    >
+                        {t('header.tablesTab')}
+                    </button> */}
                     <button
                         onClick={() => setCurrentTab('backups')}
                         className={`px-4 py-1.5 text-sm rounded-t-md border-b-2 transition-all ${

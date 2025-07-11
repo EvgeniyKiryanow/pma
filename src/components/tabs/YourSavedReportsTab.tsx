@@ -1,11 +1,13 @@
-import { useEffect } from 'react';
-import { Download, UploadCloud, Trash2, CheckCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Download, UploadCloud, Trash2 } from 'lucide-react';
 import { useI18nStore } from '../../stores/i18nStore';
 import { useReportFilesStore } from '../../stores/reportFilesStore';
 
 export default function YourSavedReportsTab() {
     const { t } = useI18nStore();
     const { files, loadFromDb, addFileFromDisk, removeFileById } = useReportFilesStore();
+
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         loadFromDb();
@@ -24,17 +26,18 @@ export default function YourSavedReportsTab() {
 
     const handleDownload = (buffer: ArrayBuffer | undefined, name: string) => {
         if (!buffer) return;
-
         const blob = new Blob([buffer], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
-
         const a = document.createElement('a');
         a.href = url;
         a.download = name;
         a.click();
-
         URL.revokeObjectURL(url);
     };
+
+    const filteredFiles = files.filter((file) =>
+        file.name.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
 
     return (
         <div className="p-6 text-gray-700 h-full flex flex-col gap-6">
@@ -54,15 +57,26 @@ export default function YourSavedReportsTab() {
                 </label>
             </div>
 
+            {/* Search Input */}
+            <div>
+                <input
+                    type="text"
+                    placeholder="Пошук за назвою..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full p-2 border rounded shadow-sm"
+                />
+            </div>
+
             {/* File List */}
             <div className="space-y-2 text-sm text-gray-700">
-                {files.length === 0 ? (
+                {filteredFiles.length === 0 ? (
                     <p className="text-gray-400">{t('reports.yourSavedReportsEmpty')}</p>
                 ) : (
                     <div>
-                        <h3 className="font-bold pb-[15px] text-2xl">Список збереженних звітів</h3>
+                        <h3 className="font-bold pb-[15px] text-2xl">Список збережених звітів</h3>
                         <ul className="space-y-2">
-                            {files.map((file) => (
+                            {filteredFiles.map((file) => (
                                 <li
                                     key={file.id}
                                     className="border p-3 rounded shadow-sm bg-gray-50 hover:bg-gray-100 flex items-center justify-between"
