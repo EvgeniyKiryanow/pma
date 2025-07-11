@@ -34,6 +34,7 @@ export const ua = {
         fieldSelection: 'Вибір полів',
         yourSavedReportsTitle: 'Ваші збережені звіти',
         yourSavedReportsEmpty: 'У вас ще немає збережених звітів',
+        searchTemplates: 'Пошук шаблонів',
     },
 
     leftBar: {

@@ -19,10 +19,12 @@ type ReportsState = {
     savedTemplates: Template[];
     selectedTemplateId: string | number;
     selectedUserId: number | null;
+    selectedUserId2: number | null;
     setUsers: (users: User[]) => void;
     setSavedTemplates: (templates: any[]) => void;
     setSelectedTemplate: (id: string | number) => void;
     setSelectedUser: (id: number | null) => void;
+    setSelectedUser2: (id: number | null) => void;
     addTemplate: (template: Template) => void;
     saveFilledTemplate: (template: Template) => void;
     addSavedTemplate: (tpl: SavedTemplate) => void;
@@ -36,11 +38,13 @@ export const useReportsStore = create<ReportsState>((set) => ({
     savedTemplates: [],
     selectedTemplateId: null,
     selectedUserId: null,
+    selectedUserId2: null,
 
     setUsers: (users) => set({ users }),
     setSavedTemplates: (templates) => set({ savedTemplates: templates }),
     setSelectedTemplate: (id) => set({ selectedTemplateId: id }),
     setSelectedUser: (id) => set({ selectedUserId: id }),
+    setSelectedUser2: (id) => set({ selectedUserId2: id }),
 
     addTemplate: (template) =>
         set((state) => ({

@@ -33,6 +33,7 @@ export const en = {
         fieldSelection: 'Field Selection',
         yourSavedReportsTitle: 'Your Saved Reports',
         yourSavedReportsEmpty: "You don't have any saved reports yet",
+        searchTemplates: 'Search templates',
     },
     leftBar: {
         title: 'Personnel List',

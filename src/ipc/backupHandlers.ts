@@ -120,6 +120,7 @@ export function registerBackupHandlers() {
                 }
             }
 
+            resetUserTemplates();
             console.log('✅ Database and report templates fully reset.');
             return true;
         } catch (err) {
