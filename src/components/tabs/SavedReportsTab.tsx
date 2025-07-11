@@ -18,6 +18,8 @@ export default function SavedReportsTab() {
     const [includedFields, setIncludedFields] = useState<Record<string, boolean>>({});
     const [includedFields2, setIncludedFields2] = useState<Record<string, boolean>>({});
     const [searchQuery, setSearchQuery] = useState('');
+    const [showPreview, setShowPreview] = useState(false);
+    const [previewTpl, setPreviewTpl] = useState<any | null>(null);
 
     const {
         savedTemplates,
@@ -86,6 +88,28 @@ export default function SavedReportsTab() {
     useEffect(() => {
         setPreviewBuffer(null); // 🧹 Reset preview when template changes
     }, [selectedTemplateId]);
+    const handlePreview = (tpl: any) => {
+        setPreviewTpl(tpl);
+        setShowPreview(true);
+
+        setTimeout(() => {
+            const container = document.getElementById('docx-preview-container');
+            if (container && tpl?.content) {
+                container.innerHTML = 'Loading preview...';
+                const zip = new PizZip(tpl.content);
+                const doc = new Docxtemplater(zip);
+                try {
+                    doc.render();
+                    const buffer = doc.getZip().generate({ type: 'arraybuffer' });
+                    renderAsync(buffer, container);
+                } catch (err) {
+                    container.innerHTML =
+                        '<p class="text-red-500">⚠️ Не вдалося відобразити шаблон.</p>';
+                }
+            }
+        }, 0);
+    };
+
     const handleGenerate = async () => {
         if (!selectedTemplate || !selectedUser) {
             alert('❌ Шаблон або користувач не вибраний!');
@@ -198,7 +222,9 @@ export default function SavedReportsTab() {
                         {users.map((u) => (
                             <li
                                 key={u.id}
-                                onClick={() => setSelectedUser(u.id)}
+                                onClick={() =>
+                                    setSelectedUser(selectedUserId === u.id ? null : u.id)
+                                }
                                 className={`cursor-pointer px-3 py-2 rounded-md border transition text-sm ${
                                     selectedUserId === u.id
                                         ? 'bg-blue-100 border-blue-400 font-medium'
@@ -218,7 +244,12 @@ export default function SavedReportsTab() {
                         {users.map((u) => (
                             <li
                                 key={u.id}
-                                onClick={() => useReportsStore.getState().setSelectedUser2(u.id)}
+                                onClick={() => {
+                                    const currentId = useReportsStore.getState().selectedUserId2;
+                                    useReportsStore
+                                        .getState()
+                                        .setSelectedUser2(currentId === u.id ? null : u.id);
+                                }}
                                 className={`cursor-pointer px-3 py-2 rounded-md border transition text-sm ${
                                     useReportsStore.getState().selectedUserId2 === u.id
                                         ? 'bg-green-100 border-green-400 font-medium'
@@ -362,26 +393,45 @@ export default function SavedReportsTab() {
                                 .map((tpl: any) => (
                                     <li
                                         key={tpl.id || Date.now()}
-                                        onClick={() => {
-                                            setSelectedTemplate(tpl.id);
-                                        }}
-                                        className={`p-4 rounded-lg shadow-sm border transition flex justify-between items-start gap-3 cursor-pointer ${
+                                        className={`p-4 rounded-lg shadow-sm border transition flex flex-col gap-3 cursor-pointer ${
                                             selectedTemplateId === tpl.id
                                                 ? 'bg-blue-50 border-blue-400'
                                                 : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
                                         }`}
                                     >
-                                        <div className="flex-1">
-                                            <div className="font-semibold text-base text-gray-800 flex items-center gap-1">
-                                                📁 {tpl.name}
+                                        <div className="flex justify-between items-start gap-3">
+                                            <div className="flex-1">
+                                                <div className="font-semibold text-base text-gray-800 flex items-center gap-1">
+                                                    📁 {tpl.name}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    {new Date(tpl.timestamp).toLocaleString()}
+                                                </div>
                                             </div>
-                                            <div className="text-xs text-gray-500 mt-1">
-                                                {new Date(tpl.timestamp).toLocaleString()}
-                                            </div>
+                                            {selectedTemplateId === tpl.id && (
+                                                <CheckCircle className="text-green-600 w-5 h-5 shrink-0 mt-1" />
+                                            )}
                                         </div>
-                                        {selectedTemplateId === tpl.id && (
-                                            <CheckCircle className="text-green-600 w-5 h-5 shrink-0 mt-1" />
-                                        )}
+                                        <div className="flex gap-2 justify-end">
+                                            <button
+                                                onClick={() => handlePreview(tpl)}
+                                                className="px-3 py-1 text-sm font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition"
+                                            >
+                                                🔍 Попередній перегляд
+                                            </button>
+                                            <button
+                                                onClick={() =>
+                                                    setSelectedTemplate(
+                                                        selectedTemplateId === tpl.id
+                                                            ? null
+                                                            : tpl.id,
+                                                    )
+                                                }
+                                                className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded hover:bg-gray-100 transition"
+                                            >
+                                                ✅ Обрати
+                                            </button>
+                                        </div>
                                     </li>
                                 ))}
                         </ul>
@@ -390,6 +440,35 @@ export default function SavedReportsTab() {
                     <p className="text-gray-500 text-sm">{t('reports.noSavedTemplates')}</p>
                 )}
             </main>
+            {/* preview */}
+            {showPreview && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white shadow-xl rounded-lg max-w-4xl w-full mx-4 relative overflow-hidden animate-fade-in">
+                        <div className="flex justify-between items-center px-4 py-3 border-b bg-gray-100">
+                            <h3 className="text-lg font-medium text-gray-800 mb-1">
+                                Попередній перегляд:{' '}
+                                <span className="font-semibold">{previewTpl?.name}</span>
+                            </h3>
+                            <p className="text-sm text-gray-500 mb-3">
+                                ⚠️ Увага: Це лише приблизний попередній перегляд. Відображення,
+                                стилі та відступи відрізняються від фінального документу.
+                            </p>
+                            <button
+                                onClick={() => setShowPreview(false)}
+                                className="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none"
+                            >
+                                &times;
+                            </button>
+                        </div>
+                        <div
+                            id="docx-preview-container"
+                            className="p-4 overflow-auto max-h-[75vh] bg-white text-sm"
+                        >
+                            <p className="text-gray-500">⏳ Завантаження...</p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
