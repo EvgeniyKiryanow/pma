@@ -89,7 +89,7 @@ export default function SavedReportsTab() {
         }
     }, [selectedUser]);
     useEffect(() => {
-        setPreviewBuffer(null); // 🧹 Reset preview when template changes
+        setPreviewBuffer(null);
     }, [selectedTemplateId]);
     const handlePreview = (tpl: any) => {
         setPreviewTpl(tpl);
@@ -134,11 +134,14 @@ export default function SavedReportsTab() {
 
             // 🟢 First user
             const fullNameForms = await generateFullNameForms(selectedUser.fullName);
-            const flattenedFullName = flattenFullNameForms(fullNameForms);
+            const flattenedFullName = flattenFullNameForms(
+                fullNameForms,
+                !!includedFields.fullName,
+            );
 
             const filteredUserData = Object.entries(selectedUser).reduce(
                 (acc, [key, value]) => {
-                    acc[key] = includedFields[key] ? value : '   ';
+                    acc[key] = includedFields[key] ? (value ?? '') : '';
                     return acc;
                 },
                 {} as Record<string, any>,
@@ -154,15 +157,14 @@ export default function SavedReportsTab() {
             if (selectedUser2) {
                 const fullNameForms2 = await generateFullNameForms(selectedUser2.fullName);
                 flattenedFullName2 = Object.fromEntries(
-                    Object.entries(flattenFullNameForms(fullNameForms2)).map(([key, val]) => [
-                        `${key}2`,
-                        val,
-                    ]),
+                    Object.entries(
+                        flattenFullNameForms(fullNameForms2, !!includedFields2.fullName),
+                    ).map(([key, val]) => [`${key}2`, val]),
                 );
 
                 filteredUserData2 = Object.entries(selectedUser2).reduce(
                     (acc, [key, value]) => {
-                        acc[`${key}2`] = includedFields[key] ? value : '   ';
+                        acc[`${key}2`] = includedFields2[key] ? (value ?? '') : '';
                         return acc;
                     },
                     {} as Record<string, any>,
