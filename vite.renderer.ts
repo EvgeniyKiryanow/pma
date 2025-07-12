@@ -19,6 +19,13 @@ export default defineConfig({
     emptyOutDir: true,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
+        external: [
+    '@tensorflow/tfjs', // ⛔ prevent bundling
+    '@tensorflow/tfjs-core',
+    '@tensorflow/tfjs-backend-webgl',
+    '@tensorflow/tfjs-backend-cpu',
+    '@tensorflow/tfjs-layers',
+  ],
       output: {
         manualChunks(id: string) {
           if (id.includes('node_modules')) {
