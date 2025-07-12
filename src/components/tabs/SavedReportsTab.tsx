@@ -17,6 +17,7 @@ import UserList from './_components/UserList';
 import SavedTemplatesList from './_components/SavedTemplatesList';
 import DocxPreviewModal from './_components/DocxPreviewModal';
 import SavedTemplatesPanel from './_components/SavedTemplatesPanel';
+import { useDocxGenerator } from '../../hooks/useDocxGenerator';
 
 export default function SavedReportsTab() {
     const { t } = useI18nStore();
@@ -28,6 +29,7 @@ export default function SavedReportsTab() {
     const [searchUser1, setSearchUser1] = useState('');
     const [searchUser2, setSearchUser2] = useState('');
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const { generateDocx } = useDocxGenerator();
 
     const { savedTemplates, selectedUserId, setSelectedUser, setSelectedTemplate } =
         useReportsStore();
@@ -117,93 +119,32 @@ export default function SavedReportsTab() {
     };
 
     const handleGenerate = async () => {
-        if (!selectedTemplate || !selectedUser) {
-            alert('❌ Шаблон або користувач не вибраний!');
-            return;
-        }
+        const buffer = await generateDocx({
+            selectedUser,
+            includedFields,
+            selectedUser2,
+            includedFields2,
+            selectedTemplate,
+        });
 
-        const imageOpts = getImageOptions();
+        if (!buffer) return;
 
-        try {
-            const zip = new PizZip(selectedTemplate.content);
-            const imageModule = new ImageModule(imageOpts);
+        setPreviewBuffer(buffer);
 
-            const doc = new Docxtemplater(zip, {
-                paragraphLoop: true,
-                linebreaks: true,
-                modules: [imageModule],
-                delimiters: { start: '{', end: '}' },
-            });
-
-            // 🟢 First user
-            const fullNameForms = await generateFullNameForms(selectedUser.fullName);
-            const flattenedFullName = flattenFullNameForms(
-                fullNameForms,
-                !!includedFields.fullName,
-            );
-
-            const filteredUserData = Object.entries(selectedUser).reduce(
-                (acc, [key, value]) => {
-                    acc[key] = includedFields[key] ? (value ?? '') : '';
-                    return acc;
-                },
-                {} as Record<string, any>,
-            );
-
-            // 🟢 Second user
-            const selectedUser2 = users.find(
-                (u) => u.id === useReportsStore.getState().selectedUserId2,
-            );
-            let filteredUserData2: Record<string, any> = {};
-            let flattenedFullName2: Record<string, string> = {};
-
-            if (selectedUser2) {
-                const fullNameForms2 = await generateFullNameForms(selectedUser2.fullName);
-                flattenedFullName2 = Object.fromEntries(
-                    Object.entries(
-                        flattenFullNameForms(fullNameForms2, !!includedFields2.fullName),
-                    ).map(([key, val]) => [`${key}2`, val]),
-                );
-
-                filteredUserData2 = Object.entries(selectedUser2).reduce(
-                    (acc, [key, value]) => {
-                        acc[`${key}2`] = includedFields2[key] ? (value ?? '') : '';
-                        return acc;
-                    },
-                    {} as Record<string, any>,
-                );
+        if (previewRef.current) {
+            previewRef.current.innerHTML = 'Loading preview...';
+            try {
+                await renderAsync(buffer, previewRef.current);
+                console.log('✅ DOCX preview rendered');
+                alert('✅ Шаблон успішно згенеровано!');
+            } catch (err) {
+                console.error('❌ Preview render failed:', err);
+                previewRef.current.innerHTML = '❌ Не вдалося показати попередній перегляд.';
+                alert('⚠️ Помилка під час відображення попереднього перегляду.');
             }
-
-            doc.setData({
-                ...filteredUserData,
-                ...flattenedFullName,
-                ...filteredUserData2,
-                ...flattenedFullName2,
-            });
-
-            doc.render();
-
-            const buffer = doc.getZip().generate({ type: 'arraybuffer' });
-            setPreviewBuffer(buffer);
-
-            if (previewRef.current) {
-                previewRef.current.innerHTML = 'Loading preview...';
-                try {
-                    await renderAsync(buffer, previewRef.current);
-                    console.log('✅ DOCX preview rendered');
-                    alert('✅ Шаблон успішно згенеровано!');
-                } catch (err) {
-                    console.error('❌ Preview render failed:', err);
-                    previewRef.current.innerHTML = '❌ Не вдалося показати попередній перегляд.';
-                    alert('⚠️ Помилка під час відображення попереднього перегляду.');
-                }
-            }
-            alert('✅ Шаблон успішно згенеровано!');
-        } catch (err) {
-            console.error('⚠️ Template generation failed:', err);
-            alert('❌ Помилка генерації шаблону.');
         }
     };
+
     const handleDownload = () => {
         if (!previewBuffer) return;
 
