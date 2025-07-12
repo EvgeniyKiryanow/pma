@@ -16,6 +16,7 @@ import UserFields from './_components/UserFields';
 import UserList from './_components/UserList';
 import SavedTemplatesList from './_components/SavedTemplatesList';
 import DocxPreviewModal from './_components/DocxPreviewModal';
+import SavedTemplatesPanel from './_components/SavedTemplatesPanel';
 
 export default function SavedReportsTab() {
     const { t } = useI18nStore();
@@ -257,68 +258,22 @@ export default function SavedReportsTab() {
             )}
 
             {/* Saved Templates */}
-            <main className="flex-1 p-6 overflow-y-auto bg-white">
-                <h2 className="text-2xl font-bold mb-4 text-gray-800">
-                    {t('reports.savedTemplates')}
-                </h2>
-                <div className="mt-6 flex flex-wrap gap-3 pb-[15px] items-center">
-                    <button
-                        onClick={() => setShowAdvanced(!showAdvanced)}
-                        disabled={!selectedUser && !selectedUser2}
-                        className={`px-4 py-2 rounded-md border font-medium text-sm transition 
-        ${
-            !selectedUser && !selectedUser2
-                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                : 'text-gray-700 border-gray-300 hover:bg-gray-100'
-        }`}
-                    >
-                        {showAdvanced ? '⬆️ Приховати поля' : '⚙️ Розширені налаштування'}
-                    </button>
+            <SavedTemplatesPanel
+                savedTemplates={savedTemplates}
+                selectedTemplateId={selectedTemplateId}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                handlePreview={handlePreview}
+                handleGenerate={handleGenerate}
+                handleDownload={handleDownload}
+                showAdvanced={showAdvanced}
+                setShowAdvanced={setShowAdvanced}
+                previewBuffer={previewBuffer}
+                selectedTemplate={selectedTemplate}
+                selectedUser={selectedUser}
+                selectedUser2={selectedUser2}
+            />
 
-                    <button
-                        onClick={handleGenerate}
-                        disabled={!selectedUser || !selectedTemplate}
-                        className={`px-4 py-2 rounded-md text-white font-medium text-sm transition ${
-                            !selectedUser || !selectedTemplate
-                                ? 'bg-gray-400 cursor-not-allowed'
-                                : 'bg-indigo-600 hover:bg-indigo-700'
-                        }`}
-                    >
-                        {t('reports.generateFilledTemplate')}
-                    </button>
-                    <button
-                        onClick={handleDownload}
-                        disabled={!previewBuffer}
-                        className={`px-4 py-2 rounded-md text-white font-medium text-sm transition ${
-                            !previewBuffer
-                                ? 'bg-gray-400 cursor-not-allowed'
-                                : 'bg-green-600 hover:bg-green-700'
-                        }`}
-                    >
-                        {t('reports.download')}
-                    </button>
-                </div>
-
-                <div className="mt-4 mb-2">
-                    <input
-                        type="text"
-                        placeholder={t('reports.searchTemplates') || 'Пошук шаблону...'}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                </div>
-                {savedTemplates.length > 0 ? (
-                    <SavedTemplatesList
-                        templates={savedTemplates}
-                        selectedTemplateId={selectedTemplateId}
-                        searchQuery={searchQuery}
-                        handlePreview={handlePreview}
-                    />
-                ) : (
-                    <p className="text-gray-500 text-sm">{t('reports.noSavedTemplates')}</p>
-                )}
-            </main>
             {showPreview && (
                 <DocxPreviewModal
                     open={showPreview}
