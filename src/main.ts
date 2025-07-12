@@ -58,11 +58,17 @@ export function copyAllTemplates() {
         }
     });
 }
+
 export function resetUserTemplates() {
     const userTemplatesDir = path.join(app.getPath('userData'), 'templates');
-    const defaultTemplatesDir = path.join(__dirname, 'assets/templates');
+    const defaultTemplatesDir = path.join(process.resourcesPath, 'assets', 'templates');
 
-    // Завантажити імена дефолтних шаблонів
+    if (!fs.existsSync(defaultTemplatesDir)) {
+        console.warn('⚠️ Default templates folder not found:', defaultTemplatesDir);
+        return;
+    }
+
+    // Load names of default templates
     const defaultFiles = fs
         .readdirSync(defaultTemplatesDir)
         .filter((file) => file.endsWith('.docx'));
