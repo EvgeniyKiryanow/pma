@@ -80,8 +80,8 @@ export function useDocxGenerator() {
             }
 
             const { rank, position } = selectedUser;
-            const [morphologyRank] = await window.electronAPI.morphy.analyzeWords([rank]);
-            const [morphologyPosition] = await window.electronAPI.morphy.analyzeWords([position]);
+            const morphologyRank = await window.electronAPI.morphy.analyzeWords(rank);
+            const morphologyPosition = await window.electronAPI.morphy.analyzeWords(position);
 
             const flattenedRank = generateAndFlattenTitleForms(
                 morphologyRank,

@@ -45,11 +45,7 @@ export default defineConfig({
 
     fs.mkdirSync(destPython, { recursive: true });
 
-    const pythonFiles = fs.readdirSync(srcPython).filter(f => f.endsWith('.py'));
-
-    for (const file of pythonFiles) {
-      fs.copyFileSync(path.join(srcPython, file), path.join(destPython, file));
-    }
+    fs.cpSync(srcPython, destPython, { recursive: true });
   }
 },
   ],

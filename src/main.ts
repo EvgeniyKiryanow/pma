@@ -7,18 +7,42 @@ import log from 'electron-log';
 import { initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
 import fs from 'fs';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { runHelloPython } from './runPython';
 import { ipcMain } from 'electron';
 
-ipcMain.handle('analyze-words', async (_event, words: string[]) => {
-    try {
-        const result = await runHelloPython(JSON.stringify(words));
-        return JSON.parse(result);
-    } catch (err) {
-        console.error('Python analyze error:', err);
-        return null;
-    }
+const getPythonScriptPath = () => {
+    const basePath = app.isPackaged
+        ? path.join(process.resourcesPath, 'assets/python')
+        : path.join(__dirname, 'assets/python');
+
+    const python =
+        process.platform === 'win32'
+            ? path.join(basePath, 'venv', 'Scripts', 'python.exe')
+            : path.join(basePath, 'venv', 'bin', 'python3');
+
+    const script = path.join(basePath, 'morphy.py');
+
+    return { python, script };
+};
+
+ipcMain.handle('analyze-words', async (_event, phrase: string) => {
+    const { python, script } = getPythonScriptPath();
+
+    return new Promise((resolve, reject) => {
+        execFile(python, [script, JSON.stringify(phrase)], (error, stdout, stderr) => {
+            if (error) {
+                console.error('🐍 Python error:', stderr);
+                return reject(error);
+            }
+            try {
+                const result = JSON.parse(stdout);
+                resolve(result);
+            } catch (err) {
+                reject('JSON parse error: ' + stdout);
+            }
+        });
+    });
 });
 
 export function copyAllTemplates() {
@@ -195,24 +219,28 @@ process.on('unhandledRejection', (reason) => {
     console.error('Unhandled Rejection:', reason);
 });
 
-app.whenReady()
-    .then(async () => {
-        try {
-            const result = await runHelloPython('TestArg');
-            console.log('🐍 Python response:', result);
-        } catch (err) {
-            console.error('🐍 Python error:', err);
-        }
-        registerDbHandlers();
-        await initializeDb();
-        await upgradeDbSchema();
-        copyAllTemplates();
-        createWindow();
-        autoUpdater.checkForUpdatesAndNotify();
-    })
-    .catch((err) => {
-        console.error('❌ App failed to launch:', err);
+app.whenReady().then(async () => {
+    const { python, script } = getPythonScriptPath();
+
+    const testArg = JSON.stringify({
+        rank: 'солдат',
+        position: 'командир роти',
     });
+
+    try {
+        const result = await runHelloPython(python, testArg);
+        console.log('🐍 Python response:', result);
+    } catch (err) {
+        console.error('🐍 Python error:', err);
+    }
+
+    registerDbHandlers();
+    await initializeDb();
+    await upgradeDbSchema();
+    copyAllTemplates();
+    createWindow();
+    autoUpdater.checkForUpdatesAndNotify();
+});
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
