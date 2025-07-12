@@ -10,6 +10,8 @@ import Docxtemplater from 'docxtemplater';
 // @ts-ignore
 import ImageModule from 'docxtemplater-image-module-free';
 import { GrammaticalGender } from 'shevchenko';
+import generateTitleForms from '../helpers/generateTitleForms';
+import flattenTitleForms from '../helpers/flattenTitleForms';
 
 export function useDocxGenerator() {
     const generateDocx = async ({
@@ -31,13 +33,13 @@ export function useDocxGenerator() {
         }
 
         const imageOpts = getImageOptions();
-        const { rank, position } = selectedUser;
-        try {
-            const result = await window.electronAPI.morphy.analyzeWords([rank, position]);
-            console.log('🧠 Morphology response:', result);
-        } catch (err) {
-            console.error('❌ Failed to get morphology data:', err);
-        }
+        // const { rank, position } = selectedUser;
+        // try {
+        //     const result = await window.electronAPI.morphy.analyzeWords([rank, position]);
+        //     console.log('🧠 Morphology response:', result);
+        // } catch (err) {
+        //     console.error('❌ Failed to get morphology data:', err);
+        // }
         try {
             const zip = new PizZip(selectedTemplate.content);
             const imageModule = new ImageModule(imageOpts);
@@ -88,12 +90,29 @@ export function useDocxGenerator() {
                     {} as Record<string, any>,
                 );
             }
+            const { rank, position } = selectedUser;
+            const [morphologyRank] = await window.electronAPI.morphy.analyzeWords([rank]);
+            const [morphologyPosition] = await window.electronAPI.morphy.analyzeWords([position]);
 
+            const shouldIncludeRank = !!includedFields.rank;
+            const shouldIncludePosition = !!includedFields.position;
+
+            const rankForms = generateTitleForms(morphologyRank, { word: '', cases: {} });
+            const positionForms = generateTitleForms({ word: '', cases: {} }, morphologyPosition);
+
+            const flattenedRank = flattenTitleForms(rankForms, shouldIncludeRank, 'rank');
+            const flattenedPosition = flattenTitleForms(
+                positionForms,
+                shouldIncludePosition,
+                'pos',
+            );
             doc.setData({
                 ...filteredUserData,
                 ...flattenedFullName,
                 ...filteredUserData2,
                 ...flattenedFullName2,
+                ...flattenedRank,
+                ...flattenedPosition,
             });
 
             doc.render();
