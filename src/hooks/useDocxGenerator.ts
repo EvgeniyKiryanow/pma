@@ -1,8 +1,4 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-// hooks/useDocxGenerator.ts
-import { useReportsStore } from '../stores/reportsStore';
-import generateFullNameForms from '../helpers/fullNameConverting';
-import flattenFullNameForms from '../helpers/flattenNameConverting';
 import getImageOptions from '../helpers/imageOptionHelper';
 
 import PizZip from 'pizzip';
@@ -10,9 +6,8 @@ import Docxtemplater from 'docxtemplater';
 // @ts-ignore
 import ImageModule from 'docxtemplater-image-module-free';
 import { GrammaticalGender } from 'shevchenko';
-import generateTitleForms from '../helpers/generateTitleForms';
-import flattenTitleForms from '../helpers/flattenTitleForms';
-
+import generateAndFlattenTitleForms from '../helpers/generateAndFlattenTitleForms';
+import generateAndFlattenFullNameForms from '../helpers/generateAndFlattenFullNameForms';
 export function useDocxGenerator() {
     const generateDocx = async ({
         selectedUser,
@@ -33,13 +28,6 @@ export function useDocxGenerator() {
         }
 
         const imageOpts = getImageOptions();
-        // const { rank, position } = selectedUser;
-        // try {
-        //     const result = await window.electronAPI.morphy.analyzeWords([rank, position]);
-        //     console.log('🧠 Morphology response:', result);
-        // } catch (err) {
-        //     console.error('❌ Failed to get morphology data:', err);
-        // }
         try {
             const zip = new PizZip(selectedTemplate.content);
             const imageModule = new ImageModule(imageOpts);
@@ -51,12 +39,9 @@ export function useDocxGenerator() {
                 delimiters: { start: '{', end: '}' },
             });
 
-            const fullNameForms = await generateFullNameForms(
+            const flattenedFullName = await generateAndFlattenFullNameForms(
                 selectedUser.fullName,
                 GrammaticalGender.MASCULINE,
-            );
-            const flattenedFullName = flattenFullNameForms(
-                fullNameForms,
                 !!includedFields.fullName,
             );
 
@@ -72,16 +57,19 @@ export function useDocxGenerator() {
             let flattenedFullName2: Record<string, string> = {};
 
             if (selectedUser2) {
-                const fullNameForms2 = await generateFullNameForms(
+                // ✅ Flatten full name with prefix and suffixed keys in one step
+                const flattenedFullName2Raw = await generateAndFlattenFullNameForms(
                     selectedUser2.fullName,
                     GrammaticalGender.MASCULINE,
-                );
-                flattenedFullName2 = Object.fromEntries(
-                    Object.entries(
-                        flattenFullNameForms(fullNameForms2, !!includedFields2.fullName),
-                    ).map(([key, val]) => [`${key}2`, val]),
+                    !!includedFields2.fullName,
                 );
 
+                // ✅ Suffix keys with `2`
+                flattenedFullName2 = Object.fromEntries(
+                    Object.entries(flattenedFullName2Raw).map(([key, val]) => [`${key}2`, val]),
+                );
+
+                // ✅ Filter user data with suffixed keys
                 filteredUserData2 = Object.entries(selectedUser2).reduce(
                     (acc, [key, value]) => {
                         acc[`${key}2`] = includedFields2[key] ? (value ?? '') : '';
@@ -90,22 +78,25 @@ export function useDocxGenerator() {
                     {} as Record<string, any>,
                 );
             }
+
             const { rank, position } = selectedUser;
             const [morphologyRank] = await window.electronAPI.morphy.analyzeWords([rank]);
             const [morphologyPosition] = await window.electronAPI.morphy.analyzeWords([position]);
 
-            const shouldIncludeRank = !!includedFields.rank;
-            const shouldIncludePosition = !!includedFields.position;
+            const flattenedRank = generateAndFlattenTitleForms(
+                morphologyRank,
+                { word: '', cases: {} },
+                !!includedFields.rank,
+                'rank',
+            );
 
-            const rankForms = generateTitleForms(morphologyRank, { word: '', cases: {} });
-            const positionForms = generateTitleForms({ word: '', cases: {} }, morphologyPosition);
-
-            const flattenedRank = flattenTitleForms(rankForms, shouldIncludeRank, 'rank');
-            const flattenedPosition = flattenTitleForms(
-                positionForms,
-                shouldIncludePosition,
+            const flattenedPosition = generateAndFlattenTitleForms(
+                { word: '', cases: {} },
+                morphologyPosition,
+                !!includedFields.position,
                 'pos',
             );
+
             doc.setData({
                 ...filteredUserData,
                 ...flattenedFullName,
