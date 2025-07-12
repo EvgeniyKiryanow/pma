@@ -10,29 +10,22 @@ import fs from 'fs';
 import { exec, execFile } from 'child_process';
 import { runHelloPython } from './runPython';
 import { ipcMain } from 'electron';
-
-const getPythonScriptPath = () => {
-    const basePath = app.isPackaged
-        ? path.join(process.resourcesPath, 'assets/python')
-        : path.join(__dirname, 'assets/python');
-
-    const python =
-        process.platform === 'win32'
-            ? path.join(basePath, 'venv', 'Scripts', 'python.exe')
-            : path.join(basePath, 'venv', 'bin', 'python3');
-
-    const script = path.join(basePath, 'morphy.py');
-
-    return { python, script };
-};
+import {
+    getInstalledPythonPath,
+    getPythonPaths,
+    installMorphyPackages,
+    isPythonAvailable,
+    promptInstallPython,
+} from './helpers/pythonInstallerHelper';
 
 ipcMain.handle('analyze-words', async (_event, phrase: string) => {
-    const { python, script } = getPythonScriptPath();
+    const pythonPath = getInstalledPythonPath(); // resolves to installed python
+    const { python, script } = getPythonPaths(); // resolves to morphy.py
 
     return new Promise((resolve, reject) => {
-        execFile(python, [script, JSON.stringify(phrase)], (error, stdout, stderr) => {
+        execFile(pythonPath, [script, JSON.stringify(phrase)], (error, stdout, stderr) => {
             if (error) {
-                console.error('🐍 Python error:', stderr);
+                console.error('🐍 Python error:', stderr || error.message);
                 return reject(error);
             }
             try {
@@ -220,18 +213,14 @@ process.on('unhandledRejection', (reason) => {
 });
 
 app.whenReady().then(async () => {
-    const { python, script } = getPythonScriptPath();
+    const { python, script } = getPythonPaths();
 
-    const testArg = JSON.stringify({
-        rank: 'солдат',
-        position: 'командир роти',
-    });
-
-    try {
-        const result = await runHelloPython(python, testArg);
-        console.log('🐍 Python response:', result);
-    } catch (err) {
-        console.error('🐍 Python error:', err);
+    if (!isPythonAvailable(python)) {
+        console.warn('⚠️ Python не знайдено. Пропонуємо інсталяцію...');
+        promptInstallPython(); // Просто відкриває інсталятор
+        // Не зупиняємо виконання
+    } else {
+        installMorphyPackages(python);
     }
 
     registerDbHandlers();
