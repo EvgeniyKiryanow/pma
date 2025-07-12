@@ -71,4 +71,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getReportTemplatesFromDb: () => ipcRenderer.invoke('get-all-report-templates-from-db'),
     readReportFileBuffer: (filePath: string) =>
         ipcRenderer.invoke('read-report-file-buffer', filePath),
+
+    // puthon parser
+    morphy: {
+        analyzeWords: (words: string[]) => ipcRenderer.invoke('analyze-words', words),
+    },
 });

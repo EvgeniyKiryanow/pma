@@ -31,7 +31,13 @@ export function useDocxGenerator() {
         }
 
         const imageOpts = getImageOptions();
-
+        const { rank, position } = selectedUser;
+        try {
+            const result = await window.electronAPI.morphy.analyzeWords([rank, position]);
+            console.log('🧠 Morphology response:', result);
+        } catch (err) {
+            console.error('❌ Failed to get morphology data:', err);
+        }
         try {
             const zip = new PizZip(selectedTemplate.content);
             const imageModule = new ImageModule(imageOpts);

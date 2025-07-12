@@ -8,6 +8,18 @@ import { initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
 import fs from 'fs';
 import { exec } from 'child_process';
+import { runHelloPython } from './runPython';
+import { ipcMain } from 'electron';
+
+ipcMain.handle('analyze-words', async (_event, words: string[]) => {
+    try {
+        const result = await runHelloPython(JSON.stringify(words));
+        return JSON.parse(result);
+    } catch (err) {
+        console.error('Python analyze error:', err);
+        return null;
+    }
+});
 
 export function copyAllTemplates() {
     const sourceDir = path.join(__dirname, 'assets/templates');
@@ -185,6 +197,12 @@ process.on('unhandledRejection', (reason) => {
 
 app.whenReady()
     .then(async () => {
+        try {
+            const result = await runHelloPython('TestArg');
+            console.log('🐍 Python response:', result);
+        } catch (err) {
+            console.error('🐍 Python error:', err);
+        }
         registerDbHandlers();
         await initializeDb();
         await upgradeDbSchema();

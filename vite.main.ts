@@ -37,5 +37,20 @@ export default defineConfig({
         }
       },
     },
+    {
+  name: 'copy-python-on-build',
+  closeBundle() {
+    const srcPython = path.resolve(__dirname, 'src/assets/python');
+    const destPython = path.resolve(__dirname, '.vite/build/assets/python');
+
+    fs.mkdirSync(destPython, { recursive: true });
+
+    const pythonFiles = fs.readdirSync(srcPython).filter(f => f.endsWith('.py'));
+
+    for (const file of pythonFiles) {
+      fs.copyFileSync(path.join(srcPython, file), path.join(destPython, file));
+    }
+  }
+},
   ],
 });

@@ -75,6 +75,9 @@ declare global {
                 { id: number; name: string; filePath: string; createdAt: string }[]
             >;
             readReportFileBuffer: (filePath: string) => Promise<ArrayBuffer>;
+            morphy: {
+                analyzeWords: (words: string[]) => Promise<any>;
+            };
         };
     }
 }
