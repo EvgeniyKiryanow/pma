@@ -23,7 +23,7 @@ export default defineConfig({
         manualChunks(id: string) {
           if (id.includes('node_modules')) {
             if (id.includes('react')) return 'vendor_react';
-            if (id.includes('docxtemplater')) return 'vendor_docxtemplater';
+            // if (id.includes('docxtemplater')) return 'vendor_docxtemplater';
             if (id.includes('pizzip')) return 'vendor_pizzip';
             if (id.includes('docx-preview')) return 'vendor_docxpreview';
             if (id.includes('zustand')) return 'vendor_zustand';
