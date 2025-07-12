@@ -12,6 +12,10 @@ import { CheckCircle } from 'lucide-react';
 import generateFullNameForms from '../../helpers/fullNameConverting';
 import flattenFullNameForms from '../../helpers/flattenNameConverting';
 import getImageOptions from '../../helpers/imageOptionHelper';
+import UserFields from './_components/UserFields';
+import UserList from './_components/UserList';
+import SavedTemplatesList from './_components/SavedTemplatesList';
+import DocxPreviewModal from './_components/DocxPreviewModal';
 
 export default function SavedReportsTab() {
     const { t } = useI18nStore();
@@ -24,14 +28,9 @@ export default function SavedReportsTab() {
     const [searchUser2, setSearchUser2] = useState('');
     const [showAdvanced, setShowAdvanced] = useState(false);
 
-    const {
-        savedTemplates,
-        selectedUserId,
-        setSelectedUser,
-        setSelectedTemplate,
-        selectedTemplateId,
-    } = useReportsStore();
-
+    const { savedTemplates, selectedUserId, setSelectedUser, setSelectedTemplate } =
+        useReportsStore();
+    const selectedTemplateId = useReportsStore((s) => s.selectedTemplateId);
     const [users, setUsers] = useState<User[]>([]);
     const [previewBuffer, setPreviewBuffer] = useState<ArrayBuffer | null>(null);
     const previewRef = useRef<HTMLDivElement>(null);
@@ -74,7 +73,10 @@ export default function SavedReportsTab() {
     }, []);
 
     const selectedUser = users.find((u) => u.id === selectedUserId);
-    const selectedTemplate = savedTemplates.find((t) => t.id === selectedTemplateId);
+    const selectedTemplate = useReportsStore((s) =>
+        s.savedTemplates.find((t) => t.id === s.selectedTemplateId),
+    );
+
     useEffect(() => {
         if (selectedUser) {
             const defaultFields = Object.keys(selectedUser).reduce(
@@ -219,168 +221,37 @@ export default function SavedReportsTab() {
         <div className="flex h-full">
             {/* User List */}
             <aside className="w-1/4 border-r p-4 overflow-y-auto bg-gray-50 space-y-6">
-                <div className="border rounded-lg p-3 bg-white shadow-sm mb-4">
-                    <h3 className="text-md font-semibold mb-3 text-gray-800 border-b pb-2">
-                        {t('reports.selectUser')}
-                    </h3>
-
-                    <input
-                        type="text"
-                        placeholder="🔍 Пошук користувача..."
-                        className="w-full mb-3 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300"
-                        value={searchUser1}
-                        onChange={(e) => setSearchUser1(e.target.value)}
-                    />
-
-                    <ul className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
-                        {users
-                            .filter((u) =>
-                                u.fullName.toLowerCase().includes(searchUser1.toLowerCase()),
-                            )
-                            .map((u) => (
-                                <li
-                                    key={u.id}
-                                    onClick={() =>
-                                        setSelectedUser(selectedUserId === u.id ? null : u.id)
-                                    }
-                                    className={`cursor-pointer px-3 py-2 rounded-md border transition text-sm ${
-                                        selectedUserId === u.id
-                                            ? 'bg-blue-100 border-blue-400 font-medium'
-                                            : 'hover:bg-blue-50 border-gray-200'
-                                    }`}
-                                >
-                                    👤 {u.fullName}
-                                </li>
-                            ))}
-                    </ul>
-                </div>
-
-                <div className="border rounded-lg p-3 bg-white shadow-sm">
-                    <h3 className="text-md font-semibold mb-3 text-gray-800 border-b pb-2">
-                        Обрати другого користувача
-                    </h3>
-
-                    <input
-                        type="text"
-                        placeholder="🔍 Пошук другого користувача..."
-                        className="w-full mb-3 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-green-300"
-                        value={searchUser2}
-                        onChange={(e) => setSearchUser2(e.target.value)}
-                    />
-
-                    <ul className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
-                        {users
-                            .filter((u) =>
-                                u.fullName.toLowerCase().includes(searchUser2.toLowerCase()),
-                            )
-                            .map((u) => (
-                                <li
-                                    key={u.id}
-                                    onClick={() => {
-                                        const currentId =
-                                            useReportsStore.getState().selectedUserId2;
-                                        useReportsStore
-                                            .getState()
-                                            .setSelectedUser2(currentId === u.id ? null : u.id);
-                                    }}
-                                    className={`cursor-pointer px-3 py-2 rounded-md border transition text-sm ${
-                                        useReportsStore.getState().selectedUserId2 === u.id
-                                            ? 'bg-green-100 border-green-400 font-medium'
-                                            : 'hover:bg-green-50 border-gray-200'
-                                    }`}
-                                >
-                                    👥 {u.fullName}
-                                </li>
-                            ))}
-                    </ul>
-                </div>
+                <UserList
+                    users={users}
+                    selectedUserId={selectedUserId}
+                    searchUser1={searchUser1}
+                    setSearchUser1={setSearchUser1}
+                    searchUser2={searchUser2}
+                    setSearchUser2={setSearchUser2}
+                />
             </aside>
 
             {/* Fields Section */}
             {showAdvanced && (
                 <div className="flex flex-col gap-6 p-4 w-[280px] max-w-[300px] overflow-y-auto border-r bg-white">
                     {selectedUser && (
-                        <div className="border rounded-lg p-4 bg-white shadow-sm mb-4">
-                            <h4 className="text-md font-semibold mb-3 text-gray-800 border-b pb-2">
-                                {t('reports.fieldSelection')}
-                            </h4>
-                            <div className="space-y-2">
-                                {Object.keys(includedFields).map((field) => {
-                                    const value =
-                                        selectedUser?.[field as keyof typeof selectedUser];
-                                    if (
-                                        value == null ||
-                                        (typeof value === 'string' && value.trim() === '') ||
-                                        (Array.isArray(value) && value.length === 0)
-                                    )
-                                        return null;
-
-                                    return (
-                                        <label
-                                            key={field}
-                                            className="flex items-center gap-3 p-2 border rounded-md hover:bg-gray-50 transition cursor-pointer"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                                                checked={includedFields[field]}
-                                                onChange={() =>
-                                                    setIncludedFields((prev) => ({
-                                                        ...prev,
-                                                        [field]: !prev[field],
-                                                    }))
-                                                }
-                                            />
-                                            <span className="text-sm text-gray-800">
-                                                {t(`user.${field}`) ?? field}
-                                            </span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        <UserFields
+                            user={selectedUser}
+                            includedFields={includedFields}
+                            setIncludedFields={setIncludedFields}
+                            label="Поля користувача"
+                            color="indigo"
+                        />
                     )}
 
                     {selectedUser2 && (
-                        <div className="border border-green-300 rounded-lg p-4 bg-white shadow-sm">
-                            <h4 className="text-md font-semibold mb-3 text-green-700 border-b border-green-200 pb-2">
-                                Поля другого користувача
-                            </h4>
-                            <div className="space-y-2">
-                                {Object.keys(includedFields2).map((field) => {
-                                    const value =
-                                        selectedUser2?.[field as keyof typeof selectedUser2];
-                                    if (
-                                        value == null ||
-                                        (typeof value === 'string' && value.trim() === '') ||
-                                        (Array.isArray(value) && value.length === 0)
-                                    )
-                                        return null;
-
-                                    return (
-                                        <label
-                                            key={field}
-                                            className="flex items-center gap-3 p-2 border border-green-100 rounded-md hover:bg-green-50 transition cursor-pointer"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-                                                checked={includedFields2[field]}
-                                                onChange={() =>
-                                                    setIncludedFields2((prev) => ({
-                                                        ...prev,
-                                                        [field]: !prev[field],
-                                                    }))
-                                                }
-                                            />
-                                            <span className="text-sm text-gray-800">
-                                                {t(`user.${field}`) ?? field}
-                                            </span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        <UserFields
+                            user={selectedUser2}
+                            includedFields={includedFields2}
+                            setIncludedFields={setIncludedFields2}
+                            label="Поля другого користувача"
+                            color="green"
+                        />
                     )}
                 </div>
             )}
@@ -438,89 +309,22 @@ export default function SavedReportsTab() {
                     />
                 </div>
                 {savedTemplates.length > 0 ? (
-                    <div className="mb-6">
-                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {savedTemplates
-                                .filter((tpl: any) =>
-                                    tpl.name.toLowerCase().includes(searchQuery.toLowerCase()),
-                                )
-                                .map((tpl: any) => (
-                                    <li
-                                        key={tpl.id || Date.now()}
-                                        className={`p-4 rounded-lg shadow-sm border transition flex flex-col gap-3 cursor-pointer ${
-                                            selectedTemplateId === tpl.id
-                                                ? 'bg-blue-50 border-blue-400'
-                                                : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
-                                        }`}
-                                    >
-                                        <div className="flex justify-between items-start gap-3">
-                                            <div className="flex-1">
-                                                <div className="font-semibold text-base text-gray-800 flex items-center gap-1">
-                                                    📁 {tpl.name}
-                                                </div>
-                                                <div className="text-xs text-gray-500 mt-1">
-                                                    {new Date(tpl.timestamp).toLocaleString()}
-                                                </div>
-                                            </div>
-                                            {selectedTemplateId === tpl.id && (
-                                                <CheckCircle className="text-green-600 w-5 h-5 shrink-0 mt-1" />
-                                            )}
-                                        </div>
-                                        <div className="flex gap-2 justify-end">
-                                            <button
-                                                onClick={() => handlePreview(tpl)}
-                                                className="px-3 py-1 text-sm font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition"
-                                            >
-                                                🔍 Попередній перегляд
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    setSelectedTemplate(
-                                                        selectedTemplateId === tpl.id
-                                                            ? null
-                                                            : tpl.id,
-                                                    )
-                                                }
-                                                className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded hover:bg-gray-100 transition"
-                                            >
-                                                ✅ Обрати
-                                            </button>
-                                        </div>
-                                    </li>
-                                ))}
-                        </ul>
-                    </div>
+                    <SavedTemplatesList
+                        templates={savedTemplates}
+                        selectedTemplateId={selectedTemplateId}
+                        searchQuery={searchQuery}
+                        handlePreview={handlePreview}
+                    />
                 ) : (
                     <p className="text-gray-500 text-sm">{t('reports.noSavedTemplates')}</p>
                 )}
             </main>
             {showPreview && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white shadow-xl rounded-lg max-w-4xl w-full mx-4 relative overflow-hidden animate-fade-in">
-                        <div className="flex justify-between items-center px-4 py-3 border-b bg-gray-100">
-                            <h3 className="text-lg font-medium text-gray-800 mb-1">
-                                Попередній перегляд:{' '}
-                                <span className="font-semibold">{previewTpl?.name}</span>
-                            </h3>
-                            <p className="text-sm text-gray-500 mb-3">
-                                ⚠️ Увага: Це лише приблизний попередній перегляд. Відображення,
-                                стилі та відступи відрізняються від фінального документу.
-                            </p>
-                            <button
-                                onClick={() => setShowPreview(false)}
-                                className="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none"
-                            >
-                                &times;
-                            </button>
-                        </div>
-                        <div
-                            id="docx-preview-container"
-                            className="p-4 overflow-auto max-h-[75vh] bg-white text-sm"
-                        >
-                            <p className="text-gray-500">⏳ Завантаження...</p>
-                        </div>
-                    </div>
-                </div>
+                <DocxPreviewModal
+                    open={showPreview}
+                    template={previewTpl}
+                    onClose={() => setShowPreview(false)}
+                />
             )}
         </div>
     );
