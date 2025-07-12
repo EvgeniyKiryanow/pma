@@ -1,7 +1,7 @@
 {
   "name": "p-manager",
   "productName": "p-manager",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "P Manager for managering",
   "main": ".vite/build/main.js",
   "scripts": {
@@ -21,14 +21,10 @@
       "buildResources": "assets/icons"
     },
     "files": [
-      ".vite/build/main.js",
-      ".vite/build/preload.js",
       "renderer_dist/**/*",
-      ".vite/build/python/*",
+      ".vite/build/**/*",
       "node_modules/**/*",
-      "assets/icons/**/*",
-      "assets/python/**/*",  
-      "python/**/*",
+      "assets/**/*",                
       "package.json"
     ],
     "extraFiles": [
@@ -44,7 +40,9 @@
     }
   ],
     "asarUnpack": [
-      "node_modules/sqlite3/**"
+      "node_modules/sqlite3/**",
+      "assets/templates/**",
+      "assets/python/**"
     ],
     "mac": {
       "icon": "assets/icons/appIcon.icns",

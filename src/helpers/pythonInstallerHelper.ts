@@ -6,7 +6,10 @@ import { shell, dialog, app } from 'electron';
 import { execFileSync } from 'child_process';
 
 export function installMorphyPackages(pythonPath: string) {
-    const pkgDir = path.join(__dirname, 'assets/python/packages');
+    const pkgDir = app.isPackaged
+        ? path.join(process.resourcesPath, 'assets', 'python', 'packages')
+        : path.join(__dirname, 'assets/python/packages');
+
     const wheels = [
         'pymorphy3-2.0.4-py3-none-any.whl',
         'pymorphy3_dicts_uk-2.4.1.1.1663094765-py2.py3-none-any.whl',
@@ -23,7 +26,7 @@ export function installMorphyPackages(pythonPath: string) {
 
 export function getPythonPaths(): { python: string; script: string } {
     const base = app.isPackaged
-        ? path.join(process.resourcesPath, 'assets/python')
+        ? path.join(process.resourcesPath, 'app.asar.unpacked', 'assets', 'python') // ✅ use real unpacked path
         : path.join(__dirname, 'assets/python');
 
     const script = path.join(base, 'morphy.py');
@@ -34,8 +37,8 @@ export function getPythonPaths(): { python: string; script: string } {
 
 export function getInstallerPath() {
     const base = app.isPackaged
-        ? path.join(process.resourcesPath, 'assets', 'python', 'installer')
-        : path.join(__dirname, 'assets', 'python', 'installer');
+        ? path.join(process.resourcesPath, 'assets/python/installer')
+        : path.join(__dirname, 'assets/python/installer');
 
     if (process.platform === 'win32') {
         return path.join(base, 'python-embed', 'python.exe');
