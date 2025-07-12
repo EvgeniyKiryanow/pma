@@ -1,9 +1,10 @@
 {
   "name": "p-manager",
   "productName": "p-manager",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "P Manager for managering",
   "main": ".vite/build/main.js",
+  "sideEffects": false,
   "scripts": {
     "dev": "electron .",
     "build:main": "vite build --config vite.main.ts",

@@ -9,6 +9,7 @@ import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 // @ts-ignore
 import ImageModule from 'docxtemplater-image-module-free';
+import { GrammaticalGender } from 'shevchenko';
 
 export function useDocxGenerator() {
     const generateDocx = async ({
@@ -42,7 +43,10 @@ export function useDocxGenerator() {
                 delimiters: { start: '{', end: '}' },
             });
 
-            const fullNameForms = await generateFullNameForms(selectedUser.fullName);
+            const fullNameForms = await generateFullNameForms(
+                selectedUser.fullName,
+                GrammaticalGender.MASCULINE,
+            );
             const flattenedFullName = flattenFullNameForms(
                 fullNameForms,
                 !!includedFields.fullName,
@@ -60,7 +64,10 @@ export function useDocxGenerator() {
             let flattenedFullName2: Record<string, string> = {};
 
             if (selectedUser2) {
-                const fullNameForms2 = await generateFullNameForms(selectedUser2.fullName);
+                const fullNameForms2 = await generateFullNameForms(
+                    selectedUser2.fullName,
+                    GrammaticalGender.MASCULINE,
+                );
                 flattenedFullName2 = Object.fromEntries(
                     Object.entries(
                         flattenFullNameForms(fullNameForms2, !!includedFields2.fullName),

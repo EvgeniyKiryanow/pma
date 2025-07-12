@@ -1,7 +1,19 @@
-import * as shevchenko from 'shevchenko';
+import {
+    inNominative,
+    inGenitive,
+    inDative,
+    inAccusative,
+    inLocative,
+    inVocative,
+    type DeclensionInput,
+    type DeclensionOutput,
+    GrammaticalGender,
+} from 'shevchenko';
 
-export default async function generateFullNameForms(fullName: string): Promise<{
-    // fn_nU
+export default async function generateFullNameForms(
+    fullName: string,
+    MASCULINE: GrammaticalGender,
+): Promise<{
     n: string;
     nU: string;
     g: string;
@@ -17,52 +29,40 @@ export default async function generateFullNameForms(fullName: string): Promise<{
     fNU: string;
     gNc: string;
     pN: string;
-    // Иванов И
-    // nominative: string;
-    // nominativeUpper: string;
-    // genitive: string;
-    // genitiveUpper: string;
-    // dative: string;
-    // dativeUpper: string;
-    // accusative: string;
-    // accusativeUpper: string;
-    // locative: string;
-    // locativeUpper: string;
-    // vocative: string;
-    // vocativeUpper: string;
-    // familyNameUppercase: string;
-    // givenNameUppercase: string;
-    // patronymicName
 }> {
     const parts = fullName.trim().split(' ');
     if (parts.length < 2) throw new Error('Invalid fullName format');
 
     const [familyName, givenName, patronymicName = ''] = parts;
 
-    const anthroponym = {
+    // TODO connect MASCULINE props
+    const gender: GrammaticalGender = GrammaticalGender.MASCULINE;
+
+    const input: DeclensionInput = {
         familyName,
         givenName,
         patronymicName,
+        gender,
     };
 
-    const gender = await shevchenko.detectGender(anthroponym);
-    if (gender == null) {
-        throw new Error('Failed to detect grammatical gender.');
-    }
-
-    const input = { ...anthroponym, gender };
-
-    const join = (obj: typeof anthroponym) =>
-        [obj.familyName, obj.givenName, obj.patronymicName].filter(Boolean).join(' ');
+    const join = (out: DeclensionOutput<DeclensionInput>) =>
+        [out.familyName, out.givenName, out.patronymicName].filter(Boolean).join(' ');
 
     const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
-    const n = join(await shevchenko.inNominative(input));
-    const g = join(await shevchenko.inGenitive(input));
-    const d = join(await shevchenko.inDative(input));
-    const a = join(await shevchenko.inAccusative(input));
-    const l = join(await shevchenko.inLocative(input));
-    const v = join(await shevchenko.inVocative(input));
+    const nOut = await inNominative(input);
+    const gOut = await inGenitive(input);
+    const dOut = await inDative(input);
+    const aOut = await inAccusative(input);
+    const lOut = await inLocative(input);
+    const vOut = await inVocative(input);
+
+    const n = join(nOut);
+    const g = join(gOut);
+    const d = join(dOut);
+    const a = join(aOut);
+    const l = join(lOut);
+    const v = join(vOut);
 
     return {
         n,
@@ -82,3 +82,25 @@ export default async function generateFullNameForms(fullName: string): Promise<{
         pN: capitalize(patronymicName),
     };
 }
+
+// Иванов И
+// nominative: string;
+// nominativeUpper: string;
+// genitive: string;
+// genitiveUpper: string;
+// dative: string;
+// dativeUpper: string;
+// accusative: string;
+// accusativeUpper: string;
+// locative: string;
+// locativeUpper: string;
+// vocative: string;
+// vocativeUpper: string;
+// familyNameUppercase: string;
+// givenNameUppercase: string;
+// patronymicName
+// import { GrammaticalGender } from 'shevchenko';
+
+// const forms = await generateFullNameForms('Іванов Іван Іванович', GrammaticalGender.Male);
+
+//
