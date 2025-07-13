@@ -30,6 +30,11 @@ type ReportsState = {
     addSavedTemplate: (tpl: SavedTemplate) => void;
     loadUsers: () => Promise<void>;
     loadDefaultTemplates: () => Promise<void>;
+    additionalInfo: {
+        unitName: string;
+        commanderName: string;
+    } | null;
+    setAdditionalInfo: (info: { unitName: string; commanderName: string }) => void;
 };
 
 export const useReportsStore = create<ReportsState>((set) => ({
@@ -41,6 +46,9 @@ export const useReportsStore = create<ReportsState>((set) => ({
     selectedUserId2: null,
 
     setUsers: (users) => set({ users }),
+    additionalInfo: null,
+
+    setAdditionalInfo: (info) => set({ additionalInfo: info }),
     setSavedTemplates: (templates) => set({ savedTemplates: templates }),
     setSelectedTemplate: (id) => set({ selectedTemplateId: id }),
     setSelectedUser: (id) => set({ selectedUserId: id }),

@@ -1,6 +1,8 @@
 import SavedTemplatesList from './SavedTemplatesList';
 import { useI18nStore } from '../../../stores/i18nStore';
-
+import { useReportsStore } from '../../../stores/reportsStore';
+import { useState } from 'react';
+import AdditionalInfoModal from './AdditionalInfoModal';
 type Props = {
     savedTemplates: any[];
     selectedTemplateId: string | number;
@@ -33,11 +35,12 @@ export default function SavedTemplatesPanel({
     selectedUser2,
 }: Props) {
     const { t } = useI18nStore();
+    const [showDialog, setShowDialog] = useState(false);
 
     return (
         <main className="flex-1 p-6 overflow-y-auto bg-white">
             <h2 className="text-2xl font-bold mb-4 text-gray-800">{t('reports.savedTemplates')}</h2>
-
+            <AdditionalInfoModal open={showDialog} onClose={() => setShowDialog(false)} />
             <div className="mt-6 flex flex-wrap gap-3 pb-[15px] items-center">
                 <button
                     onClick={() => setShowAdvanced(!showAdvanced)}
@@ -50,6 +53,13 @@ export default function SavedTemplatesPanel({
                         }`}
                 >
                     {showAdvanced ? '⬆️ Приховати поля' : '⚙️ Розширені налаштування'}
+                </button>
+
+                <button
+                    onClick={() => setShowDialog(true)}
+                    className="px-4 py-2 rounded-md border text-sm font-medium border-gray-300 hover:bg-gray-100 text-gray-700"
+                >
+                    ➕ Додати уточнюючі дані
                 </button>
 
                 <button
