@@ -219,12 +219,11 @@ process.on('unhandledRejection', (reason) => {
 });
 
 app.whenReady().then(async () => {
-    const { python, script } = getPythonPaths();
+    const { python } = getPythonPaths();
 
     if (!isPythonAvailable(python)) {
         console.warn('⚠️ Python не знайдено. Пропонуємо інсталяцію...');
-        promptInstallPython(); // Просто відкриває інсталятор
-        // Не зупиняємо виконання
+        promptInstallPython();
     } else {
         installMorphyPackages(python);
     }

@@ -27,18 +27,6 @@
       "assets/**/*",                
       "package.json"
     ],
-    "extraFiles": [
-    {
-      "from": ".vite/build/assets/python",
-      "to": "assets/python",
-      "filter": ["**/*"]
-    },
-    {
-      "from": ".vite/build/assets/templates",
-      "to": "assets/templates",
-      "filter": ["**/*.docx"]
-    }
-  ],
     "asarUnpack": [
       "node_modules/sqlite3/**",
       "assets/templates/**",

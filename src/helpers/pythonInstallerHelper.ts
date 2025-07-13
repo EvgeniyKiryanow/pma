@@ -26,7 +26,7 @@ export function installMorphyPackages(pythonPath: string) {
 
 export function getPythonPaths(): { python: string; script: string } {
     const base = app.isPackaged
-        ? path.join(process.resourcesPath, 'app.asar.unpacked', 'assets', 'python') // ✅ use real unpacked path
+        ? path.join(process.resourcesPath, 'app.asar.unpacked', 'assets', 'python')
         : path.join(__dirname, 'assets/python');
 
     const script = path.join(base, 'morphy.py');
@@ -36,6 +36,7 @@ export function getPythonPaths(): { python: string; script: string } {
 }
 
 export function getInstallerPath() {
+    // Update python
     const base = app.isPackaged
         ? path.join(process.resourcesPath, 'assets/python/installer')
         : path.join(__dirname, 'assets/python/installer');
@@ -47,7 +48,7 @@ export function getInstallerPath() {
         return path.join(base, 'python-3.13.5-macos11.pkg');
     }
 
-    return null; // TODO: Add Linux support if needed
+    return null;
 }
 
 export function isPythonAvailable(pythonPath: string): boolean {
@@ -57,6 +58,7 @@ export function isPythonAvailable(pythonPath: string): boolean {
 export function promptInstallPython(): string | null {
     const installerPath = getInstallerPath();
 
+    // python did not installed update on windows
     if (installerPath && existsSync(installerPath)) {
         shell.openPath(installerPath).then(() => {
             console.log('📦 Запущено інсталятор Python:', installerPath);
