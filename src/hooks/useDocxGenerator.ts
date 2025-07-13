@@ -6,7 +6,9 @@ import Docxtemplater from 'docxtemplater';
 // @ts-ignore
 import ImageModule from 'docxtemplater-image-module-free';
 import { GrammaticalGender } from 'shevchenko';
-import generateAndFlattenTitleForms from '../helpers/generateAndFlattenTitleForms';
+import generateAndFlattenTitleForms, {
+    extractCasesFromResponse,
+} from '../helpers/generateAndFlattenTitleForms';
 import generateAndFlattenFullNameForms from '../helpers/generateAndFlattenFullNameForms';
 export function useDocxGenerator() {
     const generateDocx = async ({
@@ -83,20 +85,27 @@ export function useDocxGenerator() {
             const morphologyRank = await window.electronAPI.morphy.analyzeWords(rank);
             const morphologyPosition = await window.electronAPI.morphy.analyzeWords(position);
 
+            const sptitedCasesRank = extractCasesFromResponse(morphologyRank.parts);
+            const sptitedCasesPosition = extractCasesFromResponse(morphologyPosition.parts);
+
+            console.log(sptitedCasesRank, 'sptitedCasesRank');
             const flattenedRank = generateAndFlattenTitleForms(
-                morphologyRank,
-                { word: '', cases: {} },
+                sptitedCasesRank,
+                {},
                 !!includedFields.rank,
                 'rank',
             );
 
             const flattenedPosition = generateAndFlattenTitleForms(
-                { word: '', cases: {} },
-                morphologyPosition,
+                {},
+                sptitedCasesPosition,
                 !!includedFields.position,
                 'pos',
             );
 
+            console.log(flattenedRank, 'flattenedRank');
+            console.log(flattenedPosition, 'flattenedPosition');
+            console.log(flattenedFullName, 'flattenedFullName');
             doc.setData({
                 ...filteredUserData,
                 ...flattenedFullName,

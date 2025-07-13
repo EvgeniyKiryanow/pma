@@ -1,9 +1,28 @@
 type MorphCase = 'nomn' | 'gent' | 'datv' | 'accs' | 'ablt' | 'loct' | 'voct';
 
-export type MorphologyWordData = {
-    word: string;
-    cases: Partial<Record<MorphCase, string>>;
+export type MorphologyWordData = Partial<Record<MorphCase, string>> & {
+    word?: string; // optional, since your input doesn't have it
 };
+
+type MorphologyResponse = {
+    word: string;
+    cases: Record<string, string>;
+};
+
+export function extractCasesFromResponse(
+    response: MorphologyResponse[],
+    requiredCases: MorphCase[] = ['nomn', 'datv', 'gent', 'accs', 'ablt', 'loct', 'voct'],
+): Record<string, string> {
+    const result: Record<string, string> = {};
+
+    for (const caseKey of requiredCases) {
+        result[caseKey] = response
+            .map((wordInfo) => wordInfo.cases[caseKey] || wordInfo.word)
+            .join(' ');
+    }
+
+    return result;
+}
 
 export default function generateAndFlattenTitleForms(
     rankData: MorphologyWordData,
@@ -12,8 +31,8 @@ export default function generateAndFlattenTitleForms(
     prefix = '',
 ): Record<string, string> {
     const get = (caseCode: MorphCase): string => {
-        const r = rankData?.cases?.[caseCode];
-        const p = positionData?.cases?.[caseCode];
+        const r = rankData?.[caseCode];
+        const p = positionData?.[caseCode];
         return [r, p].filter(Boolean).join(' ');
     };
 
