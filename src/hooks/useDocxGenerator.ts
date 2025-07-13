@@ -123,7 +123,7 @@ export function useDocxGenerator() {
                     !!includedFields2.position,
                     'pos2',
                 );
-
+                console.log(flattenedRank2, flattenedPosition2, flattenedFullName2);
                 doc.setData({
                     ...filteredUserData,
                     ...flattenedFullName,
