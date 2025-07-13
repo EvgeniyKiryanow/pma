@@ -60,9 +60,10 @@ export default async function generateAndFlattenFullNameForms(
         [`${prefix}_afU`]: shouldInclude
             ? (await inAccusative({ familyName: familyName.toUpperCase(), gender })).familyName +
               ' ' +
-              capitalize(givenName) +
+              (await inAccusative({ givenName: capitalize(givenName), gender })).givenName +
               ' ' +
-              capitalize(patronymicName)
+              (await inAccusative({ patronymicName: capitalize(patronymicName), gender }))
+                  .patronymicName
             : '',
     };
 
