@@ -55,6 +55,27 @@ export function useDocxGenerator() {
                 {} as Record<string, any>,
             );
 
+            const { rank, position } = selectedUser;
+            const morphologyRank = await window.electronAPI.morphy.analyzeWords(rank);
+            const morphologyPosition = await window.electronAPI.morphy.analyzeWords(position);
+
+            const sptitedCasesRank = extractCasesFromResponse(morphologyRank.parts);
+            const sptitedCasesPosition = extractCasesFromResponse(morphologyPosition.parts);
+
+            const flattenedRank = generateAndFlattenTitleForms(
+                sptitedCasesRank,
+                {},
+                !!includedFields.rank,
+                'rank',
+            );
+
+            const flattenedPosition = generateAndFlattenTitleForms(
+                {},
+                sptitedCasesPosition,
+                !!includedFields.position,
+                'pos',
+            );
+
             let filteredUserData2: Record<string, any> = {};
             let flattenedFullName2: Record<string, string> = {};
 
@@ -79,41 +100,49 @@ export function useDocxGenerator() {
                     },
                     {} as Record<string, any>,
                 );
+
+                // ✅ Handle morphology for rank and position
+                const { rank: rank2, position: position2 } = selectedUser2;
+
+                const morphologyRank2 = await window.electronAPI.morphy.analyzeWords(rank2);
+                const morphologyPosition2 = await window.electronAPI.morphy.analyzeWords(position2);
+
+                const sptitedCasesRank2 = extractCasesFromResponse(morphologyRank2.parts);
+                const sptitedCasesPosition2 = extractCasesFromResponse(morphologyPosition2.parts);
+
+                const flattenedRank2 = generateAndFlattenTitleForms(
+                    sptitedCasesRank2,
+                    {},
+                    !!includedFields2.rank,
+                    'rank2',
+                );
+
+                const flattenedPosition2 = generateAndFlattenTitleForms(
+                    {},
+                    sptitedCasesPosition2,
+                    !!includedFields2.position,
+                    'pos2',
+                );
+
+                console.log(flattenedRank2, flattenedPosition, flattenedFullName);
+                doc.setData({
+                    ...filteredUserData,
+                    ...flattenedFullName,
+                    ...flattenedRank,
+                    ...flattenedPosition,
+                    ...filteredUserData2,
+                    ...flattenedFullName2,
+                    ...flattenedRank2,
+                    ...flattenedPosition2,
+                });
+            } else {
+                doc.setData({
+                    ...filteredUserData,
+                    ...flattenedFullName,
+                    ...flattenedRank,
+                    ...flattenedPosition,
+                });
             }
-
-            const { rank, position } = selectedUser;
-            const morphologyRank = await window.electronAPI.morphy.analyzeWords(rank);
-            const morphologyPosition = await window.electronAPI.morphy.analyzeWords(position);
-
-            const sptitedCasesRank = extractCasesFromResponse(morphologyRank.parts);
-            const sptitedCasesPosition = extractCasesFromResponse(morphologyPosition.parts);
-
-            console.log(sptitedCasesRank, 'sptitedCasesRank');
-            const flattenedRank = generateAndFlattenTitleForms(
-                sptitedCasesRank,
-                {},
-                !!includedFields.rank,
-                'rank',
-            );
-
-            const flattenedPosition = generateAndFlattenTitleForms(
-                {},
-                sptitedCasesPosition,
-                !!includedFields.position,
-                'pos',
-            );
-
-            console.log(flattenedRank, 'flattenedRank');
-            console.log(flattenedPosition, 'flattenedPosition');
-            console.log(flattenedFullName, 'flattenedFullName');
-            doc.setData({
-                ...filteredUserData,
-                ...flattenedFullName,
-                ...filteredUserData2,
-                ...flattenedFullName2,
-                ...flattenedRank,
-                ...flattenedPosition,
-            });
 
             doc.render();
             alert('✅ Шаблон успішно згенеровано!');
