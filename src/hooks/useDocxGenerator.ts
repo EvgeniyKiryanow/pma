@@ -17,18 +17,21 @@ export function useDocxGenerator() {
         selectedUser2,
         includedFields2,
         selectedTemplate,
+        additionalFields,
     }: {
         selectedUser: any;
         includedFields: Record<string, boolean>;
         selectedUser2: any;
         includedFields2: Record<string, boolean>;
         selectedTemplate: any;
+        additionalFields: any;
     }): Promise<ArrayBuffer | null> => {
         if (!selectedTemplate || !selectedUser) {
             alert('❌ Шаблон або користувач не вибраний!');
             return null;
         }
-
+        const { commanderName, unitName } = additionalFields;
+        console.log(additionalFields, 'additionalFields');
         const imageOpts = getImageOptions();
         try {
             const zip = new PizZip(selectedTemplate.content);
@@ -40,6 +43,12 @@ export function useDocxGenerator() {
                 modules: [imageModule],
                 delimiters: { start: '{', end: '}' },
             });
+            const flattenCommanderFullName = await generateAndFlattenFullNameForms(
+                commanderName,
+                GrammaticalGender.MASCULINE,
+                true,
+                'com',
+            );
 
             const flattenedFullName = await generateAndFlattenFullNameForms(
                 selectedUser.fullName,
@@ -58,18 +67,28 @@ export function useDocxGenerator() {
             const { rank, position } = selectedUser;
             const morphologyRank = await window.electronAPI.morphy.analyzeWords(rank);
             const morphologyPosition = await window.electronAPI.morphy.analyzeWords(position);
+            const morphologyUnitName = await window.electronAPI.morphy.analyzeWords(unitName);
 
             const sptitedCasesRank = extractCasesFromResponse(morphologyRank.parts);
             const sptitedCasesPosition = extractCasesFromResponse(morphologyPosition.parts);
-
+            const sptitedCasesUnitName = extractCasesFromResponse(morphologyUnitName.parts);
+            const flattenedUnit = generateAndFlattenTitleForms(
+                sptitedCasesUnitName,
+                {},
+                {},
+                true,
+                'unit',
+            );
             const flattenedRank = generateAndFlattenTitleForms(
                 sptitedCasesRank,
+                {},
                 {},
                 !!includedFields.rank,
                 'rank',
             );
 
             const flattenedPosition = generateAndFlattenTitleForms(
+                {},
                 {},
                 sptitedCasesPosition,
                 !!includedFields.position,
@@ -113,11 +132,13 @@ export function useDocxGenerator() {
                 const flattenedRank2 = generateAndFlattenTitleForms(
                     sptitedCasesRank2,
                     {},
+                    {},
                     !!includedFields2.rank,
                     'rank2',
                 );
 
                 const flattenedPosition2 = generateAndFlattenTitleForms(
+                    {},
                     {},
                     sptitedCasesPosition2,
                     !!includedFields2.position,
@@ -133,6 +154,8 @@ export function useDocxGenerator() {
                     ...flattenedFullName2,
                     ...flattenedRank2,
                     ...flattenedPosition2,
+                    ...flattenedUnit,
+                    ...flattenCommanderFullName,
                 });
             } else {
                 doc.setData({
@@ -140,9 +163,17 @@ export function useDocxGenerator() {
                     ...flattenedFullName,
                     ...flattenedRank,
                     ...flattenedPosition,
+                    ...flattenedUnit,
+                    ...flattenCommanderFullName,
                 });
             }
-            console.log(flattenedRank, flattenedPosition, flattenedFullName);
+            console.log(
+                flattenedRank,
+                flattenedPosition,
+                flattenedFullName,
+                flattenCommanderFullName,
+                flattenedUnit,
+            );
 
             doc.render();
             alert('✅ Шаблон успішно згенеровано!');

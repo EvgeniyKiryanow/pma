@@ -7,11 +7,6 @@ import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { renderAsync } from 'docx-preview';
 // @ts-ignore
-import ImageModule from 'docxtemplater-image-module-free';
-import { CheckCircle } from 'lucide-react';
-import generateFullNameForms from '../../helpers/fullNameConverting';
-import flattenFullNameForms from '../../helpers/flattenNameConverting';
-import getImageOptions from '../../helpers/imageOptionHelper';
 import UserFields from './_components/UserFields';
 import UserList from './_components/UserList';
 import SavedTemplatesList from './_components/SavedTemplatesList';
@@ -37,7 +32,7 @@ export default function SavedReportsTab() {
     const [users, setUsers] = useState<User[]>([]);
     const [previewBuffer, setPreviewBuffer] = useState<ArrayBuffer | null>(null);
     const previewRef = useRef<HTMLDivElement>(null);
-
+    const additionalFields = useReportsStore.getState().additionalInfo;
     const selectedUser2 = users.find((u) => u.id === useReportsStore.getState().selectedUserId2);
     useEffect(() => {
         if (selectedUser2) {
@@ -125,6 +120,7 @@ export default function SavedReportsTab() {
             selectedUser2,
             includedFields2,
             selectedTemplate,
+            additionalFields,
         });
 
         if (!buffer) return;

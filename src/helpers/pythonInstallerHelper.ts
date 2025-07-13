@@ -42,7 +42,7 @@ export function getInstallerPath() {
         : path.join(__dirname, 'assets/python/installer');
 
     if (process.platform === 'win32') {
-        return path.join(base, 'python-embed', 'python.exe');
+        return path.join(base, 'python-3.8.8-amd64.exe');
     }
     if (process.platform === 'darwin') {
         return path.join(base, 'python-3.13.5-macos11.pkg');
@@ -79,7 +79,7 @@ export function getInstalledPythonPath(): string {
         : path.join(__dirname, 'assets/python/installer');
 
     if (process.platform === 'win32') {
-        return path.join(base, 'python-embed', 'python.exe');
+        return path.join(base, 'python-3.8.8-amd64.exe');
     }
 
     if (process.platform === 'darwin') {

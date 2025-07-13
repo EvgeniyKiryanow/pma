@@ -27,13 +27,15 @@ export function extractCasesFromResponse(
 export default function generateAndFlattenTitleForms(
     rankData: MorphologyWordData,
     positionData: MorphologyWordData,
+    unitName: MorphologyWordData,
     shouldInclude = false,
     prefix = '',
 ): Record<string, string> {
     const get = (caseCode: MorphCase): string => {
         const r = rankData?.[caseCode];
         const p = positionData?.[caseCode];
-        return [r, p].filter(Boolean).join(' ');
+        const u = unitName?.[caseCode];
+        return [r, p, u].filter(Boolean).join(' ');
     };
 
     const flat: Record<string, string> = {};

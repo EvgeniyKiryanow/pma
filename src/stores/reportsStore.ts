@@ -13,6 +13,11 @@ type SavedTemplate = {
     timestamp: number;
 };
 
+type AdditionalInfo = {
+    unitName: string;
+    commanderName: string;
+};
+
 type ReportsState = {
     users: User[];
     templates: Template[];
@@ -20,6 +25,8 @@ type ReportsState = {
     selectedTemplateId: string | number;
     selectedUserId: number | null;
     selectedUserId2: number | null;
+    additionalInfo: AdditionalInfo | null;
+    setAdditionalInfo: (info: AdditionalInfo | null) => void;
     setUsers: (users: User[]) => void;
     setSavedTemplates: (templates: any[]) => void;
     setSelectedTemplate: (id: string | number) => void;
@@ -30,12 +37,17 @@ type ReportsState = {
     addSavedTemplate: (tpl: SavedTemplate) => void;
     loadUsers: () => Promise<void>;
     loadDefaultTemplates: () => Promise<void>;
-    additionalInfo: {
-        unitName: string;
-        commanderName: string;
-    } | null;
-    setAdditionalInfo: (info: { unitName: string; commanderName: string }) => void;
 };
+
+// Helper to read from localStorage
+function getInitialAdditionalInfo(): AdditionalInfo | null {
+    try {
+        const raw = localStorage.getItem('reports_additionalInfo');
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+}
 
 export const useReportsStore = create<ReportsState>((set) => ({
     users: [],
@@ -45,10 +57,18 @@ export const useReportsStore = create<ReportsState>((set) => ({
     selectedUserId: null,
     selectedUserId2: null,
 
-    setUsers: (users) => set({ users }),
-    additionalInfo: null,
+    additionalInfo: getInitialAdditionalInfo(),
 
-    setAdditionalInfo: (info) => set({ additionalInfo: info }),
+    setAdditionalInfo: (info) => {
+        if (info) {
+            localStorage.setItem('reports_additionalInfo', JSON.stringify(info));
+        } else {
+            localStorage.removeItem('reports_additionalInfo');
+        }
+        set({ additionalInfo: info });
+    },
+
+    setUsers: (users) => set({ users }),
     setSavedTemplates: (templates) => set({ savedTemplates: templates }),
     setSelectedTemplate: (id) => set({ selectedTemplateId: id }),
     setSelectedUser: (id) => set({ selectedUserId: id }),
