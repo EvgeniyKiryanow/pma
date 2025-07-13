@@ -42,6 +42,7 @@ export function getInstallerPath() {
         : path.join(__dirname, 'assets/python/installer');
 
     if (process.platform === 'win32') {
+        // update path
         return path.join(base, 'python-3.8.8-amd64.exe');
     }
     if (process.platform === 'darwin') {
@@ -79,6 +80,7 @@ export function getInstalledPythonPath(): string {
         : path.join(__dirname, 'assets/python/installer');
 
     if (process.platform === 'win32') {
+        // Update path
         return path.join(base, 'python-3.8.8-amd64.exe');
     }
 
