@@ -21,6 +21,7 @@ export default async function generateAndFlattenFullNameForms(
 
     const [familyName, givenName, patronymicName = ''] = parts;
 
+    type MixDeclensionFn = (word: string, gender: GrammaticalGender) => Promise<string>;
     const input: DeclensionInput = {
         familyName,
         givenName,
@@ -56,6 +57,13 @@ export default async function generateAndFlattenFullNameForms(
         [`${prefix}_fNU`]: shouldInclude ? familyName.toUpperCase() : '',
         [`${prefix}_gNc`]: shouldInclude ? capitalize(givenName) : '',
         [`${prefix}_pN`]: shouldInclude ? capitalize(patronymicName) : '',
+        [`${prefix}_afU`]: shouldInclude
+            ? (await inAccusative({ familyName: familyName.toUpperCase(), gender })).familyName +
+              ' ' +
+              capitalize(givenName) +
+              ' ' +
+              capitalize(patronymicName)
+            : '',
     };
 
     return result;

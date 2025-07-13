@@ -124,7 +124,6 @@ export function useDocxGenerator() {
                     'pos2',
                 );
 
-                console.log(flattenedRank2, flattenedPosition, flattenedFullName);
                 doc.setData({
                     ...filteredUserData,
                     ...flattenedFullName,
@@ -143,6 +142,7 @@ export function useDocxGenerator() {
                     ...flattenedPosition,
                 });
             }
+            console.log(flattenedRank, flattenedPosition, flattenedFullName);
 
             doc.render();
             alert('✅ Шаблон успішно згенеровано!');
