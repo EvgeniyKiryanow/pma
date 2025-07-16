@@ -7,7 +7,6 @@ import { initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
 import fs from 'fs';
 import { exec, execFile } from 'child_process';
-import { runHelloPython } from './runPython';
 import { ipcMain } from 'electron';
 import {
     getInstalledPythonPath,

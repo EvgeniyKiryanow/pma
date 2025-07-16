@@ -10,6 +10,7 @@ import generateAndFlattenTitleForms, {
     extractCasesFromResponse,
 } from '../helpers/generateAndFlattenTitleForms';
 import generateAndFlattenFullNameForms from '../helpers/generateAndFlattenFullNameForms';
+import { showLoader, hideLoader } from '../helpers/loadersSimple';
 export function useDocxGenerator() {
     const generateDocx = async ({
         selectedUser,
@@ -30,6 +31,8 @@ export function useDocxGenerator() {
             alert('❌ Шаблон або користувач не вибраний!');
             return null;
         }
+
+        showLoader('⏳ Генерація шаблону... зачекайте');
         const { commanderName, unitName } = additionalFields;
         console.log(additionalFields, 'additionalFields');
         const imageOpts = getImageOptions();
@@ -176,7 +179,7 @@ export function useDocxGenerator() {
             );
 
             doc.render();
-            alert('✅ Шаблон успішно згенеровано!');
+            hideLoader();
             return doc.getZip().generate({ type: 'arraybuffer' });
         } catch (err) {
             console.error('⚠️ Template generation failed:', err);
