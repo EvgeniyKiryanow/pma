@@ -181,7 +181,7 @@ app.whenReady().then(async () => {
     createWindow();
 
     // ✅ Check for updates
-    autoCheckOnStartup();
+    // autoCheckOnStartup();
 });
 
 app.on('window-all-closed', () => {
