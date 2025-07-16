@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, RotateCcw, Upload, Trash2 } from 'lucide-react';
+import { X, RotateCcw, Upload, Trash2, Download } from 'lucide-react';
 import { useI18nStore } from '../stores/i18nStore';
 
 export default function CustomTitleBar() {
@@ -17,7 +17,7 @@ export default function CustomTitleBar() {
         setChecking(true);
         const result = await window.electronAPI.checkForUpdates();
         setChecking(false);
-
+        console.log(result, 'result');
         if (result.status === 'error') {
             alert(t('titleBar.updateError') + ': ' + result.message);
         } else {
@@ -70,13 +70,13 @@ export default function CustomTitleBar() {
                 style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
                 {/* Uncomment if you want update button */}
-                {/* <button
+                <button
                     className="p-1 hover:bg-blue-600 rounded"
                     title={t('titleBar.updateCheck')}
                     onClick={handleCheckUpdate}
                 >
                     <Download className="w-4 h-4" />
-                </button> */}
+                </button>
 
                 {hasUser && (
                     <button
