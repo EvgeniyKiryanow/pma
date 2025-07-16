@@ -33,15 +33,37 @@ export function setupAutoUpdater() {
 
     autoUpdater.on('error', (err) => {
         log.error('❌ AutoUpdater error:', err?.stack || err?.message || err);
+        dialog.showErrorBox('Auto Update Error', err?.message || String(err));
     });
 
+    // ✅ Show progress in dock/taskbar
     autoUpdater.on('download-progress', (progress) => {
-        log.info(`📦 Downloading update... ${progress.percent.toFixed(2)}%`);
+        const percent = progress.percent.toFixed(2);
+        const transferred = (progress.transferred / 1024 / 1024).toFixed(2);
+        const total = (progress.total / 1024 / 1024).toFixed(2);
+
+        log.info(`📦 Downloading update... ${percent}% (${transferred}MB / ${total}MB)`);
+
+        const win = BrowserWindow.getFocusedWindow();
+        if (win) {
+            // Show a progress bar in the dock/taskbar
+            win.setProgressBar(progress.percent / 100);
+        }
+
+        // Optional: update the dock badge on macOS
+        if (process.platform === 'darwin') {
+            app.dock.setBadge(`${Math.round(progress.percent)}%`);
+        }
     });
 
     autoUpdater.on('update-downloaded', (info) => {
         log.info(`✅ Update downloaded: version ${info.version}`);
         updateDownloaded = true;
+
+        // Reset dock badge/progress
+        const win = BrowserWindow.getFocusedWindow();
+        if (win) win.setProgressBar(-1);
+        if (process.platform === 'darwin') app.dock.setBadge('');
 
         dialog
             .showMessageBox({
@@ -74,7 +96,6 @@ export function setupAutoUpdater() {
 function quitAndInstallProperly() {
     isQuitting = true;
 
-    // Close all app windows first
     const windows = BrowserWindow.getAllWindows();
     windows.forEach((win) => win.destroy());
     app.removeAllListeners('window-all-closed');
@@ -85,14 +106,12 @@ function quitAndInstallProperly() {
                 log.info('🍏 macOS → quitAndInstall WITHOUT restart (DMG)');
                 autoUpdater.quitAndInstall(false, false);
 
-                // Show info after macOS update
                 dialog.showMessageBoxSync({
                     type: 'info',
                     title: 'Update Installed',
                     message: `The update was installed successfully.\nPlease reopen the app from /Applications.`,
                 });
 
-                // If still running after 1.5s → force exit
                 setTimeout(() => {
                     if (app.isReady()) {
                         log.warn('⚠️ macOS still running → forcing app.exit(0)');
