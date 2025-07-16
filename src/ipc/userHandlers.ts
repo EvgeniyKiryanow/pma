@@ -233,10 +233,9 @@ export function registerUserHandlers() {
     });
     ipcMain.on('app:close', () => {
         if (process.platform === 'darwin') {
-            // 🍏 macOS: иногда app.quit() просто скрывает окна → используем exit()
             app.exit(0);
         } else {
-            app.quit(); // Windows/Linux – нормальное завершение
+            app.quit();
         }
     });
 }
