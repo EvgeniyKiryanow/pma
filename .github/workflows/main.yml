@@ -43,6 +43,6 @@ jobs:
 
       # 6️⃣ Build & PUBLISH release artifacts
       - name: Build & Publish Electron Release
-        run: npx electron-builder --publish always --releaseType release
+        run: npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
