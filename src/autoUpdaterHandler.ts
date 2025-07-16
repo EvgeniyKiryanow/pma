@@ -70,11 +70,21 @@ export function setupAutoUpdater() {
                         win.destroy();
                     });
 
+                    // Убираем обработчик window-all-closed, чтобы не блокировал quit
                     app.removeAllListeners('window-all-closed');
 
+                    // Немного времени на закрытие всех окон
                     setTimeout(() => {
                         setImmediate(() => {
                             try {
+                                if (process.platform === 'darwin') {
+                                    // macOS не закрывает app после destroy → принудительно quit
+                                    log.info(
+                                        '🍏 macOS detected → forcing app.quit() before quitAndInstall',
+                                    );
+                                    app.quit();
+                                }
+
                                 log.info('🚀 Calling autoUpdater.quitAndInstall...');
                                 autoUpdater.quitAndInstall(false, true);
                                 log.info('✅ quitAndInstall executed');
@@ -91,12 +101,19 @@ export function setupAutoUpdater() {
             });
     });
 
+    // ⚡ Если пользователь сам закроет приложение → применяем обновление
     app.on('before-quit', (event) => {
         if (updateDownloaded) {
             log.info('⚡ Update downloaded, installing on quit...');
             try {
                 event.preventDefault();
-                autoUpdater.quitAndInstall(false, true);
+
+                if (process.platform === 'darwin') {
+                    log.info('🍏 macOS → forcing quitAndInstall on before-quit');
+                    setTimeout(() => autoUpdater.quitAndInstall(false, true), 300);
+                } else {
+                    autoUpdater.quitAndInstall(false, true);
+                }
             } catch (err) {
                 log.error('quitAndInstall on before-quit failed:', err);
                 app.quit();
@@ -104,6 +121,7 @@ export function setupAutoUpdater() {
         }
     });
 
+    // Очистка токенов перед quit (опционально)
     const windows = BrowserWindow.getAllWindows();
     windows.forEach((win) => {
         win.webContents.send('clear-auth-token');
