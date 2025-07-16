@@ -37,18 +37,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 5️⃣ Build app
+      # 5️⃣ Build app (frontend)
       - name: Build app
         run: npm run build
 
-      # 🍏 macOS build step
-      - name: Build & Publish macOS
+      # 🍏 macOS Universal build
+      - name: Build & Publish macOS Universal
         if: matrix.os == 'macos-latest'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "Building macOS (dmg + zip)"
-          npx electron-builder --mac dmg zip --x64 --arm64 --publish always
+          echo "🍏 Building macOS Universal (Intel + ARM)"
+          # Universal = one .app working on Intel & Apple Silicon
+          npx electron-builder --mac universal --publish always
 
       # 🪟 Windows build step
       - name: Build & Publish Windows
@@ -56,7 +57,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "Building Windows (NSIS installer)"
+          echo "🪟 Building Windows (NSIS installer)"
           npx electron-builder --win nsis --publish always
 
       # 🐧 Linux build step (optional)
@@ -65,5 +66,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "Building Linux (AppImage)"
+          echo "🐧 Building Linux (AppImage)"
           npx electron-builder --linux AppImage --publish always
