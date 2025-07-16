@@ -37,22 +37,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 5️⃣ Build the frontend (optional)
+      # 5️⃣ Build app (frontend if needed)
       - name: Build app
         run: npm run build
 
-      # 6️⃣ Build & Publish Electron Release
+      # 6️⃣ Build & Publish for each OS
       - name: Build & Publish Electron Release
-        run: |
-          if [[ "$RUNNER_OS" == "macOS" ]]; then
-            echo "🍏 Building macOS x64 + arm64..."
-            npx electron-builder --mac --x64 --arm64 --publish always
-          elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "🪟 Building Windows NSIS..."
-            npx electron-builder --win --publish always
-          else
-            echo "🐧 Building Linux AppImage..."
-            npx electron-builder --linux --publish always
-          fi
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "Running on $RUNNER_OS"
+          
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            # 🍏 macOS → build dmg + zip for updates
+            npx electron-builder --mac dmg zip --x64 --arm64 --publish always
+          elif [ "${{ runner.os }}" = "Windows" ]; then
+            # 🪟 Windows → build NSIS installer
+            npx electron-builder --win nsis --publish always
+          elif [ "${{ runner.os }}" = "Linux" ]; then
+            # 🐧 Linux → optional AppImage
+            npx electron-builder --linux AppImage --publish always
+          fi
