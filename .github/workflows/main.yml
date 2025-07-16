@@ -37,18 +37,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 5️⃣ Build app (frontend)
+      # 5️⃣ Build app
       - name: Build app
         run: npm run build
 
-      # 🍏 macOS Universal build
-      - name: Build & Publish macOS Universal
+      # 🍏 macOS build step (ONLY x64 → works on Intel + ARM Rosetta)
+      - name: Build & Publish macOS (x64 only)
         if: matrix.os == 'macos-latest'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "🍏 Building macOS Universal (Intel + ARM)"
-          # Universal = one .app working on Intel & Apple Silicon
+          echo "🍏 Building macOS Intel (x64) → works on both Intel & ARM via Rosetta"
           npx electron-builder --mac dmg zip --x64 --publish always
 
       # 🪟 Windows build step

@@ -36,10 +36,12 @@
   "category": "public.app-category.utilities",
   "target": [
     {
-      "target": "dmg"
+      "target": "dmg",
+      "arch": ["x64"]
     },
     {
-      "target": "zip"
+      "target": "zip",
+      "arch": ["x64"]
     }
   ],
   "artifactName": "PManager-${version}-mac.${ext}"
