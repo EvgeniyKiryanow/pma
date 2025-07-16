@@ -6,7 +6,7 @@ export default defineConfig({
   build: {
     outDir: '.vite/build',
     emptyOutDir: true,
-    target: 'node16', // or higher
+    target: 'node16',
     ssr: true,
     rollupOptions: {
       input: path.resolve(__dirname, 'src/main.ts'),

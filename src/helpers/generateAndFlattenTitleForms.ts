@@ -1,7 +1,7 @@
 type MorphCase = 'nomn' | 'gent' | 'datv' | 'accs' | 'ablt' | 'loct' | 'voct';
 
 export type MorphologyWordData = Partial<Record<MorphCase, string>> & {
-    word?: string; // optional, since your input doesn't have it
+    word?: string;
 };
 
 type MorphologyResponse = {

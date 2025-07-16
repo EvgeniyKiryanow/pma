@@ -1,4 +1,3 @@
-// ✅ Берём типы напрямую из shevchenko (они доступны при компиляции)
 import type * as ShevchenkoType from 'shevchenko';
 
 export default async function generateAndFlattenFullNameForms(
@@ -7,7 +6,6 @@ export default async function generateAndFlattenFullNameForms(
     shouldInclude = false,
     prefix = 'fn',
 ): Promise<Record<string, string>> {
-    // ✅ Лениво загружаем shevchenko только при первом вызове
     const shev: typeof ShevchenkoType = await import('shevchenko');
 
     const { inNominative, inGenitive, inDative, inAccusative, inLocative, inVocative } = shev;
