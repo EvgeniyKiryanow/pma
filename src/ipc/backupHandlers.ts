@@ -1,10 +1,12 @@
-import { ipcMain, dialog, app, autoUpdater } from 'electron';
+import { ipcMain, dialog, app } from 'electron';
 import fs from 'fs/promises';
 import { existsSync, rmSync, readdirSync, unlinkSync } from 'fs';
 import path from 'path';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import { resetUserTemplates } from '../main';
+import log from 'electron-log';
+import { autoUpdater } from 'electron-updater';
 
 import { getDb, getDbPath } from '../database/db';
 import {
@@ -160,10 +162,16 @@ export function registerBackupHandlers() {
     });
     ipcMain.handle('check-for-updates', async () => {
         try {
-            const result = await autoUpdater.checkForUpdates();
-            return { status: 'ok', info: result };
+            const updateInfo = await autoUpdater.checkForUpdates();
+            log.info('ℹ️ Manual checkForUpdates result', updateInfo);
+
+            return { status: 'ok', info: updateInfo.updateInfo };
         } catch (err: any) {
-            return { status: 'error', message: err?.message || 'Unknown error' };
+            log.error('❌ Manual checkForUpdates failed:', err);
+            return {
+                status: 'error',
+                message: err?.message || 'Unknown update error',
+            };
         }
     });
 

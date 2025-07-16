@@ -1,8 +1,7 @@
-import { app, BrowserWindow, dialog, screen } from 'electron';
+import { app, BrowserWindow, screen } from 'electron';
 import path from 'path';
 import started from 'electron-squirrel-startup';
 import { registerDbHandlers } from './ipc';
-import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
@@ -18,25 +17,8 @@ import {
     promptInstallPython,
 } from './helpers/pythonInstallerHelper';
 
-ipcMain.handle('analyze-words', async (_event, phrase: string) => {
-    const pythonPath = getInstalledPythonPath(); // resolves to installed python
-    const { python, script } = getPythonPaths(); // resolves to morphy.py
-
-    return new Promise((resolve, reject) => {
-        execFile(pythonPath, [script, JSON.stringify(phrase)], (error, stdout, stderr) => {
-            if (error) {
-                console.error('🐍 Python error:', stderr || error.message);
-                return reject(error);
-            }
-            try {
-                const result = JSON.parse(stdout);
-                resolve(result);
-            } catch (err) {
-                reject('JSON parse error: ' + stdout);
-            }
-        });
-    });
-});
+// ✅ Import our updater functions
+import { setupAutoUpdater, autoCheckOnStartup } from './autoUpdaterHandler';
 
 export function copyAllTemplates() {
     const sourceDir = path.join(__dirname, 'assets/templates');
@@ -112,6 +94,27 @@ export function convertDocxToPdf(inputPath: string, outputDir: string): Promise<
     });
 }
 
+ipcMain.handle('analyze-words', async (_event, phrase: string) => {
+    const pythonPath = getInstalledPythonPath();
+    const { python, script } = getPythonPaths();
+
+    return new Promise((resolve, reject) => {
+        execFile(pythonPath, [script, JSON.stringify(phrase)], (error, stdout, stderr) => {
+            if (error) {
+                console.error('🐍 Python error:', stderr || error.message);
+                return reject(error);
+            }
+            try {
+                const result = JSON.parse(stdout);
+                resolve(result);
+            } catch (err) {
+                reject('JSON parse error: ' + stdout);
+            }
+        });
+    });
+});
+
+// ✅ Main window create function
 const iconPath = path.join(
     __dirname,
     '..',
@@ -126,69 +129,8 @@ const iconPath = path.join(
 
 const isDev = !app.isPackaged;
 
-// Prevent squirrel auto-launch on Windows
-if (started) {
-    app.quit();
-}
+if (started) app.quit();
 
-// Setup logging for updater
-log.transports.file.level = 'info';
-autoUpdater.logger = log;
-log.info('🟢 App starting…');
-
-// ===== AUTO-UPDATER EVENTS =====
-app.on('before-quit', () => {
-    const windows = BrowserWindow.getAllWindows();
-    windows.forEach((win) => {
-        win.webContents.send('clear-auth-token');
-    });
-});
-
-autoUpdater.on('checking-for-update', () => {
-    log.info('🔍 Checking for updates...');
-});
-
-autoUpdater.on('update-available', (info) => {
-    log.info(`⬇️ Update available: ${info.version}`);
-    dialog.showMessageBox({
-        type: 'info',
-        title: 'Update Available',
-        message: `A new version (${info.version}) is available and is being downloaded.`,
-    });
-});
-
-autoUpdater.on('update-not-available', () => {
-    log.info('✅ No updates available.');
-});
-
-autoUpdater.on('error', (err) => {
-    log.error('❌ Error in auto-updater:', err?.stack || err?.message || err);
-});
-
-autoUpdater.on('download-progress', (progress) => {
-    log.info(`📦 Downloading update... ${progress.percent.toFixed(2)}%`);
-});
-
-autoUpdater.on('update-downloaded', () => {
-    log.info('✅ Update downloaded');
-
-    dialog
-        .showMessageBox({
-            type: 'info',
-            title: 'Update Ready for downloading',
-            message: 'A new update has been downloaded. Restart the app now to install it?',
-            buttons: ['Restart Now', 'Later'],
-            defaultId: 0,
-            cancelId: 1,
-        })
-        .then((result) => {
-            if (result.response === 0) {
-                autoUpdater.quitAndInstall();
-            }
-        });
-});
-
-// ===== CREATE MAIN WINDOW =====
 const createWindow = () => {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
     const mainWindow = new BrowserWindow({
@@ -213,7 +155,7 @@ const createWindow = () => {
     }
 };
 
-// ===== HANDLE APP STARTUP =====
+// ✅ Handle App Startup
 process.on('unhandledRejection', (reason) => {
     console.error('Unhandled Rejection:', reason);
 });
@@ -232,8 +174,15 @@ app.whenReady().then(async () => {
     await initializeDb();
     await upgradeDbSchema();
     copyAllTemplates();
+
+    // ✅ Setup AutoUpdater events
+    setupAutoUpdater();
+
+    // ✅ Launch main window
     createWindow();
-    autoUpdater.checkForUpdatesAndNotify();
+
+    // ✅ Check for updates
+    autoCheckOnStartup();
 });
 
 app.on('window-all-closed', () => {
