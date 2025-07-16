@@ -1,27 +1,25 @@
-import {
-    inNominative,
-    inGenitive,
-    inDative,
-    inAccusative,
-    inLocative,
-    inVocative,
-    type DeclensionInput,
-    type DeclensionOutput,
-    GrammaticalGender,
-} from 'shevchenko';
+// ✅ Берём типы напрямую из shevchenko (они доступны при компиляции)
+import type * as ShevchenkoType from 'shevchenko';
 
 export default async function generateAndFlattenFullNameForms(
     fullName: string,
-    gender: GrammaticalGender,
+    gender: ShevchenkoType.GrammaticalGender,
     shouldInclude = false,
     prefix = 'fn',
 ): Promise<Record<string, string>> {
+    // ✅ Лениво загружаем shevchenko только при первом вызове
+    const shev: typeof ShevchenkoType = await import('shevchenko');
+
+    const { inNominative, inGenitive, inDative, inAccusative, inLocative, inVocative } = shev;
+
+    type DeclensionInput = ShevchenkoType.DeclensionInput;
+    type DeclensionOutput = ShevchenkoType.DeclensionOutput<DeclensionInput>;
+
     const parts = fullName.trim().split(' ');
     if (parts.length < 2) throw new Error('Invalid fullName format');
 
     const [familyName, givenName, patronymicName = ''] = parts;
 
-    type MixDeclensionFn = (word: string, gender: GrammaticalGender) => Promise<string>;
     const input: DeclensionInput = {
         familyName,
         givenName,
@@ -29,7 +27,7 @@ export default async function generateAndFlattenFullNameForms(
         gender,
     };
 
-    const join = (out: DeclensionOutput<DeclensionInput>) =>
+    const join = (out: DeclensionOutput) =>
         [out.familyName, out.givenName, out.patronymicName].filter(Boolean).join(' ');
 
     const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();

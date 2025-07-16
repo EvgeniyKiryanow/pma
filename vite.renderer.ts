@@ -19,13 +19,6 @@ export default defineConfig({
     emptyOutDir: true,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
-  //       external: [
-  //   '@tensorflow/tfjs', // ⛔ prevent bundling
-  //   '@tensorflow/tfjs-core',
-  //   '@tensorflow/tfjs-backend-webgl',
-  //   '@tensorflow/tfjs-backend-cpu',
-  //   '@tensorflow/tfjs-layers',
-  // ],
       output: {
         manualChunks(id: string) {
           if (id.includes('node_modules')) {
@@ -42,12 +35,6 @@ export default defineConfig({
             if (id.includes('react-router')) return 'vendor_router';
 
             if (id.includes('shevchenko') || id.includes('@tensorflow')) return 'vendor_shevchenko_tf';
-
-      //             if (id.includes('@tensorflow/tfjs-core')) return 'vendor_tensorflow_core';
-      // if (id.includes('@tensorflow/tfjs-converter')) return 'vendor_tensorflow_converter';
-      // if (id.includes('@tensorflow/tfjs-backend-cpu')) return 'vendor_tensorflow_cpu';
-      // if (id.includes('@tensorflow/tfjs-backend-webgl')) return 'vendor_tensorflow_webgl';
-      // if (id.includes('shevchenko')) return 'vendor_shevchenko';
 
             // catch all other node_modules in a separate bucket
             return 'vendor_misc';

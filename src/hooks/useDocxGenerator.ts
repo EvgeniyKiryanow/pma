@@ -5,12 +5,20 @@ import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 // @ts-ignore
 import ImageModule from 'docxtemplater-image-module-free';
-import { GrammaticalGender } from 'shevchenko';
+import type * as ShevchenkoType from 'shevchenko';
+// import { GrammaticalGender } from 'shevchenko';
 import generateAndFlattenTitleForms, {
     extractCasesFromResponse,
 } from '../helpers/generateAndFlattenTitleForms';
 import generateAndFlattenFullNameForms from '../helpers/generateAndFlattenFullNameForms';
 import { showLoader, hideLoader } from '../helpers/loadersSimple';
+let shevPromise: Promise<typeof ShevchenkoType> | null = null;
+async function getShevchenkoModule(): Promise<typeof ShevchenkoType> {
+    if (!shevPromise) {
+        shevPromise = import('shevchenko');
+    }
+    return shevPromise;
+}
 export function useDocxGenerator() {
     const generateDocx = async ({
         selectedUser,
@@ -46,16 +54,17 @@ export function useDocxGenerator() {
                 modules: [imageModule],
                 delimiters: { start: '{', end: '}' },
             });
+            const shev = await getShevchenkoModule();
             const flattenCommanderFullName = await generateAndFlattenFullNameForms(
                 commanderName,
-                GrammaticalGender.MASCULINE,
+                shev.GrammaticalGender.MASCULINE,
                 true,
                 'com',
             );
 
             const flattenedFullName = await generateAndFlattenFullNameForms(
                 selectedUser.fullName,
-                GrammaticalGender.MASCULINE,
+                shev.GrammaticalGender.MASCULINE,
                 !!includedFields.fullName,
             );
 
@@ -105,7 +114,7 @@ export function useDocxGenerator() {
                 // ✅ Flatten full name with prefix and suffixed keys in one step
                 const flattenedFullName2Raw = await generateAndFlattenFullNameForms(
                     selectedUser2.fullName,
-                    GrammaticalGender.MASCULINE,
+                    shev.GrammaticalGender.MASCULINE,
                     !!includedFields2.fullName,
                 );
 

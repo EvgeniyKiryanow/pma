@@ -17,16 +17,6 @@ export default defineConfig({
       },
     },
   },
-  resolve: {
-    alias: {
-      '@tensorflow/tfjs': path.resolve(__dirname, 'src/shims/empty.js'),
-      '@tensorflow/tfjs-core': path.resolve(__dirname, 'src/shims/empty.js'),
-      '@tensorflow/tfjs-backend-webgl': path.resolve(__dirname, 'src/shims/empty.js'),
-      '@tensorflow/tfjs-backend-cpu': path.resolve(__dirname, 'src/shims/empty.js'),
-      '@tensorflow/tfjs-layers': path.resolve(__dirname, 'src/shims/empty.js'),
-    },
-  },
-
    plugins: [
     {
       name: 'copy-templates-on-build',
