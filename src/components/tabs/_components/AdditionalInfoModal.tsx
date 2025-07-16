@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useReportsStore } from '../../../stores/reportsStore'; // adjust path if needed
+import { useReportsStore } from '../../../stores/reportsStore';
 
 type Props = {
     open: boolean;
@@ -10,10 +10,9 @@ export default function AdditionalInfoModal({ open, onClose }: Props) {
     const additionalInfo = useReportsStore((s) => s.additionalInfo);
     const setAdditionalInfo = useReportsStore((s) => s.setAdditionalInfo);
 
-    const [unitName, setUnitName] = useState('');
-    const [commanderName, setCommanderName] = useState('');
+    const [unitName, setUnitName] = useState('старший командир');
+    const [commanderName, setCommanderName] = useState('Тополя Евгеній Миколаєвич');
 
-    // When modal opens, preload data from store
     useEffect(() => {
         if (open && additionalInfo) {
             setUnitName(additionalInfo.unitName || '');

@@ -1,6 +1,6 @@
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import { dialog, BrowserWindow, ipcMain, app } from 'electron';
+import { dialog, BrowserWindow, app } from 'electron';
 
 let updaterInitialized = false;
 let updateDownloaded = false;
@@ -64,17 +64,14 @@ export function setupAutoUpdater() {
                 if (result.response === 0) {
                     log.info('✅ User chose Restart Now');
 
-                    // 1️⃣ Закрываем все окна
                     const windows = BrowserWindow.getAllWindows();
                     windows.forEach((win) => {
                         log.info(`Destroying window ${win.id}`);
                         win.destroy();
                     });
 
-                    // 2️⃣ Отключаем window-all-closed чтобы не мешал
                     app.removeAllListeners('window-all-closed');
 
-                    // 3️⃣ Небольшая задержка
                     setTimeout(() => {
                         setImmediate(() => {
                             try {
@@ -94,21 +91,19 @@ export function setupAutoUpdater() {
             });
     });
 
-    // ⚡ Если пользователь сам закроет приложение, применяем обновление
     app.on('before-quit', (event) => {
         if (updateDownloaded) {
             log.info('⚡ Update downloaded, installing on quit...');
             try {
-                event.preventDefault(); // предотвращаем обычный quit
-                autoUpdater.quitAndInstall(false, true); // применяем обновление
+                event.preventDefault();
+                autoUpdater.quitAndInstall(false, true);
             } catch (err) {
                 log.error('quitAndInstall on before-quit failed:', err);
-                app.quit(); // fallback
+                app.quit();
             }
         }
     });
 
-    // Очистка токенов перед quit (опционально)
     const windows = BrowserWindow.getAllWindows();
     windows.forEach((win) => {
         win.webContents.send('clear-auth-token');
