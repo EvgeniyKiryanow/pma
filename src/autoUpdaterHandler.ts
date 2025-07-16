@@ -1,10 +1,12 @@
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { dialog, BrowserWindow, app } from 'electron';
+import path from 'path';
+import fs from 'fs';
 
 let updaterInitialized = false;
 let updateDownloaded = false;
-let isQuitting = false; // <--- собственный флаг
+let isQuitting = false; // собственный флаг выхода
 
 export function setupAutoUpdater() {
     if (updaterInitialized) {
@@ -16,6 +18,22 @@ export function setupAutoUpdater() {
     log.transports.file.level = 'info';
     autoUpdater.logger = log;
     log.info('✅ AutoUpdater initialized');
+
+    // --- Проверяем, где запущен app (важно для macOS) ---
+    if (process.platform === 'darwin') {
+        const appPath = path.resolve(process.execPath, '..', '..', '..');
+        const inApplications = appPath.startsWith('/Applications');
+
+        if (!inApplications) {
+            log.warn('⚠️ macOS app is NOT in /Applications. Auto-update may fail.');
+            dialog.showMessageBoxSync({
+                type: 'warning',
+                title: 'Auto-update may not work',
+                message:
+                    'To enable auto-updates on macOS, move the app to the /Applications folder.',
+            });
+        }
+    }
 
     // 🔍 Проверка
     autoUpdater.on('checking-for-update', () => {
@@ -64,41 +82,7 @@ export function setupAutoUpdater() {
             .then((result) => {
                 if (result.response === 0) {
                     log.info('✅ User chose Restart Now');
-
-                    const windows = BrowserWindow.getAllWindows();
-                    windows.forEach((win) => {
-                        log.info(`Destroying window ${win.id}`);
-                        win.destroy();
-                    });
-
-                    app.removeAllListeners('window-all-closed');
-
-                    // Немного подождём, чтобы все окна точно уничтожились
-                    setTimeout(() => {
-                        setImmediate(() => {
-                            try {
-                                isQuitting = true; // <-- помечаем, что процесс уходит
-                                log.info('🚀 Calling autoUpdater.quitAndInstall...');
-                                autoUpdater.quitAndInstall(false, true);
-
-                                if (process.platform === 'darwin') {
-                                    // 🍏 macOS FIX: если процесс не выгрузился → убиваем
-                                    setTimeout(() => {
-                                        if (isQuitting === true && app.isReady()) {
-                                            log.warn(
-                                                '⚠️ macOS still running → forcing app.exit(0)',
-                                            );
-                                            app.exit(0);
-                                        }
-                                    }, 1500);
-                                }
-                            } catch (err) {
-                                log.error('❌ quitAndInstall error:', err);
-                                log.info('Fallback → app.quit()');
-                                app.quit();
-                            }
-                        });
-                    }, 500);
+                    doQuitAndInstall();
                 } else {
                     log.info('⏸️ User chose Later');
                 }
@@ -107,38 +91,52 @@ export function setupAutoUpdater() {
 
     // ⚡ Если пользователь сам закроет приложение → применяем обновление
     app.on('before-quit', (event) => {
-        if (updateDownloaded) {
+        if (updateDownloaded && !isQuitting) {
             log.info('⚡ Update downloaded, installing on quit...');
+            event.preventDefault();
+            doQuitAndInstall();
+        }
+    });
+}
+
+function doQuitAndInstall() {
+    isQuitting = true;
+
+    // Закрываем все окна
+    const windows = BrowserWindow.getAllWindows();
+    windows.forEach((win) => {
+        log.info(`Destroying window ${win.id}`);
+        win.destroy();
+    });
+
+    app.removeAllListeners('window-all-closed');
+
+    setTimeout(() => {
+        if (process.platform === 'darwin') {
+            log.info('🍏 macOS → quitAndInstall without restart');
             try {
-                event.preventDefault();
-                isQuitting = true;
-
-                if (process.platform === 'darwin') {
-                    log.info('🍏 macOS → delaying quitAndInstall on before-quit');
-                    setTimeout(() => autoUpdater.quitAndInstall(false, true), 300);
-
-                    // Принудительный выход, если Electron зависнет
-                    setTimeout(() => {
-                        if (isQuitting) {
-                            log.warn('⚠️ macOS fallback → app.exit(0)');
-                            app.exit(0);
-                        }
-                    }, 1500);
-                } else {
-                    autoUpdater.quitAndInstall(false, true);
-                }
+                autoUpdater.quitAndInstall(false, false);
             } catch (err) {
-                log.error('quitAndInstall on before-quit failed:', err);
+                log.error('quitAndInstall error on macOS:', err);
+            }
+
+            // 🍏 macOS FIX: если процесс не выгрузился → жёстко убиваем
+            setTimeout(() => {
+                if (app.isReady()) {
+                    log.warn('⚠️ macOS still running → forcing app.exit(0)');
+                    app.exit(0);
+                }
+            }, 1500);
+        } else {
+            log.info('🚀 Windows/Linux → quitAndInstall with restart');
+            try {
+                autoUpdater.quitAndInstall(false, true);
+            } catch (err) {
+                log.error('quitAndInstall error on Win/Linux:', err);
                 app.quit();
             }
         }
-    });
-
-    // Очистка токенов перед quit (опционально)
-    const windows = BrowserWindow.getAllWindows();
-    windows.forEach((win) => {
-        win.webContents.send('clear-auth-token');
-    });
+    }, 500);
 }
 
 export function autoCheckOnStartup() {

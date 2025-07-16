@@ -175,10 +175,6 @@ export function registerBackupHandlers() {
         }
     });
 
-    ipcMain.handle('install-update', () => {
-        autoUpdater.quitAndInstall();
-    });
-
     ipcMain.handle('get-app-version', () => {
         return app.getVersion();
     });

@@ -43,7 +43,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Version
     checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
-    installUpdate: () => ipcRenderer.invoke('install-update'),
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 
     // clear token

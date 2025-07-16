@@ -50,7 +50,6 @@ declare global {
             checkForUpdates: () => Promise<
                 { status: 'ok'; info?: any } | { status: 'error'; message: string }
             >;
-            installUpdate: () => Promise<boolean>;
             getAppVersion: () => Promise<string>;
 
             // clear toke
