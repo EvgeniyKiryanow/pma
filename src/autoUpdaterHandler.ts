@@ -40,20 +40,68 @@ export function setupAutoUpdater() {
         log.info(`📦 Downloading update... ${progress.percent.toFixed(2)}%`);
     });
 
-    autoUpdater.on('update-downloaded', () => {
-        log.info('✅ Update downloaded');
+    // autoUpdater.on('update-downloaded', () => {
+    //     log.info('✅ Update downloaded');
+
+    //     dialog
+    //         .showMessageBox({
+    //             type: 'info',
+    //             title: 'Update Ready',
+    //             message: 'A new update has been downloaded. Restart now to install?',
+    //             buttons: ['Restart Now', 'Later'],
+    //             defaultId: 0,
+    //             cancelId: 1,
+    //         })
+    //         .then((result) => {
+    //             if (result.response === 0) {
+    //                 log.info('Restarting and installing update...');
+
+    //                 // Close all windows
+    //                 const allWindows = BrowserWindow.getAllWindows();
+    //                 allWindows.forEach((win) => win.destroy());
+
+    //                 // Give Electron a tiny delay before quitting
+    //                 setImmediate(() => {
+    //                     autoUpdater.quitAndInstall(false, true);
+    //                 });
+    //             }
+    //         });
+    // });
+    autoUpdater.on('update-downloaded', (info) => {
+        log.info(`✅ Update downloaded: version ${info.version}`);
+
         dialog
             .showMessageBox({
                 type: 'info',
                 title: 'Update Ready',
-                message: 'A new update has been downloaded. Restart now to install?',
+                message: `A new version (${info.version}) has been downloaded. Restart now to install?`,
                 buttons: ['Restart Now', 'Later'],
                 defaultId: 0,
                 cancelId: 1,
             })
             .then((result) => {
                 if (result.response === 0) {
-                    autoUpdater.quitAndInstall();
+                    log.info('User chose Restart Now');
+
+                    // Close all windows
+                    const windows = BrowserWindow.getAllWindows();
+                    windows.forEach((win) => {
+                        log.info(`Destroying window ${win.id}`);
+                        win.destroy();
+                    });
+
+                    // Give a slight delay so dialog/windows fully close
+                    setTimeout(() => {
+                        try {
+                            log.info('Calling quitAndInstall...');
+                            autoUpdater.quitAndInstall(false, true);
+                            log.info('quitAndInstall executed');
+                        } catch (error) {
+                            log.error('quitAndInstall error:', error);
+                        }
+                    }, 500);
+                } else {
+                    log.info('User chose Later');
                 }
             });
     });
