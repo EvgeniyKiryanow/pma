@@ -4,6 +4,7 @@ import { dialog, BrowserWindow, app } from 'electron';
 
 let updaterInitialized = false;
 let updateDownloaded = false;
+let isQuitting = false; // <--- собственный флаг
 
 export function setupAutoUpdater() {
     if (updaterInitialized) {
@@ -16,12 +17,12 @@ export function setupAutoUpdater() {
     autoUpdater.logger = log;
     log.info('✅ AutoUpdater initialized');
 
-    // 🔍 Checking
+    // 🔍 Проверка
     autoUpdater.on('checking-for-update', () => {
         log.info('🔍 Checking for updates...');
     });
 
-    // ⬇️ Available
+    // ⬇️ Найдено обновление
     autoUpdater.on('update-available', (info) => {
         log.info(`⬇️ Update available: ${info.version}`);
         dialog.showMessageBox({
@@ -31,22 +32,22 @@ export function setupAutoUpdater() {
         });
     });
 
-    // ✅ No updates
+    // ✅ Нет обновлений
     autoUpdater.on('update-not-available', () => {
         log.info('✅ No updates available.');
     });
 
-    // ❌ Errors
+    // ❌ Ошибка
     autoUpdater.on('error', (err) => {
         log.error('❌ Error in auto-updater:', err?.stack || err?.message || err);
     });
 
-    // 📦 Progress
+    // 📦 Прогресс загрузки
     autoUpdater.on('download-progress', (progress) => {
         log.info(`📦 Downloading update... ${progress.percent.toFixed(2)}%`);
     });
 
-    // ✅ When downloaded
+    // ✅ Когда обновление загружено
     autoUpdater.on('update-downloaded', (info) => {
         log.info(`✅ Update downloaded: version ${info.version}`);
         updateDownloaded = true;
@@ -70,24 +71,27 @@ export function setupAutoUpdater() {
                         win.destroy();
                     });
 
-                    // Убираем обработчик window-all-closed, чтобы не блокировал quit
                     app.removeAllListeners('window-all-closed');
 
-                    // Немного времени на закрытие всех окон
+                    // Немного подождём, чтобы все окна точно уничтожились
                     setTimeout(() => {
                         setImmediate(() => {
                             try {
-                                if (process.platform === 'darwin') {
-                                    // macOS не закрывает app после destroy → принудительно quit
-                                    log.info(
-                                        '🍏 macOS detected → forcing app.quit() before quitAndInstall',
-                                    );
-                                    app.quit();
-                                }
-
+                                isQuitting = true; // <-- помечаем, что процесс уходит
                                 log.info('🚀 Calling autoUpdater.quitAndInstall...');
                                 autoUpdater.quitAndInstall(false, true);
-                                log.info('✅ quitAndInstall executed');
+
+                                if (process.platform === 'darwin') {
+                                    // 🍏 macOS FIX: если процесс не выгрузился → убиваем
+                                    setTimeout(() => {
+                                        if (isQuitting === true && app.isReady()) {
+                                            log.warn(
+                                                '⚠️ macOS still running → forcing app.exit(0)',
+                                            );
+                                            app.exit(0);
+                                        }
+                                    }, 1500);
+                                }
                             } catch (err) {
                                 log.error('❌ quitAndInstall error:', err);
                                 log.info('Fallback → app.quit()');
@@ -107,10 +111,19 @@ export function setupAutoUpdater() {
             log.info('⚡ Update downloaded, installing on quit...');
             try {
                 event.preventDefault();
+                isQuitting = true;
 
                 if (process.platform === 'darwin') {
-                    log.info('🍏 macOS → forcing quitAndInstall on before-quit');
+                    log.info('🍏 macOS → delaying quitAndInstall on before-quit');
                     setTimeout(() => autoUpdater.quitAndInstall(false, true), 300);
+
+                    // Принудительный выход, если Electron зависнет
+                    setTimeout(() => {
+                        if (isQuitting) {
+                            log.warn('⚠️ macOS fallback → app.exit(0)');
+                            app.exit(0);
+                        }
+                    }, 1500);
                 } else {
                     autoUpdater.quitAndInstall(false, true);
                 }
