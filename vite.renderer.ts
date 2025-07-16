@@ -32,15 +32,22 @@ export default defineConfig({
             if (id.includes('react')) return 'vendor_react';
             // if (id.includes('docxtemplater')) return 'vendor_docxtemplater';
             if (id.includes('pizzip')) return 'vendor_pizzip';
-            if (id.includes('docx-preview')) return 'vendor_docxpreview';
+            // if (id.includes('docx-preview')) return 'vendor_docxpreview';
             if (id.includes('zustand')) return 'vendor_zustand';
-            if (id.includes('shevchenko')) return 'vendor_shevchenko';
             if (id.includes('lucide-react')) return 'vendor_lucide';
             if (id.includes('tailwindcss') || id.includes('postcss')) return 'vendor_tailwind';
             if (id.includes('sqlite')) return 'vendor_sqlite';
             if (id.includes('bcrypt')) return 'vendor_bcrypt';
             if (id.includes('electron-log')) return 'vendor_electronlog';
             if (id.includes('react-router')) return 'vendor_router';
+
+            if (id.includes('shevchenko') || id.includes('@tensorflow')) return 'vendor_shevchenko_tf';
+
+      //             if (id.includes('@tensorflow/tfjs-core')) return 'vendor_tensorflow_core';
+      // if (id.includes('@tensorflow/tfjs-converter')) return 'vendor_tensorflow_converter';
+      // if (id.includes('@tensorflow/tfjs-backend-cpu')) return 'vendor_tensorflow_cpu';
+      // if (id.includes('@tensorflow/tfjs-backend-webgl')) return 'vendor_tensorflow_webgl';
+      // if (id.includes('shevchenko')) return 'vendor_shevchenko';
 
             // catch all other node_modules in a separate bucket
             return 'vendor_misc';
@@ -53,6 +60,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      
     },
   },
 });
