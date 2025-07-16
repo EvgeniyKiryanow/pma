@@ -36,13 +36,11 @@ export function getPythonPaths(): { python: string; script: string } {
 }
 
 export function getInstallerPath() {
-    // Update python
     const base = app.isPackaged
         ? path.join(process.resourcesPath, 'assets/python/installer')
         : path.join(__dirname, 'assets/python/installer');
 
     if (process.platform === 'win32') {
-        // update path
         return path.join(base, 'python-3.8.8-amd64.exe');
     }
     if (process.platform === 'darwin') {
