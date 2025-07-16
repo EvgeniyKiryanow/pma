@@ -49,7 +49,7 @@ jobs:
         run: |
           echo "🍏 Building macOS Universal (Intel + ARM)"
           # Universal = one .app working on Intel & Apple Silicon
-          npx electron-builder --mac universal --publish always
+          npx electron-builder --mac dmg zip --x64 --publish always
 
       # 🪟 Windows build step
       - name: Build & Publish Windows
