@@ -33,17 +33,13 @@
       "assets/python/**"
     ],
     "mac": {
-  "icon": "assets/icons/appIcon.icns",
-  "target": [
-    "dmg",
-    "zip"
-  ],
-  "category": "public.app-category.utilities",
-  "arch": [
-    "x64",
-    "arm64"
-  ]
-},
+      "icon": "assets/icons/appIcon.icns",
+    "target": [
+      "dmg", 
+      "zip"   
+    ],
+      "category": "public.app-category.utilities"
+    },
     "win": {
       "icon": "assets/icons/appIcon.ico",
       "target": [
