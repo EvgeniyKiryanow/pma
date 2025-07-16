@@ -7,6 +7,8 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
     interface Window {
         electronAPI: {
+            //close
+            closeApp: () => Promise<any>;
             // --- Auth ---
             hasUser: () => Promise<boolean>;
             register: (username: string, password: string, hint: string) => Promise<void>;

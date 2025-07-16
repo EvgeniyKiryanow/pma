@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import { getDb } from '../database/db';
 import { CommentOrHistoryEntry } from 'src/types/user';
 
@@ -230,6 +230,9 @@ export function registerUserHandlers() {
         }
 
         return true;
+    });
+    ipcMain.on('app:close', () => {
+        app.quit();
     });
 }
 export function getFilterDate(filter: string): Date {

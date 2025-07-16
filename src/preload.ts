@@ -76,4 +76,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     morphy: {
         analyzeWords: (words: string[]) => ipcRenderer.invoke('analyze-words', words),
     },
+
+    //close
+    closeApp: () => ipcRenderer.send('app:close'),
 });

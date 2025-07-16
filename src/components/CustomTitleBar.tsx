@@ -107,7 +107,7 @@ export default function CustomTitleBar() {
                 <button
                     className="p-1 hover:bg-red-500 rounded"
                     title={t('titleBar.close')}
-                    onClick={() => window.close()}
+                    onClick={() => window.electronAPI.closeApp()}
                 >
                     <X className="w-4 h-4" />
                 </button>
