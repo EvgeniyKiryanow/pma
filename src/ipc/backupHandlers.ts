@@ -1,4 +1,4 @@
-import { ipcMain, dialog, app } from 'electron';
+import { ipcMain, dialog, app, BrowserWindow } from 'electron';
 import fs from 'fs/promises';
 import { existsSync, rmSync, readdirSync, unlinkSync } from 'fs';
 import path from 'path';
@@ -177,6 +177,22 @@ export function registerBackupHandlers() {
 
     ipcMain.handle('get-app-version', () => {
         return app.getVersion();
+    });
+
+    ipcMain.handle('close-app', () => {
+        const win = BrowserWindow.getFocusedWindow();
+        if (win) win.close();
+    });
+
+    ipcMain.handle('hide-app', () => {
+        const win = BrowserWindow.getFocusedWindow();
+        if (!win) return;
+
+        if (process.platform === 'darwin') {
+            app.hide(); // macOS → Cmd+H
+        } else {
+            win.minimize(); // Windows/Linux → minimize
+        }
     });
 
     getBackupIntervalInDays().then(startScheduledBackup);

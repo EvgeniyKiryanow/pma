@@ -78,4 +78,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     //close
     closeApp: () => ipcRenderer.send('app:close'),
+    hideApp: () => ipcRenderer.invoke('hide-app'),
 });

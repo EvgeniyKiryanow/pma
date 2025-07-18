@@ -86,3 +86,5 @@ export function stopScheduledBackup() {
         console.log('[Auto Backup] Stopped');
     }
 }
+
+// after install lib it is not work

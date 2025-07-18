@@ -79,6 +79,7 @@ declare global {
             morphy: {
                 analyzeWords: (words: string[]) => Promise<any>;
             };
+            hideApp: () => Promise<void>;
         };
     }
 }
