@@ -13,21 +13,40 @@ function resolveAssetsPath(...segments: string[]) {
 // ✅ Detect system python (Windows + macOS/Linux)
 function findSystemPython(): string | null {
     try {
-        const cmd = process.platform === 'win32' ? 'where' : 'which';
+        if (process.platform === 'win32') {
+            // Standard Python installer on Windows
+            const possiblePaths = [
+                path.join(
+                    process.env.LOCALAPPDATA || '',
+                    'Programs',
+                    'Python',
+                    'Python38',
+                    'python.exe',
+                ),
+                path.join(
+                    process.env.LOCALAPPDATA || '',
+                    'Programs',
+                    'Python',
+                    'Python39',
+                    'python.exe',
+                ),
+                'C:\\Python38\\python.exe',
+                'C:\\Python39\\python.exe',
+            ];
 
-        // Try python3 first
-        let output = execFileSync(cmd, ['python3'], { encoding: 'utf8' })
-            .split(/\r?\n/)
-            .find((line) => line.trim() !== '');
-        if (output && existsSync(output.trim())) return output.trim();
+            for (const p of possiblePaths) {
+                if (existsSync(p)) return p;
+            }
+        }
 
-        // Try python
-        output = execFileSync(cmd, ['python'], { encoding: 'utf8' })
-            .split(/\r?\n/)
-            .find((line) => line.trim() !== '');
-        if (output && existsSync(output.trim())) return output.trim();
+        const whichCmd = process.platform === 'win32' ? 'where' : 'which';
+        const output = execFileSync(whichCmd, ['python'], { encoding: 'utf8' }).split(/\r?\n/)[0];
+        if (output && existsSync(output)) return output;
+
+        const output3 = execFileSync(whichCmd, ['python3'], { encoding: 'utf8' }).split(/\r?\n/)[0];
+        if (output3 && existsSync(output3)) return output3;
     } catch (_) {
-        // no python on PATH
+        /* empty */
     }
     return null;
 }
@@ -106,61 +125,48 @@ export function installMorphyPackages(pythonPath: string) {
     ];
 
     try {
-        // 1️⃣ Check pip
-        console.log('🔍 Checking pip availability...');
-        try {
-            execFileSync(pythonPath, ['-m', 'pip', '--version'], { stdio: 'inherit' });
-        } catch (_) {
-            console.log('⚠ pip missing. Bootstrapping ensurepip...');
-            try {
-                execFileSync(pythonPath, ['-m', 'ensurepip', '--default-pip'], {
-                    stdio: 'inherit',
-                });
-            } catch (e) {
-                console.warn('⚠ ensurepip failed. Trying get-pip.py fallback...');
-                const getPipPath = resolveAssetsPath('assets', 'python', 'get-pip.py');
-                if (existsSync(getPipPath)) {
-                    console.log('📥 Running get-pip.py...');
-                    execFileSync(pythonPath, [getPipPath], { stdio: 'inherit' });
-                }
-            }
-        }
+        console.log('🔍 Ensuring pip exists...');
+        execFileSync(pythonPath, ['-m', 'ensurepip'], { stdio: 'inherit' });
 
-        // 2️⃣ Optional: upgrade pip (but safe)
-        try {
-            execFileSync(pythonPath, ['-m', 'pip', 'install', '--upgrade', 'pip'], {
+        console.log('🔄 Upgrading pip...');
+        execFileSync(
+            pythonPath,
+            ['-m', 'pip', 'install', '--upgrade', 'pip', 'setuptools', 'wheel'],
+            {
                 stdio: 'inherit',
-            });
-        } catch (e) {
-            console.warn('⚠ Could not upgrade pip:', e);
-        }
+            },
+        );
 
-        console.log('✅ pip ready. Installing offline wheels...');
+        console.log('✅ pip ready, installing offline wheels one by one...');
 
-        // 3️⃣ Install each wheel with --user to avoid admin issues
-        for (const w of wheels) {
-            const wheelPath = path.join(pkgDir, w);
+        for (const wheel of wheels) {
+            const wheelPath = path.resolve(pkgDir, wheel);
             if (!existsSync(wheelPath)) {
-                console.error('❌ Wheel not found:', wheelPath);
+                console.warn(`⚠️ Wheel missing: ${wheelPath}`);
                 continue;
             }
 
-            console.log('📦 Installing wheel:', wheelPath);
-            execFileSync(
-                pythonPath,
-                ['-m', 'pip', 'install', '--user', '--no-index', '--find-links', pkgDir, wheelPath],
-                { stdio: 'inherit' },
-            );
+            console.log(`📦 Installing wheel: ${wheelPath}`);
+            try {
+                // ✅ Direct path install (no --find-links, simpler for Windows)
+                execFileSync(pythonPath, ['-m', 'pip', 'install', wheelPath], { stdio: 'inherit' });
+                console.log(`✅ Installed: ${wheel}`);
+            } catch (err) {
+                console.error(`❌ Failed installing ${wheelPath}`, err);
+
+                // ✅ Fallback → PyPI
+                const pkgName = wheel.startsWith('pymorphy3_dicts_uk')
+                    ? 'pymorphy3-dicts-uk'
+                    : 'pymorphy3';
+                console.log(`🌐 Trying PyPI: ${pkgName}`);
+                execFileSync(pythonPath, ['-m', 'pip', 'install', pkgName], { stdio: 'inherit' });
+            }
         }
 
-        // 4️⃣ Verify
-        console.log('✅ Verifying pymorphy3 import...');
-        execFileSync(pythonPath, ['-c', 'import pymorphy3; print("✅ pymorphy3 import OK")'], {
-            stdio: 'inherit',
-        });
-
-        console.log('🎉 pymorphy3 packages installed successfully!');
+        console.log('🎉 pymorphy3 packages installed');
     } catch (e) {
-        console.error('❌ Failed to install pymorphy3 packages', e);
+        console.error('❌ Global failure installing pymorphy3', e);
     }
 }
+
+// it is not work  lib is not working
