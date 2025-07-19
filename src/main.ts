@@ -203,7 +203,7 @@ process.on('unhandledRejection', (reason) => {
 
 app.whenReady().then(async () => {
     try {
-        const ok = await initPythonEnv(); // ✅ only ONCE
+        const ok = await initPythonEnv();
         if (!ok) {
             console.warn('⚠️ Python env not ready – morphology might fail.');
         }
