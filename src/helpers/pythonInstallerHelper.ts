@@ -349,21 +349,26 @@ export async function installMorphyPackages(pythonPath: string) {
 
 // ✅ Combined: ensure Python + install libs
 export async function ensurePythonAndMorphy() {
-    let { python } = getPythonPaths();
-    if (!isPythonAvailable(python)) {
-        console.warn('⚠️ Python not found → prompting install');
-        const installed = await promptInstallPython();
-        if (installed) python = installed;
-        else {
-            console.warn('⚠️ Restart required after manual install');
-            return;
-        }
-    }
+    try {
+        let { python } = getPythonPaths();
 
-    if (python && isPythonAvailable(python)) {
-        console.log('✅ Python ready → installing pymorphy3');
-        await installMorphyPackages(python);
-    } else {
-        console.error('❌ Python still missing → cannot install pymorphy3');
+        if (!isPythonAvailable(python)) {
+            console.warn('⚠️ Python not found → prompting install');
+            const installed = await promptInstallPython(); // tries online/offline
+            if (installed) python = installed;
+            else {
+                console.warn('⚠️ Restart required after manual install');
+                return; // ❌ Don’t crash
+            }
+        }
+
+        if (python && isPythonAvailable(python)) {
+            console.log('✅ Python ready → installing pymorphy3');
+            await installMorphyPackages(python);
+        } else {
+            console.error('❌ Python still missing → cannot install pymorphy3');
+        }
+    } catch (err) {
+        console.error('❌ ensurePythonAndMorphy crashed:', err);
     }
 }

@@ -161,29 +161,25 @@ process.on('unhandledRejection', (reason) => {
 });
 
 app.whenReady().then(async () => {
-    await ensurePythonAndMorphy();
-    // const { python } = getPythonPaths();
+    console.log('🚀 Electron ready → ensuring Python & Morph libs');
 
-    // if (!isPythonAvailable(python)) {
-    //     console.warn('⚠️ Python не знайдено. Пропонуємо інсталяцію...');
-    //     promptInstallPython();
-    // } else {
-    //     installMorphyPackages(python);
-    // }
+    try {
+        await ensurePythonAndMorphy(); // ✅ Detect & install only ONCE
+        console.log('✅ Python ready');
+    } catch (err) {
+        console.error('❌ Python ensure failed:', err);
+        // DO NOT crash → still open app
+    }
 
+    // ✅ Continue normal initialization
     registerDbHandlers();
     await initializeDb();
     await upgradeDbSchema();
     copyAllTemplates();
 
-    // ✅ Setup AutoUpdater events
     setupAutoUpdater();
-
-    // ✅ Launch main window
     createWindow();
-
-    // ✅ Check for updates
-    // autoCheckOnStartup();
+    // autoCheckOnStartup(); // optional
 });
 
 app.on('window-all-closed', () => {
