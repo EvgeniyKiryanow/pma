@@ -123,7 +123,7 @@ async function initPythonEnv() {
 
 ipcMain.handle('analyze-words', async (_event, phrase: string) => {
     if (!globalPythonPath || !globalMorphyScript) {
-        console.error('❌ Python not initialized yet!');
+        alert('❌ Python not initialized yet!');
         throw new Error('Python env not ready, restart app.');
     }
 
@@ -133,14 +133,15 @@ ipcMain.handle('analyze-words', async (_event, phrase: string) => {
             [globalMorphyScript!, JSON.stringify(phrase)],
             (error, stdout, stderr) => {
                 if (error) {
-                    console.error('🐍 Python error:', stderr || error.message);
+                    // console.error('🐍 Python error:', stderr || error.message);
+                    alert(error.message);
                     return reject(error);
                 }
                 try {
                     const result = JSON.parse(stdout);
                     resolve(result);
                 } catch (err) {
-                    console.error('JSON parse error:', stdout);
+                    alert(stdout);
                     reject('JSON parse error: ' + stdout);
                 }
             },
@@ -198,10 +199,10 @@ app.whenReady().then(async () => {
     try {
         const ok = await initPythonEnv(); // ✅ only ONCE
         if (!ok) {
-            console.warn('⚠️ Python env not ready – morphology might fail.');
+            alert('⚠️ Python env not ready – morphology might fail.');
         }
     } catch (err) {
-        console.error('❌ Python init crashed:', err);
+        alert(err);
     }
 
     // continue normal initialization
