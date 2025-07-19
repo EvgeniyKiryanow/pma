@@ -14,6 +14,8 @@ import {
     installMorphyPackages,
     isPythonAvailable,
     promptInstallPython,
+    ensurePythonAndMorphy,
+    findSystemPython,
 } from './helpers/pythonInstallerHelper';
 
 // ✅ Import our updater functions
@@ -93,19 +95,47 @@ export function convertDocxToPdf(inputPath: string, outputDir: string): Promise<
     });
 }
 
+let globalPythonPath: string | null = null;
+let globalMorphyScript: string | null = null;
+
+async function initPythonEnv() {
+    console.log('🔄 Initializing Python env...');
+
+    // Ensure Python installed + pymorphy3 available
+    await ensurePythonAndMorphy();
+
+    // Pick the final Python that has pymorphy3
+    const found = findSystemPython();
+    if (!found) {
+        console.error('❌ No working Python found even after ensure');
+        return false;
+    }
+
+    // Always same morphy script
+    const { script } = getPythonPaths();
+
+    globalPythonPath = found;
+    globalMorphyScript = script;
+
+    console.log('✅ Python initialized →', globalPythonPath);
+    return true;
+}
+
 ipcMain.handle('analyze-words', async (_event, phrase: string) => {
-    const pythonPath = getInstalledPythonPath();
-    const { python, script } = getPythonPaths();
+    if (!globalPythonPath || !globalMorphyScript) {
+        alert('❌ Python not initialized yet!');
+        throw new Error('Python env not ready, restart app.');
+    }
 
     return new Promise((resolve, reject) => {
         execFile(
-            pythonPath,
-            [script, JSON.stringify(phrase)],
+            globalPythonPath!,
+            [globalMorphyScript!, JSON.stringify(phrase)],
             {
-                encoding: 'utf8', // ✅ Force Node to decode UTF‑8
+                encoding: 'utf8',
                 env: {
                     ...process.env,
-                    PYTHONIOENCODING: 'utf-8', // ✅ Force Python to output UTF‑8
+                    PYTHONIOENCODING: 'utf-8',
                 },
             },
             (error, stdout, stderr) => {
@@ -172,28 +202,23 @@ process.on('unhandledRejection', (reason) => {
 });
 
 app.whenReady().then(async () => {
-    const { python } = getPythonPaths();
-
-    if (!isPythonAvailable(python)) {
-        console.warn('⚠️ Python не знайдено. Пропонуємо інсталяцію...');
-        promptInstallPython();
-    } else {
-        installMorphyPackages(python);
+    try {
+        const ok = await initPythonEnv(); // ✅ only ONCE
+        if (!ok) {
+            console.warn('⚠️ Python env not ready – morphology might fail.');
+        }
+    } catch (err) {
+        console.warn(err);
     }
 
+    // continue normal initialization
     registerDbHandlers();
     await initializeDb();
     await upgradeDbSchema();
     copyAllTemplates();
 
-    // ✅ Setup AutoUpdater events
     setupAutoUpdater();
-
-    // ✅ Launch main window
     createWindow();
-
-    // ✅ Check for updates
-    // autoCheckOnStartup();
 });
 
 app.on('window-all-closed', () => {
