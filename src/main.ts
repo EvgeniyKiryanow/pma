@@ -8,15 +8,7 @@ import { upgradeDbSchema } from './database/migrations';
 import fs from 'fs';
 import { exec, execFile } from 'child_process';
 import { ipcMain } from 'electron';
-import {
-    getInstalledPythonPath,
-    getPythonPaths,
-    installMorphyPackages,
-    isPythonAvailable,
-    promptInstallPython,
-    ensurePythonAndMorphy,
-    findSystemPython,
-} from './helpers/pythonInstallerHelper';
+import { initPythonEnvSimplified } from './helpers/pythonInstallerHelper';
 
 // ✅ Import our updater functions
 import { setupAutoUpdater, autoCheckOnStartup } from './autoUpdaterHandler';
@@ -99,55 +91,28 @@ let globalPythonPath: string | null = null;
 let globalMorphyScript: string | null = null;
 
 async function initPythonEnv() {
-    console.log('🔄 Initializing Python env...');
-
-    // Ensure Python installed + pymorphy3 available
-    await ensurePythonAndMorphy();
-
-    // Pick the final Python that has pymorphy3
-    const found = findSystemPython();
-    if (!found) {
-        console.error('❌ No working Python found even after ensure');
-        return false;
-    }
-
-    // Always same morphy script
-    const { script } = getPythonPaths();
-
-    globalPythonPath = found;
+    const { python, script } = await initPythonEnvSimplified();
+    if (!python) return false;
+    globalPythonPath = python;
     globalMorphyScript = script;
-
-    console.log('✅ Python initialized →', globalPythonPath);
     return true;
 }
 
 ipcMain.handle('analyze-words', async (_event, phrase: string) => {
-    if (!globalPythonPath || !globalMorphyScript) {
-        alert('❌ Python not initialized yet!');
-        throw new Error('Python env not ready, restart app.');
-    }
-
+    if (!globalPythonPath) throw new Error('Python not ready');
     return new Promise((resolve, reject) => {
         execFile(
             globalPythonPath!,
             [globalMorphyScript!, JSON.stringify(phrase)],
             {
                 encoding: 'utf8',
-                env: {
-                    ...process.env,
-                    PYTHONIOENCODING: 'utf-8',
-                },
+                env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
             },
-            (error, stdout, stderr) => {
-                if (error) {
-                    console.error('🐍 Python error:', stderr || error.message);
-                    return reject(error);
-                }
+            (error, stdout) => {
+                if (error) return reject(error);
                 try {
-                    const result = JSON.parse(stdout);
-                    resolve(result);
-                } catch (err) {
-                    console.error('JSON parse error:', stdout);
+                    resolve(JSON.parse(stdout));
+                } catch {
                     reject('JSON parse error: ' + stdout);
                 }
             },
@@ -202,21 +167,12 @@ process.on('unhandledRejection', (reason) => {
 });
 
 app.whenReady().then(async () => {
-    try {
-        const ok = await initPythonEnv(); // ✅ only ONCE
-        if (!ok) {
-            console.warn('⚠️ Python env not ready – morphology might fail.');
-        }
-    } catch (err) {
-        console.warn(err);
-    }
-
-    // continue normal initialization
+    const ok = await initPythonEnv();
+    if (!ok) console.warn('⚠️ Python env not ready');
     registerDbHandlers();
     await initializeDb();
     await upgradeDbSchema();
     copyAllTemplates();
-
     setupAutoUpdater();
     createWindow();
 });
