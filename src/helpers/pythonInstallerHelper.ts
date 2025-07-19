@@ -13,45 +13,88 @@ function resolveAssetsPath(...segments: string[]) {
 
 // ✅ Detect system python (Windows + macOS/Linux)
 function findSystemPython(): string | null {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fs = require('fs');
+
     try {
+        // ✅ 1. Try PATH first
+        const whichCmd = process.platform === 'win32' ? 'where' : 'which';
+
+        const tryCmd = (cmd: string) => {
+            try {
+                const output = execFileSync(whichCmd, [cmd], { encoding: 'utf8' })
+                    .split(/\r?\n/)[0]
+                    .trim();
+                return output && fs.existsSync(output) ? output : null;
+            } catch (_) {
+                return null;
+            }
+        };
+
+        const detected = tryCmd('python3') || tryCmd('python');
+        if (detected) return detected;
+
+        // ✅ 2. Platform-specific deeper scan
         if (process.platform === 'win32') {
-            // Common Python locations on Windows
-            const possiblePaths = [
-                path.join(
-                    process.env.LOCALAPPDATA || '',
-                    'Programs',
-                    'Python',
-                    'Python38',
-                    'python.exe',
-                ),
-                path.join(
-                    process.env.LOCALAPPDATA || '',
-                    'Programs',
-                    'Python',
-                    'Python39',
-                    'python.exe',
-                ),
-                'C:\\Python38\\python.exe',
-                'C:\\Python39\\python.exe',
+            const userDir = process.env.USERPROFILE || '';
+            const localAppData = process.env.LOCALAPPDATA || '';
+            const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+            const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+
+            const possibleDirs = [
+                path.join(localAppData, 'Programs', 'Python'),
+                path.join(userDir, 'AppData', 'Local', 'Programs', 'Python'),
+                path.join(programFiles, 'Python'),
+                path.join(programFilesX86, 'Python'),
+                'C:\\Python38',
+                'C:\\Python39',
+                'C:\\Python310',
+                'C:\\Python311',
             ];
-            for (const p of possiblePaths) {
-                if (existsSync(p)) return p;
+
+            for (const base of possibleDirs) {
+                if (!fs.existsSync(base)) continue;
+
+                // Check for subdirectories like Python311
+                const subdirs = fs.readdirSync(base, { withFileTypes: true });
+                for (const dir of subdirs) {
+                    if (dir.isDirectory() && dir.name.startsWith('Python3')) {
+                        const candidate = path.join(base, dir.name, 'python.exe');
+                        if (fs.existsSync(candidate)) return candidate;
+                    }
+                }
+
+                const direct = path.join(base, 'python.exe');
+                if (fs.existsSync(direct)) return direct;
             }
         }
 
-        const whichCmd = process.platform === 'win32' ? 'where' : 'which';
+        if (process.platform === 'darwin') {
+            // ✅ macOS common locations
+            const macPaths = [
+                '/usr/local/bin/python3', // Intel mac default
+                '/opt/homebrew/bin/python3', // Apple Silicon Homebrew
+                '/Library/Frameworks/Python.framework/Versions/3.11/bin/python3',
+                '/Library/Frameworks/Python.framework/Versions/3.10/bin/python3',
+                '/Library/Frameworks/Python.framework/Versions/3.9/bin/python3',
+            ];
+            for (const candidate of macPaths) {
+                if (fs.existsSync(candidate)) return candidate;
+            }
+        }
 
-        // Try `python`
-        const output = execFileSync(whichCmd, ['python'], { encoding: 'utf8' }).split(/\r?\n/)[0];
-        if (output && existsSync(output)) return output;
-
-        // Try `python3`
-        const output3 = execFileSync(whichCmd, ['python3'], { encoding: 'utf8' }).split(/\r?\n/)[0];
-        if (output3 && existsSync(output3)) return output3;
-    } catch (_) {
-        /* no python found */
+        if (process.platform === 'linux') {
+            // ✅ Linux fallback
+            const linuxPaths = ['/usr/bin/python3', '/usr/local/bin/python3', '/bin/python3'];
+            for (const candidate of linuxPaths) {
+                if (fs.existsSync(candidate)) return candidate;
+            }
+        }
+    } catch (err) {
+        console.warn('⚠️ Python detection failed:', err);
     }
-    return null;
+
+    return null; // ❌ Not found
 }
 
 // ✅ Get python exe + morphy.py path (keeps same name)
