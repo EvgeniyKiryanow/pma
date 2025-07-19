@@ -24,7 +24,6 @@ function hasInternetConnection(): Promise<boolean> {
     });
 }
 
-// ✅ Detect Python on PATH or common folders
 function findSystemPython(): string | null {
     try {
         const whichCmd = process.platform === 'win32' ? 'where' : 'which';
@@ -40,12 +39,29 @@ function findSystemPython(): string | null {
             }
         };
 
+        // ✅ 1. Prefer PATH python
         const detected = tryCmd('python3') || tryCmd('python');
         if (detected) return detected;
 
+        // ✅ 2. On Windows, first check user-level Python where pip --user installs libs
         if (process.platform === 'win32') {
             const userDir = process.env.USERPROFILE || '';
             const localAppData = process.env.LOCALAPPDATA || '';
+
+            // This is where user-installed pip packages live
+            const preferredUserPython = path.join(
+                localAppData,
+                'Programs',
+                'Python',
+                'Python311',
+                'python.exe',
+            );
+            if (existsSync(preferredUserPython)) {
+                console.log('✅ Found user-level Python with installed libs:', preferredUserPython);
+                return preferredUserPython;
+            }
+
+            // ✅ Then fallback to other common paths
             const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
             const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
 
@@ -74,6 +90,7 @@ function findSystemPython(): string | null {
             }
         }
 
+        // ✅ 3. macOS common paths
         if (process.platform === 'darwin') {
             const macPaths = [
                 '/usr/local/bin/python3',
@@ -84,6 +101,7 @@ function findSystemPython(): string | null {
             for (const candidate of macPaths) if (existsSync(candidate)) return candidate;
         }
 
+        // ✅ 4. Linux fallback
         if (process.platform === 'linux') {
             const linuxPaths = ['/usr/bin/python3', '/usr/local/bin/python3', '/bin/python3'];
             for (const candidate of linuxPaths) if (existsSync(candidate)) return candidate;
@@ -91,7 +109,8 @@ function findSystemPython(): string | null {
     } catch (err) {
         console.warn('⚠️ Python detection failed:', err);
     }
-    return null;
+
+    return null; // ❌ Not found
 }
 
 // ✅ Paths for Python & morphy.py
