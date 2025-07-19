@@ -101,28 +101,30 @@ let globalMorphyScript: string | null = null;
 async function initPythonEnv() {
     console.log('🔄 Initializing Python env...');
 
-    // Ensure Python is installed + pymorphy3 available
+    // Ensure Python installed + pymorphy3 available
     await ensurePythonAndMorphy();
 
-    // Now find the Python that actually has pymorphy3
+    // Pick the final Python that has pymorphy3
     const found = findSystemPython();
     if (!found) {
         console.error('❌ No working Python found even after ensure');
         return false;
     }
 
-    const { script } = getPythonPaths(); // morphy.py path
+    // Always same morphy script
+    const { script } = getPythonPaths();
 
     globalPythonPath = found;
     globalMorphyScript = script;
 
-    console.log('✅ Python initialized:', globalPythonPath);
+    console.log('✅ Python initialized →', globalPythonPath);
     return true;
 }
 
 ipcMain.handle('analyze-words', async (_event, phrase: string) => {
     if (!globalPythonPath || !globalMorphyScript) {
-        throw new Error('❌ Python not initialized. Try restarting.');
+        console.error('❌ Python not initialized yet!');
+        throw new Error('Python env not ready, restart app.');
     }
 
     return new Promise((resolve, reject) => {
@@ -138,6 +140,7 @@ ipcMain.handle('analyze-words', async (_event, phrase: string) => {
                     const result = JSON.parse(stdout);
                     resolve(result);
                 } catch (err) {
+                    console.error('JSON parse error:', stdout);
                     reject('JSON parse error: ' + stdout);
                 }
             },
@@ -193,23 +196,15 @@ process.on('unhandledRejection', (reason) => {
 
 app.whenReady().then(async () => {
     try {
-        const ok = await initPythonEnv(); // ✅ FULL init
+        const ok = await initPythonEnv(); // ✅ only ONCE
         if (!ok) {
-            console.warn('⚠️ Python env not fully ready. Morphology may fail.');
+            console.warn('⚠️ Python env not ready – morphology might fail.');
         }
     } catch (err) {
-        console.error('❌ Python init failed:', err);
+        console.error('❌ Python init crashed:', err);
     }
 
-    try {
-        await ensurePythonAndMorphy(); // ✅ Detect & install only ONCE
-        console.log('✅ Python ready');
-    } catch (err) {
-        console.error('❌ Python ensure failed:', err);
-        // DO NOT crash → still open app
-    }
-
-    // ✅ Continue normal initialization
+    // continue normal initialization
     registerDbHandlers();
     await initializeDb();
     await upgradeDbSchema();
@@ -217,7 +212,6 @@ app.whenReady().then(async () => {
 
     setupAutoUpdater();
     createWindow();
-    // autoCheckOnStartup(); // optional
 });
 
 app.on('window-all-closed', () => {
