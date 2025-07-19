@@ -1,6 +1,6 @@
 import { existsSync } from 'fs';
 import path from 'path';
-import { shell, dialog, app, net } from 'electron';
+import { shell, dialog, app } from 'electron';
 import { execFileSync, spawnSync } from 'child_process';
 import https from 'https';
 import fs from 'fs';
@@ -13,7 +13,7 @@ function resolveAssetsPath(...segments: string[]) {
         : path.join(__dirname, ...segments);
 }
 
-// ✅ Quick ping to see if online
+// ✅ Quick internet check
 async function hasInternet(): Promise<boolean> {
     return new Promise((resolve) => {
         try {
@@ -26,13 +26,51 @@ async function hasInternet(): Promise<boolean> {
                 req.destroy();
                 resolve(false);
             });
-        } catch (_) {
+        } catch {
             resolve(false);
         }
     });
 }
 
-// ✅ Check if given Python already has pymorphy3
+// ✅ Detect ANY Python (no pymorphy3 check)
+function detectPlainPython(): string | null {
+    const whichCmd = process.platform === 'win32' ? 'where' : 'which';
+    const tryCmd = (cmd: string) => {
+        try {
+            const output = execFileSync(whichCmd, [cmd], { encoding: 'utf8' })
+                .split(/\r?\n/)[0]
+                .trim();
+            return output && existsSync(output) ? output : null;
+        } catch {
+            return null;
+        }
+    };
+
+    const py = tryCmd('python3') || tryCmd('python');
+    if (py) return py;
+
+    if (process.platform === 'win32') {
+        const dirs = [
+            path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python'),
+            'C:\\Python311',
+            'C:\\Python310',
+            'C:\\Python39',
+        ];
+        for (const base of dirs) {
+            const pyExe = path.join(base, 'python.exe');
+            if (existsSync(pyExe)) return pyExe;
+        }
+    }
+
+    const macPaths = ['/usr/local/bin/python3', '/opt/homebrew/bin/python3'];
+    for (const mp of macPaths) if (existsSync(mp)) return mp;
+    const linuxPaths = ['/usr/bin/python3', '/usr/local/bin/python3'];
+    for (const lp of linuxPaths) if (existsSync(lp)) return lp;
+
+    return null;
+}
+
+// ✅ Check if pymorphy3 is installed for a given Python
 function checkPythonHasMorphy(pythonPath: string): boolean {
     try {
         const res = spawnSync(pythonPath, ['-m', 'pip', 'show', 'pymorphy3'], {
@@ -46,64 +84,114 @@ function checkPythonHasMorphy(pythonPath: string): boolean {
     }
 }
 
-// ✅ Try to find an existing Python
-export function findSystemPython(): string | null {
-    const whichCmd = process.platform === 'win32' ? 'where' : 'which';
-
-    const tryCmd = (cmd: string) => {
-        try {
-            const output = execFileSync(whichCmd, [cmd], { encoding: 'utf8' })
-                .split(/\r?\n/)[0]
-                .trim();
-            return output && existsSync(output) ? output : null;
-        } catch {
-            return null;
-        }
-    };
-
-    const py = tryCmd('python3') || tryCmd('python');
-    if (py && checkPythonHasMorphy(py)) return py;
-
-    if (process.platform === 'win32') {
-        const dirs = [
-            path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python'),
-            'C:\\Python311',
-            'C:\\Python310',
-            'C:\\Python39',
-        ];
-        for (const base of dirs) {
-            if (!existsSync(base)) continue;
-            const pyExe = path.join(base, 'python.exe');
-            if (existsSync(pyExe) && checkPythonHasMorphy(pyExe)) return pyExe;
-        }
-    }
-
-    const macPaths = ['/usr/local/bin/python3', '/opt/homebrew/bin/python3'];
-    for (const mp of macPaths) {
-        if (existsSync(mp) && checkPythonHasMorphy(mp)) return mp;
-    }
-
-    const linuxPaths = ['/usr/bin/python3', '/usr/local/bin/python3'];
-    for (const lp of linuxPaths) {
-        if (existsSync(lp) && checkPythonHasMorphy(lp)) return lp;
-    }
-
-    return null;
+// ✅ Download helper with progress
+async function downloadPythonInstaller(url: string, dest: string): Promise<boolean> {
+    console.log(`🌐 Downloading Python installer: ${url} → ${dest}`);
+    return new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(dest);
+        https
+            .get(url, (res) => {
+                if (res.statusCode !== 200) {
+                    reject(new Error(`HTTP ${res.statusCode}`));
+                    return;
+                }
+                const total = parseInt(res.headers['content-length'] || '0', 10);
+                let downloaded = 0;
+                res.on('data', (chunk) => {
+                    downloaded += chunk.length;
+                    if (total > 0) {
+                        const percent = ((downloaded / total) * 100).toFixed(1);
+                        process.stdout.write(`\r⬇️  ${percent}% (${downloaded}/${total} bytes)`);
+                    }
+                });
+                res.pipe(file);
+                file.on('finish', () => {
+                    file.close();
+                    console.log(`\n✅ Download complete (${downloaded} bytes)`);
+                    resolve(true);
+                });
+            })
+            .on('error', (err) => {
+                console.error('❌ Download failed:', err.message);
+                if (existsSync(dest)) fs.unlinkSync(dest);
+                reject(err);
+            });
+    });
 }
 
-// ✅ Paths for bundled stuff
-export function getMorphyScriptPath() {
-    return path.join(resolveAssetsPath('assets', 'python'), 'morphy.py');
-}
-export function getInstallerPath() {
+// ✅ Offline installer paths
+function getInstallerPath() {
     const base = resolveAssetsPath('assets', 'python', 'installer');
     if (process.platform === 'win32') return path.join(base, 'python-3.8.8-amd64.exe');
     if (process.platform === 'darwin') return path.join(base, 'python-3.13.5-macos11.pkg');
     return null;
 }
+export function getMorphyScriptPath() {
+    return path.join(resolveAssetsPath('assets', 'python'), 'morphy.py');
+}
 
-// ✅ Install pymorphy3 wheels → fallback online
-export async function installMorphyPackages(pythonPath: string): Promise<boolean> {
+// ✅ Install Python (online first → offline fallback)
+async function installPython(): Promise<string | null> {
+    const installerPath = getInstallerPath();
+    const tmpDir = os.tmpdir();
+    const url =
+        process.platform === 'win32'
+            ? 'https://www.python.org/ftp/python/3.11.8/python-3.11.8-amd64.exe'
+            : 'https://www.python.org/ftp/python/3.11.8/python-3.11.8-macos11.pkg';
+    const tmpInstaller = path.join(
+        tmpDir,
+        process.platform === 'win32' ? 'python311.exe' : 'python311.pkg',
+    );
+
+    const online = await hasInternet();
+    if (online) {
+        const ok = await downloadPythonInstaller(url, tmpInstaller);
+        if (ok) {
+            if (process.platform === 'win32') {
+                console.log('📦 Running downloaded Python silent installer...');
+                spawnSync(tmpInstaller, ['/quiet', 'InstallAllUsers=1', 'PrependPath=1'], {
+                    stdio: 'inherit',
+                });
+                await new Promise((r) => setTimeout(r, 5000));
+                const py = detectPlainPython();
+                if (py) return py;
+                console.warn('⚠️ Silent install failed → opening interactive');
+                await shell.openPath(tmpInstaller);
+                return null;
+            } else {
+                console.log('📦 macOS → opening interactive pkg');
+                await shell.openPath(tmpInstaller);
+                return null;
+            }
+        }
+    }
+
+    // fallback offline
+    if (installerPath && existsSync(installerPath)) {
+        console.log('📦 Using offline bundled installer...');
+        if (process.platform === 'win32') {
+            spawnSync(installerPath, ['/quiet', 'InstallAllUsers=1', 'PrependPath=1'], {
+                stdio: 'inherit',
+            });
+            await new Promise((r) => setTimeout(r, 5000));
+            const py = detectPlainPython();
+            if (py) return py;
+            console.warn('⚠️ Offline silent failed → opening interactive');
+            await shell.openPath(installerPath);
+            return null;
+        } else {
+            console.log('📦 macOS offline pkg → interactive');
+            await shell.openPath(installerPath);
+            return null;
+        }
+    }
+
+    dialog.showErrorBox('Python missing', 'No internet & no offline installer available.');
+    return null;
+}
+
+// ✅ Install pymorphy3 (offline wheels → PyPI if internet)
+async function installMorphyPackages(pythonPath: string): Promise<boolean> {
     const pkgDir = resolveAssetsPath('assets', 'python', 'packages');
     const wheels = [
         'pymorphy3-2.0.4-py3-none-any.whl',
@@ -129,10 +217,10 @@ export async function installMorphyPackages(pythonPath: string): Promise<boolean
         );
         if (res.status !== 0) offlineOK = false;
     }
-
     if (offlineOK) return true;
 
     if (await hasInternet()) {
+        console.log('🌐 Installing pymorphy3 from PyPI...');
         const res = spawnSync(
             pythonPath,
             ['-m', 'pip', 'install', '--upgrade', 'pymorphy3', 'pymorphy3-dicts-uk'],
@@ -141,95 +229,49 @@ export async function installMorphyPackages(pythonPath: string): Promise<boolean
         return res.status === 0;
     }
 
-    console.error('❌ Cannot install pymorphy3 (no wheels, no internet)');
+    console.error('❌ No internet & no offline wheels → pymorphy3 cannot be installed');
     return false;
 }
 
-// ✅ Install Python (online → offline fallback)
-export async function installPythonIfNeeded(): Promise<string | null> {
-    let python = findSystemPython();
-    if (python) return python;
-
-    const installerPath = getInstallerPath();
-    const tmpDir = os.tmpdir();
-    const url =
-        process.platform === 'win32'
-            ? 'https://www.python.org/ftp/python/3.11.8/python-3.11.8-amd64.exe'
-            : 'https://www.python.org/ftp/python/3.11.8/python-3.11.8-macos11.pkg';
-    const tmpInstaller = path.join(
-        tmpDir,
-        process.platform === 'win32' ? 'py-latest.exe' : 'py.pkg',
-    );
-
-    if (await hasInternet()) {
-        console.log('🌐 Downloading Python installer...');
-        await new Promise<void>((resolve, reject) => {
-            const file = fs.createWriteStream(tmpInstaller);
-            https
-                .get(url, (res) => {
-                    if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
-                    res.pipe(file);
-                    file.on('finish', () => file.close(() => resolve()));
-                })
-                .on('error', reject);
-        });
-
-        if (process.platform === 'win32') {
-            spawnSync(tmpInstaller, ['/quiet', 'InstallAllUsers=1', 'PrependPath=1'], {
-                stdio: 'inherit',
-            });
-        } else {
-            await shell.openPath(tmpInstaller);
-            return null; // macOS requires manual install
-        }
-
-        python = findSystemPython();
-        if (python) return python;
-    }
-
-    // fallback offline
-    if (installerPath && existsSync(installerPath)) {
-        if (process.platform === 'win32') {
-            spawnSync(installerPath, ['/quiet', 'InstallAllUsers=1', 'PrependPath=1'], {
-                stdio: 'inherit',
-            });
-            return findSystemPython();
-        } else {
-            await shell.openPath(installerPath);
-            return null;
-        }
-    }
-
-    dialog.showErrorBox('Python missing', 'No internet & no offline installer.');
-    return null;
-}
-
-// ✅ Full env init in one call
+// ✅ Main: full init
 export async function initPythonEnvSimplified(): Promise<{
     python: string | null;
     script: string;
 }> {
-    console.log('🔄 Checking Python & pymorphy3...');
-    let python = findSystemPython();
+    console.log('🔄 Checking Python + pymorphy3...');
 
-    // 1) If no Python at all → install
+    let python = detectPlainPython();
+    let hasMorphy = false;
+
+    if (python) {
+        hasMorphy = checkPythonHasMorphy(python);
+    }
+
+    // Case 1: Python & pymorphy3 already present → done
+    if (python && hasMorphy) {
+        console.log('✅ Found Python with pymorphy3:', python);
+        return { python, script: getMorphyScriptPath() };
+    }
+
+    // Case 2: Python missing → install first
     if (!python) {
         console.warn('⚠️ No Python detected → installing...');
-        python = await installPythonIfNeeded();
+        python = await installPython();
     }
 
     if (!python) {
-        console.error('❌ Still no Python, aborting.');
+        console.error('❌ Python installation failed → cannot proceed.');
         return { python: null, script: getMorphyScriptPath() };
     }
 
-    // 2) Python exists, check pymorphy3
+    // Case 3: Python exists but pymorphy3 missing → install it
     if (!checkPythonHasMorphy(python)) {
         console.warn('⚠️ pymorphy3 missing → installing...');
         const ok = await installMorphyPackages(python);
-        if (!ok) console.warn('⚠️ pymorphy3 installation failed, continuing without it.');
+        if (!ok)
+            console.warn('⚠️ pymorphy3 installation failed (offline & online both unavailable)');
     }
 
-    console.log('✅ Python ready:', python);
+    console.log('✅ Python ready at:', python);
     return { python, script: getMorphyScriptPath() };
 }

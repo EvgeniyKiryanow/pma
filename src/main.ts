@@ -167,8 +167,15 @@ process.on('unhandledRejection', (reason) => {
 });
 
 app.whenReady().then(async () => {
-    const ok = await initPythonEnv();
-    if (!ok) console.warn('⚠️ Python env not ready');
+    const { python, script } = await initPythonEnvSimplified();
+
+    if (!python) {
+        console.warn('⚠️ Python env not ready');
+    } else {
+        globalPythonPath = python;
+        globalMorphyScript = script;
+    }
+
     registerDbHandlers();
     await initializeDb();
     await upgradeDbSchema();
