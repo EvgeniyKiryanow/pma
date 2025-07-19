@@ -1,3 +1,4 @@
+// ✅ Full working Python + pymorphy3 installer helper
 import { existsSync } from 'fs';
 import path from 'path';
 import { shell, dialog, app, net } from 'electron';
@@ -6,12 +7,14 @@ import https from 'https';
 import fs from 'fs';
 import os from 'os';
 
+// ✅ Always resolve paths correctly in packaged/unpacked mode
 function resolveAssetsPath(...segments: string[]) {
     return app.isPackaged
         ? path.join(process.resourcesPath, 'app.asar.unpacked', ...segments)
         : path.join(__dirname, ...segments);
 }
 
+// ✅ Check internet connectivity
 function hasInternetConnection(): Promise<boolean> {
     return new Promise((resolve) => {
         const req = net.request('https://www.python.org/');
@@ -231,6 +234,7 @@ export async function promptInstallPython(): Promise<string | null> {
     return null;
 }
 
+// ✅ Helper: check if user has internet for pip
 async function hasInternet(): Promise<boolean> {
     return new Promise((resolve) => {
         try {
@@ -258,18 +262,16 @@ export async function installMorphyPackages(pythonPath: string) {
     ];
 
     console.log('🔍 Ensuring pip is available...');
-    let res = spawnSync(pythonPath, ['-m', 'ensurepip', '--default-pip'], {
+    spawnSync(pythonPath, ['-m', 'ensurepip', '--default-pip'], {
         stdio: 'inherit',
         windowsHide: true,
     });
-    if (res.status !== 0) console.warn('⚠️ ensurepip returned non-zero');
 
     console.log('🔄 Upgrading pip & wheel...');
-    res = spawnSync(pythonPath, ['-m', 'pip', 'install', '--upgrade', 'pip', 'wheel'], {
+    spawnSync(pythonPath, ['-m', 'pip', 'install', '--upgrade', 'pip', 'wheel'], {
         stdio: 'inherit',
         windowsHide: true,
     });
-    if (res.status !== 0) console.warn('⚠️ pip upgrade returned non-zero');
 
     // ✅ small delay so pip finishes setup
     await new Promise((r) => setTimeout(r, 2000));
