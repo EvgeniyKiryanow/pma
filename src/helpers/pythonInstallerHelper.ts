@@ -1,14 +1,25 @@
 import { existsSync } from 'fs';
 import path from 'path';
-import { shell, dialog, app } from 'electron';
+import { shell, dialog, app, net } from 'electron';
 import { execFileSync } from 'child_process';
 import https from 'https';
+import fs from 'fs';
+import os from 'os';
 
 // ✅ Always resolve paths correctly in packaged/unpacked mode
 function resolveAssetsPath(...segments: string[]) {
     return app.isPackaged
         ? path.join(process.resourcesPath, 'app.asar.unpacked', ...segments)
         : path.join(__dirname, ...segments);
+}
+
+function hasInternetConnection(): Promise<boolean> {
+    return new Promise((resolve) => {
+        const req = net.request('https://www.python.org/');
+        req.on('response', () => resolve(true));
+        req.on('error', () => resolve(false));
+        req.end();
+    });
 }
 
 // ✅ Detect system python (Windows + macOS/Linux)
@@ -142,22 +153,72 @@ export function getInstallerPath() {
     return null;
 }
 
+function downloadFile(url: string, dest: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(dest);
+        https
+            .get(url, (response) => {
+                if (response.statusCode !== 200) {
+                    return reject(new Error(`Failed HTTP ${response.statusCode}`));
+                }
+                response.pipe(file);
+                file.on('finish', () => file.close(() => resolve()));
+            })
+            .on('error', (err) => {
+                fs.unlinkSync(dest);
+                reject(err);
+            });
+    });
+}
 // ✅ Prompt to install python if missing (unchanged)
-export function promptInstallPython(): string | null {
+export async function promptInstallPython(): Promise<string | null> {
     const installerPath = getInstallerPath();
 
+    // ✅ Check internet
+    const online = await hasInternetConnection();
+
+    if (online) {
+        console.log('🌐 Internet detected → downloading latest Python');
+
+        const tmpDir = os.tmpdir();
+        const tmpInstaller =
+            process.platform === 'win32'
+                ? path.join(tmpDir, 'python-latest.exe')
+                : path.join(tmpDir, 'python-latest.pkg');
+
+        const url =
+            process.platform === 'win32'
+                ? 'https://www.python.org/ftp/python/3.11.8/python-3.11.8-amd64.exe'
+                : 'https://www.python.org/ftp/python/3.11.8/python-3.11.8-macos11.pkg';
+
+        try {
+            console.log(`⬇️ Downloading from ${url}`);
+            await downloadFile(url, tmpInstaller);
+            console.log('✅ Download complete → launching installer');
+
+            await shell.openPath(tmpInstaller);
+            return tmpInstaller;
+        } catch (err) {
+            console.error('❌ Download failed → fallback offline installer', err);
+        }
+    } else {
+        console.warn('⚠️ No internet → using offline installer if exists');
+    }
+
+    // ✅ Fallback: offline installer
     if (installerPath && existsSync(installerPath)) {
         shell.openPath(installerPath).then(() => {
-            console.log('📦 Запущено інсталятор Python:', installerPath);
+            console.log('📦 Запущено оффлайн інсталятор Python:', installerPath);
         });
         return installerPath;
-    } else {
-        dialog.showErrorBox(
-            'Інсталятор не знайдено',
-            'Файл інсталяції Python не знайдено для цієї платформи.',
-        );
-        return null;
     }
+
+    // ❌ No internet + no offline installer
+    dialog.showErrorBox(
+        'Python installer not found',
+        'No internet connection and offline installer is missing.',
+    );
+    return null;
 }
 
 // ✅ Helper: check if user has internet

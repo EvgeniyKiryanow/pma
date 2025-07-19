@@ -191,6 +191,7 @@ export function useDocxGenerator() {
             hideLoader();
             return doc.getZip().generate({ type: 'arraybuffer' });
         } catch (err) {
+            hideLoader();
             console.error('⚠️ Template generation failed:', err);
             alert('❌ Помилка генерації шаблону.');
             return null;
