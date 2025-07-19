@@ -132,10 +132,10 @@ ipcMain.handle('analyze-words', async (_event, phrase: string) => {
             globalPythonPath!,
             [globalMorphyScript!, JSON.stringify(phrase)],
             {
-                encoding: 'utf8', // ✅ Tell Node to decode as UTF-8
+                encoding: 'utf8',
                 env: {
                     ...process.env,
-                    PYTHONIOENCODING: 'utf-8', // ✅ Force Python itself to use UTF-8
+                    PYTHONIOENCODING: 'utf-8',
                 },
             },
             (error, stdout, stderr) => {
@@ -205,10 +205,10 @@ app.whenReady().then(async () => {
     try {
         const ok = await initPythonEnv(); // ✅ only ONCE
         if (!ok) {
-            alert('⚠️ Python env not ready – morphology might fail.');
+            console.warn('⚠️ Python env not ready – morphology might fail.');
         }
     } catch (err) {
-        alert(err);
+        console.warn(err);
     }
 
     // continue normal initialization

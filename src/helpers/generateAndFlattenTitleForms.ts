@@ -48,7 +48,7 @@ export default function generateAndFlattenTitleForms(
         l: get('loct'),
         v: get('voct'),
     };
-    alert(`Title forms generated: ${JSON.stringify(mapping)}`);
+
     for (const [key, value] of Object.entries(mapping)) {
         const val = value ?? '';
         flat[`${prefix}_${key}`] = shouldInclude ? val : '';
