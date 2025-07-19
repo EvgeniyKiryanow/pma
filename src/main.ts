@@ -140,14 +140,14 @@ ipcMain.handle('analyze-words', async (_event, phrase: string) => {
             },
             (error, stdout, stderr) => {
                 if (error) {
-                    console.error('🐍 Python error:', stderr || error.message);
+                    alert(`❌ Python error: ${stderr || error.message}`);
                     return reject(error);
                 }
                 try {
                     const result = JSON.parse(stdout);
                     resolve(result);
                 } catch (err) {
-                    console.error('JSON parse error:', stdout);
+                    alert('❌ JSON parse error: ' + stdout);
                     reject('JSON parse error: ' + stdout);
                 }
             },

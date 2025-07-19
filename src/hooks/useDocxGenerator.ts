@@ -42,7 +42,6 @@ export function useDocxGenerator() {
 
         showLoader('⏳ Генерація шаблону... зачекайте');
         const { commanderName, unitName } = additionalFields;
-        console.log(additionalFields, 'additionalFields');
         const imageOpts = getImageOptions();
         try {
             const zip = new PizZip(selectedTemplate.content);
