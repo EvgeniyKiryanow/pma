@@ -15,6 +15,7 @@ import {
     isPythonAvailable,
     promptInstallPython,
     ensurePythonAndMorphy,
+    findSystemPython,
 } from './helpers/pythonInstallerHelper';
 
 // ✅ Import our updater functions
@@ -94,23 +95,53 @@ export function convertDocxToPdf(inputPath: string, outputDir: string): Promise<
     });
 }
 
+let globalPythonPath: string | null = null;
+let globalMorphyScript: string | null = null;
+
+async function initPythonEnv() {
+    console.log('🔄 Initializing Python env...');
+
+    // Ensure Python is installed + pymorphy3 available
+    await ensurePythonAndMorphy();
+
+    // Now find the Python that actually has pymorphy3
+    const found = findSystemPython();
+    if (!found) {
+        console.error('❌ No working Python found even after ensure');
+        return false;
+    }
+
+    const { script } = getPythonPaths(); // morphy.py path
+
+    globalPythonPath = found;
+    globalMorphyScript = script;
+
+    console.log('✅ Python initialized:', globalPythonPath);
+    return true;
+}
+
 ipcMain.handle('analyze-words', async (_event, phrase: string) => {
-    const pythonPath = getInstalledPythonPath();
-    const { python, script } = getPythonPaths();
+    if (!globalPythonPath || !globalMorphyScript) {
+        throw new Error('❌ Python not initialized. Try restarting.');
+    }
 
     return new Promise((resolve, reject) => {
-        execFile(pythonPath, [script, JSON.stringify(phrase)], (error, stdout, stderr) => {
-            if (error) {
-                console.error('🐍 Python error:', stderr || error.message);
-                return reject(error);
-            }
-            try {
-                const result = JSON.parse(stdout);
-                resolve(result);
-            } catch (err) {
-                reject('JSON parse error: ' + stdout);
-            }
-        });
+        execFile(
+            globalPythonPath!,
+            [globalMorphyScript!, JSON.stringify(phrase)],
+            (error, stdout, stderr) => {
+                if (error) {
+                    console.error('🐍 Python error:', stderr || error.message);
+                    return reject(error);
+                }
+                try {
+                    const result = JSON.parse(stdout);
+                    resolve(result);
+                } catch (err) {
+                    reject('JSON parse error: ' + stdout);
+                }
+            },
+        );
     });
 });
 
@@ -161,7 +192,14 @@ process.on('unhandledRejection', (reason) => {
 });
 
 app.whenReady().then(async () => {
-    console.log('🚀 Electron ready → ensuring Python & Morph libs');
+    try {
+        const ok = await initPythonEnv(); // ✅ FULL init
+        if (!ok) {
+            console.warn('⚠️ Python env not fully ready. Morphology may fail.');
+        }
+    } catch (err) {
+        console.error('❌ Python init failed:', err);
+    }
 
     try {
         await ensurePythonAndMorphy(); // ✅ Detect & install only ONCE
