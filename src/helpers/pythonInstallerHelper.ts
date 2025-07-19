@@ -49,12 +49,16 @@ function detectPlainPython(): string | null {
     const py = tryCmd('python3') || tryCmd('python');
     if (py) return py;
 
+    //Js bug the same
+
     if (process.platform === 'win32') {
         const dirs = [
             path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python'),
             'C:\\Python311',
             'C:\\Python310',
             'C:\\Python39',
+            'C:\\Python38',
+            'C:\\Python37',
         ];
         for (const base of dirs) {
             const pyExe = path.join(base, 'python.exe');
