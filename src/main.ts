@@ -131,17 +131,23 @@ ipcMain.handle('analyze-words', async (_event, phrase: string) => {
         execFile(
             globalPythonPath!,
             [globalMorphyScript!, JSON.stringify(phrase)],
+            {
+                encoding: 'utf8', // ✅ Tell Node to decode as UTF-8
+                env: {
+                    ...process.env,
+                    PYTHONIOENCODING: 'utf-8', // ✅ Force Python itself to use UTF-8
+                },
+            },
             (error, stdout, stderr) => {
                 if (error) {
-                    // console.error('🐍 Python error:', stderr || error.message);
-                    alert(error.message);
+                    console.error('🐍 Python error:', stderr || error.message);
                     return reject(error);
                 }
                 try {
                     const result = JSON.parse(stdout);
                     resolve(result);
                 } catch (err) {
-                    alert(stdout);
+                    console.error('JSON parse error:', stdout);
                     reject('JSON parse error: ' + stdout);
                 }
             },

@@ -2,6 +2,9 @@ import sys
 import json
 from pymorphy3 import MorphAnalyzer
 
+if sys.platform.startswith("win"):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 def inflect_to_all_cases(parsed):
     cases = {
         'nomn': 'Називний',
