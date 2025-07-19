@@ -9,9 +9,13 @@ import os from 'os';
 
 // ✅ Always resolve paths correctly in packaged/unpacked mode
 function resolveAssetsPath(...segments: string[]) {
-    return app.isPackaged
-        ? path.join(process.resourcesPath, 'app.asar.unpacked', ...segments)
-        : path.join(__dirname, ...segments);
+    if (app.isPackaged) {
+        // ✅ Packaged → assets are unpacked next to asar
+        return path.join(process.resourcesPath, 'app.asar.unpacked', ...segments);
+    } else {
+        // ✅ Dev → assets live in project dir
+        return path.join(__dirname, ...segments);
+    }
 }
 
 // ✅ Check internet connectivity
