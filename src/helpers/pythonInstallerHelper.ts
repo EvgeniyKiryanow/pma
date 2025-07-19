@@ -24,7 +24,30 @@ function hasInternetConnection(): Promise<boolean> {
     });
 }
 
-function findSystemPython(): string | null {
+function checkPythonHasMorphy(pythonPath: string): boolean {
+    try {
+        const result = spawnSync(pythonPath, ['-m', 'pip', 'show', 'pymorphy3'], {
+            stdio: 'pipe',
+            encoding: 'utf-8',
+            windowsHide: true,
+        });
+
+        if (result.status === 0 && result.stdout.includes('Name: pymorphy3')) {
+            console.log('✅ Python has pymorphy3 installed');
+            return true;
+        } else {
+            console.warn('⚠️ pymorphy3 not found for this Python:', pythonPath);
+            return false;
+        }
+    } catch (err) {
+        console.warn('⚠️ Failed to check pymorphy3:', err);
+        return false;
+    }
+}
+
+export function findSystemPython(): string | null {
+    let candidate = null;
+
     try {
         const whichCmd = process.platform === 'win32' ? 'where' : 'which';
 
@@ -39,29 +62,12 @@ function findSystemPython(): string | null {
             }
         };
 
-        // ✅ 1. Prefer PATH python
-        const detected = tryCmd('python3') || tryCmd('python');
-        if (detected) return detected;
+        candidate = tryCmd('python3') || tryCmd('python');
+        if (candidate && checkPythonHasMorphy(candidate)) return candidate;
 
-        // ✅ 2. On Windows, first check user-level Python where pip --user installs libs
         if (process.platform === 'win32') {
             const userDir = process.env.USERPROFILE || '';
             const localAppData = process.env.LOCALAPPDATA || '';
-
-            // This is where user-installed pip packages live
-            const preferredUserPython = path.join(
-                localAppData,
-                'Programs',
-                'Python',
-                'Python311',
-                'python.exe',
-            );
-            if (existsSync(preferredUserPython)) {
-                console.log('✅ Found user-level Python with installed libs:', preferredUserPython);
-                return preferredUserPython;
-            }
-
-            // ✅ Then fallback to other common paths
             const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
             const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
 
@@ -78,19 +84,20 @@ function findSystemPython(): string | null {
 
             for (const base of possibleDirs) {
                 if (!existsSync(base)) continue;
+
                 const subdirs = fs.readdirSync(base, { withFileTypes: true });
                 for (const dir of subdirs) {
                     if (dir.isDirectory() && dir.name.startsWith('Python3')) {
-                        const candidate = path.join(base, dir.name, 'python.exe');
-                        if (existsSync(candidate)) return candidate;
+                        const py = path.join(base, dir.name, 'python.exe');
+                        if (existsSync(py) && checkPythonHasMorphy(py)) return py;
                     }
                 }
-                const direct = path.join(base, 'python.exe');
-                if (existsSync(direct)) return direct;
+
+                const py = path.join(base, 'python.exe');
+                if (existsSync(py) && checkPythonHasMorphy(py)) return py;
             }
         }
 
-        // ✅ 3. macOS common paths
         if (process.platform === 'darwin') {
             const macPaths = [
                 '/usr/local/bin/python3',
@@ -98,19 +105,18 @@ function findSystemPython(): string | null {
                 '/Library/Frameworks/Python.framework/Versions/3.11/bin/python3',
                 '/Library/Frameworks/Python.framework/Versions/3.10/bin/python3',
             ];
-            for (const candidate of macPaths) if (existsSync(candidate)) return candidate;
+            for (const py of macPaths) if (existsSync(py) && checkPythonHasMorphy(py)) return py;
         }
 
-        // ✅ 4. Linux fallback
         if (process.platform === 'linux') {
             const linuxPaths = ['/usr/bin/python3', '/usr/local/bin/python3', '/bin/python3'];
-            for (const candidate of linuxPaths) if (existsSync(candidate)) return candidate;
+            for (const py of linuxPaths) if (existsSync(py) && checkPythonHasMorphy(py)) return py;
         }
     } catch (err) {
         console.warn('⚠️ Python detection failed:', err);
     }
 
-    return null; // ❌ Not found
+    return null; // ❌ Not found with pymorphy3
 }
 
 // ✅ Paths for Python & morphy.py
