@@ -173,50 +173,88 @@ function downloadFile(url: string, dest: string): Promise<void> {
 // ✅ Prompt to install python if missing (unchanged)
 export async function promptInstallPython(): Promise<string | null> {
     const installerPath = getInstallerPath();
-
-    // ✅ Check internet
     const online = await hasInternetConnection();
+    const tmpDir = os.tmpdir();
+
+    const url =
+        process.platform === 'win32'
+            ? 'https://www.python.org/ftp/python/3.11.8/python-3.11.8-amd64.exe'
+            : 'https://www.python.org/ftp/python/3.11.8/python-3.11.8-macos11.pkg';
+
+    const tmpInstaller =
+        process.platform === 'win32'
+            ? path.join(tmpDir, 'python-latest.exe')
+            : path.join(tmpDir, 'python-latest.pkg');
 
     if (online) {
-        console.log('🌐 Internet detected → downloading latest Python');
-
-        const tmpDir = os.tmpdir();
-        const tmpInstaller =
-            process.platform === 'win32'
-                ? path.join(tmpDir, 'python-latest.exe')
-                : path.join(tmpDir, 'python-latest.pkg');
-
-        const url =
-            process.platform === 'win32'
-                ? 'https://www.python.org/ftp/python/3.11.8/python-3.11.8-amd64.exe'
-                : 'https://www.python.org/ftp/python/3.11.8/python-3.11.8-macos11.pkg';
+        console.log(`🌐 Internet detected → downloading ${url}`);
 
         try {
-            console.log(`⬇️ Downloading from ${url}`);
             await downloadFile(url, tmpInstaller);
-            console.log('✅ Download complete → launching installer');
+            console.log('✅ Download complete:', tmpInstaller);
 
-            await shell.openPath(tmpInstaller);
-            return tmpInstaller;
+            if (process.platform === 'win32') {
+                try {
+                    console.log('📦 Running Python installer silently...');
+                    execFileSync(tmpInstaller, ['/quiet', 'InstallAllUsers=1', 'PrependPath=1'], {
+                        stdio: 'inherit',
+                    });
+                    console.log('✅ Silent Python install complete');
+
+                    // ✅ Immediately rescan python path
+                    const python = findSystemPython();
+                    if (python) {
+                        console.log('🐍 Python found after install:', python);
+                        return python;
+                    } else {
+                        console.warn(
+                            '⚠️ Python not found after silent install → restart may be needed',
+                        );
+                        return null;
+                    }
+                } catch (err) {
+                    console.warn('⚠️ Silent install failed → running interactive installer', err);
+                    await shell.openPath(tmpInstaller);
+                    return null; // user must finish manually
+                }
+            } else {
+                console.log('📦 macOS → opening .pkg installer');
+                await shell.openPath(tmpInstaller);
+                return null; // user must finish manually
+            }
         } catch (err) {
             console.error('❌ Download failed → fallback offline installer', err);
         }
     } else {
-        console.warn('⚠️ No internet → using offline installer if exists');
+        console.warn('⚠️ No internet → fallback to offline installer');
     }
 
     // ✅ Fallback: offline installer
     if (installerPath && existsSync(installerPath)) {
-        shell.openPath(installerPath).then(() => {
-            console.log('📦 Запущено оффлайн інсталятор Python:', installerPath);
-        });
-        return installerPath;
+        if (process.platform === 'win32') {
+            try {
+                console.log('📦 Running offline Python installer silently...');
+                execFileSync(installerPath, ['/quiet', 'InstallAllUsers=1', 'PrependPath=1'], {
+                    stdio: 'inherit',
+                });
+                console.log('✅ Offline Python installed');
+
+                const python = findSystemPython();
+                if (python) return python;
+            } catch (err) {
+                console.warn('⚠️ Offline silent install failed → running interactive', err);
+                await shell.openPath(installerPath);
+            }
+        } else {
+            console.log('📦 macOS → opening offline .pkg installer');
+            await shell.openPath(installerPath);
+        }
+        return null;
     }
 
-    // ❌ No internet + no offline installer
     dialog.showErrorBox(
-        'Python installer not found',
-        'No internet connection and offline installer is missing.',
+        'Python installer missing',
+        'No internet connection and no offline installer found.',
     );
     return null;
 }
@@ -240,76 +278,108 @@ async function hasInternet(): Promise<boolean> {
     });
 }
 
-// ✅ Install pymorphy3 packages (improved logic but SAME name)
 export async function installMorphyPackages(pythonPath: string) {
     const pkgDir = resolveAssetsPath('assets', 'python', 'packages');
-
     const wheels = [
         'pymorphy3-2.0.4-py3-none-any.whl',
         'pymorphy3_dicts_uk-2.4.1.1.1663094765-py2.py3-none-any.whl',
     ];
 
     try {
-        console.log('🔍 Ensuring pip exists...');
+        console.log('🔍 Bootstrapping pip...');
         try {
-            execFileSync(pythonPath, ['-m', 'ensurepip'], { stdio: 'inherit' });
-        } catch (_) {
-            console.warn('⚠️ ensurepip failed (maybe pip already exists)');
+            execFileSync(pythonPath, ['-m', 'ensurepip', '--default-pip'], {
+                stdio: 'inherit',
+            });
+        } catch (err) {
+            console.warn('⚠️ ensurepip failed (pip may already exist)', err);
         }
 
-        console.log('🔄 Upgrading pip...');
+        console.log('🔄 Upgrading pip & wheel...');
         try {
-            execFileSync(
-                pythonPath,
-                ['-m', 'pip', 'install', '--upgrade', 'pip', 'setuptools', 'wheel'],
-                { stdio: 'inherit' },
-            );
-        } catch (e) {
-            console.warn('⚠️ pip upgrade failed, continuing...', e);
+            execFileSync(pythonPath, ['-m', 'pip', 'install', '--upgrade', 'pip', 'wheel'], {
+                stdio: 'inherit',
+            });
+        } catch (err) {
+            console.warn('⚠️ pip upgrade failed but continuing', err);
         }
 
-        // ✅ Check internet
+        // ✅ STEP 1: Try offline installation first
+        console.log('📦 Attempting offline wheel install from:', pkgDir);
+
+        let offlineSuccess = true;
+        for (const wheel of wheels) {
+            const wheelPath = path.resolve(pkgDir, wheel);
+            if (!existsSync(wheelPath)) {
+                console.warn(`⚠️ Missing wheel: ${wheelPath}`);
+                offlineSuccess = false;
+                continue;
+            }
+            try {
+                console.log(`📦 Installing wheel: ${wheelPath}`);
+                execFileSync(
+                    pythonPath,
+                    ['-m', 'pip', 'install', '--no-index', '--find-links', pkgDir, wheelPath],
+                    { stdio: 'inherit' },
+                );
+                console.log(`✅ Installed offline: ${wheel}`);
+            } catch (err) {
+                console.error(`❌ Failed installing offline wheel ${wheel}`, err);
+                offlineSuccess = false;
+            }
+        }
+
+        if (offlineSuccess) {
+            console.log('✅ All pymorphy3 wheels installed offline');
+            return;
+        }
+
+        // ✅ STEP 2: If offline failed → check internet
         const online = await hasInternet();
-
         if (online) {
             console.log('🌐 Internet detected → installing from PyPI...');
             try {
                 execFileSync(
                     pythonPath,
-                    ['-m', 'pip', 'install', 'pymorphy3', 'pymorphy3-dicts-uk'],
+                    ['-m', 'pip', 'install', '--upgrade', 'pymorphy3', 'pymorphy3-dicts-uk'],
                     { stdio: 'inherit' },
                 );
                 console.log('✅ Installed pymorphy3 & dicts from PyPI');
                 return;
             } catch (err) {
-                console.error('❌ Failed PyPI install, will fallback offline', err);
+                console.error('❌ PyPI install failed', err);
             }
         } else {
-            console.warn('⚠️ No internet detected → fallback to offline wheels');
+            console.warn('⚠️ No internet → cannot fallback to PyPI');
         }
 
-        // ✅ Offline fallback
-        console.log('📦 Installing offline wheels...');
-        for (const wheel of wheels) {
-            const wheelPath = path.resolve(pkgDir, wheel);
-            if (!existsSync(wheelPath)) {
-                console.warn(`⚠️ Missing wheel: ${wheelPath}`);
-                continue;
-            }
-
-            console.log(`📦 Installing wheel: ${wheelPath}`);
-            try {
-                execFileSync(pythonPath, ['-m', 'pip', 'install', wheelPath], {
-                    stdio: 'inherit',
-                });
-                console.log(`✅ Installed offline: ${wheel}`);
-            } catch (err) {
-                console.error(`❌ Failed installing ${wheel} offline`, err);
-            }
-        }
-
-        console.log('🎉 pymorphy3 installation finished');
+        console.error('❌ pymorphy3 installation failed (offline & online)');
     } catch (e) {
         console.error('❌ Global failure installing pymorphy3', e);
+    }
+}
+
+export async function ensurePythonAndMorphy() {
+    let { python } = getPythonPaths();
+
+    if (!isPythonAvailable(python)) {
+        console.warn('⚠️ Python not found → prompting install');
+
+        const installed = await promptInstallPython(); // ⬅️ this downloads & installs
+
+        if (installed) {
+            // ✅ After install, try again
+            python = installed;
+        } else {
+            console.warn('⚠️ User must restart app after manual installation');
+            return; // stop, cannot install libs yet
+        }
+    }
+
+    if (python && isPythonAvailable(python)) {
+        console.log('✅ Python ready → installing pymorphy3');
+        await installMorphyPackages(python);
+    } else {
+        console.error('❌ Python still not found, cannot install pymorphy3');
     }
 }

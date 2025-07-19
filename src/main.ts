@@ -14,6 +14,7 @@ import {
     installMorphyPackages,
     isPythonAvailable,
     promptInstallPython,
+    ensurePythonAndMorphy,
 } from './helpers/pythonInstallerHelper';
 
 // ✅ Import our updater functions
@@ -160,14 +161,15 @@ process.on('unhandledRejection', (reason) => {
 });
 
 app.whenReady().then(async () => {
-    const { python } = getPythonPaths();
+    await ensurePythonAndMorphy();
+    // const { python } = getPythonPaths();
 
-    if (!isPythonAvailable(python)) {
-        console.warn('⚠️ Python не знайдено. Пропонуємо інсталяцію...');
-        promptInstallPython();
-    } else {
-        installMorphyPackages(python);
-    }
+    // if (!isPythonAvailable(python)) {
+    //     console.warn('⚠️ Python не знайдено. Пропонуємо інсталяцію...');
+    //     promptInstallPython();
+    // } else {
+    //     installMorphyPackages(python);
+    // }
 
     registerDbHandlers();
     await initializeDb();
