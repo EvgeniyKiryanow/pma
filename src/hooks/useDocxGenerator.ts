@@ -179,14 +179,15 @@ export function useDocxGenerator() {
                     ...flattenCommanderFullName,
                 });
             }
-            console.log(
-                flattenedRank,
-                flattenedPosition,
-                flattenedFullName,
-                flattenCommanderFullName,
-                flattenedUnit,
-            );
-
+            // console.log(
+            //     flattenedRank,
+            //     flattenedPosition,
+            //     flattenedFullName,
+            //     flattenCommanderFullName,
+            //     flattenedUnit,
+            // );
+            alert(flattenedPosition);
+            alert(flattenedRank);
             doc.render();
             hideLoader();
             return doc.getZip().generate({ type: 'arraybuffer' });
