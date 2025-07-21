@@ -8,6 +8,7 @@ import { useUserStore } from './stores/userStore';
 import BackupPanel from './layout/BackupPanel';
 import ReportsTab from './layout/ReportsTab';
 import TablesTab from './components/userTables/TablesTab';
+import InstructionsTab from './layout/InstrtuctionsTab';
 
 export default function App() {
     const currentTab = useUserStore((s) => s.currentTab);
@@ -45,6 +46,8 @@ export default function App() {
                 <ReportsTab />
             ) : currentTab === 'tables' ? (
                 <TablesTab />
+            ) : currentTab === 'instructions' ? (
+                <InstructionsTab />
             ) : null}
             {isUserFormOpen && (
                 <UserFormModalUpdate userToEdit={editingUser} onClose={closeUserForm} />

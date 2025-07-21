@@ -14,6 +14,7 @@ export const ua = {
         savedTemplates: 'Зберегти темпейлт',
         savedTemplateNote: 'Натисни для копіювання',
         tablesTab: 'Таблиці',
+        instructions: 'Інструкції',
     },
     reports: {
         uploadTab: 'Додати шаблон',

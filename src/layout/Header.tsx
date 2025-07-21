@@ -6,8 +6,10 @@ import { useI18nStore } from '../stores/i18nStore';
 import LogoSvg from '../icons/LogoSvg';
 
 type HeaderProps = {
-    currentTab: 'manager' | 'backups' | 'reminders' | 'reports' | 'tables';
-    setCurrentTab: (tab: 'manager' | 'backups' | 'reminders' | 'reports' | 'tables') => void;
+    currentTab: 'manager' | 'backups' | 'reminders' | 'reports' | 'tables' | 'instructions';
+    setCurrentTab: (
+        tab: 'manager' | 'backups' | 'reminders' | 'reports' | 'tables' | 'instructions',
+    ) => void;
 };
 
 export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
@@ -110,14 +112,14 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
 
                     {/* Language Switcher */}
                     <div className="ml-2 flex gap-1 text-xs">
-                        <button
+                        {/* <button
                             onClick={() => setLanguage('en')}
                             className={`px-2 py-1 rounded ${
                                 language === 'en' ? 'bg-blue-500 text-white' : 'bg-gray-200'
                             }`}
                         >
                             EN
-                        </button>
+                        </button> */}
                         <button
                             onClick={() => setLanguage('ua')}
                             className={`px-2 py-1 rounded ${
@@ -172,6 +174,16 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         }`}
                     >
                         {t('header.backupTab')}
+                    </button>
+                    <button
+                        onClick={() => setCurrentTab('instructions')}
+                        className={`px-4 py-1.5 text-sm rounded-t-md border-b-2 transition-all ${
+                            currentTab === 'instructions'
+                                ? 'text-blue-600 border-blue-600 font-semibold bg-white'
+                                : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
+                        }`}
+                    >
+                        {t('header.instructions')}
                     </button>
                     {/* <button
                         onClick={() => setCurrentTab('reminders')}
