@@ -11,10 +11,17 @@ import {
     Download,
     RefreshCw,
     Settings,
+    RotateCcw,
+    Minus,
+    X,
+    Upload,
+    Trash2,
 } from 'lucide-react';
 
 export default function InstructionsTab() {
-    const [activeTab, setActiveTab] = useState<'reports' | 'personnel' | 'backups'>('reports');
+    const [activeTab, setActiveTab] = useState<'reports' | 'personnel' | 'backups' | 'header'>(
+        'reports',
+    );
 
     return (
         <div className="h-full w-full bg-gray-50 flex flex-col">
@@ -60,6 +67,17 @@ export default function InstructionsTab() {
                 >
                     <Download className="w-4 h-4" /> Резервні копії
                 </button>
+
+                <button
+                    onClick={() => setActiveTab('header')}
+                    className={`px-6 py-3 flex items-center gap-2 transition ${
+                        activeTab === 'header'
+                            ? 'border-b-2 border-blue-600 text-blue-700'
+                            : 'text-gray-500 hover:text-gray-800'
+                    }`}
+                >
+                    <Settings className="w-4 h-4" /> Верхня панель
+                </button>
             </div>
 
             {/* Tab Content */}
@@ -67,13 +85,81 @@ export default function InstructionsTab() {
                 {activeTab === 'reports' && <ReportsInstructions />}
                 {activeTab === 'personnel' && <PersonnelInstructions />}
                 {activeTab === 'backups' && <BackupInstructions />}
+                {activeTab === 'header' && <HeaderInstructions />}
             </div>
         </div>
     );
 }
 
 /* ---------------------------
-   REPORTS INSTRUCTIONS TAB
+   HEADER (TITLE BAR) INSTRUCTIONS TAB
+----------------------------*/
+function HeaderInstructions() {
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <InstructionCard
+                icon={<Download className="w-8 h-8 text-blue-500" />}
+                title="Перевірка оновлень"
+                steps={[
+                    'Натисніть кнопку зі стрілкою вниз, щоб перевірити нові версії',
+                    'При наявності оновлень вони автоматично завантажуються',
+                    'Рекомендується робити резервну копію перед оновленням',
+                ]}
+            />
+            <InstructionCard
+                icon={<Upload className="w-8 h-8 text-green-500" />}
+                title="Відновлення даних"
+                steps={[
+                    'Натисніть кнопку із хмарою зі стрілкою вверх',
+                    'Оберіть резервну копію для відновлення',
+                    'Після успішного відновлення додаток перезапуститься',
+                ]}
+            />
+            <InstructionCard
+                icon={<Trash2 className="w-8 h-8 text-red-500" />}
+                title="Скидання бази даних"
+                steps={[
+                    'Натисніть кнопку з іконкою смітника',
+                    'Підтвердіть дію – усі дані будуть видалені',
+                    'Додаток автоматично перезапуститься з чистою базою',
+                ]}
+            />
+            <InstructionCard
+                icon={<RotateCcw className="w-8 h-8 text-orange-500" />}
+                title="Перезавантаження програми"
+                steps={[
+                    'Натисніть кнопку із круговою стрілкою',
+                    'Інтерфейс перезапуститься без втрати даних',
+                ]}
+            />
+            <InstructionCard
+                icon={<Minus className="w-8 h-8 text-gray-500" />}
+                title="Згортання в трей"
+                steps={[
+                    'Натисніть кнопку з мінусом',
+                    'Додаток згорнеться у трей, але продовжить працювати',
+                ]}
+            />
+            <InstructionCard
+                icon={<X className="w-8 h-8 text-gray-700" />}
+                title="Закриття програми"
+                steps={['Натисніть кнопку з хрестиком', 'Програма завершить роботу']}
+            />
+            <InstructionCard
+                icon={<Lightbulb className="w-8 h-8 text-yellow-500" />}
+                title="Поради по верхній панелі"
+                steps={[
+                    'Перед оновленням чи скиданням робіть резервну копію',
+                    'Якщо програма зависла – натисніть «Перезавантажити»',
+                    'Закривайте додаток лише після збереження усіх даних',
+                ]}
+            />
+        </div>
+    );
+}
+
+/* ---------------------------
+   OTHER EXISTING TABS REMAIN
 ----------------------------*/
 function ReportsInstructions() {
     return (
@@ -118,9 +204,6 @@ function ReportsInstructions() {
     );
 }
 
-/* ---------------------------
-   PERSONNEL INSTRUCTIONS TAB
-----------------------------*/
 function PersonnelInstructions() {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -164,9 +247,6 @@ function PersonnelInstructions() {
     );
 }
 
-/* ---------------------------
-   BACKUP INSTRUCTIONS TAB
-----------------------------*/
 function BackupInstructions() {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -211,7 +291,7 @@ function BackupInstructions() {
 }
 
 /* ---------------------------
-   SHARED CARD COMPONENT
+   SHARED CARD
 ----------------------------*/
 function InstructionCard({
     icon,
