@@ -8,9 +8,20 @@ import { exec } from 'child_process';
 import { promises } from 'dns';
 
 export function registerReportsHandlers() {
+    function getTemplatesDir(): string {
+        if (app.isPackaged) {
+            // In packaged app → unpacked assets folder
+            return path.join(process.resourcesPath, 'app.asar.unpacked', 'assets', 'templates');
+        } else {
+            // In development → project src folder
+            return path.join(__dirname, '..', 'build', 'assets', 'templates');
+        }
+    }
     ipcMain.handle('get-all-report-templates', async () => {
-        const templatesDir = path.join(app.getPath('userData'), 'templates');
+        const templatesDir = getTemplatesDir();
+
         if (!fs.existsSync(templatesDir)) {
+            console.warn('⚠️ Templates directory not found:', templatesDir);
             return [];
         }
 
@@ -24,7 +35,7 @@ export function registerReportsHandlers() {
                 id: file,
                 name: path.basename(file, '.docx'),
                 timestamp: fs.statSync(fullPath).mtimeMs,
-                content: content.buffer,
+                content: content.buffer, // <-- keep ArrayBuffer for frontend
             };
         });
     });
