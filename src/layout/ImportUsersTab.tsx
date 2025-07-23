@@ -2,56 +2,12 @@ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { HEADER_MAP } from '../utils/headerMap';
 
-// TODO PARSE rankAssignmentDate check Наявність особової справи ні -> push yes
-
-function excelSerialToDate(serial: number): string {
-    if (!serial || isNaN(serial)) return '';
-
-    // Excel's base date (Dec 30, 1899)
-    const excelEpoch = new Date(1899, 11, 30);
-    const result = new Date(excelEpoch.getTime() + serial * 86400000);
-
-    if (isNaN(result.getTime())) return '';
-
-    return result.toISOString().split('T')[0]; // YYYY-MM-DD
-}
-
-function normalizeExcelDate(raw: any): string {
-    if (!raw) return '';
-
-    // ✅ Case 1: Excel serial number
-    if (!isNaN(Number(raw)) && Number(raw) > 10000 && Number(raw) < 60000) {
-        return excelSerialToDate(Number(raw));
-    }
-
-    // ✅ Case 2: Already JS Date
-    if (raw instanceof Date) {
-        return raw.toISOString().split('T')[0];
-    }
-
-    const str = String(raw).trim();
-
-    // ✅ Case 3: dd/MM/yy → try parse
-    const parts = str.split(/[./-]/).map((p) => p.trim());
-    if (parts.length >= 3) {
-        // eslint-disable-next-line prefer-const
-        let [dd, mm, yy] = parts;
-        if (parseInt(dd) > 12 && parseInt(mm) <= 12) [dd, mm] = [mm, dd];
-
-        let fullYear = parseInt(yy, 10);
-        if (yy.length === 2) {
-            fullYear = parseInt(yy, 10) <= 30 ? 2000 + parseInt(yy) : 1900 + parseInt(yy);
-        }
-
-        const d = new Date(fullYear, parseInt(mm) - 1, parseInt(dd));
-        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-    }
-
-    // ✅ Case 4: already YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-
-    return str;
-}
+import {
+    excelSerialToDate,
+    normalizeExcelDate,
+    generateUserKey,
+    needsUpdate,
+} from '../helpers/csvImports';
 
 export default function ImportUsersTab() {
     const [parsedData, setParsedData] = useState<any[]>([]);
@@ -59,25 +15,6 @@ export default function ImportUsersTab() {
     const [missingDbFields, setMissingDbFields] = useState<string[]>([]);
 
     const [existingUsers, setExistingUsers] = useState<any[]>([]);
-
-    function generateUserKey(user: any): string {
-        if (user.taxId && user.taxId.trim()) return `TAXID_${user.taxId.trim()}`;
-        const name = (user.fullName || '').trim().toLowerCase();
-        const dob = (user.dateOfBirth || '').trim();
-        return `${name}_${dob}`;
-    }
-
-    function needsUpdate(existing: any, incoming: any): boolean {
-        const keysToCompare = Object.keys(incoming);
-        return keysToCompare.some(
-            (key) =>
-                incoming[key] !== undefined &&
-                incoming[key] !== '' &&
-                String(existing[key] || '').trim() !== String(incoming[key] || '').trim(),
-        );
-    }
-
-    const existingKeys = new Set(existingUsers.map(generateUserKey));
 
     useEffect(() => {
         // load DB columns
@@ -191,7 +128,11 @@ export default function ImportUsersTab() {
     const handleImportUsers = async () => {
         if (parsedData.length === 0) return;
 
-        console.log('🚀 Starting user import…');
+        // ✅ Counters
+        let createdCount = 0;
+        let updatedCount = 0;
+        let skippedCount = 0;
+        let failedCount = 0;
 
         // ✅ Build lookup for existing users
         const userLookup = new Map(existingUsers.map((u) => [generateUserKey(u), u]));
@@ -207,7 +148,7 @@ export default function ImportUsersTab() {
                 mappedRow.rankAssignmentDate = normalizeExcelDate(mappedRow.rankAssignmentDate);
             }
 
-            // ✅ force ALL values to TEXT so "ні" stays "ні", no boolean coercion
+            // ✅ force ALL values to TEXT so "ні" stays "ні"
             Object.keys(mappedRow).forEach((key) => {
                 mappedRow[key] =
                     mappedRow[key] !== undefined && mappedRow[key] !== null
@@ -218,6 +159,7 @@ export default function ImportUsersTab() {
             // ✅ required field check
             if (!mappedRow.fullName?.trim()) {
                 console.error(`❌ Skipping row because fullName is missing`, row);
+                skippedCount++;
                 continue;
             }
 
@@ -230,30 +172,35 @@ export default function ImportUsersTab() {
                     const updatedUser = { ...existing, ...mappedRow, id: existing.id };
                     try {
                         const result = await window.electronAPI.updateUser(updatedUser);
-                        console.log(`🔄 Updated user: ${existing.fullName} (id=${existing.id})`);
                         userLookup.set(key, result); // refresh cache
+                        updatedCount++;
                     } catch (err) {
                         console.error(`❌ Failed to update user: ${existing.fullName}`, err);
+                        failedCount++;
                     }
                 } else {
-                    console.log(`⏭ No changes for ${existing.fullName}, skipping`);
+                    skippedCount++;
                 }
             } else {
                 // ✅ create new user
                 try {
                     const createdUser = await window.electronAPI.addUser(mappedRow);
-                    console.log(
-                        `✅ User created: ${createdUser.id || 'No ID returned'}`,
-                        createdUser,
-                    );
                     userLookup.set(key, createdUser);
+                    createdCount++;
                 } catch (err) {
                     console.error(`❌ Failed to create user for row:`, mappedRow, err);
+                    failedCount++;
                 }
             }
         }
 
-        console.log('🎉 Import finished!');
+        // ✅ Show a nice alert after processing
+        window.alert(
+            `✅ Імпорт завершено!\n\n` +
+                `Створено: ${createdCount}\n` +
+                `Оновлено: ${updatedCount}\n` +
+                `Пропущено: ${skippedCount}\n`,
+        );
     };
 
     return (
