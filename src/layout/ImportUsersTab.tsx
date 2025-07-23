@@ -8,6 +8,7 @@ import {
     generateUserKey,
     needsUpdate,
 } from '../helpers/csvImports';
+import { UploadCloud } from 'lucide-react';
 
 export default function ImportUsersTab() {
     const [parsedData, setParsedData] = useState<any[]>([]);
@@ -204,69 +205,112 @@ export default function ImportUsersTab() {
     };
 
     return (
-        <div className="flex flex-col items-center justify-start h-full p-6 w-full">
-            <h1 className="text-2xl font-bold mb-4">Завантаження даних із таблиці</h1>
+        <div className="flex flex-col items-center justify-start h-full w-full p-8 bg-gray-50">
+            {/* Заголовок + опис */}
+            <div className="text-center mb-8 max-w-2xl">
+                <h1 className="text-3xl font-bold text-gray-800">
+                    📊 Завантаження даних із таблиці
+                </h1>
+                <p className="text-gray-600 mt-2 text-sm">
+                    Імпортуйте персональні дані з <strong>Excel</strong> або <strong>CSV</strong>.
+                    Система автоматично розпізнає заголовки й покаже попередній перегляд перед
+                    імпортом.
+                </p>
+            </div>
 
-            <label className="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded mb-6">
-                Завантажити Excel/CSV
-                <input
-                    type="file"
-                    accept=".xlsx, .xls, .csv"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                />
-            </label>
+            {/* Зона завантаження файлу */}
+            <div className="w-full max-w-xl bg-white border-2 border-dashed border-blue-300 hover:border-blue-500 transition rounded-xl p-8 text-center shadow-sm">
+                <p className="text-gray-700 mb-3">
+                    Перетягніть сюди файл або натисніть, щоб обрати його вручну
+                </p>
 
+                <label className="inline-flex items-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-medium shadow transition">
+                    <UploadCloud className="w-5 h-5" />
+                    Завантажити Excel/CSV
+                    <input
+                        type="file"
+                        accept=".xlsx, .xls, .csv"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                    />
+                </label>
+            </div>
+
+            {/* Якщо є дані → кнопка імпорту */}
             {parsedData.length > 0 && (
-                <>
-                    {/* Import button */}
-                    <div className="mt-4 flex gap-4">
-                        <button
-                            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                            onClick={handleImportUsers}
-                        >
-                            ✅ Імпортувати користувачів
-                        </button>
-                    </div>
-                </>
-            )}
+                <div className="mt-6 flex gap-4">
+                    <button
+                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg shadow-md flex items-center gap-2 transition"
+                        onClick={handleImportUsers}
+                    >
+                        ✅ Імпортувати користувачів
+                    </button>
 
-            {/* ✅ Show DB missing fields */}
-            {missingDbFields.length > 0 && (
-                <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-                    ⚠ Деякі поля з таблиці відсутні в базі:{' '}
-                    <strong>{missingDbFields.join(', ')}</strong>
+                    <span className="text-gray-500 text-sm self-center">
+                        ({parsedData.length} рядків готово до імпорту)
+                    </span>
                 </div>
             )}
 
-            {/* ✅ Show parsed preview */}
+            {/* Попередження про відсутні поля */}
+            {missingDbFields.length > 0 && (
+                <div className="mt-6 w-full max-w-2xl bg-red-50 border-l-4 border-red-400 p-4 rounded">
+                    <p className="text-red-700 font-medium">
+                        ⚠ Деякі заголовки з таблиці відсутні в базі:
+                    </p>
+                    <p className="text-sm text-red-600 mt-1">{missingDbFields.join(', ')}</p>
+                </div>
+            )}
+
+            {/* Попередній перегляд */}
             {parsedData.length > 0 && (
-                <div className="w-full overflow-auto border p-4 rounded bg-white shadow">
-                    <table className="min-w-full text-sm border-collapse border border-gray-300">
-                        <thead>
-                            <tr>
-                                {Object.keys(parsedData[0]).map((key) => (
-                                    <th
-                                        key={key}
-                                        className="border border-gray-300 p-2 bg-gray-100"
-                                    >
-                                        {key}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {parsedData.map((row, idx) => (
-                                <tr key={idx}>
-                                    {Object.values(row).map((val, i) => (
-                                        <td key={i} className="border border-gray-300 p-2">
-                                            {val as string}
-                                        </td>
+                <div className="mt-8 w-full bg-white rounded-xl shadow-lg border overflow-hidden">
+                    {/* Заголовок таблиці */}
+                    <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+                        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                            📄 Попередній перегляд даних
+                        </h2>
+                        <span className="text-gray-500 text-sm">
+                            Показано {parsedData.length} рядків
+                        </span>
+                    </div>
+
+                    {/* Таблиця на всю ширину */}
+                    <div className="overflow-auto max-h-[70vh]">
+                        <table className="w-full text-sm border-collapse">
+                            <thead className="sticky top-0 bg-gray-100 shadow-sm">
+                                <tr>
+                                    {Object.keys(parsedData[0]).map((key) => (
+                                        <th
+                                            key={key}
+                                            className="border border-gray-300 px-3 py-2 text-left text-gray-700 font-medium"
+                                        >
+                                            {key}
+                                        </th>
                                     ))}
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {parsedData.map((row, idx) => (
+                                    <tr
+                                        key={idx}
+                                        className={`transition ${
+                                            idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                                        } hover:bg-blue-50`}
+                                    >
+                                        {Object.values(row).map((val, i) => (
+                                            <td
+                                                key={i}
+                                                className="border border-gray-200 px-3 py-2 text-gray-800 whitespace-nowrap"
+                                            >
+                                                {val as string}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>
