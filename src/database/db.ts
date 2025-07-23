@@ -29,12 +29,12 @@ export async function initializeDb() {
 
     // Create auth table
     await db.exec(`
-    CREATE TABLE IF NOT EXISTS auth_user (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL
-    );
-  `);
+        CREATE TABLE IF NOT EXISTS auth_user (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL
+        );
+    `);
 
     const authColumns = await db.all(`PRAGMA table_info(auth_user);`);
     const hasRecoveryHint = authColumns.some((col: any) => col.name === 'recovery_hint');
@@ -44,100 +44,98 @@ export async function initializeDb() {
 
     // Create base users table
     await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      fullName TEXT,
-      photo TEXT,
-      phoneNumber TEXT,
-      email TEXT,
-      dateOfBirth TEXT,
-      position TEXT,
-      rank TEXT,
-      rights TEXT,
-      conscriptionInfo TEXT,
-      notes TEXT,
-      relatives TEXT,
-      comments TEXT,
-      history TEXT,
-      education TEXT,
-      awards TEXT,
-      callsign TEXT,
-      passportData TEXT,
-      participantNumber TEXT,
-      identificationNumber TEXT,
-      fitnessCategory TEXT,
-      unitNumber TEXT,
-      hasCriminalRecord INTEGER,
-      criminalRecordDetails TEXT,
-      militaryTicketInfo TEXT,
-      militaryServiceHistory TEXT,
-      civilProfession TEXT,
-      educationDetails TEXT,
-      residenceAddress TEXT,
-      registeredAddress TEXT,
-      healthConditions TEXT,
-      maritalStatus TEXT,
-      familyInfo TEXT,
-      religion TEXT,
-      recruitingOffice TEXT,
-      driverLicenses TEXT,
-      bloodType TEXT
-    );
-  `);
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            fullName TEXT,
+            photo TEXT,
+            phoneNumber TEXT,
+            email TEXT,
+            dateOfBirth TEXT,
+            position TEXT,
+            rank TEXT,
+            rights TEXT,
+            conscriptionInfo TEXT,
+            notes TEXT,
+            relatives TEXT,
+            comments TEXT,
+            history TEXT,
+            education TEXT,
+            awards TEXT,
+            callsign TEXT,
+            passportData TEXT,
+            participantNumber TEXT,
+            identificationNumber TEXT,
+            fitnessCategory TEXT,
+            unitNumber TEXT,
+            hasCriminalRecord INTEGER,
+            criminalRecordDetails TEXT,
+            militaryTicketInfo TEXT,
+            militaryServiceHistory TEXT,
+            civilProfession TEXT,
+            educationDetails TEXT,
+            residenceAddress TEXT,
+            registeredAddress TEXT,
+            healthConditions TEXT,
+            maritalStatus TEXT,
+            familyInfo TEXT,
+            religion TEXT,
+            recruitingOffice TEXT,
+            driverLicenses TEXT,
+            bloodType TEXT
+        );
+    `);
 
-    // Create user_history
+    // Create other tables
     await db.exec(`
-    CREATE TABLE IF NOT EXISTS user_history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      userId INTEGER NOT NULL,
-      date TEXT NOT NULL,
-      author TEXT,
-      type TEXT,
-      content TEXT,
-      description TEXT,
-      files TEXT,
-      FOREIGN KEY (userId) REFERENCES users(id)
-    );
-  `);
+        CREATE TABLE IF NOT EXISTS user_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            userId INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            author TEXT,
+            type TEXT,
+            content TEXT,
+            description TEXT,
+            files TEXT,
+            FOREIGN KEY (userId) REFERENCES users(id)
+        );
+    `);
 
-    // Create comments
     await db.exec(`
-    CREATE TABLE IF NOT EXISTS comments (
-      id INTEGER PRIMARY KEY,
-      user_id INTEGER NOT NULL,
-      author TEXT,
-      content TEXT,
-      type TEXT,
-      date TEXT,
-      files TEXT
-    );
-  `);
+        CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            author TEXT,
+            content TEXT,
+            type TEXT,
+            date TEXT,
+            files TEXT
+        );
+    `);
 
-    // Create todos
     await db.exec(`
-    CREATE TABLE IF NOT EXISTS todos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      content TEXT NOT NULL,
-      completed INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+        CREATE TABLE IF NOT EXISTS todos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content TEXT NOT NULL,
+            completed INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+    `);
 
-    // for your saved reports
     await db.exec(`
-  CREATE TABLE IF NOT EXISTS report_templates (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    filePath TEXT NOT NULL,
-    createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-  );
-`);
+        CREATE TABLE IF NOT EXISTS report_templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            filePath TEXT NOT NULL,
+            createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+    `);
 
-    // Upgrade missing user columns
+    // ✅ Upgrade missing user columns
     const userColumns = await db.all(`PRAGMA table_info(users);`);
     const colNames = userColumns.map((c: any) => c.name);
 
     const requiredUserColumns: [string, string][] = [
+        // existing extras
         ['callsign', 'TEXT'],
         ['passportData', 'TEXT'],
         ['participantNumber', 'TEXT'],
@@ -161,6 +159,51 @@ export async function initializeDb() {
         ['bloodType', 'TEXT'],
         ['education', 'TEXT'],
         ['awards', 'TEXT'],
+
+        // ✅ New hierarchy from Excel
+        ['unitMain', 'TEXT'], // підрозділ
+        ['unitLevel1', 'TEXT'], // підрозділ 1
+        ['unitLevel2', 'TEXT'], // підрозділ 2
+        ['platoon', 'TEXT'], // взвод
+        ['squad', 'TEXT'], // відділення
+
+        // ✅ Military specialization
+        ['vosCode', 'TEXT'], // ВОС
+        ['shpkCode', 'TEXT'], // ШПК
+        ['category', 'TEXT'], // кат
+        ['kshp', 'TEXT'], // КШП
+
+        // ✅ Rank & appointment details
+        ['rankAssignedBy', 'TEXT'], // Ким присвоєно, №наказу
+        ['rankAssignmentDate', 'TEXT'], // Дата присвоєння
+        ['appointmentOrder', 'TEXT'], // наказ на прийом/призначення
+        ['previousStatus', 'TEXT'], // попередній статус
+
+        // ✅ Personal details
+        ['placeOfBirth', 'TEXT'], // Місце народження
+        ['taxId', 'TEXT'], // ІПН
+        ['serviceType', 'TEXT'], // Мобілізований чи контракт
+        ['recruitmentOfficeDetails', 'TEXT'], // До якого ТЦК відноситься
+        ['ubdStatus', 'TEXT'], // УБД
+        ['childrenInfo', 'TEXT'], // ПІБ дітей та рік народження
+
+        // ✅ Absence / status
+        ['bzvpStatus', 'TEXT'], // БЗВП
+        ['rvbzPresence', 'TEXT'], // наявність в РВБЗ
+        ['absenceReason', 'TEXT'], // причина відсутності
+        ['absenceFromDate', 'TEXT'], // дата з
+        ['absenceToDate', 'TEXT'], // дата по
+
+        // ✅ Subordination & gender
+        ['subordination', 'TEXT'], // підпорядкування
+        ['gender', 'TEXT'], // гендер
+        // ✅ New fields from Excel
+        ['personalPrisonFileExists', 'TEXT'], // Наявність особової справи
+        ['tDotData', 'TEXT'], // т.
+        ['positionNominative', 'TEXT'], // повна посада називний
+        ['positionGenitive', 'TEXT'], // повна посада родовий
+        ['positionDative', 'TEXT'], // повна посада давальний
+        ['positionInstrumental', 'TEXT'], // повна посада орудний
     ];
 
     for (const [colName, colType] of requiredUserColumns) {

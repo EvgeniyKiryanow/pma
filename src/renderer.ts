@@ -32,9 +32,11 @@ declare global {
 
             // --- User CRUD ---
             fetchUsers: () => Promise<User[]>;
-            addUser: (user: Omit<User, 'id'>) => Promise<User>;
+            addUser: (user: any) => Promise<User>;
             updateUser: (user: User) => Promise<User>;
             deleteUser: (id: number) => Promise<boolean>;
+
+            getDbColums: () => Promise<string[]>;
 
             //  --- History CRUD ---
             getUserHistory: (userId: number, filter: string) => Promise<CommentOrHistoryEntry[]>;

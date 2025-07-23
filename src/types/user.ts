@@ -55,6 +55,52 @@ export type User = {
     recruitingOffice?: string;
     driverLicenses?: string;
     bloodType?: string;
+
+    // ✅ New hierarchy fields
+    unitMain?: string;
+    unitLevel1?: string;
+    unitLevel2?: string;
+    platoon?: string;
+    squad?: string;
+
+    // ✅ Military specialization
+    vosCode?: string;
+    shpkCode?: string;
+    category?: string;
+    kshp?: string;
+
+    // ✅ Rank & appointment details
+    rankAssignedBy?: string;
+    rankAssignmentDate?: string;
+    appointmentOrder?: string;
+    previousStatus?: string;
+
+    // ✅ Personal details
+    placeOfBirth?: string;
+    taxId?: string;
+    serviceType?: string;
+    recruitmentOfficeDetails?: string;
+    ubdStatus?: string;
+    childrenInfo?: string;
+
+    // ✅ Absence / status fields
+    bzvpStatus?: string;
+    rvbzPresence?: string;
+    absenceReason?: string;
+    absenceFromDate?: string;
+    absenceToDate?: string;
+
+    // ✅ Subordination & gender
+    subordination?: string;
+    gender?: Gender;
+
+    // ✅ Excel-specific
+    personalPrisonFileExists?: string; // Наявність особової справи
+    tDotData?: string; // т. (тарифна категорія)
+    positionNominative?: string;
+    positionGenitive?: string;
+    positionDative?: string;
+    positionInstrumental?: string;
 };
 
 export type Gender = 'male' | 'female';

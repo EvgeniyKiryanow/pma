@@ -24,7 +24,7 @@
       "renderer_dist/**/*",
       ".vite/build/**/*",
       "node_modules/**/*",
-      "assets/**/*",                
+      "assets/**/*",
       "package.json"
     ],
     "asarUnpack": [
@@ -33,20 +33,24 @@
       "assets/python/**"
     ],
     "mac": {
-  "category": "public.app-category.utilities",
-  "icon": "assets/icons/appIcon.icns",
-  "target": [
-    {
-      "target": "dmg",
-      "arch": ["x64"]
+      "category": "public.app-category.utilities",
+      "icon": "assets/icons/appIcon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "PManager-${version}-mac.${ext}"
     },
-    {
-      "target": "zip",
-      "arch": ["x64"]
-    }
-  ],
-  "artifactName": "PManager-${version}-mac.${ext}"
-},
     "win": {
       "icon": "assets/icons/appIcon.ico",
       "target": [
@@ -140,6 +144,7 @@
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "tailwindcss": "^4.1.11",
+    "xlsx": "^0.18.5",
     "zustand": "^5.0.6"
   }
 }

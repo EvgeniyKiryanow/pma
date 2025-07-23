@@ -194,7 +194,7 @@ async function installPython(): Promise<string | null> {
     return null;
 }
 
-// ✅ Install pymorphy3 (offline wheels → PyPI if internet)
+// ✅ Install pymorphy3 (offline wheels → PyPI if internet) It is did not install
 async function installMorphyPackages(pythonPath: string): Promise<boolean> {
     const pkgDir = resolveAssetsPath('assets', 'python', 'packages');
     const wheels = [

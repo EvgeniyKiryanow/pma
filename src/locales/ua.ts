@@ -169,59 +169,130 @@ export const ua = {
         improvements: 'Якщо у вас є пропозиції чи покращення — я з радістю їх розгляну!',
     },
     user: {
+        // ✅ Basic info
         fullName: 'ПІБ',
-        rank: 'Звання',
+        photo: 'Фото',
+        phoneNumber: 'Номер телефону',
+        email: 'Електронна пошта',
+        dateOfBirth: 'Дата народження',
+        placeOfBirth: 'Місце народження',
+        gender: 'Стать',
+
+        // ✅ Position & rank
         position: 'Посада',
+        rank: 'Звання',
+        rankAssignedBy: 'Ким присвоєно',
+        rankAssignmentDate: 'Дата присвоєння',
+        appointmentOrder: 'Наказ про призначення',
+        previousStatus: 'Попередній статус',
+
+        // ✅ Position in cases
+        positionNominative: 'Посада (називний)',
+        positionGenitive: 'Посада (родовий)',
+        positionDative: 'Посада (давальний)',
+        positionInstrumental: 'Посада (орудний)',
+
+        // ✅ Rights & service info
+        rights: 'Права',
+        conscriptionInfo: 'Інформація про призов',
+        serviceType: 'Тип служби',
+        recruitmentOfficeDetails: 'Яким РТЦК та СП призваний',
+        notes: 'Нотатки',
+        comments: 'Коментарі',
+        history: 'Історія',
+
+        // ✅ Education & awards
+        education: 'Освіта',
+        educationDetails: 'Освітні деталі',
+        awards: 'Нагороди',
+        civilProfession: 'Цивільна професія',
+
+        // ✅ Family & relatives
+        maritalStatus: 'Сімейний стан',
+        familyInfo: 'Інформація про сім’ю',
+        relatives: 'Родичі',
+        childrenInfo: 'Діти',
+        addRelative: 'Додати родича',
+
+        // ✅ Addresses
+        residenceAddress: 'Адреса проживання',
+        registeredAddress: 'Адреса прописки',
+
+        // ✅ Military specialization
+        vosCode: 'ВОС',
+        shpkCode: 'ШПК',
+        kshp: 'КШП',
+        category: 'Категорія',
+
+        // ✅ Unit hierarchy
+        unitMain: 'Підрозділ',
+        unitLevel1: 'Рівень підрозділу 1',
+        unitLevel2: 'Рівень підрозділу 2',
+        platoon: 'Взвод',
+        squad: 'Відділення',
+        subordination: 'Підпорядкування',
+        unitNumber: 'Номер підрозділу',
+
+        // ✅ Identification & docs
         passportData: 'Паспортні дані',
         participantNumber: 'Номер УБД',
         identificationNumber: 'Ідентифікаційний номер',
-        fitnessCategory: 'Категорія придатності',
-        unitNumber: 'Номер підрозділу',
+        taxId: 'ІПН',
+        militaryTicketInfo: 'Військовий квиток',
+        militaryServiceHistory: 'Історія військової служби',
+
+        // ✅ Legal & criminal
         hasCriminalRecord: 'Наявність судимості',
         criminalRecordDetails: 'Деталі судимості',
-        callsign: 'Позивний',
-        militaryTicketInfo: 'Інформація про військовий квиток',
-        militaryServiceHistory: 'Історія військової служби',
-        civilProfession: 'Цивільна професія',
-        educationDetails: 'Освітні деталі',
-        residenceAddress: 'Адреса проживання',
-        registeredAddress: 'Адреса прописки',
+        personalPrisonFileExists: 'Наявність особової справи',
+
+        // ✅ Health & status
         healthConditions: "Стан здоров'я",
-        maritalStatus: 'Сімейний стан',
-        familyInfo: 'Інформація про сім’ю',
-        religion: 'Віросповідання',
-        recruitingOffice: 'РТЦК та СП',
-        driverLicenses: 'Водійські права',
-        bloodType: 'Група крові',
-        dateOfBirth: 'Дата народження',
-        rights: 'Права',
-        conscriptionInfo: 'Інформація про призов',
-        notes: 'Нотатки',
-        email: 'Електронна пошта',
-        phoneNumber: 'Номер телефону',
-        education: 'Освіта',
-        awards: 'Нагороди',
-        relatives: 'Родичі',
-        addRelative: 'Додати родича',
-        cancel: 'Відмінити',
-        add: 'Додати',
-        saveChanges: 'Зберегти',
-        uploadPhoto: 'Завантажити фото',
-        photo: 'Фото',
-        save: 'Зберігти',
-        comments: 'Коментарі',
-        history: 'Історія',
+        fitnessCategory: 'Категорія придатності',
         fitnessCategoryOption: {
             fit: 'Придатний',
             limited: 'Обмежено придатний',
         },
+        ubdStatus: 'УБД статус',
+        bzvpStatus: 'БЗВП статус',
+        rvbzPresence: 'РВЗ присутність',
+
+        // ✅ Absence
+        absenceReason: 'Причина відсутності',
+        absenceFromDate: 'Відсутній з',
+        absenceToDate: 'Відсутній по',
+
+        // ✅ Driver license & blood type
+        driverLicenses: 'Водійські права',
+        bloodType: 'Група крові',
+
+        // ✅ Recruiting & religion
+        recruitingOffice: 'РТЦК та СП',
+        religion: 'Віросповідання',
+
+        // ✅ Misc
+        callsign: 'Позивний',
+        tDotData: 't. дані',
+
+        // ✅ UI buttons
+        uploadPhoto: 'Завантажити фото',
+        saveChanges: 'Зберегти зміни',
+        save: 'Зберегти',
+        add: 'Додати',
+        cancel: 'Відмінити',
     },
+
     sections: {
         basic: 'Основна інформація',
+        personalDetails: 'Персональні дані',
+        positionCases: 'Посада та відмінки',
         military: 'Військова інформація',
+        rankAndAppointment: 'Звання та призначення',
+        hierarchy: 'Підрозділи та підпорядкування',
+        absenceStatus: 'Відсутність та статус',
+        militarySpecialization: 'Військова спеціалізація',
         legal: 'Юридичні дані',
         health: 'Здоров’я',
         background: 'Цивільна інформація',
-        relatives: 'Родичі та коментарі',
     },
 };

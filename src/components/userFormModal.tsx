@@ -52,6 +52,49 @@ export default function UserFormModalUpdate({
         recruitingOffice: '',
         driverLicenses: '',
         bloodType: '',
+
+        // ✅ new hierarchy defaults
+        unitMain: '',
+        unitLevel1: '',
+        unitLevel2: '',
+        platoon: '',
+        squad: '',
+        subordination: '',
+
+        // ✅ military specialization defaults
+        vosCode: '',
+        shpkCode: '',
+        category: '',
+        kshp: '',
+
+        // ✅ rank/appointment
+        rankAssignedBy: '',
+        rankAssignmentDate: '',
+        appointmentOrder: '',
+        previousStatus: '',
+
+        // ✅ personal details
+        placeOfBirth: '',
+        taxId: '',
+        serviceType: '',
+        recruitmentOfficeDetails: '',
+        ubdStatus: '',
+        childrenInfo: '',
+
+        // ✅ absence/status
+        bzvpStatus: '',
+        rvbzPresence: '',
+        absenceReason: '',
+        absenceFromDate: '',
+        absenceToDate: '',
+
+        // ✅ excel specific
+        personalPrisonFileExists: '',
+        tDotData: '',
+        positionNominative: '',
+        positionGenitive: '',
+        positionDative: '',
+        positionInstrumental: '',
     });
 
     const [photoPreview, setPhotoPreview] = useState<string>('');
@@ -213,7 +256,7 @@ export default function UserFormModalUpdate({
                         </div>
                     </div>
 
-                    {/* Basic Section */}
+                    {/* ✅ 1. Basic Info */}
                     <section>
                         <h3 className="text-lg font-semibold text-gray-800 mb-2">
                             {t('sections.basic')}
@@ -228,25 +271,110 @@ export default function UserFormModalUpdate({
                         </div>
                     </section>
 
-                    {/* Military Section */}
+                    {/* ✅ 2. Personal Details */}
+                    <section>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            {t('sections.personalDetails')}
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            {renderField('placeOfBirth')}
+                            {renderField('gender')}
+                            {renderField('maritalStatus')}
+                            {renderField('childrenInfo')}
+                            {renderField('familyInfo', true)}
+                            {renderField('religion')}
+                        </div>
+                    </section>
+
+                    {/* ✅ 3. Position & Grammar Cases */}
+                    <section>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            {t('sections.positionCases')}
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            {renderField('position')}
+                            {renderField('positionNominative')}
+                            {renderField('positionGenitive')}
+                            {renderField('positionDative')}
+                            {renderField('positionInstrumental')}
+                            {renderField('tDotData')}
+                            {renderField('personalPrisonFileExists')}
+                        </div>
+                    </section>
+
+                    {/* ✅ 4. Military Info */}
                     <section>
                         <h3 className="text-lg font-semibold text-gray-800 mb-2">
                             {t('sections.military')}
                         </h3>
                         <div className="grid grid-cols-3 gap-4">
-                            {renderField('position')}
-                            {renderField('rank')}
                             {renderField('rights')}
-                            {renderField('unitNumber')}
                             {renderField('recruitingOffice')}
                             {renderField('militaryTicketInfo', true)}
                             {renderField('militaryServiceHistory', true)}
-                            {renderField('fitnessCategory')}
                             {renderField('conscriptionInfo', true)}
+                            {renderField('ubdStatus')}
                         </div>
                     </section>
 
-                    {/* Legal Section */}
+                    {/* ✅ 5. Rank & Appointment */}
+                    <section>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            {t('sections.rankAndAppointment')}
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            {renderField('rank')}
+                            {renderField('rankAssignedBy')}
+                            {renderField('rankAssignmentDate')}
+                            {renderField('appointmentOrder')}
+                            {renderField('previousStatus')}
+                        </div>
+                    </section>
+
+                    {/* ✅ 6. Unit Hierarchy */}
+                    <section>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            {t('sections.hierarchy')}
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            {renderField('unitMain')}
+                            {renderField('unitLevel1')}
+                            {renderField('unitLevel2')}
+                            {renderField('platoon')}
+                            {renderField('squad')}
+                            {renderField('subordination')}
+                            {renderField('unitNumber')}
+                        </div>
+                    </section>
+
+                    {/* ✅ 7. Absence & Status */}
+                    <section>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            {t('sections.absenceStatus')}
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            {renderField('bzvpStatus')}
+                            {renderField('rvbzPresence')}
+                            {renderField('absenceReason')}
+                            {renderField('absenceFromDate')}
+                            {renderField('absenceToDate')}
+                        </div>
+                    </section>
+
+                    {/* ✅ 8. Military Specialization */}
+                    <section>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            {t('sections.militarySpecialization')}
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            {renderField('vosCode')}
+                            {renderField('shpkCode')}
+                            {renderField('category')}
+                            {renderField('kshp')}
+                        </div>
+                    </section>
+
+                    {/* ✅ 9. Legal & Identification */}
                     <section>
                         <h3 className="text-lg font-semibold text-gray-800 mb-2">
                             {t('sections.legal')}
@@ -255,23 +383,25 @@ export default function UserFormModalUpdate({
                             {renderField('passportData')}
                             {renderField('identificationNumber')}
                             {renderField('participantNumber')}
+                            {renderField('taxId')}
                             {renderField('hasCriminalRecord')}
                             {renderField('criminalRecordDetails', true)}
                         </div>
                     </section>
 
-                    {/* Health Section */}
+                    {/* ✅ 10. Health */}
                     <section>
                         <h3 className="text-lg font-semibold text-gray-800 mb-2">
                             {t('sections.health')}
                         </h3>
                         <div className="grid grid-cols-3 gap-4">
                             {renderField('healthConditions', true)}
+                            {renderField('fitnessCategory')}
                             {renderField('bloodType')}
                         </div>
                     </section>
 
-                    {/* Civil Section */}
+                    {/* ✅ 11. Civil Background */}
                     <section>
                         <h3 className="text-lg font-semibold text-gray-800 mb-2">
                             {t('sections.background')}
@@ -281,12 +411,9 @@ export default function UserFormModalUpdate({
                             {renderField('education')}
                             {renderField('educationDetails', true)}
                             {renderField('awards')}
-                            {renderField('maritalStatus')}
-                            {renderField('familyInfo', true)}
-                            {renderField('religion')}
+                            {renderField('driverLicenses')}
                             {renderField('residenceAddress')}
                             {renderField('registeredAddress')}
-                            {renderField('driverLicenses')}
                         </div>
                     </section>
 

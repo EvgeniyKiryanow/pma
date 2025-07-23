@@ -25,6 +25,7 @@ export function registerUserHandlers() {
 
     ipcMain.handle('add-user', async (_event, user) => {
         const db = await getDb();
+
         const stmt = await db.prepare(`
       INSERT INTO users (
         fullName, photo, phoneNumber, email, dateOfBirth,
@@ -35,8 +36,40 @@ export function registerUserHandlers() {
         militaryTicketInfo, militaryServiceHistory, civilProfession,
         educationDetails, residenceAddress, registeredAddress,
         healthConditions, maritalStatus, familyInfo, religion,
-        recruitingOffice, driverLicenses, bloodType
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        recruitingOffice, driverLicenses, bloodType,
+
+        -- ✅ new hierarchy
+        unitMain, unitLevel1, unitLevel2, platoon, squad,
+
+        -- ✅ military specialization
+        vosCode, shpkCode, category, kshp,
+
+        -- ✅ rank/appointment
+        rankAssignedBy, rankAssignmentDate, appointmentOrder, previousStatus,
+
+        -- ✅ personal
+        placeOfBirth, taxId, serviceType, recruitmentOfficeDetails, ubdStatus, childrenInfo,
+
+        -- ✅ absence/status
+        bzvpStatus, rvbzPresence, absenceReason, absenceFromDate, absenceToDate,
+
+        -- ✅ subordination
+        subordination, gender,
+
+        -- ✅ NEW Excel-specific fields
+        personalPrisonFileExists, tDotData,
+        positionNominative, positionGenitive, positionDative, positionInstrumental
+      ) VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
+        ?, ?,  -- subordination, gender
+        ?, ?,  -- personalPrisonFileExists, tDotData
+        ?, ?, ?, ? -- all 4 position cases
+      )
     `);
 
         const result = await stmt.run(
@@ -76,9 +109,56 @@ export function registerUserHandlers() {
             user.recruitingOffice,
             user.driverLicenses,
             user.bloodType,
+
+            // ✅ new hierarchy
+            user.unitMain,
+            user.unitLevel1,
+            user.unitLevel2,
+            user.platoon,
+            user.squad,
+
+            // ✅ military specialization
+            user.vosCode,
+            user.shpkCode,
+            user.category,
+            user.kshp,
+
+            // ✅ rank/appointment
+            user.rankAssignedBy,
+            user.rankAssignmentDate,
+            user.appointmentOrder,
+            user.previousStatus,
+
+            // ✅ personal details
+            user.placeOfBirth,
+            user.taxId,
+            user.serviceType,
+            user.recruitmentOfficeDetails,
+            user.ubdStatus,
+            user.childrenInfo,
+
+            // ✅ absence/status
+            user.bzvpStatus,
+            user.rvbzPresence,
+            user.absenceReason,
+            user.absenceFromDate,
+            user.absenceToDate,
+
+            // ✅ subordination
+            user.subordination,
+            user.gender,
+
+            // ✅ new Excel-specific
+            user.personalPrisonFileExists,
+            user.tDotData,
+            user.positionNominative,
+            user.positionGenitive,
+            user.positionDative,
+            user.positionInstrumental,
         );
 
         const inserted = await db.get('SELECT * FROM users WHERE id = ?', result.lastID);
+
         return {
             ...inserted,
             relatives: JSON.parse(inserted.relatives || '[]'),
@@ -89,58 +169,135 @@ export function registerUserHandlers() {
 
     ipcMain.handle('update-user', async (_event, user) => {
         const db = await getDb();
+
         await db.run(
             `
-      UPDATE users SET
-        fullName = ?, photo = ?, phoneNumber = ?, email = ?, dateOfBirth = ?,
-        position = ?, rank = ?, rights = ?, conscriptionInfo = ?, notes = ?,
-        relatives = ?, comments = ?, history = ?, education = ?, awards = ?,
-        callsign = ?, passportData = ?, participantNumber = ?, identificationNumber = ?,
-        fitnessCategory = ?, unitNumber = ?, hasCriminalRecord = ?, criminalRecordDetails = ?,
-        militaryTicketInfo = ?, militaryServiceHistory = ?, civilProfession = ?,
-        educationDetails = ?, residenceAddress = ?, registeredAddress = ?,
-        healthConditions = ?, maritalStatus = ?, familyInfo = ?, religion = ?,
-        recruitingOffice = ?, driverLicenses = ?, bloodType = ?
-      WHERE id = ?
-    `,
-            user.fullName,
-            user.photo,
-            user.phoneNumber,
-            user.email,
-            user.dateOfBirth,
-            user.position,
-            user.rank,
-            user.rights,
-            user.conscriptionInfo,
-            user.notes,
-            JSON.stringify(user.relatives || []),
-            JSON.stringify(user.comments || []),
-            JSON.stringify(user.history || []),
-            user.education,
-            user.awards,
-            user.callsign,
-            user.passportData,
-            user.participantNumber,
-            user.identificationNumber,
-            user.fitnessCategory,
-            user.unitNumber,
-            user.hasCriminalRecord ? 1 : 0,
-            user.criminalRecordDetails,
-            user.militaryTicketInfo,
-            user.militaryServiceHistory,
-            user.civilProfession,
-            user.educationDetails,
-            user.residenceAddress,
-            user.registeredAddress,
-            user.healthConditions,
-            user.maritalStatus,
-            user.familyInfo,
-            user.religion,
-            user.recruitingOffice,
-            user.driverLicenses,
-            user.bloodType,
-            user.id,
+        UPDATE users SET
+            fullName = ?, photo = ?, phoneNumber = ?, email = ?, dateOfBirth = ?,
+            position = ?, rank = ?, rights = ?, conscriptionInfo = ?, notes = ?,
+            relatives = ?, comments = ?, history = ?, education = ?, awards = ?,
+            callsign = ?, passportData = ?, participantNumber = ?, identificationNumber = ?,
+            fitnessCategory = ?, unitNumber = ?, hasCriminalRecord = ?, criminalRecordDetails = ?,
+            militaryTicketInfo = ?, militaryServiceHistory = ?, civilProfession = ?,
+            educationDetails = ?, residenceAddress = ?, registeredAddress = ?,
+            healthConditions = ?, maritalStatus = ?, familyInfo = ?, religion = ?,
+            recruitingOffice = ?, driverLicenses = ?, bloodType = ?,
+
+            -- ✅ new hierarchy
+            unitMain = ?, unitLevel1 = ?, unitLevel2 = ?, platoon = ?, squad = ?,
+
+            -- ✅ military specialization
+            vosCode = ?, shpkCode = ?, category = ?, kshp = ?,
+
+            -- ✅ rank/appointment details
+            rankAssignedBy = ?, rankAssignmentDate = ?, appointmentOrder = ?, previousStatus = ?,
+
+            -- ✅ personal details
+            placeOfBirth = ?, taxId = ?, serviceType = ?, recruitmentOfficeDetails = ?, 
+            ubdStatus = ?, childrenInfo = ?,
+
+            -- ✅ absence/status
+            bzvpStatus = ?, rvbzPresence = ?, absenceReason = ?, absenceFromDate = ?, absenceToDate = ?,
+
+            -- ✅ subordination
+            subordination = ?, gender = ?,
+
+            -- ✅ NEW Excel-specific fields
+            personalPrisonFileExists = ?, tDotData = ?,
+            positionNominative = ?, positionGenitive = ?, positionDative = ?, positionInstrumental = ?
+
+        WHERE id = ?
+        `,
+            [
+                // existing
+                user.fullName,
+                user.photo,
+                user.phoneNumber,
+                user.email,
+                user.dateOfBirth,
+                user.position,
+                user.rank,
+                user.rights,
+                user.conscriptionInfo,
+                user.notes,
+                JSON.stringify(user.relatives || []),
+                JSON.stringify(user.comments || []),
+                JSON.stringify(user.history || []),
+                user.education,
+                user.awards,
+                user.callsign,
+                user.passportData,
+                user.participantNumber,
+                user.identificationNumber,
+                user.fitnessCategory,
+                user.unitNumber,
+                user.hasCriminalRecord ? 1 : 0,
+                user.criminalRecordDetails,
+                user.militaryTicketInfo,
+                user.militaryServiceHistory,
+                user.civilProfession,
+                user.educationDetails,
+                user.residenceAddress,
+                user.registeredAddress,
+                user.healthConditions,
+                user.maritalStatus,
+                user.familyInfo,
+                user.religion,
+                user.recruitingOffice,
+                user.driverLicenses,
+                user.bloodType,
+
+                // ✅ new hierarchy
+                user.unitMain,
+                user.unitLevel1,
+                user.unitLevel2,
+                user.platoon,
+                user.squad,
+
+                // ✅ military specialization
+                user.vosCode,
+                user.shpkCode,
+                user.category,
+                user.kshp,
+
+                // ✅ rank/appointment
+                user.rankAssignedBy,
+                user.rankAssignmentDate,
+                user.appointmentOrder,
+                user.previousStatus,
+
+                // ✅ personal details
+                user.placeOfBirth,
+                user.taxId,
+                user.serviceType,
+                user.recruitmentOfficeDetails,
+                user.ubdStatus,
+                user.childrenInfo,
+
+                // ✅ absence/status
+                user.bzvpStatus,
+                user.rvbzPresence,
+                user.absenceReason,
+                user.absenceFromDate,
+                user.absenceToDate,
+
+                // ✅ subordination
+                user.subordination,
+                user.gender,
+
+                // ✅ Excel-specific
+                user.personalPrisonFileExists,
+                user.tDotData,
+                user.positionNominative,
+                user.positionGenitive,
+                user.positionDative,
+                user.positionInstrumental,
+
+                // ✅ WHERE id
+                user.id,
+            ],
         );
+
         return user;
     });
 
@@ -148,6 +305,12 @@ export function registerUserHandlers() {
         const db = await getDb();
         await db.run('DELETE FROM users WHERE id = ?', userId);
         return true;
+    });
+
+    ipcMain.handle('users:get-db-columns', async () => {
+        const db = await getDb();
+        const columns = await db.all(`PRAGMA table_info(users);`);
+        return columns.map((c: any) => c.name);
     });
 
     ipcMain.handle('history:get-user-history', async (_event, userId: number, filter: string) => {

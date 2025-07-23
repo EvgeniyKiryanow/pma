@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateUser: (user: User) => ipcRenderer.invoke('update-user', user),
     deleteUser: (id: any) => ipcRenderer.invoke('delete-user', id),
 
+    getDbColums: () => ipcRenderer.invoke('users:get-db-columns'),
+
     // History
     getUserHistory: (userId: number, filter: string) =>
         ipcRenderer.invoke('history:get-user-history', userId, filter),
