@@ -47,10 +47,10 @@ export default function App() {
                 <ReportsTab />
             ) : currentTab === 'tables' ? (
                 <TablesTab />
-            ) : currentTab === 'instructions' ? (
-                <InstructionsTab />
             ) : currentTab === 'importUsers' ? (
                 <ImportUsersTab />
+            ) : currentTab === 'instructions' ? (
+                <InstructionsTab />
             ) : null}
             {isUserFormOpen && (
                 <UserFormModalUpdate userToEdit={editingUser} onClose={closeUserForm} />

@@ -151,7 +151,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                 <div className="flex gap-3 py-2">
                     <button
                         onClick={() => setCurrentTab('manager')}
-                        className={`px-4 py-1.5 text-sm rounded-t-md border-b-2 transition-all ${
+                        className={`px-4 py-1.5 text-xl rounded-t-md border-b-2 transition-all ${
                             currentTab === 'manager'
                                 ? 'text-blue-600 border-blue-600 font-semibold bg-white'
                                 : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
@@ -161,7 +161,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                     </button>
                     <button
                         onClick={() => setCurrentTab('reports')}
-                        className={`px-4 py-1.5 text-sm rounded-t-md border-b-2 transition-all ${
+                        className={`px-4 py-1.5 text-xl rounded-t-md border-b-2 transition-all ${
                             currentTab === 'reports'
                                 ? 'text-blue-600 border-blue-600 font-semibold bg-white'
                                 : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
@@ -181,7 +181,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                     </button> */}
                     <button
                         onClick={() => setCurrentTab('backups')}
-                        className={`px-4 py-1.5 text-sm rounded-t-md border-b-2 transition-all ${
+                        className={`px-4 py-1.5 text-xl rounded-t-md border-b-2 transition-all ${
                             currentTab === 'backups'
                                 ? 'text-blue-600 border-blue-600 font-semibold bg-white'
                                 : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
@@ -190,8 +190,18 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         {t('header.backupTab')}
                     </button>
                     <button
+                        className={`px-4 py-1.5 text-xl rounded-t-md border-b-2 transition-all ${
+                            currentTab === 'importUsers'
+                                ? 'text-blue-600 border-blue-600 font-semibold bg-white'
+                                : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
+                        }`}
+                        onClick={() => setCurrentTab('importUsers')}
+                    >
+                        Завантаження таблиць
+                    </button>
+                    <button
                         onClick={() => setCurrentTab('instructions')}
-                        className={`px-4 py-1.5 text-sm rounded-t-md border-b-2 transition-all ${
+                        className={`px-4 py-1.5 text-xl rounded-t-md border-b-2 transition-all ${
                             currentTab === 'instructions'
                                 ? 'text-blue-600 border-blue-600 font-semibold bg-white'
                                 : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
@@ -209,16 +219,6 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                     >
                         {t('header.remindersTab')}
                     </button> */}
-                    <button
-                        className={`px-4 py-1.5 text-sm rounded-t-md border-b-2 transition-all ${
-                            currentTab === 'importUsers'
-                                ? 'text-blue-600 border-blue-600 font-semibold bg-white'
-                                : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
-                        }`}
-                        onClick={() => setCurrentTab('importUsers')}
-                    >
-                        Завантаження таблиць
-                    </button>
                 </div>
             </nav>
 
