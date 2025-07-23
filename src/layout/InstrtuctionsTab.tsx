@@ -16,12 +16,15 @@ import {
     X,
     Upload,
     Trash2,
+    ChevronDown,
+    ChevronUp,
 } from 'lucide-react';
+import { HEADER_MAP } from '../utils/headerMap';
 
 export default function InstructionsTab() {
-    const [activeTab, setActiveTab] = useState<'reports' | 'personnel' | 'backups' | 'header'>(
-        'reports',
-    );
+    const [activeTab, setActiveTab] = useState<
+        'reports' | 'personnel' | 'backups' | 'header' | 'excel'
+    >('reports');
 
     return (
         <div className="h-full w-full bg-gray-50 flex flex-col">
@@ -78,6 +81,16 @@ export default function InstructionsTab() {
                 >
                     <Settings className="w-4 h-4" /> Верхня панель
                 </button>
+                <button
+                    onClick={() => setActiveTab('excel')}
+                    className={`px-6 py-3 flex items-center gap-2 transition ${
+                        activeTab === 'excel'
+                            ? 'border-b-2 border-blue-600 text-blue-700'
+                            : 'text-gray-500 hover:text-gray-800'
+                    }`}
+                >
+                    <UploadCloud className="w-4 h-4" /> Імпорт Excel/CSV
+                </button>
             </div>
 
             {/* Tab Content */}
@@ -86,6 +99,7 @@ export default function InstructionsTab() {
                 {activeTab === 'personnel' && <PersonnelInstructions />}
                 {activeTab === 'backups' && <BackupInstructions />}
                 {activeTab === 'header' && <HeaderInstructions />}
+                {activeTab === 'excel' && <ExcelImportInstructions />}
             </div>
         </div>
     );
@@ -286,6 +300,158 @@ function BackupInstructions() {
                     'Перед оновленнями завжди створюйте ручну копію',
                 ]}
             />
+        </div>
+    );
+}
+function ExcelImportInstructions() {
+    const [showModal, setShowModal] = useState(false);
+
+    return (
+        <div className="flex flex-col gap-6">
+            {/* Instruction Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <InstructionCard
+                    icon={<UploadCloud className="w-8 h-8 text-blue-500" />}
+                    title="Як працює імпорт Excel/CSV?"
+                    steps={[
+                        'При завантаженні файлу обробляється тільки перший лист',
+                        'Стовпці без заголовків («Unnamed») ігноруються',
+                        'Якщо заголовок не відповідає відомим полям → також ігнорується',
+                        'Відомі заголовки шукаються через HEADER_MAP і конвертуються у поля БД',
+                    ]}
+                />
+                <InstructionCard
+                    icon={<FileText className="w-8 h-8 text-green-600" />}
+                    title="Обробка заголовків"
+                    steps={[
+                        'Заголовки порівнюються без пробілів/розділових знаків',
+                        'Якщо назва відповідає карті полів – вона імпортується',
+                        'Наприклад, «ПІБ» → fullName, «Дата народження» → dateOfBirth',
+                        'Тестові або зайві заголовки («Тестовий хедер») просто пропускаються',
+                    ]}
+                />
+
+                <InstructionCard
+                    icon={<Edit3 className="w-8 h-8 text-orange-500" />}
+                    title="Обробка значень"
+                    steps={[
+                        'Порожні значення конвертуються у порожній рядок',
+                        'Дати автоматично конвертуються у формат YYYY-MM-DD',
+                        'Числові дати з Excel (серійні номери) теж розпізнаються',
+                        'Будь-який текст («ні», «так», «є») зберігається без змін',
+                    ]}
+                />
+
+                <InstructionCard
+                    icon={<Users className="w-8 h-8 text-purple-600" />}
+                    title="Як визначаються нові/існуючі користувачі?"
+                    steps={[
+                        'Унікальний ключ формується з ПІБ + дата народження',
+                        'Якщо такий користувач існує – його дані оновлюються',
+                        'Якщо користувач не знайдений – створюється новий',
+                        'Якщо ПІБ відсутній – рядок пропускається',
+                    ]}
+                />
+
+                <InstructionCard
+                    icon={<Lightbulb className="w-8 h-8 text-yellow-500" />}
+                    title="Що ще важливо знати?"
+                    steps={[
+                        'Формат дат може бути будь-який – система намагається розпізнати',
+                        'Невідомі колонки не викликають помилок – вони просто ігноруються',
+                        'Завжди перевіряйте попередній перегляд перед імпортом',
+                        'Після імпорту показується підсумок: скільки створено/оновлено/пропущено',
+                    ]}
+                />
+                <button
+                    onClick={() => setShowModal(true)}
+                    className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition"
+                >
+                    HEADER_MAP(Види заголовків)
+                </button>
+            </div>
+
+            {/* Modal with search */}
+            {showModal && <HeaderMapModal onClose={() => setShowModal(false)} />}
+        </div>
+    );
+}
+
+function HeaderMapModal({ onClose }: { onClose: () => void }) {
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const headers = Object.entries(HEADER_MAP);
+
+    const filteredHeaders = headers.filter(
+        ([excel, db]) =>
+            excel.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            db.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+
+    return (
+        <div className="fixed inset-0 bg-gradient-to-br from-gray-100/70 to-gray-300/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl w-[90%] max-w-3xl max-h-[80%] flex flex-col">
+                {/* Header */}
+                <div className="flex justify-between items-center p-4 border-b">
+                    <h2 className="text-xl font-bold text-gray-800">
+                        📄 Підтримувані заголовки Excel
+                    </h2>
+                    <button onClick={onClose} className="p-2 rounded hover:bg-gray-100 transition">
+                        ✖
+                    </button>
+                </div>
+
+                {/* Search */}
+                <div className="p-4 border-b">
+                    <input
+                        type="text"
+                        placeholder="🔍 Пошук заголовків..."
+                        className="w-full border rounded-lg px-4 py-2 text-sm focus:ring focus:ring-blue-300 outline-none"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                {/* Table */}
+                <div className="flex-1 overflow-auto">
+                    <table className="min-w-full border-collapse text-sm">
+                        <thead>
+                            <tr className="bg-gray-100">
+                                <th className="border px-4 py-2 text-left">Заголовок у Excel</th>
+                                <th className="border px-4 py-2 text-left">Поле в БД</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredHeaders.map(([excelHeader, dbField]) => (
+                                <tr key={excelHeader} className="hover:bg-gray-50">
+                                    <td className="border px-4 py-2">{excelHeader}</td>
+                                    <td className="border px-4 py-2 text-blue-700">{dbField}</td>
+                                </tr>
+                            ))}
+                            {filteredHeaders.length === 0 && (
+                                <tr>
+                                    <td
+                                        colSpan={2}
+                                        className="text-center text-gray-500 py-4 italic"
+                                    >
+                                        Нічого не знайдено...
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 border-t flex justify-end">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700"
+                    >
+                        Закрити
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
