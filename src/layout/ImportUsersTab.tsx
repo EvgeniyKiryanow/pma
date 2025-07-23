@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { HEADER_MAP } from '../utils/headerMap';
 
+// TODO PARSE rankAssignmentDate check Наявність особової справи ні -> push yes
+
 function excelSerialToDate(serial: number): string {
     if (!serial || isNaN(serial)) return '';
 
@@ -32,6 +34,7 @@ function normalizeExcelDate(raw: any): string {
     // ✅ Case 3: dd/MM/yy → try parse
     const parts = str.split(/[./-]/).map((p) => p.trim());
     if (parts.length >= 3) {
+        // eslint-disable-next-line prefer-const
         let [dd, mm, yy] = parts;
         if (parseInt(dd) > 12 && parseInt(mm) <= 12) [dd, mm] = [mm, dd];
 
@@ -58,11 +61,22 @@ export default function ImportUsersTab() {
     const [existingUsers, setExistingUsers] = useState<any[]>([]);
 
     function generateUserKey(user: any): string {
-        // normalize: lowercase, remove extra spaces
+        if (user.taxId && user.taxId.trim()) return `TAXID_${user.taxId.trim()}`;
         const name = (user.fullName || '').trim().toLowerCase();
         const dob = (user.dateOfBirth || '').trim();
         return `${name}_${dob}`;
     }
+
+    function needsUpdate(existing: any, incoming: any): boolean {
+        const keysToCompare = Object.keys(incoming);
+        return keysToCompare.some(
+            (key) =>
+                incoming[key] !== undefined &&
+                incoming[key] !== '' &&
+                String(existing[key] || '').trim() !== String(incoming[key] || '').trim(),
+        );
+    }
+
     const existingKeys = new Set(existingUsers.map(generateUserKey));
 
     useEffect(() => {
@@ -179,38 +193,63 @@ export default function ImportUsersTab() {
 
         console.log('🚀 Starting user import…');
 
-        // ✅ Build quick lookup for existing users
-        const existingKeys = new Set(existingUsers.map(generateUserKey));
+        // ✅ Build lookup for existing users
+        const userLookup = new Map(existingUsers.map((u) => [generateUserKey(u), u]));
 
         for (const row of parsedData) {
             const mappedRow = mapExcelRowToDb(row);
 
+            // ✅ normalize date fields
+            if (mappedRow.dateOfBirth) {
+                mappedRow.dateOfBirth = normalizeExcelDate(mappedRow.dateOfBirth);
+            }
+            if (mappedRow.rankAssignmentDate) {
+                mappedRow.rankAssignmentDate = normalizeExcelDate(mappedRow.rankAssignmentDate);
+            }
+
+            // ✅ force ALL values to TEXT so "ні" stays "ні", no boolean coercion
+            Object.keys(mappedRow).forEach((key) => {
+                mappedRow[key] =
+                    mappedRow[key] !== undefined && mappedRow[key] !== null
+                        ? String(mappedRow[key]).trim()
+                        : '';
+            });
+
+            // ✅ required field check
             if (!mappedRow.fullName?.trim()) {
                 console.error(`❌ Skipping row because fullName is missing`, row);
                 continue;
             }
 
-            // ✅ Normalize DOB
-            if (mappedRow.dateOfBirth) {
-                mappedRow.dateOfBirth = normalizeExcelDate(mappedRow.dateOfBirth);
-            }
+            const key = generateUserKey(mappedRow);
+            const existing = userLookup.get(key);
 
-            const newKey = generateUserKey(mappedRow);
-
-            if (existingKeys.has(newKey)) {
-                console.log(
-                    `⏭ Skipping duplicate: ${mappedRow.fullName} (${mappedRow.dateOfBirth})`,
-                );
-                continue;
-            }
-
-            try {
-                const createdUser = await window.electronAPI.addUser(mappedRow);
-                console.log(`✅ User created: ${createdUser.id || 'No ID returned'}`, createdUser);
-
-                existingKeys.add(newKey); // add newly created so we avoid double import in same session
-            } catch (err) {
-                console.error(`❌ Failed to create user for row:`, mappedRow, err);
+            if (existing) {
+                // ✅ check if new fields need update
+                if (needsUpdate(existing, mappedRow)) {
+                    const updatedUser = { ...existing, ...mappedRow, id: existing.id };
+                    try {
+                        const result = await window.electronAPI.updateUser(updatedUser);
+                        console.log(`🔄 Updated user: ${existing.fullName} (id=${existing.id})`);
+                        userLookup.set(key, result); // refresh cache
+                    } catch (err) {
+                        console.error(`❌ Failed to update user: ${existing.fullName}`, err);
+                    }
+                } else {
+                    console.log(`⏭ No changes for ${existing.fullName}, skipping`);
+                }
+            } else {
+                // ✅ create new user
+                try {
+                    const createdUser = await window.electronAPI.addUser(mappedRow);
+                    console.log(
+                        `✅ User created: ${createdUser.id || 'No ID returned'}`,
+                        createdUser,
+                    );
+                    userLookup.set(key, createdUser);
+                } catch (err) {
+                    console.error(`❌ Failed to create user for row:`, mappedRow, err);
+                }
             }
         }
 
@@ -233,10 +272,6 @@ export default function ImportUsersTab() {
 
             {parsedData.length > 0 && (
                 <>
-                    <div className="w-full overflow-auto border p-4 rounded bg-white shadow">
-                        {/* table preview here */}
-                    </div>
-
                     {/* Import button */}
                     <div className="mt-4 flex gap-4">
                         <button

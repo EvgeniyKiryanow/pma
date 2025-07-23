@@ -230,7 +230,7 @@ export default function RightBar() {
                                 {infoRow(t('user.tDotData'), user.tDotData)}
                                 {infoRow(
                                     t('user.personalPrisonFileExists'),
-                                    user.personalPrisonFileExists ? t('yes') : '—',
+                                    user.personalPrisonFileExists,
                                 )}
                             </div>
                         </section>

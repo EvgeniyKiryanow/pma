@@ -83,10 +83,10 @@ export const HEADER_MAP: Record<string, string> = {
     // ✅ Subordination & unit
     підрозділ: 'unitMain',
     підпорядкування: 'subordination',
-    'Рівень 1': 'unitLevel1',
-    'Рівень 2': 'unitLevel2',
-    Взвод: 'platoon',
-    Відділення: 'squad',
+    'підрозділ 1': 'unitLevel1',
+    'підрозділ 2': 'unitLevel2',
+    взвод: 'platoon',
+    відділення: 'squad',
     'Номер підрозділу': 'unitNumber',
 
     // ✅ Absence & status
