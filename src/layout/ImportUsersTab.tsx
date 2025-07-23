@@ -8,7 +8,7 @@ import {
     generateUserKey,
     needsUpdate,
 } from '../helpers/csvImports';
-import { UploadCloud } from 'lucide-react';
+import { UploadCloud, Search } from 'lucide-react';
 
 export default function ImportUsersTab() {
     const [parsedData, setParsedData] = useState<any[]>([]);
@@ -16,6 +16,31 @@ export default function ImportUsersTab() {
     const [missingDbFields, setMissingDbFields] = useState<string[]>([]);
 
     const [existingUsers, setExistingUsers] = useState<any[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Пошук у колонках і значеннях
+    const lowerSearch = searchTerm.toLowerCase();
+
+    // якщо є пошук – залишаємо тільки ті колонки, де заголовок містить цей текст
+    const visibleColumns =
+        parsedData.length > 0
+            ? Object.keys(parsedData[0]).filter((header) =>
+                  searchTerm.trim() === ''
+                      ? true // якщо пошук порожній → всі
+                      : header.toLowerCase().includes(lowerSearch),
+              )
+            : [];
+
+    const filteredData =
+        parsedData.length > 0
+            ? parsedData.filter((row) =>
+                  Object.entries(row).some(
+                      ([header, val]) =>
+                          visibleColumns.includes(header) &&
+                          String(val).toLowerCase().includes(lowerSearch),
+                  ),
+              )
+            : [];
 
     useEffect(() => {
         // load DB columns
@@ -265,22 +290,36 @@ export default function ImportUsersTab() {
             {/* Попередній перегляд */}
             {parsedData.length > 0 && (
                 <div className="mt-8 w-full bg-white rounded-xl shadow-lg border overflow-hidden">
-                    {/* Заголовок таблиці */}
-                    <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+                    {/* Заголовок таблиці + пошук */}
+                    <div className="p-4 border-b bg-gray-50 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                         <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                             📄 Попередній перегляд даних
                         </h2>
+
+                        {/* Пошук */}
+                        <div className="relative w-full md:w-72">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                            <input
+                                type="text"
+                                placeholder="Пошук по заголовках колонок..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 focus:border-blue-400 focus:ring focus:ring-blue-100 text-sm"
+                            />
+                        </div>
+
                         <span className="text-gray-500 text-sm">
-                            Показано {parsedData.length} рядків
+                            Показано {visibleColumns.length} колонок з{' '}
+                            {Object.keys(parsedData[0]).length}
                         </span>
                     </div>
 
-                    {/* Таблиця на всю ширину */}
+                    {/* Таблиця */}
                     <div className="overflow-auto max-h-[70vh]">
                         <table className="w-full text-sm border-collapse">
                             <thead className="sticky top-0 bg-gray-100 shadow-sm">
                                 <tr>
-                                    {Object.keys(parsedData[0]).map((key) => (
+                                    {visibleColumns.map((key) => (
                                         <th
                                             key={key}
                                             className="border border-gray-300 px-3 py-2 text-left text-gray-700 font-medium"
@@ -298,12 +337,12 @@ export default function ImportUsersTab() {
                                             idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                                         } hover:bg-blue-50`}
                                     >
-                                        {Object.values(row).map((val, i) => (
+                                        {visibleColumns.map((colKey) => (
                                             <td
-                                                key={i}
+                                                key={colKey}
                                                 className="border border-gray-200 px-3 py-2 text-gray-800 whitespace-nowrap"
                                             >
-                                                {val as string}
+                                                {row[colKey] as string}
                                             </td>
                                         ))}
                                     </tr>
