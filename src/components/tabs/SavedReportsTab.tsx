@@ -7,12 +7,11 @@ import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { renderAsync } from 'docx-preview';
 // @ts-ignore
-import UserFields from './_components/UserFields';
 import UserList from './_components/UserList';
-import SavedTemplatesList from './_components/SavedTemplatesList';
 import DocxPreviewModal from './_components/DocxPreviewModal';
 import SavedTemplatesPanel from './_components/SavedTemplatesPanel';
 import { useDocxGenerator } from '../../hooks/useDocxGenerator';
+import UserFieldsModal from './_components/UserFieldsModal';
 
 export default function SavedReportsTab() {
     const { t } = useI18nStore();
@@ -173,25 +172,22 @@ export default function SavedReportsTab() {
             {/* Fields Section */}
             {showAdvanced && (
                 <div className="flex flex-col gap-6 p-4 w-[280px] max-w-[300px] overflow-y-auto border-r bg-white">
-                    {selectedUser && (
-                        <UserFields
-                            user={selectedUser}
-                            includedFields={includedFields}
-                            setIncludedFields={setIncludedFields}
-                            label="Поля користувача"
-                            color="indigo"
-                        />
-                    )}
-
-                    {selectedUser2 && (
-                        <UserFields
-                            user={selectedUser2}
-                            includedFields={includedFields2}
-                            setIncludedFields={setIncludedFields2}
-                            label="Поля другого користувача"
-                            color="green"
-                        />
-                    )}
+                    <UserFieldsModal
+                        open={showAdvanced}
+                        onClose={() => setShowAdvanced(false)}
+                        usersConfig={[
+                            selectedUser && {
+                                user: selectedUser,
+                                includedFields,
+                                setIncludedFields,
+                            },
+                            selectedUser2 && {
+                                user: selectedUser2,
+                                includedFields: includedFields2,
+                                setIncludedFields: setIncludedFields2,
+                            },
+                        ].filter(Boolean)}
+                    />
                 </div>
             )}
 

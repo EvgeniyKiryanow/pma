@@ -105,3 +105,16 @@ export const HEADER_MAP: Record<string, string> = {
     // ✅ Extra Excel-only
     't.': 'tDotData',
 };
+
+export const DB_LABELS: Record<string, string> = Object.entries(HEADER_MAP).reduce(
+    (acc, [ua, db]) => {
+        acc[db] = ua; // e.g. fullName -> "ПІБ"
+        return acc;
+    },
+    {} as Record<string, string>,
+);
+
+// ✅ For any unmapped field → show raw key
+export const getFieldLabel = (key: string): string => {
+    return DB_LABELS[key] || key;
+};

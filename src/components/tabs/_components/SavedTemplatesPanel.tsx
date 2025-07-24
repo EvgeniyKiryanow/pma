@@ -3,6 +3,7 @@ import { useI18nStore } from '../../../stores/i18nStore';
 import { useReportsStore } from '../../../stores/reportsStore';
 import { useState } from 'react';
 import AdditionalInfoModal from './AdditionalInfoModal';
+import UserDataPreviewModal from './UserDataPreviewModal';
 type Props = {
     savedTemplates: any[];
     selectedTemplateId: string | number;
@@ -36,6 +37,7 @@ export default function SavedTemplatesPanel({
 }: Props) {
     const { t } = useI18nStore();
     const [showDialog, setShowDialog] = useState(false);
+    const [showUserPreview, setShowUserPreview] = useState(false);
 
     return (
         <main className="flex-1 p-6 overflow-y-auto bg-white">
@@ -85,7 +87,23 @@ export default function SavedTemplatesPanel({
                 >
                     {t('reports.download')}
                 </button>
+                {/* <button
+                    onClick={() => setShowUserPreview(true)}
+                    disabled={!selectedUser}
+                    className={`px-4 py-2 rounded-md border text-sm font-medium transition ${
+                        !selectedUser
+                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                            : 'text-gray-700 border-gray-300 hover:bg-gray-100'
+                    }`}
+                >
+                    🔍 Переглянути дані користувача
+                </button> */}
             </div>
+            {/* <UserDataPreviewModal
+                open={showUserPreview}
+                onClose={() => setShowUserPreview(false)}
+                user={selectedUser}
+            /> */}
 
             <div className="mt-4 mb-2">
                 <input
