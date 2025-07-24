@@ -227,6 +227,7 @@ export default function ImportUsersTab() {
                 `Оновлено: ${updatedCount}\n` +
                 `Пропущено: ${skippedCount}\n`,
         );
+        window.location.reload();
     };
 
     return (
