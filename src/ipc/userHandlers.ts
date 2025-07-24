@@ -37,26 +37,12 @@ export function registerUserHandlers() {
         educationDetails, residenceAddress, registeredAddress,
         healthConditions, maritalStatus, familyInfo, religion,
         recruitingOffice, driverLicenses, bloodType,
-
-        -- ✅ new hierarchy
         unitMain, unitLevel1, unitLevel2, platoon, squad,
-
-        -- ✅ military specialization
         vosCode, shpkCode, category, kshp,
-
-        -- ✅ rank/appointment
         rankAssignedBy, rankAssignmentDate, appointmentOrder, previousStatus,
-
-        -- ✅ personal
         placeOfBirth, taxId, serviceType, recruitmentOfficeDetails, ubdStatus, childrenInfo,
-
-        -- ✅ absence/status
         bzvpStatus, rvbzPresence, absenceReason, absenceFromDate, absenceToDate,
-
-        -- ✅ subordination
         subordination, gender,
-
-        -- ✅ NEW Excel-specific fields
         personalPrisonFileExists, tDotData,
         positionNominative, positionGenitive, positionDative, positionInstrumental
       ) VALUES (
@@ -182,34 +168,19 @@ export function registerUserHandlers() {
             educationDetails = ?, residenceAddress = ?, registeredAddress = ?,
             healthConditions = ?, maritalStatus = ?, familyInfo = ?, religion = ?,
             recruitingOffice = ?, driverLicenses = ?, bloodType = ?,
-
-            -- ✅ new hierarchy
             unitMain = ?, unitLevel1 = ?, unitLevel2 = ?, platoon = ?, squad = ?,
-
-            -- ✅ military specialization
             vosCode = ?, shpkCode = ?, category = ?, kshp = ?,
-
-            -- ✅ rank/appointment details
             rankAssignedBy = ?, rankAssignmentDate = ?, appointmentOrder = ?, previousStatus = ?,
-
-            -- ✅ personal details
             placeOfBirth = ?, taxId = ?, serviceType = ?, recruitmentOfficeDetails = ?, 
             ubdStatus = ?, childrenInfo = ?,
-
-            -- ✅ absence/status
             bzvpStatus = ?, rvbzPresence = ?, absenceReason = ?, absenceFromDate = ?, absenceToDate = ?,
-
-            -- ✅ subordination
             subordination = ?, gender = ?,
-
-            -- ✅ NEW Excel-specific fields
             personalPrisonFileExists = ?, tDotData = ?,
             positionNominative = ?, positionGenitive = ?, positionDative = ?, positionInstrumental = ?
 
         WHERE id = ?
         `,
             [
-                // existing
                 user.fullName,
                 user.photo,
                 user.phoneNumber,

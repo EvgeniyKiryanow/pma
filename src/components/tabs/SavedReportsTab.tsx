@@ -16,6 +16,7 @@ import { useDocxGenerator } from '../../hooks/useDocxGenerator';
 
 export default function SavedReportsTab() {
     const { t } = useI18nStore();
+    // TODO update this file because did not work
     const [includedFields, setIncludedFields] = useState<Record<string, boolean>>({});
     const [includedFields2, setIncludedFields2] = useState<Record<string, boolean>>({});
     const [searchQuery, setSearchQuery] = useState('');

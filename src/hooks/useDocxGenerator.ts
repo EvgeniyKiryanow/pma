@@ -75,6 +75,7 @@ export function useDocxGenerator() {
                 {} as Record<string, any>,
             );
 
+            console.log(includedFields2, includedFields, 'includedFields2');
             const { rank, position } = selectedUser;
             const morphologyRank = await window.electronAPI.morphy.analyzeWords(rank);
             const morphologyPosition = await window.electronAPI.morphy.analyzeWords(position);
@@ -109,6 +110,7 @@ export function useDocxGenerator() {
             let filteredUserData2: Record<string, any> = {};
             let flattenedFullName2: Record<string, string> = {};
 
+            // TODO included fields update
             if (selectedUser2) {
                 // ✅ Flatten full name with prefix and suffixed keys in one step
                 const flattenedFullName2Raw = await generateAndFlattenFullNameForms(
@@ -155,7 +157,6 @@ export function useDocxGenerator() {
                     !!includedFields2.position,
                     'pos2',
                 );
-                console.log(flattenedRank2, flattenedPosition2, flattenedFullName2);
                 doc.setData({
                     ...filteredUserData,
                     ...flattenedFullName,
@@ -184,6 +185,7 @@ export function useDocxGenerator() {
                 flattenedFullName,
                 flattenCommanderFullName,
                 flattenedUnit,
+                filteredUserData,
             );
             doc.render();
             hideLoader();
