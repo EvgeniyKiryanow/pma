@@ -139,17 +139,18 @@ export function CombatReportBody() {
                 </td>
 
                 {/* Static штат */}
-                <td className="border border-black">20</td>
-                <td className="border border-black">5</td>
+                <td className="border border-black">-</td>
+                <td className="border border-black">-</td>
                 <td style={{ borderRightWidth: '3px' }} className="border border-black">
-                    15
+                    -
                 </td>
 
                 {/* Укомплектованість */}
                 <td className="border border-black">
-                    {(((users.length - totalMissing) / users.length) * 100 || 0).toFixed(0)}%
+                    {/* {(((users.length - totalMissing) / users.length) * 100 || 0).toFixed(0)}% */}
+                    -
                 </td>
-                <td className="border border-black">{users.length}</td>
+                <td className="border border-black">-</td>
                 <td className="border border-black">-</td>
                 <td style={{ borderRightWidth: '3px' }} className="border border-black">
                     -
@@ -157,7 +158,8 @@ export function CombatReportBody() {
 
                 {/* % В НАЯВНОСТІ */}
                 <td style={{ borderRightWidth: '3px' }} className="border border-black">
-                    {(((users.length - totalMissing) / users.length) * 100 || 0).toFixed(0)}%
+                    {/* {(((users.length - totalMissing) / users.length) * 100 || 0).toFixed(0)}% */}
+                    -
                 </td>
 
                 {/* В НАЯВНОСТІ всього */}
