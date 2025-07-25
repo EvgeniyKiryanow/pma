@@ -33,7 +33,7 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 rowSpan={2}
-                                style={{ height: '12vh' }}
+                                style={{ height: '3vh' }}
                             >
                                 №
                             </th>
@@ -41,7 +41,7 @@ export default function GeneratedTablesTabContent() {
                                 className=" font-medium border border-black"
                                 rowSpan={2}
                                 style={{
-                                    height: '12vh',
+                                    height: '3vh',
                                     backgroundColor: '#f0f0f0',
                                     borderLeftWidth: '3px',
                                     borderTopWidth: '3px',
@@ -55,7 +55,7 @@ export default function GeneratedTablesTabContent() {
                                 className=" font-medium border border-black"
                                 colSpan={3}
                                 style={{
-                                    height: '12vh',
+                                    height: '3vh',
                                     backgroundColor: '#f0f0f0',
                                     borderTopWidth: '3px',
                                 }}
@@ -67,7 +67,7 @@ export default function GeneratedTablesTabContent() {
                             {/* <th
                                 className=" font-medium border border-black"
                                 rowSpan={2}
-                                style={{ height: '12vh' }}
+                                style={{ height: '3vh' }}
                             >
                                 % УКОМПЛЕКТОВАННОСТІ
                             </th> */}
@@ -77,7 +77,7 @@ export default function GeneratedTablesTabContent() {
                                 className=" font-medium border border-black"
                                 colSpan={4}
                                 style={{
-                                    height: '12vh',
+                                    height: '3vh',
                                     backgroundColor: '#f0f0f0',
                                     borderLeftWidth: '3px',
                                     borderTopWidth: '3px',
@@ -92,7 +92,7 @@ export default function GeneratedTablesTabContent() {
                                 className=" font-medium border border-black"
                                 rowSpan={2}
                                 style={{
-                                    height: '12vh',
+                                    height: '3vh',
                                     backgroundColor: '#f0f0f0',
                                     borderTopWidth: '3px',
                                 }}
@@ -103,7 +103,7 @@ export default function GeneratedTablesTabContent() {
                                 className=" font-medium border border-black"
                                 rowSpan={2}
                                 style={{
-                                    height: '12vh',
+                                    height: '3vh',
                                     backgroundColor: '#f8da78',
                                     borderLeftWidth: '3px',
                                     borderTopWidth: '3px',
@@ -114,7 +114,7 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 rowSpan={2}
-                                style={{ height: '12vh', borderTopWidth: '3px' }}
+                                style={{ height: '3vh', borderTopWidth: '3px' }}
                             >
                                 ОФІЦЕРИ
                             </th>
@@ -122,7 +122,7 @@ export default function GeneratedTablesTabContent() {
                                 className=" font-medium border border-black"
                                 rowSpan={2}
                                 style={{
-                                    height: '12vh',
+                                    height: '3vh',
                                     borderTopWidth: '3px',
                                     borderRightWidth: '3px',
                                 }}
@@ -135,7 +135,7 @@ export default function GeneratedTablesTabContent() {
                                 className=" font-medium border border-black"
                                 colSpan={25}
                                 style={{
-                                    height: '12vh',
+                                    height: '3vh',
                                     backgroundColor: '#f8da78',
                                     borderTopWidth: '3px',
                                     borderBottomWidth: '3px',
@@ -149,7 +149,7 @@ export default function GeneratedTablesTabContent() {
                                 className=" font-medium border border-black"
                                 rowSpan={2}
                                 style={{
-                                    height: '12vh',
+                                    height: '3vh',
                                     backgroundColor: '#c2d6eb',
                                     borderLeftWidth: '3px',
                                     borderTopWidth: '3px',
@@ -161,7 +161,7 @@ export default function GeneratedTablesTabContent() {
                                 className=" font-medium border border-black"
                                 rowSpan={2}
                                 style={{
-                                    height: '12vh',
+                                    height: '3vh',
                                     backgroundColor: '#d8e9bc',
                                     borderTopWidth: '3px',
                                     borderRightWidth: '3px',
@@ -173,7 +173,7 @@ export default function GeneratedTablesTabContent() {
                                 className=" font-medium border border-black"
                                 rowSpan={2}
                                 style={{
-                                    height: '12vh',
+                                    height: '3vh',
                                     backgroundColor: '#f0ccb0',
                                     borderTopWidth: '3px',
                                 }}
@@ -186,7 +186,7 @@ export default function GeneratedTablesTabContent() {
                                 className=" font-medium border border-black"
                                 colSpan={12}
                                 style={{
-                                    height: '12vh',
+                                    height: '3vh',
                                     backgroundColor: '#f0ccb0',
                                     borderTopWidth: '3px',
                                     borderRightWidth: '3px',
@@ -202,8 +202,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0f0f0',
                                 }}
@@ -214,8 +215,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0f0f0',
                                 }}
@@ -225,8 +227,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0f0f0',
                                     borderRightWidth: '3px',
@@ -239,8 +242,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0f0f0',
                                 }}
@@ -250,8 +254,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0f0f0',
                                 }}
@@ -261,8 +266,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0f0f0',
                                 }}
@@ -272,8 +278,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0f0f0',
                                     borderRightWidth: '3px',
@@ -286,8 +293,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0ccb0',
                                 }}
@@ -297,8 +305,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0ccb0',
                                 }}
@@ -308,8 +317,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0ccb0',
                                 }}
@@ -319,8 +329,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0ccb0',
                                 }}
@@ -330,8 +341,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0ccb0',
                                 }}
@@ -341,8 +353,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#d8e9bc',
                                 }}
@@ -352,8 +365,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#d8e9bc',
                                 }}
@@ -363,8 +377,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#d8e9bc',
                                 }}
@@ -374,8 +389,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#d8e9bc',
                                 }}
@@ -385,8 +401,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#d8e9bc',
                                 }}
@@ -396,8 +413,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#c2d6eb',
                                 }}
@@ -407,8 +425,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#c2d6eb',
                                 }}
@@ -418,8 +437,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#c2d6eb',
                                 }}
@@ -429,8 +449,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#c2d6eb',
                                 }}
@@ -440,8 +461,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                 }}
                             >
@@ -450,8 +472,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     borderRightWidth: '3px',
                                 }}
@@ -461,8 +484,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     fontWeight: 'bold',
                                     backgroundColor: '#fcf2d0',
@@ -473,8 +497,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     fontWeight: 'bold',
                                     backgroundColor: '#fcf2d0',
@@ -485,8 +510,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     fontWeight: 'bold',
                                     backgroundColor: '#fcf2d0',
@@ -497,8 +523,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     fontWeight: 'bold',
                                     backgroundColor: '#fcf2d0',
@@ -509,8 +536,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     fontWeight: 'bold',
                                     backgroundColor: '#fcf2d0',
@@ -521,8 +549,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     fontWeight: 'bold',
                                     backgroundColor: '#fcf2d0',
@@ -533,8 +562,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     fontWeight: 'bold',
                                     backgroundColor: '#fcf2d0',
@@ -545,8 +575,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     fontWeight: 'bold',
                                     backgroundColor: '#fcf2d0',
@@ -557,8 +588,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     fontWeight: 'bold',
                                     backgroundColor: '#fcf2d0',
@@ -571,8 +603,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#fcf2d0',
                                 }}
@@ -582,8 +615,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#fcf2d0',
                                 }}
@@ -593,8 +627,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#fcf2d0',
                                 }}
@@ -604,8 +639,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#fcf2d0',
                                 }}
@@ -615,8 +651,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#fcf2d0',
                                 }}
@@ -626,8 +663,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0ccb0',
                                 }}
@@ -637,8 +675,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0ccb0',
                                 }}
@@ -648,8 +687,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0ccb0',
                                 }}
@@ -659,8 +699,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f6cd9f',
                                 }}
@@ -670,8 +711,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0ccb0',
                                 }}
@@ -681,8 +723,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0ccb0',
                                 }}
@@ -692,8 +735,9 @@ export default function GeneratedTablesTabContent() {
                             <th
                                 className=" font-medium border border-black"
                                 style={{
-                                    height: '4vh',
-                                    whiteSpace: 'nowrap',
+                                    maxWidth: '30px',
+                                    height: '100%',
+                                    wordWrap: 'break-word',
                                     transform: 'rotate(0deg)',
                                     backgroundColor: '#f0ccb0',
                                     borderRightWidth: '3px',
