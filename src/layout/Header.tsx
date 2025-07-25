@@ -197,7 +197,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         }`}
                         onClick={() => setCurrentTab('importUsers')}
                     >
-                        Завантаження таблиць
+                        Excel таблиці
                     </button>
                     <button
                         onClick={() => setCurrentTab('instructions')}
