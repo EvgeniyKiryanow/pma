@@ -114,11 +114,10 @@ export default function UserHistory({
                             : '';
 
                     // ✅ Склеиваем статус + текст (если оба есть)
-                    console.log(desc, 'desc');
                     const combinedDescription = [statusInfo, desc.trim()]
                         .filter(Boolean)
                         .join('\n');
-
+                    console.log(combinedDescription, 'combinedDescription');
                     const newEntry: CommentOrHistoryEntry = {
                         id: Date.now(),
                         date: new Date().toISOString(),
@@ -130,7 +129,7 @@ export default function UserHistory({
                     };
 
                     // ✅ сохраняем историю + при необходимости soldierStatus
-                    onAddHistory(newEntry);
+                    onAddHistory(newEntry, maybeNewStatus);
 
                     // ✅ очищаем модалку
                     setDescription('');

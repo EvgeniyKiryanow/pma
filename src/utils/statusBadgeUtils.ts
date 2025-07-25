@@ -5,7 +5,6 @@ export type StatusBadgeInfo = {
     badgeStyle: string;
 };
 
-// ✅ Full badge map
 export function getStatusBadge(status?: string): StatusBadgeInfo {
     if (!status || status === StatusExcel.NO_STATUS) {
         return {
@@ -14,14 +13,14 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         };
     }
 
-    const s = status.toUpperCase();
+    const s = status.toLowerCase(); // ✅ приводимо до lowercase
 
-    // === ACTIVE COMBAT POSITIONS ===
+    // === АКТИВНІ БОЙОВІ ПОЗИЦІЇ ===
     if (
-        s.includes(StatusExcel.POSITIONS_INFANTRY) ||
-        s.includes(StatusExcel.POSITIONS_CREW) ||
-        s.includes(StatusExcel.POSITIONS_CALCULATION) ||
-        s.includes(StatusExcel.POSITIONS_UAV)
+        s.includes('позиція піхоти') ||
+        s.includes('позиція екіпажу') ||
+        s.includes('позиція розрахунку') ||
+        s.includes('позиція бпла')
     ) {
         return {
             icon: '🪖',
@@ -30,14 +29,14 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         };
     }
 
-    // === ROTATION / RESERVE ===
+    // === РОТАЦІЯ / РЕЗЕРВ ===
     if (
-        s.includes(StatusExcel.ROTATION_INFANTRY) ||
-        s.includes(StatusExcel.ROTATION_CREW) ||
-        s.includes(StatusExcel.ROTATION_CALCULATION) ||
-        s.includes(StatusExcel.ROTATION_UAV) ||
-        s.includes('РОТАЦІЯ') ||
-        s.includes('РЕЗЕРВ')
+        s.includes('ротація піхота') ||
+        s.includes('ротація екіпаж') ||
+        s.includes('ротація розрахунок') ||
+        s.includes('ротація бпла') ||
+        s.includes('ротація') ||
+        s.includes('резерв')
     ) {
         return {
             icon: '🔄',
@@ -46,11 +45,11 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         };
     }
 
-    // === SUPPLY / LOGISTICS ===
+    // === ЗАБЕЗПЕЧЕННЯ ===
     if (
-        s.includes(StatusExcel.SUPPLY_BD) ||
-        s.includes(StatusExcel.SUPPLY_ENGINEERING) ||
-        s.includes(StatusExcel.SUPPLY_LIFE_SUPPORT)
+        s.includes('забезпечення бд') ||
+        s.includes('забезпечення інженерне') ||
+        s.includes('забезпечення життєдіяльності')
     ) {
         return {
             icon: '📦',
@@ -59,12 +58,8 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         };
     }
 
-    // === COMMAND / MANAGEMENT ===
-    if (
-        s.includes(StatusExcel.MANAGEMENT) ||
-        s.includes(StatusExcel.KSP) ||
-        s.includes('УПРАВЛІННЯ')
-    ) {
+    // === УПРАВЛІННЯ ===
+    if (s.includes('управління') || s.includes('ксп')) {
         return {
             icon: '🏢',
             badgeStyle:
@@ -72,16 +67,16 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         };
     }
 
-    // === NON-COMBAT (Training, Attached units, etc.) ===
+    // === НЕ БГ / НЕБЕЗПОСЕРЕДНЯ УЧАСТЬ ===
     if (
-        s.includes(StatusExcel.NON_COMBAT_ATTACHED_UNITS) ||
-        s.includes(StatusExcel.NON_COMBAT_TRAINING_NEWCOMERS) ||
-        s.includes(StatusExcel.NON_COMBAT_HOSPITAL_REFERRAL) ||
-        s.includes(StatusExcel.NON_COMBAT_EXEMPTED) ||
-        s.includes(StatusExcel.NON_COMBAT_TREATMENT_ON_SITE) ||
-        s.includes(StatusExcel.NON_COMBAT_LIMITED_FITNESS) ||
-        s.includes(StatusExcel.NON_COMBAT_AWAITING_DECISION) ||
-        s.includes(StatusExcel.NON_COMBAT_REFUSERS)
+        s.includes('приданий в інший підрозділ') ||
+        s.includes('навчання, новоприбулий') ||
+        s.includes('має направлення на лікування') ||
+        s.includes('звільнений від фізичного навантаження') ||
+        s.includes('лікування на локації') ||
+        s.includes('обмежено придатний') ||
+        s.includes('очікує кадрового рішення') ||
+        s.includes('відмовник')
     ) {
         return {
             icon: '🩺',
@@ -90,13 +85,13 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         };
     }
 
-    // === ABSENT / LEAVE ===
+    // === ВІДСУТНІ / ВІДПУСТКИ ===
     if (
-        s.includes(StatusExcel.ABSENT_MEDICAL_LEAVE) ||
-        s.includes(StatusExcel.ABSENT_ANNUAL_LEAVE) ||
-        s.includes(StatusExcel.ABSENT_FAMILY_LEAVE) ||
-        s.includes(StatusExcel.ABSENT_TRAINING) ||
-        s.includes(StatusExcel.ABSENT_BUSINESS_TRIP)
+        s.includes('відпустка лікування') ||
+        s.includes('відпустка щорічна') ||
+        s.includes('відпустка за сімейними') ||
+        s.includes('навчання') ||
+        s.includes('відрядження')
     ) {
         return {
             icon: '🏖️',
@@ -105,8 +100,8 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         };
     }
 
-    // === ARREST / SZO ===
-    if (s.includes(StatusExcel.ABSENT_ARREST) || s.includes(StatusExcel.ABSENT_SZO)) {
+    // === АРЕШТ / СЗЧ ===
+    if (s.includes('арешт') || s.includes('сзч')) {
         return {
             icon: '⛔',
             badgeStyle:
@@ -114,13 +109,13 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         };
     }
 
-    // === HOSPITAL / MED EVAC (300/500/200) ===
+    // === ШПИТАЛЬ / 300 / 500 / 200 ===
     if (
-        s.includes(StatusExcel.ABSENT_HOSPITAL) ||
-        s.includes(StatusExcel.ABSENT_VLK) ||
-        s.includes(StatusExcel.ABSENT_300) ||
-        s.includes(StatusExcel.ABSENT_500) ||
-        s.includes(StatusExcel.ABSENT_200)
+        s.includes('шпиталь') ||
+        s.includes('влк') ||
+        s.includes('300') ||
+        s.includes('500') ||
+        s.includes('200')
     ) {
         return {
             icon: '🚑',
@@ -129,7 +124,7 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         };
     }
 
-    // === DEFAULT FALLBACK ===
+    // === ФОЛБЕК ===
     return {
         icon: '⚪',
         badgeStyle: 'bg-gray-100 text-gray-600 border-gray-200',
