@@ -3,9 +3,10 @@ import { useUserStore } from '../../../stores/userStore';
 import { StatusExcel } from '../../../utils/excelUserStatuses';
 
 // ✅ Count how many users have each soldierStatus
-function countStatuses(users: { soldierStatus: string }[]) {
+function countStatuses(users: { soldierStatus?: string }[]) {
     const counts: Record<string, number> = {};
     for (const u of users) {
+        if (!u.soldierStatus) continue; // skip if no status
         const status = u.soldierStatus;
         counts[status] = (counts[status] || 0) + 1;
     }
