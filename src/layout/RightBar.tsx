@@ -7,6 +7,7 @@ import CommentsModal from '../components/userInfo/CommentsModal';
 import { Edit3, MessageCircle, Trash2, ClipboardList } from 'lucide-react';
 import { useI18nStore } from '../stores/i18nStore';
 import { StatusExcel } from 'src/utils/excelUserStatuses';
+import UserStatisticsDrawer from '../components/UserStatisticsDrawer';
 
 export default function RightBar() {
     const [showComments, setShowComments] = useState(false);
@@ -45,6 +46,7 @@ export default function RightBar() {
     const deleteUser = useUserStore((s) => s.deleteUser);
     const openUserFormForEdit = useUserStore((s) => s.openUserFormForEdit);
     const setSelectedUser = useUserStore((s) => s.setSelectedUser);
+    const [showStatistics, setShowStatistics] = useState(false);
 
     const handleAddHistory = (newEntry: CommentOrHistoryEntry, maybeNewStatus?: StatusExcel) => {
         if (!user) return;
@@ -122,8 +124,17 @@ export default function RightBar() {
                     >
                         <Trash2 className="w-4 h-4" /> {t('rightBar.delete')}
                     </button>
+                    <button
+                        onClick={() => setShowStatistics(true)}
+                        className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition bg-purple-600 hover:bg-purple-700 text-white"
+                    >
+                        📊 {t('rightBar.statistics')}
+                    </button>
                 </div>
             </section>
+            {showStatistics && (
+                <UserStatisticsDrawer user={user} onClose={() => setShowStatistics(false)} />
+            )}
 
             {/* === MAIN CONTENT LAYOUT === */}
             <div

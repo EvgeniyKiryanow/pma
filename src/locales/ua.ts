@@ -72,6 +72,7 @@ export const ua = {
         history: 'Історія',
         showMore: 'Показати більше',
         showLess: 'Сховати',
+        statistics: 'Статистика',
     },
     backupPanel: {
         title: 'Панель Резервного Копіювання',
