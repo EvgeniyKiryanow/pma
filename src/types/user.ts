@@ -101,6 +101,7 @@ export type User = {
     positionGenitive?: string;
     positionDative?: string;
     positionInstrumental?: string;
+    soldierStatus?: string;
 };
 
 export type Gender = 'male' | 'female';

@@ -19,6 +19,20 @@ export default function UserCard({ user }: { user: User }) {
                 <h2 className="text-3xl font-bold">{user.fullName}</h2>
                 <p className="text-gray-600">{user.rank || '—'}</p>
                 <p className="text-sm text-gray-500 mt-1">{user.position || '—'}</p>
+                <div className="mt-2 flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Статус:</span>
+
+                    {user.soldierStatus ? (
+                        <span
+                            className="inline-block px-3 py-1 text-xs font-semibold rounded-full 
+                 bg-blue-100 text-blue-800 border border-blue-300 shadow-sm"
+                        >
+                            {user.soldierStatus}
+                        </span>
+                    ) : (
+                        <span className="text-sm text-gray-400 italic">— не вказано —</span>
+                    )}
+                </div>
             </div>
         </div>
     );

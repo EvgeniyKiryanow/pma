@@ -20,6 +20,9 @@ type UserStore = {
     setSelectedUser: (user: User | null) => void;
     refreshUsersFromDb: () => Promise<void>;
     setCurrentTab: (tab: any) => void;
+
+    sidebarCollapsed: boolean;
+    setSidebarCollapsed: (val: boolean) => void;
 };
 
 export const useUserStore = create<UserStore>((set, get) => ({
@@ -28,6 +31,8 @@ export const useUserStore = create<UserStore>((set, get) => ({
     editingUser: null,
     isUserFormOpen: false,
     currentTab: 'manager',
+    sidebarCollapsed: false,
+    setSidebarCollapsed: (val) => set({ sidebarCollapsed: val }),
     setCurrentTab: (tab: any) => set({ currentTab: tab }),
     clearUser: () =>
         set({

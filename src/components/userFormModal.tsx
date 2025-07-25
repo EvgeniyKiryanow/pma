@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useUserStore } from '../stores/userStore';
 import type { User, RelativeContact } from '../types/user';
 import { useI18nStore } from '../stores/i18nStore';
+import { StatusExcel } from '../types/excelUserStatuses';
 
 export default function UserFormModalUpdate({
     userToEdit,
@@ -95,6 +96,7 @@ export default function UserFormModalUpdate({
         positionGenitive: '',
         positionDative: '',
         positionInstrumental: '',
+        soldierStatus: '',
     });
 
     const [photoPreview, setPhotoPreview] = useState<string>('');
@@ -270,6 +272,25 @@ export default function UserFormModalUpdate({
                             {renderField('notes', true)}
                         </div>
                     </section>
+
+                    {/* Soldier Status dropdown */}
+                    <div className="col-span-1">
+                        <label className="text-sm text-gray-700 block mb-1">
+                            {t('user.soldierStatus')}
+                        </label>
+                        <select
+                            className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
+                            value={form.soldierStatus || ''} // ✅ Controlled
+                            onChange={(e) => handleChange('soldierStatus', e.target.value)} // ✅ Updates form
+                        >
+                            <option value="">-- Оберіть статус --</option>
+                            {Object.values(StatusExcel).map((status) => (
+                                <option key={status} value={status}>
+                                    {status}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
                     {/* ✅ 2. Personal Details */}
                     <section>

@@ -81,7 +81,8 @@ export async function initializeDb() {
             religion TEXT,
             recruitingOffice TEXT,
             driverLicenses TEXT,
-            bloodType TEXT
+            bloodType TEXT,
+            soldierStatus TEXT
         );
     `);
 
@@ -204,6 +205,7 @@ export async function initializeDb() {
         ['positionGenitive', 'TEXT'], // повна посада родовий
         ['positionDative', 'TEXT'], // повна посада давальний
         ['positionInstrumental', 'TEXT'], // повна посада орудний
+        ['soldierStatus', 'TEXT'],
     ];
 
     for (const [colName, colType] of requiredUserColumns) {

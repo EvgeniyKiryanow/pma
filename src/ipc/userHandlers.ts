@@ -44,7 +44,7 @@ export function registerUserHandlers() {
         bzvpStatus, rvbzPresence, absenceReason, absenceFromDate, absenceToDate,
         subordination, gender,
         personalPrisonFileExists, tDotData,
-        positionNominative, positionGenitive, positionDative, positionInstrumental
+        positionNominative, positionGenitive, positionDative, positionInstrumental, soldierStatus
       ) VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?,
@@ -54,7 +54,7 @@ export function registerUserHandlers() {
         ?, ?, ?, ?, ?,
         ?, ?,  -- subordination, gender
         ?, ?,  -- personalPrisonFileExists, tDotData
-        ?, ?, ?, ? -- all 4 position cases
+        ?, ?, ?, ?, ? -- all 5 position cases
       )
     `);
 
@@ -141,6 +141,7 @@ export function registerUserHandlers() {
             user.positionGenitive,
             user.positionDative,
             user.positionInstrumental,
+            user.soldierStatus,
         );
 
         const inserted = await db.get('SELECT * FROM users WHERE id = ?', result.lastID);
@@ -176,7 +177,8 @@ export function registerUserHandlers() {
             bzvpStatus = ?, rvbzPresence = ?, absenceReason = ?, absenceFromDate = ?, absenceToDate = ?,
             subordination = ?, gender = ?,
             personalPrisonFileExists = ?, tDotData = ?,
-            positionNominative = ?, positionGenitive = ?, positionDative = ?, positionInstrumental = ?
+            positionNominative = ?, positionGenitive = ?, positionDative = ?, positionInstrumental = ?,
+            soldierStatus = ?
 
         WHERE id = ?
         `,
@@ -263,6 +265,7 @@ export function registerUserHandlers() {
                 user.positionGenitive,
                 user.positionDative,
                 user.positionInstrumental,
+                user.soldierStatus,
 
                 // ✅ WHERE id
                 user.id,
