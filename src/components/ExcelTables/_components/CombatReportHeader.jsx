@@ -1,194 +1,207 @@
 import React from 'react';
 export function CombatReportHeader() {
   return (
-   <thead>
-                        <tr>
-                            <th
-                                colSpan={53}
-                                className="px-4 py-4 text-center font-bold text-lg border border-black"
-                            >
-                                ДОНЕСЕННЯ
-                            </th>
-                        </tr>
-                        {/* Перший рядок заголовків */}
-                        <tr />
-                        <tr>
-                            <th
-                                colSpan={53}
-                                className="px-4 py-4 text-center font-bold text-lg border border-black"
-                            >
-                                Про бойовий та чисельний склад 1МБ 151 ОМБр на 7/25/25
-                            </th>
-                        </tr>
-                        <tr>
-                            <th
-                                className=" font-medium border border-black"
-                                rowSpan={2}
-                                style={{ height: '3vh' }}
-                            >
-                                №
-                            </th>
-                            <th
-                                className=" font-medium border border-black"
-                                rowSpan={2}
-                                style={{
-                                    height: '3vh',
-                                    backgroundColor: '#f0f0f0',
-                                    borderLeftWidth: '3px',
-                                    borderTopWidth: '3px',
-                                }}
-                            >
-                                ПІДРОЗДІЛИ
-                            </th>
+    <thead>
+      <CombatReportHeadTitle />
+      <CombatReportHeadMainGroups />
+      <CombatReportHeadDetails />
+    </thead>
+  );
+}
+function CombatReportHeadTitle() {
+  return (
+    <>
+      <tr>
+        <th
+          colSpan={53}
+          className="px-4 py-4 text-center font-bold text-lg border border-black"
+        >
+          ДОНЕСЕННЯ
+        </th>
+      </tr>
+      {/* Empty row just for spacing */}
+      <tr />
+      <tr>
+        <th
+          colSpan={53}
+          className="px-4 py-4 text-center font-bold text-lg border border-black"
+        >
+          Про бойовий та чисельний склад 1МБ 151 ОМБр на 7/25/25
+        </th>
+      </tr>
+    </>
+  );
+}
+function CombatReportHeadMainGroups() {
+  return (
+    <tr>
+      <th
+        className="font-medium border border-black"
+        rowSpan={2}
+        style={{ height: '3vh' }}
+      >
+        №
+      </th>
 
-                            {/* ЗА ШТАТОМ */}
-                            <th
-                                className=" font-medium border border-black"
-                                colSpan={3}
-                                style={{
-                                    height: '3vh',
-                                    backgroundColor: '#f0f0f0',
-                                    borderTopWidth: '3px',
-                                }}
-                            >
-                                ЗА ШТАТОМ
-                            </th>
+      <th
+        className="font-medium border border-black"
+        rowSpan={2}
+        style={{
+          height: '3vh',
+          backgroundColor: '#f0f0f0',
+          borderLeftWidth: '3px',
+          borderTopWidth: '3px',
+        }}
+      >
+        ПІДРОЗДІЛИ
+      </th>
 
-                            {/* % УКОМПЛЕКТОВАННОСТІ */}
-                            {/* <th
-                                className=" font-medium border border-black"
-                                rowSpan={2}
-                                style={{ height: '3vh' }}
-                            >
-                                % УКОМПЛЕКТОВАННОСТІ
-                            </th> */}
+      {/* ЗА ШТАТОМ */}
+      <th
+        className="font-medium border border-black"
+        colSpan={3}
+        style={{
+          height: '3vh',
+          backgroundColor: '#f0f0f0',
+          borderTopWidth: '3px',
+        }}
+      >
+        ЗА ШТАТОМ
+      </th>
 
-                            {/* ЗА СПИСКОМ */}
-                            <th
-                                className=" font-medium border border-black"
-                                colSpan={4}
-                                style={{
-                                    height: '3vh',
-                                    backgroundColor: '#f0f0f0',
-                                    borderLeftWidth: '3px',
-                                    borderTopWidth: '3px',
-                                    borderRightWidth: '3px',
-                                }}
-                            >
-                                ЗА СПИСКОМ
-                            </th>
+      {/* ЗА СПИСКОМ */}
+      <th
+        className="font-medium border border-black"
+        colSpan={4}
+        style={{
+          height: '3vh',
+          backgroundColor: '#f0f0f0',
+          borderLeftWidth: '3px',
+          borderTopWidth: '3px',
+          borderRightWidth: '3px',
+        }}
+      >
+        ЗА СПИСКОМ
+      </th>
 
-                            {/* % В НАЯВНОСТІ */}
-                            <th
-                                className=" font-medium border border-black"
-                                rowSpan={2}
-                                style={{
-                                    height: '3vh',
-                                    backgroundColor: '#f0f0f0',
-                                    borderTopWidth: '3px',
-                                }}
-                            >
-                                % В НАЯВНОСТІ
-                            </th>
-                            <th
-                                className=" font-medium border border-black"
-                                rowSpan={2}
-                                style={{
-                                    height: '3vh',
-                                    backgroundColor: '#f8da78',
-                                    borderLeftWidth: '3px',
-                                    borderTopWidth: '3px',
-                                }}
-                            >
-                                В НАЯВНОСТІ ВСЬОГО
-                            </th>
-                            <th
-                                className=" font-medium border border-black"
-                                rowSpan={2}
-                                style={{ height: '3vh', borderTopWidth: '3px' }}
-                            >
-                                ОФІЦЕРИ
-                            </th>
-                            <th
-                                className=" font-medium border border-black"
-                                rowSpan={2}
-                                style={{
-                                    height: '3vh',
-                                    borderTopWidth: '3px',
-                                    borderRightWidth: '3px',
-                                }}
-                            >
-                                СЕРЖАНТИ СОЛДАТИ
-                            </th>
+      {/* % В НАЯВНОСТІ */}
+      <th
+        className="font-medium border border-black"
+        rowSpan={2}
+        style={{
+          height: '3vh',
+          backgroundColor: '#f0f0f0',
+          borderTopWidth: '3px',
+        }}
+      >
+        % В НАЯВНОСТІ
+      </th>
 
-                            {/* З НИХ */}
-                            <th
-                                className=" font-medium border border-black"
-                                colSpan={25}
-                                style={{
-                                    height: '3vh',
-                                    backgroundColor: '#f8da78',
-                                    borderTopWidth: '3px',
-                                    borderBottomWidth: '3px',
-                                }}
-                            >
-                                з наявних в районі ВБД:
-                            </th>
+      <th
+        className="font-medium border border-black"
+        rowSpan={2}
+        style={{
+          height: '3vh',
+          backgroundColor: '#f8da78',
+          borderLeftWidth: '3px',
+          borderTopWidth: '3px',
+        }}
+      >
+        В НАЯВНОСТІ ВСЬОГО
+      </th>
 
-                            {/* Дві окремі */}
-                            <th
-                                className=" font-medium border border-black"
-                                rowSpan={2}
-                                style={{
-                                    height: '3vh',
-                                    backgroundColor: '#c2d6eb',
-                                    borderLeftWidth: '3px',
-                                    borderTopWidth: '3px',
-                                }}
-                            >
-                                ПІДПОРЯДКУВАННЯ ІНШІЙ В/Ч
-                            </th>
-                            <th
-                                className=" font-medium border border-black"
-                                rowSpan={2}
-                                style={{
-                                    height: '3vh',
-                                    backgroundColor: '#d8e9bc',
-                                    borderTopWidth: '3px',
-                                    borderRightWidth: '3px',
-                                }}
-                            >
-                                ППД НЕ В РАЙОНІ
-                            </th>
-                            <th
-                                className=" font-medium border border-black"
-                                rowSpan={2}
-                                style={{
-                                    height: '3vh',
-                                    backgroundColor: '#f0ccb0',
-                                    borderTopWidth: '3px',
-                                }}
-                            >
-                                ВІДСУТНІСТЬ ВСЬОГО:
-                            </th>
+      <th
+        className="font-medium border border-black"
+        rowSpan={2}
+        style={{ height: '3vh', borderTopWidth: '3px' }}
+      >
+        ОФІЦЕРИ
+      </th>
 
-                            {/* ВІДСУТНІ */}
-                            <th
-                                className=" font-medium border border-black"
-                                colSpan={12}
-                                style={{
-                                    height: '3vh',
-                                    backgroundColor: '#f0ccb0',
-                                    borderTopWidth: '3px',
-                                    borderRightWidth: '3px',
-                                }}
-                            >
-                                причини відсутності:
-                            </th>
-                        </tr>
+      <th
+        className="font-medium border border-black"
+        rowSpan={2}
+        style={{
+          height: '3vh',
+          borderTopWidth: '3px',
+          borderRightWidth: '3px',
+        }}
+      >
+        СЕРЖАНТИ СОЛДАТИ
+      </th>
 
-                        {/* Другий рядок заголовків */}
-                        <tr>
+      {/* З НИХ */}
+      <th
+        className="font-medium border border-black"
+        colSpan={25}
+        style={{
+          height: '3vh',
+          backgroundColor: '#f8da78',
+          borderTopWidth: '3px',
+          borderBottomWidth: '3px',
+        }}
+      >
+        з наявних в районі ВБД:
+      </th>
+
+      {/* Дві окремі */}
+      <th
+        className="font-medium border border-black"
+        rowSpan={2}
+        style={{
+          height: '3vh',
+          backgroundColor: '#c2d6eb',
+          borderLeftWidth: '3px',
+          borderTopWidth: '3px',
+        }}
+      >
+        ПІДПОРЯДКУВАННЯ ІНШІЙ В/Ч
+      </th>
+
+      <th
+        className="font-medium border border-black"
+        rowSpan={2}
+        style={{
+          height: '3vh',
+          backgroundColor: '#d8e9bc',
+          borderTopWidth: '3px',
+          borderRightWidth: '3px',
+        }}
+      >
+        ППД НЕ В РАЙОНІ
+      </th>
+
+      <th
+        className="font-medium border border-black"
+        rowSpan={2}
+        style={{
+          height: '3vh',
+          backgroundColor: '#f0ccb0',
+          borderTopWidth: '3px',
+        }}
+      >
+        ВІДСУТНІСТЬ ВСЬОГО:
+      </th>
+
+      {/* ВІДСУТНІ */}
+      <th
+        className="font-medium border border-black"
+        colSpan={12}
+        style={{
+          height: '3vh',
+          backgroundColor: '#f0ccb0',
+          borderTopWidth: '3px',
+          borderRightWidth: '3px',
+        }}
+      >
+        причини відсутності:
+      </th>
+    </tr>
+  );
+}
+function CombatReportHeadDetails() {
+  return ( 
+  <tr>
                             {/* ЗА ШТАТОМ */}
                             <th
                                 className=" font-medium border border-black"
@@ -737,6 +750,5 @@ export function CombatReportHeader() {
                                 200
                             </th>
                         </tr>
-                    </thead>
-  );
+  )
 }
