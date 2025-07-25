@@ -1,4 +1,4 @@
-import { X, BarChart2, Clock } from 'lucide-react';
+import { X, BarChart2, Clock, ArrowRight } from 'lucide-react';
 import type { User } from '../types/user';
 
 type Props = {
@@ -9,35 +9,95 @@ type Props = {
 export default function UserStatisticsDrawer({ user, onClose }: Props) {
     if (!user) return null;
 
-    // Filter only statusChange entries
+    // ✅ Take only status changes
     const statusHistory = (user.history || []).filter((h) => h.type === 'statusChange');
 
-    // Sort by date descending
-    statusHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Sort oldest → newest
+    statusHistory.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     const totalChanges = statusHistory.length;
 
-    // Calculate average time between changes
-    let avgTimeBetweenChanges = null;
-    if (statusHistory.length > 1) {
-        let totalDiff = 0;
-        for (let i = 0; i < statusHistory.length - 1; i++) {
-            const diff =
-                new Date(statusHistory[i].date).getTime() -
-                new Date(statusHistory[i + 1].date).getTime();
-            totalDiff += diff;
+    // ✅ Avg time between changes
+    let avgTimeDays: number | null = null;
+    if (totalChanges > 1) {
+        let totalDiffMs = 0;
+        for (let i = 0; i < totalChanges - 1; i++) {
+            totalDiffMs +=
+                new Date(statusHistory[i + 1].date).getTime() -
+                new Date(statusHistory[i].date).getTime();
         }
-        const avgMs = totalDiff / (statusHistory.length - 1);
-        const avgDays = Math.round(avgMs / (1000 * 60 * 60 * 24));
-        avgTimeBetweenChanges = avgDays;
+        avgTimeDays = Math.max(
+            1,
+            Math.round(totalDiffMs / (totalChanges - 1) / (1000 * 60 * 60 * 24)),
+        );
     }
 
+    // ✅ Build cleaned periods
+    type Period = { status: string; start: Date; end: Date };
+
+    const cleanedPeriods: Period[] = [];
+    for (let i = 0; i < statusHistory.length; i++) {
+        const match = statusHistory[i].description?.match(/"(.+?)"\s*→\s*"(.+?)"/);
+        const newStatus = match ? match[2] : null;
+        if (!newStatus) continue;
+
+        const start = new Date(statusHistory[i].date);
+
+        // If next change exists → it's the end of this period
+        const nextChangeDate =
+            i < statusHistory.length - 1 ? new Date(statusHistory[i + 1].date) : new Date();
+
+        cleanedPeriods.push({ status: newStatus, start, end: nextChangeDate });
+    }
+
+    // ✅ Merge same-day changes into a single day block
+    const mergedDayUsage: Record<
+        string,
+        { uniqueDays: Set<string>; periods: { start: Date; end: Date }[] }
+    > = {};
+
+    cleanedPeriods.forEach((period) => {
+        const dayKeyStart = period.start.toISOString().split('T')[0];
+        const dayKeyEnd = period.end.toISOString().split('T')[0];
+
+        // If multiple changes happened same day → still count only 1
+        const dayKey = dayKeyStart; // since start & end on same day for rapid changes
+        if (!mergedDayUsage[period.status]) {
+            mergedDayUsage[period.status] = { uniqueDays: new Set(), periods: [] };
+        }
+        mergedDayUsage[period.status].uniqueDays.add(dayKey);
+
+        // Always push period (even if same-day)
+        mergedDayUsage[period.status].periods.push({ start: period.start, end: period.end });
+    });
+
+    // ✅ Convert to array & count true unique days
+    const groupedArray = Object.entries(mergedDayUsage)
+        .map(([status, info]) => ({
+            status,
+            uniqueDays: info.uniqueDays.size,
+            periods: info.periods,
+        }))
+        .sort((a, b) => b.uniqueDays - a.uniqueDays);
+
+    const mostFrequentStatus = groupedArray[0]?.status || '—';
+    const mostFrequentDays = groupedArray[0]?.uniqueDays || 0;
+
+    const lastStatus =
+        cleanedPeriods.length > 0
+            ? cleanedPeriods[cleanedPeriods.length - 1].status
+            : user.soldierStatus || '—';
+    const lastStatusDate =
+        cleanedPeriods.length > 0
+            ? cleanedPeriods[cleanedPeriods.length - 1].start.toLocaleDateString()
+            : '—';
+
     return (
-        <div className="fixed top-0 right-0 h-full w-[30%] min-w-[320px] bg-white shadow-2xl border-l border-gray-200 z-50 flex flex-col animate-slide-in">
-            {/* Header */}
+        <div className="fixed top-0 right-0 h-full w-[30%] min-w-[340px] bg-white shadow-2xl border-l border-gray-200 z-50 flex flex-col animate-slide-in">
+            {/* HEADER */}
             <div className="flex justify-between items-center px-5 py-4 border-b bg-gradient-to-r from-purple-50 to-purple-100">
                 <h2 className="text-lg font-bold text-purple-800 flex items-center gap-2">
-                    <BarChart2 className="w-5 h-5" /> Статистика
+                    <BarChart2 className="w-5 h-5" /> Статистика користувача
                 </h2>
                 <button
                     onClick={onClose}
@@ -48,55 +108,82 @@ export default function UserStatisticsDrawer({ user, onClose }: Props) {
                 </button>
             </div>
 
-            {/* Content */}
+            {/* CONTENT */}
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
-                {/* Summary */}
-                <div className="p-4 rounded-lg bg-purple-50 border border-purple-200 shadow-sm">
+                {/* === SUMMARY === */}
+                <div className="p-4 rounded-lg bg-purple-50 border border-purple-200 shadow-sm space-y-2">
                     <p className="text-sm text-gray-700">
                         Загальна кількість змін статусу:{' '}
                         <span className="font-semibold text-purple-800">{totalChanges}</span>
                     </p>
 
-                    {avgTimeBetweenChanges !== null && (
-                        <p className="text-sm text-gray-700 mt-1 flex items-center gap-1">
+                    {avgTimeDays !== null && (
+                        <p className="text-sm text-gray-700 flex items-center gap-1">
                             <Clock className="w-4 h-4 text-purple-600" />
                             Середній час між змінами:{' '}
-                            <span className="font-semibold text-purple-800">
-                                {avgTimeBetweenChanges} днів
-                            </span>
+                            <span className="font-semibold text-purple-800">{avgTimeDays} дн.</span>
                         </p>
                     )}
+
+                    <p className="text-sm text-gray-700">
+                        Найбільше часу у статусі:{' '}
+                        <span className="font-semibold text-purple-800">
+                            {mostFrequentStatus} ({mostFrequentDays} дн.)
+                        </span>
+                    </p>
+
+                    <p className="text-sm text-gray-700">
+                        Останній статус:{' '}
+                        <span className="font-semibold text-blue-700">{lastStatus}</span> з{' '}
+                        <span className="text-gray-500">{lastStatusDate}</span>
+                    </p>
                 </div>
 
-                {/* List of changes */}
+                {/* === GROUPED STATUS LIST === */}
                 <div>
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Історія змін:</h3>
-                    {statusHistory.length === 0 ? (
-                        <p className="text-gray-400 italic">Змін статусу немає</p>
-                    ) : (
-                        <ul className="space-y-3">
-                            {statusHistory.map((h) => {
-                                const match = h.description?.match(/"(.+?)"\s*→\s*"(.+?)"/);
-                                const prev = match ? match[1] : '—';
-                                const next = match ? match[2] : '—';
+                    <h3 className="text-sm font-semibold text-gray-600 mb-3">
+                        Детально по кожному статусу:
+                    </h3>
 
-                                return (
-                                    <li
-                                        key={h.id}
-                                        className="p-3 rounded-md border border-gray-200 bg-gray-50 shadow-sm"
-                                    >
-                                        <p className="text-sm font-medium text-gray-800">
-                                            {new Date(h.date).toLocaleString()}
-                                        </p>
-                                        <p className="text-xs text-gray-600">
-                                            <span className="font-semibold">{prev}</span> →{' '}
-                                            <span className="font-semibold text-green-700">
-                                                {next}
+                    {groupedArray.length === 0 ? (
+                        <p className="text-gray-400 italic">Немає даних про статуси</p>
+                    ) : (
+                        <ul className="space-y-4">
+                            {groupedArray.map((entry, idx) => (
+                                <li
+                                    key={idx}
+                                    className="p-4 rounded-md border border-gray-200 bg-gray-50 shadow-sm hover:shadow-md transition"
+                                >
+                                    {/* Status Name */}
+                                    <h4 className="text-sm font-bold text-purple-800 mb-1">
+                                        {entry.status}
+                                    </h4>
+
+                                    {/* Periods */}
+                                    <div className="text-xs text-gray-600 mb-2">
+                                        <span className="font-medium">Періоди:</span>{' '}
+                                        {entry.periods.map((p, i) => (
+                                            <span key={i} className="inline-flex items-center">
+                                                {p.start.toLocaleDateString()}{' '}
+                                                <ArrowRight className="w-3 h-3 mx-1" />
+                                                {p.end.toLocaleDateString()}
+                                                {i < entry.periods.length - 1 && ', '}
                                             </span>
-                                        </p>
-                                    </li>
-                                );
-                            })}
+                                        ))}
+                                    </div>
+
+                                    {/* Summary */}
+                                    <div className="flex flex-wrap gap-3 text-xs text-gray-700">
+                                        <span className="bg-gray-100 px-2 py-1 rounded-md border">
+                                            Унікальних днів: <strong>{entry.uniqueDays}</strong>
+                                        </span>
+                                        <span className="bg-gray-100 px-2 py-1 rounded-md border">
+                                            Кількість переходів:{' '}
+                                            <strong>{entry.periods.length}</strong>
+                                        </span>
+                                    </div>
+                                </li>
+                            ))}
                         </ul>
                     )}
                 </div>
