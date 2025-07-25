@@ -13,11 +13,16 @@ export default function HistoryItem({ entry, onDelete }: Props) {
     const isStatusChange = entry.type === 'statusChange';
     const dateFormatted = new Date(entry.date).toLocaleString();
 
-    // Extract old/new status
+    // ✅ Разделяем по строкам, если в описании несколько частей
+    const descriptionLines = entry.description?.split('\n') || [];
+    const firstLine = descriptionLines[0] || '';
+    const restLines = descriptionLines.slice(1).join('\n');
+
+    // ✅ Выделяем prevStatus и newStatus из первой строки
     let prevStatus: string | null = null;
     let newStatus: string | null = null;
-    if (isStatusChange && entry.description) {
-        const match = entry.description.match(/"(.+?)"\s*→\s*"(.+?)"/);
+    if (isStatusChange && firstLine) {
+        const match = firstLine.match(/"(.+?)"\s*→\s*"(.+?)"/);
         if (match) {
             prevStatus = match[1];
             newStatus = match[2];
@@ -40,16 +45,16 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                 <CalendarDays className="w-4 h-4 text-blue-500" />
                 <span className="uppercase font-medium text-blue-600">
                     {isStatusChange
-                        ? t('historyItem.type.statusChange') // 🔥 "Був змінений статус!"
+                        ? t('historyItem.type.statusChange')
                         : t(`historyItem.type.${entry.type}`)}
                 </span>
                 <span className="text-gray-400">•</span>
                 <span>{dateFormatted}</span>
             </div>
 
-            {/* ✅ Status change block */}
+            {/* ✅ Статусный блок */}
             {isStatusChange && prevStatus && newStatus && (
-                <div className="p-4 rounded-xl border border-blue-300 bg-gradient-to-br from-blue-50 to-white shadow-sm">
+                <div className="p-4 rounded-xl border border-blue-300 bg-gradient-to-br from-blue-50 to-white shadow-sm mb-3">
                     {/* Title Row */}
                     <div className="flex items-center gap-2 mb-2">
                         <div className="bg-blue-100 text-blue-700 p-2 rounded-full">
@@ -60,10 +65,10 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                         </h3>
                     </div>
 
-                    {/* Extra description line */}
+                    {/* Extra description */}
                     <p className="text-sm text-gray-600 mb-3 leading-snug">
                         {t('historyItem.statusChangeDescription') ||
-                            'Статус особового складу був оновлений. Нижче вказані попередній та новий статус.'}
+                            'Статус особового складу був оновлений. Нижче показані старий та новий статус.'}
                     </p>
 
                     {/* Statuses */}
@@ -84,14 +89,21 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                 </div>
             )}
 
-            {/* ✅ Regular description for non-status entries */}
+            {/* ✅ Если есть дополнительный текст после статуса – выводим */}
+            {isStatusChange && restLines && (
+                <p className="text-gray-700 text-sm mb-3 leading-relaxed whitespace-pre-line">
+                    {restLines}
+                </p>
+            )}
+
+            {/* ✅ Обычное описание, если это не статус */}
             {!isStatusChange && entry.description && (
-                <p className="text-gray-800 font-medium text-base mb-3 leading-relaxed">
+                <p className="text-gray-800 font-medium text-base mb-3 leading-relaxed whitespace-pre-line">
                     {entry.description}
                 </p>
             )}
 
-            {/* ✅ File previews remain the same */}
+            {/* ✅ Files preview */}
             {entry.files?.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-3">
                     {entry.files.map((file, i) => (
@@ -139,7 +151,7 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                 </div>
             )}
 
-            {/* ✅ Extra content for plain text */}
+            {/* ✅ Extra content for text-only */}
             {entry.type === 'text' && entry.content && (
                 <div className="mt-3 p-3 rounded-md bg-blue-50 text-blue-700 text-sm leading-snug">
                     {entry.content}

@@ -146,6 +146,7 @@ export const ua = {
     },
     historyModal: {
         title: 'Додати Запис Історії',
+        statusWillChange: 'Статус змінеться',
         cancel: 'Закрити',
         description: 'Опис',
         descriptionPlaceholder: 'Введіть детальний опис для цього запису історії...',

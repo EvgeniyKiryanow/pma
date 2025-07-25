@@ -57,22 +57,6 @@ export default function UserHistory({
         );
     }, [history, searchTerm]);
 
-    const handleSubmit = async () => {
-        const newEntry: CommentOrHistoryEntry = {
-            id: Date.now(),
-            type: 'history',
-            date: new Date().toISOString(),
-            author: 'You',
-            description,
-            content: '',
-            files,
-        };
-        onAddHistory(newEntry);
-        setDescription('');
-        setFiles([]);
-        setIsModalOpen(false);
-    };
-
     return (
         <div className="relative">
             <HistoryHeader
@@ -114,30 +98,61 @@ export default function UserHistory({
 
             <AddHistoryModal
                 isOpen={isModalOpen}
+                currentStatus={currentStatus}
                 onClose={() => setIsModalOpen(false)}
                 description={description}
                 setDescription={setDescription}
                 files={files}
                 setFiles={setFiles}
                 removeFile={(idx) => setFiles((f) => f.filter((_, i) => i !== idx))}
-                onSubmit={handleSubmit}
+                onSubmit={(desc, attachedFiles, maybeNewStatus) => {
+                    const prevStatus = currentStatus || '—';
+
+                    const statusInfo =
+                        maybeNewStatus && maybeNewStatus !== prevStatus
+                            ? `✅ Статус змінено з "${prevStatus}" → "${maybeNewStatus}"`
+                            : '';
+
+                    // ✅ Склеиваем статус + текст (если оба есть)
+                    console.log(desc, 'desc');
+                    const combinedDescription = [statusInfo, desc.trim()]
+                        .filter(Boolean)
+                        .join('\n');
+
+                    const newEntry: CommentOrHistoryEntry = {
+                        id: Date.now(),
+                        date: new Date().toISOString(),
+                        type: maybeNewStatus ? 'statusChange' : 'history',
+                        author: 'You',
+                        description: combinedDescription, // ⬅️ теперь всегда и статус, и текст
+                        content: '',
+                        files: attachedFiles,
+                    };
+
+                    // ✅ сохраняем историю + при необходимости soldierStatus
+                    onAddHistory(newEntry);
+
+                    // ✅ очищаем модалку
+                    setDescription('');
+                    setFiles([]);
+                    setIsModalOpen(false);
+                }}
                 onFileChange={(e) => {
                     if (!e.target.files) return;
                     Array.from(e.target.files).forEach((file) => {
                         const reader = new FileReader();
                         reader.onload = () => {
-                            const result = reader.result;
-                            if (typeof result === 'string') {
+                            if (typeof reader.result === 'string') {
                                 setFiles((prev) => [
                                     ...prev,
                                     {
                                         name: file.name,
                                         type: file.type,
-                                        dataUrl: result,
+                                        dataUrl: reader.result as string,
                                     },
                                 ]);
                             } else {
-                                console.warn('Unexpected FileReader result type:', typeof result);
+                                console.warn('Unexpected FileReader result', reader.result);
                             }
                         };
 

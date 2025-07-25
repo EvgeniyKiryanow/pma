@@ -46,10 +46,18 @@ export default function RightBar() {
     const openUserFormForEdit = useUserStore((s) => s.openUserFormForEdit);
     const setSelectedUser = useUserStore((s) => s.setSelectedUser);
 
-    const handleAddHistory = (newEntry: CommentOrHistoryEntry) => {
+    const handleAddHistory = (newEntry: CommentOrHistoryEntry, maybeNewStatus?: StatusExcel) => {
         if (!user) return;
-        console.log(newEntry, 'newEntry');
-        const updatedUser: User = { ...user, history: [...(user.history || []), newEntry] };
+
+        const updatedUser: User = {
+            ...user,
+            soldierStatus:
+                maybeNewStatus && maybeNewStatus !== user.soldierStatus
+                    ? maybeNewStatus
+                    : user.soldierStatus,
+            history: [...(user.history || []), newEntry],
+        };
+
         updateUser(updatedUser);
     };
 

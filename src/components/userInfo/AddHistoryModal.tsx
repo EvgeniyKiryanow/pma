@@ -1,6 +1,7 @@
-import { useRef } from 'react';
-import { X, Paperclip, Image as ImageIcon, FileText } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { X, Paperclip, Image as ImageIcon, FileText, ShieldCheck } from 'lucide-react';
 import type { CommentOrHistoryEntry } from '../../types/user';
+import { StatusExcel } from '../../utils/excelUserStatuses';
 import { useI18nStore } from '../../stores/i18nStore';
 
 type FileWithDataUrl = {
@@ -17,8 +18,9 @@ type AddHistoryModalProps = {
     files: FileWithDataUrl[];
     setFiles: (val: FileWithDataUrl[]) => void;
     removeFile: (index: number) => void;
-    onSubmit: () => void;
+    onSubmit: (description: string, files: FileWithDataUrl[], maybeNewStatus?: StatusExcel) => void; // ✅ always returns 3 values
     onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    currentStatus?: string;
 };
 
 export default function AddHistoryModal({
@@ -30,16 +32,26 @@ export default function AddHistoryModal({
     removeFile,
     onSubmit,
     onFileChange,
+    currentStatus = '',
 }: AddHistoryModalProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { t } = useI18nStore();
+    const [newStatus, setNewStatus] = useState<string>('');
 
     if (!isOpen) return null;
+
+    const handleSave = () => {
+        // ✅ Return all values back to parent
+        onSubmit(description, files, newStatus ? (newStatus as StatusExcel) : undefined);
+
+        // ✅ Reset modal
+        setNewStatus('');
+    };
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="relative w-full max-w-3xl bg-white rounded-xl shadow-2xl overflow-hidden animate-fade-in">
-                {/* Header */}
+                {/* === HEADER === */}
                 <div className="flex justify-between items-center px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-blue-100">
                     <h2 className="text-xl font-bold text-gray-800">{t('historyModal.title')}</h2>
                     <button
@@ -51,15 +63,36 @@ export default function AddHistoryModal({
                     </button>
                 </div>
 
-                {/* Content */}
+                {/* === CONTENT === */}
                 <div className="p-6 space-y-6">
-                    {/* Description */}
+                    {/* ✅ STATUS DROPDOWN */}
+                    <div>
+                        <label className="block mb-2 text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            Зміна статусу
+                        </label>
+                        <select
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm hover:border-blue-400 focus:border-blue-500 focus:ring focus:ring-blue-200 transition"
+                            value={newStatus || ''}
+                            onChange={(e) => setNewStatus(e.target.value)}
+                        >
+                            <option value="">
+                                {currentStatus || t('historyItem.changeStatus')}
+                            </option>
+                            {Object.values(StatusExcel).map((status) => (
+                                <option key={status} value={status}>
+                                    {status}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* ✅ DESCRIPTION */}
                     <div>
                         <label className="block mb-2 text-sm font-semibold text-gray-700">
                             {t('historyModal.description')}
                         </label>
                         <textarea
-                            rows={5}
+                            rows={4}
                             className="border border-gray-300 rounded-lg px-4 py-3 w-full resize-none text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
@@ -67,7 +100,7 @@ export default function AddHistoryModal({
                         />
                     </div>
 
-                    {/* File upload */}
+                    {/* ✅ FILE UPLOAD */}
                     <div>
                         <button
                             type="button"
@@ -87,7 +120,7 @@ export default function AddHistoryModal({
                         />
                     </div>
 
-                    {/* Files preview grid */}
+                    {/* ✅ FILE PREVIEW */}
                     {files.length > 0 && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                             {files.map((file, i) => (
@@ -95,7 +128,6 @@ export default function AddHistoryModal({
                                     key={i}
                                     className="relative border rounded-lg overflow-hidden bg-gray-50 shadow hover:shadow-md transition"
                                 >
-                                    {/* Preview */}
                                     {file.type.startsWith('image/') ? (
                                         <img
                                             src={file.dataUrl}
@@ -114,8 +146,6 @@ export default function AddHistoryModal({
                                             </span>
                                         </div>
                                     )}
-
-                                    {/* Remove */}
                                     <button
                                         onClick={() => removeFile(i)}
                                         className="absolute top-2 right-2 bg-white/70 hover:bg-red-100 text-red-600 rounded-full p-1 shadow"
@@ -129,20 +159,29 @@ export default function AddHistoryModal({
                     )}
                 </div>
 
-                {/* Footer */}
-                <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50">
-                    <button
-                        onClick={onClose}
-                        className="px-5 py-2 rounded-lg text-gray-600 hover:bg-gray-200 transition"
-                    >
-                        {t('historyModal.cancel')}
-                    </button>
-                    <button
-                        onClick={onSubmit}
-                        className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow font-medium transition"
-                    >
-                        {t('historyModal.save')}
-                    </button>
+                {/* === FOOTER === */}
+                <div className="flex justify-between items-center px-6 py-4 border-t bg-gray-50">
+                    {newStatus && (
+                        <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3" />
+                            {t('historyModal.statusWillChange')} з {currentStatus} → {newStatus}
+                        </span>
+                    )}
+
+                    <div className="flex gap-3">
+                        <button
+                            onClick={onClose}
+                            className="px-5 py-2 rounded-lg text-gray-600 hover:bg-gray-200 transition"
+                        >
+                            {t('historyModal.cancel')}
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow font-medium transition"
+                        >
+                            {t('historyModal.save')}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
