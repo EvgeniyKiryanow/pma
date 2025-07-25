@@ -115,61 +115,52 @@ export default function LeftBar({ users }: Props) {
                                         key={user.id}
                                         onClick={() => setSelectedUser(isSelected ? null : user)}
                                         className={`flex flex-col gap-3 rounded-xl border p-4 transition-all cursor-pointer
-            ${
-                isSelected
-                    ? 'bg-blue-50 border-blue-400 shadow-md ring-1 ring-blue-200'
-                    : 'bg-white border-gray-200 hover:shadow-md hover:border-blue-300 hover:bg-blue-50/40'
-            }`}
+                                                ${
+                                                    isSelected
+                                                        ? 'bg-blue-50 border-blue-400 shadow-md ring-1 ring-blue-200'
+                                                        : 'bg-white border-gray-200 hover:shadow-md hover:border-blue-300 hover:bg-blue-50/40'
+                                                }`}
                                     >
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex items-center">
                                             <div className="w-6 text-xs text-gray-400">
                                                 {index + 1}.
                                             </div>
-
-                                            {/* Avatar */}
-                                            {/* {user.photo ? (
-                                                <img
-                                                    src={user.photo}
-                                                    alt={user.fullName}
-                                                    className="h-12 w-12 rounded-full object-cover border border-gray-300 shadow-sm hover:scale-105 transition-transform"
-                                                />
-                                            ) : (
-                                                <div className="h-12 w-12 rounded-full bg-gray-100 border flex items-center justify-center text-gray-400 hover:scale-105 transition-transform">
-                                                    <DefaultAvatar />
+                                            <div>
+                                                <div className="flex items-center gap-4">
+                                                    {/* Name + Rank */}
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="font-semibold text-gray-800 text-[15px] break-words">
+                                                            {user.fullName}
+                                                        </span>
+                                                        <div className="flex items-center gap-1 text-xs text-gray-500 flex-wrap">
+                                                            <span className="break-words">
+                                                                {user.rank || '—'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            )} */}
 
-                                            {/* Name + Rank */}
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="font-semibold text-gray-800 text-[15px] break-words">
-                                                    {user.fullName}
-                                                </span>
-                                                <div className="flex items-center gap-1 text-xs text-gray-500 flex-wrap">
-                                                    <span className="break-words">
-                                                        {user.rank || '—'}
-                                                    </span>
-                                                </div>
+                                                {/* ✅ Soldier Status Badge */}
+                                                {user.soldierStatus && (
+                                                    <div className="flex flex-wrap">
+                                                        <span
+                                                            className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border font-medium shadow-sm break-words ${badgeStyle}`}
+                                                            title={user.soldierStatus}
+                                                        >
+                                                            {badgeIcon}{' '}
+                                                            <span>{user.soldierStatus}</span>
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                {/* Phone */}
+                                                {user.phoneNumber && (
+                                                    <div className="flex items-center gap-2 text-xs text-gray-600 break-words">
+                                                        📞 <span>{user.phoneNumber}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-
-                                        {/* ✅ Soldier Status Badge */}
-                                        {user.soldierStatus && (
-                                            <div className="flex flex-wrap">
-                                                <span
-                                                    className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border font-medium shadow-sm break-words ${badgeStyle}`}
-                                                    title={user.soldierStatus}
-                                                >
-                                                    {badgeIcon} <span>{user.soldierStatus}</span>
-                                                </span>
-                                            </div>
-                                        )}
-
-                                        {/* Phone */}
-                                        {user.phoneNumber && (
-                                            <div className="flex items-center gap-2 text-xs text-gray-600 break-words">
-                                                📞 <span>{user.phoneNumber}</span>
-                                            </div>
-                                        )}
                                     </li>
                                 );
                             })
@@ -188,4 +179,18 @@ export default function LeftBar({ users }: Props) {
             )}
         </div>
     );
+}
+
+{
+    /* {user.photo ? (
+                                                <img
+                                                    src={user.photo}
+                                                    alt={user.fullName}
+                                                    className="h-12 w-12 rounded-full object-cover border border-gray-300 shadow-sm hover:scale-105 transition-transform"
+                                                />
+                                            ) : (
+                                                <div className="h-12 w-12 rounded-full bg-gray-100 border flex items-center justify-center text-gray-400 hover:scale-105 transition-transform">
+                                                    <DefaultAvatar />
+                                                </div>
+                                            )} */
 }
