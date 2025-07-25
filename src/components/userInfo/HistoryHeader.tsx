@@ -34,7 +34,7 @@ export function HistoryHeader({ currentStatus, onAddHistory, onStatusChange }: H
                     <div className="relative">
                         <ShieldCheck className="absolute left-3 top-2.5 w-4 h-4 text-gray-500" />
                         <select
-                            className="pl-9 pr-4 py-2 rounded-full border border-gray-300 bg-white text-sm shadow hover:border-blue-400 focus:border-blue-500 focus:ring focus:ring-blue-200 transition"
+                            className="w-[220px] pl-9 pr-4 py-2 rounded-full border border-gray-300 bg-white text-sm shadow hover:border-blue-400 focus:border-blue-500 focus:ring focus:ring-blue-200 transition"
                             value={currentStatus || ''}
                             onChange={(e) => onStatusChange(e.target.value as StatusExcel)}
                         >
