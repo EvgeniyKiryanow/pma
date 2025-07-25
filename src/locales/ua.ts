@@ -129,10 +129,12 @@ export const ua = {
             all: 'Весь час',
         },
     },
+
     historyItem: {
         delete: 'Видалити запис',
         pdf: 'PDF',
         download: 'Завантажити {{name}}',
+        changeStatus: 'Змінити статус',
         type: {
             history: 'Історія',
             comment: 'Коментар',
@@ -141,7 +143,7 @@ export const ua = {
     },
     historyModal: {
         title: 'Додати Запис Історії',
-        close: 'Закрити',
+        cancel: 'Закрити',
         description: 'Опис',
         descriptionPlaceholder: 'Введіть детальний опис для цього запису історії...',
         attach: 'Прикріпити файли',
@@ -280,6 +282,7 @@ export const ua = {
         save: 'Зберегти',
         add: 'Додати',
         cancel: 'Відмінити',
+        soldierStatus: 'Статус військовослужбовця',
     },
 
     sections: {

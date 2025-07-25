@@ -3,6 +3,7 @@ import { useUserStore } from '../stores/userStore';
 import type { User } from '../types/user';
 import DefaultAvatar from '../icons/DefaultAvatar';
 import { useI18nStore } from '../stores/i18nStore';
+import { ChevronLeft, ChevronRight } from 'lucide-react'; // ✅ arrow icons
 
 type Props = {
     users: User[];
@@ -49,29 +50,37 @@ export default function LeftBar({ users }: Props) {
         <div
             className={`relative transition-all duration-300 ${
                 collapsed ? 'w-12 group hover:bg-blue-50/40 cursor-pointer' : 'w-72'
-            } flex flex-col border-r border-gray-300 shadow-sm bg-white`}
-            // ✅ If collapsed, clicking anywhere will open
+            } flex flex-col border-r border-gray-200 bg-white shadow-md`}
             onClick={() => {
                 if (collapsed) setCollapsed(false);
             }}
         >
-            {/* ✅ Collapse Button always visible */}
-            <button
+            {/* ✅ Modern slim toggle handle with arrow */}
+            <div
                 onClick={(e) => {
-                    e.stopPropagation(); // prevent parent onClick
+                    e.stopPropagation(); // prevent accidental expand when clicking
                     setCollapsed(!collapsed);
                 }}
-                className="absolute -right-4 top-5 z-10 w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center justify-center transition"
+                className={`
+                    absolute top-1/2 -right-3 -translate-y-1/2 
+                    w-6 h-14 rounded-full cursor-pointer flex items-center justify-center
+                    bg-gradient-to-b from-blue-500 to-blue-600 
+                    shadow-lg opacity-80 hover:opacity-100 transition-all
+                `}
                 title={collapsed ? 'Відкрити меню' : 'Згорнути меню'}
             >
-                {collapsed ? '▶' : '◀'}
-            </button>
+                {/* ✅ Animated arrow flips direction */}
+                {collapsed ? (
+                    <ChevronRight className="w-4 h-4 text-white transition-transform duration-200" />
+                ) : (
+                    <ChevronLeft className="w-4 h-4 text-white transition-transform duration-200" />
+                )}
+            </div>
 
-            {/* If collapsed, only minimal placeholder */}
             {!collapsed ? (
                 <>
                     {/* Header */}
-                    <div className="p-5 border-b border-gray-300 flex-shrink-0">
+                    <div className="p-5 border-b border-gray-200 flex-shrink-0">
                         <h2 className="text-xl font-semibold">{t('leftBar.title')}</h2>
                         <p className="text-sm text-gray-500">
                             {t('leftBar.total')}: {filteredUsers.length}
@@ -95,9 +104,16 @@ export default function LeftBar({ users }: Props) {
                             filteredUsers.map((user, index) => (
                                 <li
                                     key={user.id}
-                                    onClick={() => setSelectedUser(user)}
+                                    onClick={() => {
+                                        // ✅ Toggle same user selection (close on second click)
+                                        if (selectedUser?.id === user.id) {
+                                            setSelectedUser(null);
+                                        } else {
+                                            setSelectedUser(user);
+                                        }
+                                    }}
                                     className={`flex items-center cursor-pointer p-4 border-b border-gray-200 transition-colors duration-200 
-                                        hover:bg-blue-100 hover:shadow-sm ${
+                                        hover:bg-blue-50 hover:shadow-sm ${
                                             selectedUser?.id === user.id
                                                 ? 'bg-blue-100 font-semibold'
                                                 : ''
@@ -135,8 +151,7 @@ export default function LeftBar({ users }: Props) {
             ) : (
                 // ✅ Minimal view when collapsed
                 <div className="flex-1 flex flex-col items-center justify-center text-xs text-gray-400 group-hover:text-blue-700">
-                    {/* You can show an icon or vertical text */}
-                    <span className="rotate-90 tracking-wide">Меню</span>
+                    <span className="rotate-90 tracking-wide font-medium">Меню</span>
                 </div>
             )}
         </div>

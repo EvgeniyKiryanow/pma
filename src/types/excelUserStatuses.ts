@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-duplicate-enum-values */
 export enum StatusExcel {
+    NO_STATUS = 'Без статуса',
     // === З НИХ ===
     POSITIONS_INFANTRY = 'ПОЗИЦІЇ ПІХОТИ',
     POSITIONS_CREW = 'ПОЗИЦІЇ ЕКІПАЖ',

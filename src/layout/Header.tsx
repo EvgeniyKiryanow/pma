@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useUserStore } from '../stores/userStore';
-import { LogOut, PlusCircle, Clock, Gift } from 'lucide-react';
+import {
+    LogOut,
+    PlusCircle,
+    Gift,
+    Users,
+    FileBarChart,
+    DatabaseBackup,
+    FileSpreadsheet,
+    BookText,
+} from 'lucide-react';
 import type { User } from '../types/user';
 import { useI18nStore } from '../stores/i18nStore';
 import LogoSvg from '../icons/LogoSvg';
@@ -28,17 +37,9 @@ type HeaderProps = {
 
 export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     const openUserFormForAdd = useUserStore((s) => s.openUserFormForAdd);
-    const [now, setNow] = useState<string>(() => formatDateTime(new Date()));
     const [upcomingBirthdays, setUpcomingBirthdays] = useState<User[]>([]);
     const [showBirthdayModal, setShowBirthdayModal] = useState(false);
     const { t, language, setLanguage } = useI18nStore();
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setNow(formatDateTime(new Date()));
-        }, 1000);
-        return () => clearInterval(interval);
-    }, []);
 
     useEffect(() => {
         const loadUpcoming = async () => {
@@ -52,9 +53,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                 const dob = new Date(user.dateOfBirth);
                 const nextBirthday = new Date(todayYear, dob.getMonth(), dob.getDate());
 
-                if (nextBirthday < today) {
-                    nextBirthday.setFullYear(todayYear + 1);
-                }
+                if (nextBirthday < today) nextBirthday.setFullYear(todayYear + 1);
 
                 const diffDays = Math.floor(
                     (nextBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
@@ -73,29 +72,64 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
         window.location.reload();
     };
 
+    const tabs = [
+        {
+            key: 'manager',
+            label: t('header.managerTab'),
+            icon: <Users className="w-4 h-4" />,
+        },
+        {
+            key: 'reports',
+            label: t('header.reportsTab'),
+            icon: <FileBarChart className="w-4 h-4" />,
+        },
+        {
+            key: 'backups',
+            label: t('header.backupTab'),
+            icon: <DatabaseBackup className="w-4 h-4" />,
+        },
+        {
+            key: 'importUsers',
+            label: 'Excel',
+            icon: <FileSpreadsheet className="w-4 h-4" />,
+        },
+        {
+            key: 'instructions',
+            label: t('header.instructions'),
+            icon: <BookText className="w-4 h-4" />,
+        },
+    ] as const;
+
     return (
-        <header className="bg-white shadow border-b relative">
-            {/* Top Bar */}
-            <div className="flex items-center justify-between px-4 sm:px-10 py-3">
+        <header className="bg-gradient-to-r from-blue-50 to-blue-100 shadow border-b relative">
+            {/* === TOP BAR === */}
+            <div className="flex items-center justify-between px-4 sm:px-8 py-3">
+                {/* Logo & Title */}
                 <div className="flex items-center gap-3">
-                    <div className="w-[75px] h-[75px]">
+                    <div className="w-[55px] h-[55px]">
                         <LogoSvg />
                     </div>
-                    <h1 className="text-lg font-bold tracking-tight">{t('header.title')}</h1>
+                    <div className="flex flex-col leading-tight">
+                        <h1 className="text-xl font-bold text-gray-800 tracking-wide">
+                            {t('header.title')}
+                        </h1>
+                        <span className="text-xs text-gray-500">
+                            {new Date().toLocaleDateString('uk-UA', {
+                                weekday: 'long',
+                                day: 'numeric',
+                                month: 'long',
+                            })}
+                        </span>
+                    </div>
                 </div>
 
-                {/* <div className="flex items-center gap-6 text-gray-700">
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                        <Clock className="w-4 h-4" />
-                        <span>{now}</span>
-                    </div>
-                </div> */}
-
-                <div className="flex items-center gap-2 cursor-pointer">
+                {/* Right Controls */}
+                <div className="flex items-center gap-3">
+                    {/* ✅ Birthdays */}
                     {upcomingBirthdays.length > 0 && (
                         <button
                             onClick={() => setShowBirthdayModal(true)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-yellow-100 text-yellow-800 border border-yellow-300 transition hover:bg-yellow-200"
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-full bg-yellow-100 hover:bg-yellow-200 text-yellow-900 border border-yellow-300 transition"
                             title={t('header.viewBirthdays')}
                         >
                             <Gift className="w-4 h-4" />
@@ -106,123 +140,72 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         </button>
                     )}
 
+                    {/* ✅ Add User (only in Manager) */}
                     {currentTab === 'manager' && (
                         <button
                             onClick={openUserFormForAdd}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition"
                         >
                             <PlusCircle className="w-4 h-4" />
                             {t('header.addUser')}
                         </button>
                     )}
 
-                    <button
-                        onClick={handleLogout}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-red-500 hover:bg-red-600 text-white shadow-sm transition"
-                    >
-                        <LogOut className="w-4 h-4" />
-                        {t('header.logout')}
-                    </button>
-
-                    {/* Language Switcher */}
-                    <div className="ml-2 flex gap-1 text-xs">
+                    {/* ✅ Language Switcher */}
+                    <div className="flex items-center gap-1 text-xs bg-white rounded-full px-2 py-1 shadow-sm border">
                         {/* <button
-                            onClick={() => setLanguage('en')}
-                            className={`px-2 py-1 rounded ${
-                                language === 'en' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                            }`}
-                        >
-                            EN
-                        </button> */}
+              onClick={() => setLanguage('en')}
+              className={`px-2 py-1 rounded-full ${
+                language === 'en' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'
+              }`}
+            >
+              EN
+            </button> */}
                         <button
                             onClick={() => setLanguage('ua')}
-                            className={`px-2 py-1 rounded ${
-                                language === 'ua' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+                            className={`px-2 py-1 rounded-full ${
+                                language === 'ua' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'
                             }`}
                         >
                             UA
                         </button>
                     </div>
+
+                    {/* ✅ Logout */}
+                    <button
+                        onClick={handleLogout}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-full bg-red-500 hover:bg-red-600 text-white shadow-sm transition"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        {t('header.logout')}
+                    </button>
                 </div>
             </div>
 
-            {/* Tabs */}
-            <nav className="bg-gray-50 px-4 sm:px-10 border-t">
-                <div className="flex gap-3 py-2">
-                    <button
-                        onClick={() => setCurrentTab('manager')}
-                        className={`px-4 py-1.5 text-xl rounded-t-md border-b-2 transition-all ${
-                            currentTab === 'manager'
-                                ? 'text-blue-600 border-blue-600 font-semibold bg-white'
-                                : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
-                        }`}
-                    >
-                        {t('header.managerTab')}
-                    </button>
-                    <button
-                        onClick={() => setCurrentTab('reports')}
-                        className={`px-4 py-1.5 text-xl rounded-t-md border-b-2 transition-all ${
-                            currentTab === 'reports'
-                                ? 'text-blue-600 border-blue-600 font-semibold bg-white'
-                                : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
-                        }`}
-                    >
-                        {t('header.reportsTab')}
-                    </button>
-                    {/* <button
-                        onClick={() => setCurrentTab('tables')}
-                        className={`px-4 py-1.5 text-sm rounded-t-md border-b-2 transition-all ${
-                            currentTab === 'tables'
-                                ? 'text-blue-600 border-blue-600 font-semibold bg-white'
-                                : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
-                        }`}
-                    >
-                        {t('header.tablesTab')}
-                    </button> */}
-                    <button
-                        onClick={() => setCurrentTab('backups')}
-                        className={`px-4 py-1.5 text-xl rounded-t-md border-b-2 transition-all ${
-                            currentTab === 'backups'
-                                ? 'text-blue-600 border-blue-600 font-semibold bg-white'
-                                : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
-                        }`}
-                    >
-                        {t('header.backupTab')}
-                    </button>
-                    <button
-                        className={`px-4 py-1.5 text-xl rounded-t-md border-b-2 transition-all ${
-                            currentTab === 'importUsers'
-                                ? 'text-blue-600 border-blue-600 font-semibold bg-white'
-                                : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
-                        }`}
-                        onClick={() => setCurrentTab('importUsers')}
-                    >
-                        Excel таблиці
-                    </button>
-                    <button
-                        onClick={() => setCurrentTab('instructions')}
-                        className={`px-4 py-1.5 text-xl rounded-t-md border-b-2 transition-all ${
-                            currentTab === 'instructions'
-                                ? 'text-blue-600 border-blue-600 font-semibold bg-white'
-                                : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
-                        }`}
-                    >
-                        {t('header.instructions')}
-                    </button>
-                    {/* <button
-                        onClick={() => setCurrentTab('reminders')}
-                        className={`px-4 py-1.5 text-sm rounded-t-md border-b-2 transition-all ${
-                            currentTab === 'reminders'
-                                ? 'text-blue-600 border-blue-600 font-semibold bg-white'
-                                : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300'
-                        }`}
-                    >
-                        {t('header.remindersTab')}
-                    </button> */}
+            {/* === MODERN TABS === */}
+            <nav className="px-4 sm:px-8 border-t bg-white shadow-lg shadow-gray-300 relative z-10">
+                <div className="flex gap-2 py-2 overflow-x-auto">
+                    {tabs.map((tab) => {
+                        const isActive = currentTab === tab.key;
+                        return (
+                            <button
+                                key={tab.key}
+                                onClick={() => setCurrentTab(tab.key as HeaderProps['currentTab'])}
+                                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                                    isActive
+                                        ? 'bg-blue-100 text-blue-700 shadow-sm border border-blue-300'
+                                        : 'text-gray-600 hover:text-blue-700 hover:bg-blue-50'
+                                }`}
+                            >
+                                {tab.icon}
+                                {tab.label}
+                            </button>
+                        );
+                    })}
                 </div>
             </nav>
 
-            {/* Birthday Modal */}
+            {/* === Birthday Modal === */}
             {showBirthdayModal && (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
                     <div className="bg-white max-w-md w-full rounded-lg p-6 shadow-lg border relative">
@@ -239,7 +222,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                                 return (
                                     <li
                                         key={user.id}
-                                        className="flex justify-between items-center text-sm text-gray-800"
+                                        className="flex justify-between items-center text-sm text-gray-800 border-b pb-1"
                                     >
                                         <span>{user.fullName}</span>
                                         <span className="text-gray-500">{dateStr}</span>
@@ -259,16 +242,4 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
             )}
         </header>
     );
-}
-
-function formatDateTime(date: Date): string {
-    return date.toLocaleString('uk-UA', {
-        weekday: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-    });
 }

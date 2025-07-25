@@ -1,9 +1,10 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import type { CommentOrHistoryEntry } from '../../types/user';
-import { Plus } from 'lucide-react';
 import HistoryItem from './HistoryItem';
 import AddHistoryModal from './AddHistoryModal';
 import { useI18nStore } from '../../stores/i18nStore';
+import { HistoryHeader } from '../HistoryHeader'; // ✅ bring the nice header
+import { StatusExcel } from '../../types/excelUserStatuses';
 
 const FILTER_OPTIONS = [
     { labelKey: 'history.filters.1day', value: '1day' },
@@ -23,16 +24,23 @@ type UserHistoryProps = {
     userId: number;
     onAddHistory: (entry: CommentOrHistoryEntry) => void;
     onDeleteHistory: (id: number) => void;
+    onStatusChange: (status: StatusExcel) => void; // ✅ new
+    currentStatus?: string;
 };
 
-export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: UserHistoryProps) {
+export default function UserHistory({
+    userId,
+    onAddHistory,
+    onDeleteHistory,
+    onStatusChange,
+    currentStatus,
+}: UserHistoryProps) {
     const [description, setDescription] = useState('');
     const [files, setFiles] = useState<FileWithDataUrl[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedFilter, setSelectedFilter] = useState('30days');
     const [history, setHistory] = useState<CommentOrHistoryEntry[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const { t } = useI18nStore();
 
     const loadHistory = async () => {
@@ -54,11 +62,7 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
                 if (typeof reader.result === 'string') {
                     setFiles((prev) => [
                         ...prev,
-                        {
-                            name: file.name,
-                            type: file.type,
-                            dataUrl: reader.result as string,
-                        },
+                        { name: file.name, type: file.type, dataUrl: reader.result as string },
                     ]);
                 }
             };
@@ -105,62 +109,65 @@ export default function UserHistory({ userId, onAddHistory, onDeleteHistory }: U
     };
 
     const filteredHistory = useMemo(() => {
-        if (!searchTerm.trim()) return history;
+        if (!searchTerm.trim()) return [...history].reverse(); // ✅ latest first
         const term = searchTerm.toLowerCase();
-        return history.filter(
-            (entry) =>
-                [entry.description, entry.author, new Date(entry.date).toLocaleDateString()].some(
-                    (field) => field?.toLowerCase().includes(term),
-                ) || entry.files?.some((file) => file.name.toLowerCase().includes(term)),
-        );
+        return [...history]
+            .reverse()
+            .filter(
+                (entry) =>
+                    [
+                        entry.description,
+                        entry.author,
+                        new Date(entry.date).toLocaleDateString(),
+                    ].some((field) => field?.toLowerCase().includes(term)) ||
+                    entry.files?.some((file) => file.name.toLowerCase().includes(term)),
+            );
     }, [history, searchTerm]);
 
     return (
         <div className="relative">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold">{t('history.title')}</h3>
-                <div className="flex items-center gap-3">
-                    <select
-                        value={selectedFilter}
-                        onChange={(e) => setSelectedFilter(e.target.value)}
-                        className="px-2 py-1 border text-sm rounded bg-white"
-                    >
-                        {FILTER_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                                {t(opt.labelKey)}
-                            </option>
-                        ))}
-                    </select>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-1 text-sm px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded shadow"
-                    >
-                        <Plus className="w-4 h-4" /> {t('history.add')}
-                    </button>
-                </div>
-            </div>
-
-            <input
-                type="text"
-                placeholder={t('history.searchPlaceholder')}
-                className="mb-6 w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-blue-500 focus:ring-1"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+            {/* ✅ Cool unified header with dropdown + add record */}
+            <HistoryHeader
+                onAddHistory={() => setIsModalOpen(true)}
+                currentStatus={currentStatus}
+                onStatusChange={onStatusChange} // ✅ triggers upward
             />
+
+            {/* Filters and search */}
+            <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
+                <select
+                    value={selectedFilter}
+                    onChange={(e) => setSelectedFilter(e.target.value)}
+                    className="px-3 py-2 border text-sm rounded shadow-sm focus:outline-blue-500"
+                >
+                    {FILTER_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                            {t(opt.labelKey)}
+                        </option>
+                    ))}
+                </select>
+
+                <input
+                    type="text"
+                    placeholder={t('history.searchPlaceholder')}
+                    className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-blue-500 focus:ring-1"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
 
             {/* History List */}
             {filteredHistory.length === 0 ? (
                 <p className="text-gray-500 italic">{t('history.noRecords')}</p>
             ) : (
                 <ul className="space-y-4">
-                    {filteredHistory.map((entry: any) => (
+                    {filteredHistory.map((entry) => (
                         <HistoryItem key={entry.id} entry={entry} onDelete={handleDeleteHistory} />
                     ))}
                 </ul>
             )}
 
-            {/* Modal */}
+            {/* Modal for add */}
             <AddHistoryModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

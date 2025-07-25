@@ -144,9 +144,9 @@ export default function UserInfoDetails({ user }: Props) {
                         </h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-800">
                             {infoRow(t('user.positionNominative'), user.positionNominative)}
-                            {infoRow(t('user.positionGenitive'), user.positionGenitive)}
+                            {/* {infoRow(t('user.positionGenitive'), user.positionGenitive)}
                             {infoRow(t('user.positionDative'), user.positionDative)}
-                            {infoRow(t('user.positionInstrumental'), user.positionInstrumental)}
+                            {infoRow(t('user.positionInstrumental'), user.positionInstrumental)} */}
                             {infoRow(t('user.tDotData'), user.tDotData)}
                             {infoRow(
                                 t('user.personalPrisonFileExists'),
