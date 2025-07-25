@@ -5,65 +5,6 @@ type ColumnConfig = {
     bold?: boolean;
     rightBorder?: boolean;
 };
-const combatReportColumns: ColumnConfig[] = [
-    // ==== ЗА ШТАТОМ ====
-    { label: 'ВСЬОГО ЗА ШТАТОМ', backgroundColor: '#f0f0f0' },
-    { label: 'ОФІЦЕРИ', backgroundColor: '#f0f0f0' },
-    { label: 'СЕРЖАНТИ/СОЛДАТИ', backgroundColor: '#f0f0f0', rightBorder: true },
-
-    // ==== ЗА СПИСКОМ ====
-    { label: '% УКОМПЛЕКТОВАННОСТІ', backgroundColor: '#f0f0f0' },
-    { label: 'ВСЬОГО ЗА СПИСКОМ', backgroundColor: '#f0f0f0' },
-    { label: 'ОФІЦЕРИ', backgroundColor: '#f0f0f0' },
-    { label: 'СЕРЖАНТИ/СОЛДАТИ', backgroundColor: '#f0f0f0', rightBorder: true },
-
-    // ==== З НИХ ====
-    { label: 'На позиціях, всього', backgroundColor: '#f0ccb0' },
-    { label: 'ПОЗИЦІЇ ПІХОТИ', backgroundColor: '#f0ccb0' },
-    { label: 'ПОЗИЦІЇ ЕКІПАЖ', backgroundColor: '#f0ccb0' },
-    { label: 'ПОЗИЦІЇ РОЗРАХУНОК', backgroundColor: '#f0ccb0' },
-    { label: 'ПОЗИЦІЇ БПЛА', backgroundColor: '#f0ccb0' },
-
-    // ==== РОТАЦІЯ ====
-    { label: 'РОТАЦІЯ ТА РЕЗЕРВ, всього', backgroundColor: '#d8e9bc' },
-    { label: 'РОТАЦІЯ ПІХОТА', backgroundColor: '#d8e9bc' },
-    { label: 'РОТАЦІЯ ЕКІПАЖ', backgroundColor: '#d8e9bc' },
-    { label: 'РОТАЦІЯ РОЗРАХУНОК', backgroundColor: '#d8e9bc' },
-    { label: 'РОТАЦІЯ БПЛА', backgroundColor: '#d8e9bc' },
-
-    // ==== ЗАБЕСПЕЧЕННЯ ====
-    { label: 'ЗАБЕСПЕЧЕННЯ, всього', backgroundColor: '#c2d6eb' },
-    { label: 'ЗАБЕСПЕЧЕННЯ, БД', backgroundColor: '#c2d6eb' },
-    { label: 'ЗАБЕСПЕЧЕННЯ, ІНЖЕНЕРНЕ', backgroundColor: '#c2d6eb' },
-    { label: 'ЗАБЕСПЕЧЕННЯ, ЖИТТЄДІЯЛЬНОСТІ', backgroundColor: '#c2d6eb' },
-    { label: 'УПРАВЛІННЯ' },
-    { label: 'КСП', rightBorder: true },
-
-    // ==== не БГ ====
-    { label: 'не БГ всього:', backgroundColor: '#fcf2d0', bold: true },
-    { label: 'придані в інші підзозділи', backgroundColor: '#fcf2d0', bold: true },
-    { label: 'навчання,новоприбувші', backgroundColor: '#fcf2d0', bold: true },
-    { label: 'мають направлення на лік.', backgroundColor: '#fcf2d0', bold: true },
-    { label: 'звільнено від фізичного навантаження', backgroundColor: '#fcf2d0', bold: true },
-    { label: 'лікування на локації', backgroundColor: '#fcf2d0', bold: true },
-    { label: 'обмежено придатні', backgroundColor: '#fcf2d0', bold: true },
-    { label: 'очікують кадрового рішення', backgroundColor: '#fcf2d0', bold: true },
-    { label: 'відмовники', backgroundColor: '#fcf2d0', bold: true },
-
-    // ==== ВІДСУТНІ ====
-    { label: 'ВІДПУСТКА ЛІКУВАННЯ', backgroundColor: '#fcf2d0' },
-    { label: 'ВІДПУСТКА ЩОРІЧНА', backgroundColor: '#fcf2d0' },
-    { label: 'ВІДПУСТКА ЗА СІМЕЙНИМИ', backgroundColor: '#fcf2d0' },
-    { label: 'НАВЧАННЯ', backgroundColor: '#fcf2d0' },
-    { label: 'ВІДРЯДЖЕННЯ', backgroundColor: '#fcf2d0' },
-    { label: 'АРЕШТ', backgroundColor: '#f0ccb0' },
-    { label: 'СЗЧ', backgroundColor: '#f0ccb0' },
-    { label: 'ШПИТАЛЬ', backgroundColor: '#f0ccb0' },
-    { label: 'ВЛК', backgroundColor: '#f6cd9f' },
-    { label: '300', backgroundColor: '#f0ccb0' },
-    { label: '500', backgroundColor: '#f0ccb0' },
-    { label: '200', backgroundColor: '#f0ccb0', rightBorder: true },
-];
 
 export function CombatReportHeader() {
     return (
@@ -262,6 +203,65 @@ function CombatReportHeadMainGroups() {
     );
 }
 function CombatReportHeadDetails() {
+    const combatReportColumns: ColumnConfig[] = [
+        // ==== ЗА ШТАТОМ ====
+        { label: 'ВСЬОГО ЗА ШТАТОМ', backgroundColor: '#f0f0f0' },
+        { label: 'ОФІЦЕРИ', backgroundColor: '#f0f0f0' },
+        { label: 'СЕРЖАНТИ/СОЛДАТИ', backgroundColor: '#f0f0f0', rightBorder: true },
+
+        // ==== ЗА СПИСКОМ ====
+        { label: '% УКОМПЛЕКТОВАННОСТІ', backgroundColor: '#f0f0f0' },
+        { label: 'ВСЬОГО ЗА СПИСКОМ', backgroundColor: '#f0f0f0' },
+        { label: 'ОФІЦЕРИ', backgroundColor: '#f0f0f0' },
+        { label: 'СЕРЖАНТИ/СОЛДАТИ', backgroundColor: '#f0f0f0', rightBorder: true },
+
+        // ==== З НИХ ====
+        { label: 'На позиціях, всього', backgroundColor: '#f0ccb0' },
+        { label: 'ПОЗИЦІЇ ПІХОТИ', backgroundColor: '#f0ccb0' },
+        { label: 'ПОЗИЦІЇ ЕКІПАЖ', backgroundColor: '#f0ccb0' },
+        { label: 'ПОЗИЦІЇ РОЗРАХУНОК', backgroundColor: '#f0ccb0' },
+        { label: 'ПОЗИЦІЇ БПЛА', backgroundColor: '#f0ccb0' },
+
+        // ==== РОТАЦІЯ ====
+        { label: 'РОТАЦІЯ ТА РЕЗЕРВ, всього', backgroundColor: '#d8e9bc' },
+        { label: 'РОТАЦІЯ ПІХОТА', backgroundColor: '#d8e9bc' },
+        { label: 'РОТАЦІЯ ЕКІПАЖ', backgroundColor: '#d8e9bc' },
+        { label: 'РОТАЦІЯ РОЗРАХУНОК', backgroundColor: '#d8e9bc' },
+        { label: 'РОТАЦІЯ БПЛА', backgroundColor: '#d8e9bc' },
+
+        // ==== ЗАБЕСПЕЧЕННЯ ====
+        { label: 'ЗАБЕСПЕЧЕННЯ, всього', backgroundColor: '#c2d6eb' },
+        { label: 'ЗАБЕСПЕЧЕННЯ, БД', backgroundColor: '#c2d6eb' },
+        { label: 'ЗАБЕСПЕЧЕННЯ, ІНЖЕНЕРНЕ', backgroundColor: '#c2d6eb' },
+        { label: 'ЗАБЕСПЕЧЕННЯ, ЖИТТЄДІЯЛЬНОСТІ', backgroundColor: '#c2d6eb' },
+        { label: 'УПРАВЛІННЯ' },
+        { label: 'КСП', rightBorder: true },
+
+        // ==== не БГ ====
+        { label: 'не БГ всього:', backgroundColor: '#fcf2d0', bold: true },
+        { label: 'придані в інші підзозділи', backgroundColor: '#fcf2d0', bold: true },
+        { label: 'навчання,новоприбувші', backgroundColor: '#fcf2d0', bold: true },
+        { label: 'мають направлення на лік.', backgroundColor: '#fcf2d0', bold: true },
+        { label: 'звільнено від фізичного навантаження', backgroundColor: '#fcf2d0', bold: true },
+        { label: 'лікування на локації', backgroundColor: '#fcf2d0', bold: true },
+        { label: 'обмежено придатні', backgroundColor: '#fcf2d0', bold: true },
+        { label: 'очікують кадрового рішення', backgroundColor: '#fcf2d0', bold: true },
+        { label: 'відмовники', backgroundColor: '#fcf2d0', bold: true },
+
+        // ==== ВІДСУТНІ ====
+        { label: 'ВІДПУСТКА ЛІКУВАННЯ', backgroundColor: '#fcf2d0' },
+        { label: 'ВІДПУСТКА ЩОРІЧНА', backgroundColor: '#fcf2d0' },
+        { label: 'ВІДПУСТКА ЗА СІМЕЙНИМИ', backgroundColor: '#fcf2d0' },
+        { label: 'НАВЧАННЯ', backgroundColor: '#fcf2d0' },
+        { label: 'ВІДРЯДЖЕННЯ', backgroundColor: '#fcf2d0' },
+        { label: 'АРЕШТ', backgroundColor: '#f0ccb0' },
+        { label: 'СЗЧ', backgroundColor: '#f0ccb0' },
+        { label: 'ШПИТАЛЬ', backgroundColor: '#f0ccb0' },
+        { label: 'ВЛК', backgroundColor: '#f6cd9f' },
+        { label: '300', backgroundColor: '#f0ccb0' },
+        { label: '500', backgroundColor: '#f0ccb0' },
+        { label: '200', backgroundColor: '#f0ccb0', rightBorder: true },
+    ];
     return (
         <tr>
             {combatReportColumns.map((col, index) => {
