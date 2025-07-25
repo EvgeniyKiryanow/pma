@@ -1,6 +1,7 @@
 import React from 'react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { useState } from 'react';
 import { CombatReportTable } from './_components/CombatReportTable';
 type BorderStyle =
     | 'thin'
@@ -19,7 +20,11 @@ type BorderStyle =
 // ✅ STYLE UTILITY → preserves thick 3px React borders as "medium"
 const THICK_BORDER = { style: 'medium' as BorderStyle, color: { argb: '000000' } };
 const THIN_BORDER = { style: 'thin' as BorderStyle, color: { argb: '000000' } };
-
+const tableSections = [
+    { id: 'page1', title: '📄 Перша сторінка ДОНЕСЕННЯ' },
+    { id: 'page2', title: '📄 Друга сторінка' },
+    // { id: 'page3', title: '📄 Третя сторінка' },
+];
 const styleCell = (
     cell: ExcelJS.Cell,
     cfg: {
@@ -50,7 +55,105 @@ const styleCell = (
     }
 };
 
-// ✅ EXPORT LOGIC
+export default function GeneratedTablesTabContent() {
+    const [activeTable, setActiveTable] = useState('page1');
+
+    return (
+        <div className="flex h-full">
+            {/* === LEFT SIDEBAR === */}
+            <aside className="w-64 bg-white border-r border-gray-200 shadow-sm flex flex-col">
+                <div className="p-4 border-b">
+                    <h1 className="text-xl font-bold text-gray-800">📑 Згенеровані таблиці</h1>
+                </div>
+
+                <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+                    {tableSections.map((section) => (
+                        <button
+                            key={section.id}
+                            onClick={() => setActiveTable(section.id)}
+                            className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                activeTable === section.id
+                                    ? 'bg-green-100 text-green-700 border border-green-300'
+                                    : 'hover:bg-gray-100 text-gray-700'
+                            }`}
+                        >
+                            {section.title}
+                        </button>
+                    ))}
+                </nav>
+
+                {/* Export button at bottom */}
+                <div className="p-4 border-t">
+                    <button
+                        onClick={exportCombatReportToExcel}
+                        className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+                    >
+                        📤 Експорт (.xlsx)
+                    </button>
+                </div>
+            </aside>
+
+            {/* === MAIN CONTENT AREA === */}
+            <main className="flex-1 p-6 overflow-auto">
+                {activeTable === 'page1' && (
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                        {/* Section Header */}
+                        <div className="px-6 py-4 border-b bg-gray-50 rounded-t-xl flex justify-between items-center">
+                            <h2 className="text-lg font-semibold text-gray-700">
+                                📄 Перша сторінка
+                            </h2>
+                            <span className="text-xs text-gray-500">
+                                Оновлено: {new Date().toLocaleDateString()}
+                            </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-center text-sm border-collapse">
+                                <CombatReportTable />
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {activeTable === 'page2' && (
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                        <div className="px-6 py-4 border-b bg-gray-50 rounded-t-xl flex justify-between items-center">
+                            <h2 className="text-lg font-semibold text-gray-700">
+                                📄 Друга сторінка
+                            </h2>
+                            <span className="text-xs text-gray-500">
+                                Оновлено: {new Date().toLocaleDateString()}
+                            </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-center text-sm border-collapse">
+                                <tbody>
+                                    <tr>
+                                        <td className="p-4 text-gray-500">Тут буде інша таблиця</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {activeTable === 'page3' && (
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                        <div className="px-6 py-4 border-b bg-gray-50 rounded-t-xl flex justify-between items-center">
+                            <h2 className="text-lg font-semibold text-gray-700">
+                                📄 Третя сторінка
+                            </h2>
+                            <span className="text-xs text-gray-500">
+                                Оновлено: {new Date().toLocaleDateString()}
+                            </span>
+                        </div>
+                        <div className="p-6 text-gray-500">Ще одна таблиця або контент</div>
+                    </div>
+                )}
+            </main>
+        </div>
+    );
+}
+
 const exportCombatReportToExcel = async () => {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Combat Report', {
@@ -362,22 +465,3 @@ const exportCombatReportToExcel = async () => {
         'combat_report.xlsx',
     );
 };
-
-export default function GeneratedTablesTabContent() {
-    return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">📑 Згенеровані таблиці</h1>
-            <button
-                onClick={exportCombatReportToExcel}
-                className="mb-4 px-4 py-2 bg-green-600 text-white rounded shadow hover:bg-green-700"
-            >
-                📤 Export Combat Report (.xlsx)
-            </button>
-            <div className="overflow-x-auto rounded-lg">
-                <table className="min-w-full text-center text-sm border-collapse border border-black">
-                    <CombatReportTable />
-                </table>
-            </div>
-        </div>
-    );
-}
