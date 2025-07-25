@@ -6,7 +6,7 @@ import UserHistory from '../components/userInfo/UserHistory';
 import CommentsModal from '../components/userInfo/CommentsModal';
 import { Edit3, MessageCircle, Trash2, ClipboardList } from 'lucide-react';
 import { useI18nStore } from '../stores/i18nStore';
-import { StatusExcel } from 'src/types/excelUserStatuses';
+import { StatusExcel } from 'src/utils/excelUserStatuses';
 
 export default function RightBar() {
     const [showComments, setShowComments] = useState(false);

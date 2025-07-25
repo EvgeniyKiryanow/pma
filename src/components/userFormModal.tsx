@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useUserStore } from '../stores/userStore';
 import type { User, RelativeContact } from '../types/user';
 import { useI18nStore } from '../stores/i18nStore';
-import { StatusExcel } from '../types/excelUserStatuses';
+import { StatusExcel } from '../utils/excelUserStatuses';
 
 export default function UserFormModalUpdate({
     userToEdit,

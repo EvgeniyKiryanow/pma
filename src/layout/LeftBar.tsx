@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useUserStore } from '../stores/userStore';
 import type { User } from '../types/user';
 import DefaultAvatar from '../icons/DefaultAvatar';
+import { getStatusBadge } from '../utils/statusBadgeUtils';
 import { useI18nStore } from '../stores/i18nStore';
 import { ChevronLeft, ChevronRight } from 'lucide-react'; // ✅ arrow icons
 
@@ -99,48 +100,79 @@ export default function LeftBar({ users }: Props) {
                     </div>
 
                     {/* Scrollable User List */}
-                    <ul className="flex-1 overflow-y-auto">
+                    <ul className="flex-1 overflow-y-auto space-y-3 p-3">
                         {filteredUsers.length > 0 ? (
-                            filteredUsers.map((user, index) => (
-                                <li
-                                    key={user.id}
-                                    onClick={() => {
-                                        // ✅ Toggle same user selection (close on second click)
-                                        if (selectedUser?.id === user.id) {
-                                            setSelectedUser(null);
-                                        } else {
-                                            setSelectedUser(user);
-                                        }
-                                    }}
-                                    className={`flex items-center cursor-pointer p-4 border-b border-gray-200 transition-colors duration-200 
-                                        hover:bg-blue-50 hover:shadow-sm ${
-                                            selectedUser?.id === user.id
-                                                ? 'bg-blue-100 font-semibold'
-                                                : ''
-                                        }`}
-                                >
-                                    <span className="mr-3 text-gray-500 w-6 text-right select-none">
-                                        {index + 1}.
-                                    </span>
-                                    {user.photo ? (
-                                        <img
-                                            src={user.photo}
-                                            alt={user.fullName}
-                                            className="h-6 w-6 mr-2 rounded-full"
-                                        />
-                                    ) : (
-                                        <div className="h-6 w-6 mr-2 rounded-full">
-                                            <DefaultAvatar />
+                            filteredUsers.map((user, index) => {
+                                const isSelected = selectedUser?.id === user.id;
+
+                                // ✅ Get badge style & icon from helper
+                                const { icon: badgeIcon, badgeStyle } = getStatusBadge(
+                                    user.soldierStatus,
+                                );
+
+                                return (
+                                    <li
+                                        key={user.id}
+                                        onClick={() => setSelectedUser(isSelected ? null : user)}
+                                        className={`flex flex-col gap-3 rounded-xl border p-4 transition-all cursor-pointer
+            ${
+                isSelected
+                    ? 'bg-blue-50 border-blue-400 shadow-md ring-1 ring-blue-200'
+                    : 'bg-white border-gray-200 hover:shadow-md hover:border-blue-300 hover:bg-blue-50/40'
+            }`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-6 text-xs text-gray-400">
+                                                {index + 1}.
+                                            </div>
+
+                                            {/* Avatar */}
+                                            {/* {user.photo ? (
+                                                <img
+                                                    src={user.photo}
+                                                    alt={user.fullName}
+                                                    className="h-12 w-12 rounded-full object-cover border border-gray-300 shadow-sm hover:scale-105 transition-transform"
+                                                />
+                                            ) : (
+                                                <div className="h-12 w-12 rounded-full bg-gray-100 border flex items-center justify-center text-gray-400 hover:scale-105 transition-transform">
+                                                    <DefaultAvatar />
+                                                </div>
+                                            )} */}
+
+                                            {/* Name + Rank */}
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-semibold text-gray-800 text-[15px] break-words">
+                                                    {user.fullName}
+                                                </span>
+                                                <div className="flex items-center gap-1 text-xs text-gray-500 flex-wrap">
+                                                    <span className="break-words">
+                                                        {user.rank || '—'}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
-                                    )}
-                                    <div className="flex flex-col">
-                                        <span>{user.fullName}</span>
-                                        <span className="text-xs text-gray-500">
-                                            {user.rank} • {user.soldierStatus || '—'}
-                                        </span>
-                                    </div>
-                                </li>
-                            ))
+
+                                        {/* ✅ Soldier Status Badge */}
+                                        {user.soldierStatus && (
+                                            <div className="flex flex-wrap">
+                                                <span
+                                                    className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border font-medium shadow-sm break-words ${badgeStyle}`}
+                                                    title={user.soldierStatus}
+                                                >
+                                                    {badgeIcon} <span>{user.soldierStatus}</span>
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Phone */}
+                                        {user.phoneNumber && (
+                                            <div className="flex items-center gap-2 text-xs text-gray-600 break-words">
+                                                📞 <span>{user.phoneNumber}</span>
+                                            </div>
+                                        )}
+                                    </li>
+                                );
+                            })
                         ) : (
                             <li className="p-4 text-gray-400 italic">
                                 {t('leftBar.noUsersFound')}

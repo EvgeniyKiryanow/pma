@@ -4,7 +4,7 @@ import HistoryItem from './HistoryItem';
 import AddHistoryModal from './AddHistoryModal';
 import { useI18nStore } from '../../stores/i18nStore';
 import { HistoryHeader } from '../HistoryHeader'; // ✅ bring the nice header
-import { StatusExcel } from '../../types/excelUserStatuses';
+import { StatusExcel } from '../../utils/excelUserStatuses';
 
 const FILTER_OPTIONS = [
     { labelKey: 'history.filters.1day', value: '1day' },
