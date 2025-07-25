@@ -135,10 +135,13 @@ export const ua = {
         pdf: 'PDF',
         download: 'Завантажити {{name}}',
         changeStatus: 'Змінити статус',
+        statusChangeDescription:
+            'Статус особового складу був оновлений. Нижче вказані попередній та новий статус.',
         type: {
             history: 'Історія',
             comment: 'Коментар',
             text: 'Текст',
+            statusChange: 'Був змінений статус!',
         },
     },
     historyModal: {

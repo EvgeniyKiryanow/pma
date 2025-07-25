@@ -21,6 +21,7 @@ type FileWithDataUrl = {
 };
 
 type UserHistoryProps = {
+    history: CommentOrHistoryEntry[];
     userId: number;
     onAddHistory: (entry: CommentOrHistoryEntry) => void;
     onDeleteHistory: (id: number) => void;
@@ -29,7 +30,7 @@ type UserHistoryProps = {
 };
 
 export default function UserHistory({
-    userId,
+    history,
     onAddHistory,
     onDeleteHistory,
     onStatusChange,
@@ -39,49 +40,22 @@ export default function UserHistory({
     const [files, setFiles] = useState<FileWithDataUrl[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedFilter, setSelectedFilter] = useState('30days');
-    const [history, setHistory] = useState<CommentOrHistoryEntry[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { t } = useI18nStore();
 
-    const loadHistory = async () => {
-        const data = await window.electronAPI.getUserHistory(userId, selectedFilter);
-        setHistory(data);
-    };
-
-    useEffect(() => {
-        loadHistory();
-    }, [userId, selectedFilter]);
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files) return;
-        const fileList = Array.from(e.target.files);
-
-        fileList.forEach((file) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                if (typeof reader.result === 'string') {
-                    setFiles((prev) => [
-                        ...prev,
-                        { name: file.name, type: file.type, dataUrl: reader.result as string },
-                    ]);
-                }
-            };
-            reader.readAsDataURL(file);
-        });
-        e.target.value = '';
-    };
-
-    const handleDeleteHistory = async (id: number) => {
-        const confirmed = window.confirm(t('history.confirmDelete'));
-        if (!confirmed) return;
-
-        await window.electronAPI.deleteUserHistory(id);
-        await loadHistory();
-    };
-
-    const removeFile = (index: number) => {
-        setFiles((prev) => prev.filter((_, i) => i !== index));
-    };
+    const filteredHistory = useMemo(() => {
+        const sorted = [...history].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        );
+        if (!searchTerm.trim()) return sorted;
+        const term = searchTerm.toLowerCase();
+        return sorted.filter(
+            (entry) =>
+                [entry.description, entry.author, new Date(entry.date).toLocaleDateString()].some(
+                    (field) => field?.toLowerCase().includes(term),
+                ) || entry.files?.some((file) => file.name.toLowerCase().includes(term)),
+        );
+    }, [history, searchTerm]);
 
     const handleSubmit = async () => {
         const newEntry: CommentOrHistoryEntry = {
@@ -93,58 +67,30 @@ export default function UserHistory({
             content: '',
             files,
         };
-
-        try {
-            await window.electronAPI.addUserHistory(userId, newEntry);
-            const refreshed = await window.electronAPI.getUserHistory(userId, selectedFilter);
-            setHistory(refreshed);
-
-            setDescription('');
-            setFiles([]);
-            setIsModalOpen(false);
-        } catch (err) {
-            console.error('Failed to save history:', err);
-            alert(t('history.saveError'));
-        }
+        onAddHistory(newEntry);
+        setDescription('');
+        setFiles([]);
+        setIsModalOpen(false);
     };
-
-    const filteredHistory = useMemo(() => {
-        if (!searchTerm.trim()) return [...history].reverse(); // ✅ latest first
-        const term = searchTerm.toLowerCase();
-        return [...history]
-            .reverse()
-            .filter(
-                (entry) =>
-                    [
-                        entry.description,
-                        entry.author,
-                        new Date(entry.date).toLocaleDateString(),
-                    ].some((field) => field?.toLowerCase().includes(term)) ||
-                    entry.files?.some((file) => file.name.toLowerCase().includes(term)),
-            );
-    }, [history, searchTerm]);
 
     return (
         <div className="relative">
-            {/* ✅ Cool unified header with dropdown + add record */}
             <HistoryHeader
                 onAddHistory={() => setIsModalOpen(true)}
                 currentStatus={currentStatus}
-                onStatusChange={onStatusChange} // ✅ triggers upward
+                onStatusChange={onStatusChange}
             />
 
-            {/* Filters and search */}
+            {/* Filters/search */}
             <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
                 <select
                     value={selectedFilter}
                     onChange={(e) => setSelectedFilter(e.target.value)}
                     className="px-3 py-2 border text-sm rounded shadow-sm focus:outline-blue-500"
                 >
-                    {FILTER_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                            {t(opt.labelKey)}
-                        </option>
-                    ))}
+                    {/* Filters can still exist but won’t refetch */}
+                    <option value="30days">{t('history.filters.30days')}</option>
+                    <option value="all">{t('history.filters.all')}</option>
                 </select>
 
                 <input
@@ -156,18 +102,16 @@ export default function UserHistory({
                 />
             </div>
 
-            {/* History List */}
             {filteredHistory.length === 0 ? (
                 <p className="text-gray-500 italic">{t('history.noRecords')}</p>
             ) : (
                 <ul className="space-y-4">
                     {filteredHistory.map((entry) => (
-                        <HistoryItem key={entry.id} entry={entry} onDelete={handleDeleteHistory} />
+                        <HistoryItem key={entry.id} entry={entry} onDelete={onDeleteHistory} />
                     ))}
                 </ul>
             )}
 
-            {/* Modal for add */}
             <AddHistoryModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
@@ -175,9 +119,32 @@ export default function UserHistory({
                 setDescription={setDescription}
                 files={files}
                 setFiles={setFiles}
-                removeFile={removeFile}
+                removeFile={(idx) => setFiles((f) => f.filter((_, i) => i !== idx))}
                 onSubmit={handleSubmit}
-                onFileChange={handleFileChange}
+                onFileChange={(e) => {
+                    if (!e.target.files) return;
+                    Array.from(e.target.files).forEach((file) => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            const result = reader.result;
+                            if (typeof result === 'string') {
+                                setFiles((prev) => [
+                                    ...prev,
+                                    {
+                                        name: file.name,
+                                        type: file.type,
+                                        dataUrl: result,
+                                    },
+                                ]);
+                            } else {
+                                console.warn('Unexpected FileReader result type:', typeof result);
+                            }
+                        };
+
+                        reader.readAsDataURL(file);
+                    });
+                    e.target.value = '';
+                }}
             />
         </div>
     );

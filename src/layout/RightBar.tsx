@@ -13,13 +13,31 @@ export default function RightBar() {
     const [dbComments, setDbComments] = useState<CommentOrHistoryEntry[]>([]);
     const sidebarCollapsed = useUserStore((s) => s.sidebarCollapsed);
     const { t } = useI18nStore();
-    const handleStatusChange = (status: StatusExcel) => {
+    const handleStatusChange = async (newStatus: StatusExcel) => {
         if (!user) return;
+
+        const prevStatus = user.soldierStatus || '—';
+
+        // ✅ Build history entry
+        const historyEntry: CommentOrHistoryEntry = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            type: 'statusChange',
+            author: 'System',
+            description: `Статус змінено з "${prevStatus}" → "${newStatus}"`,
+            content: `Статус змінено з "${prevStatus}" на "${newStatus}"`,
+            files: [],
+        };
+
+        // ✅ Merge soldierStatus + history in one object
         const updatedUser: User = {
             ...user,
-            soldierStatus: status,
+            soldierStatus: newStatus,
+            history: [...(user.history || []), historyEntry],
         };
-        updateUser(updatedUser);
+
+        // ✅ Just one call → store + DB updated
+        await updateUser(updatedUser);
     };
 
     const user = useUserStore((s) => s.selectedUser);
@@ -30,6 +48,7 @@ export default function RightBar() {
 
     const handleAddHistory = (newEntry: CommentOrHistoryEntry) => {
         if (!user) return;
+        console.log(newEntry, 'newEntry');
         const updatedUser: User = { ...user, history: [...(user.history || []), newEntry] };
         updateUser(updatedUser);
     };
@@ -116,6 +135,7 @@ export default function RightBar() {
                     <section className="bg-white/80 border rounded-xl shadow-md hover:shadow-lg transition p-4">
                         <UserHistory
                             userId={user.id}
+                            history={user.history || []}
                             onAddHistory={handleAddHistory}
                             onDeleteHistory={handleDeleteHistory}
                             onStatusChange={handleStatusChange}
