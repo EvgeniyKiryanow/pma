@@ -70,16 +70,84 @@ export default function ImportUsersTabContent() {
         reader.readAsBinaryString(file);
     };
 
-    /** Check if this sheet is "штатні посади" table */
+    /** ✅ Чи є таблиця користувачів */
+    const isUsersSheet = (rows: any[]): boolean => {
+        if (!rows.length) return false;
+
+        const headers = Object.keys(rows[0]).map((h) => h.toLowerCase().trim());
+
+        const hasFullname = headers.some(
+            (h) => h.includes('fullname') || h.includes('full name') || h.includes('піб'),
+        );
+
+        const hasLastName = headers.some(
+            (h) =>
+                h.includes('прізвищ') ||
+                h.includes('прізвище') ||
+                h.includes('surname') ||
+                h.includes('last name'),
+        );
+
+        const hasFirstName = headers.some(
+            (h) =>
+                h.includes('ім’я') ||
+                h.includes('імя') ||
+                h.includes('firstname') ||
+                h.includes('first name') ||
+                h.includes("ім'я"),
+        );
+
+        const hasDob = headers.some(
+            (h) =>
+                h.includes('дата народ') ||
+                h.includes('date of birth') ||
+                h.includes('дн') ||
+                h.includes('dob'),
+        );
+
+        // ✅ Якщо є fullname і дата народження
+        if (hasFullname && hasDob) return true;
+
+        // ✅ Якщо є прізвище + ім’я + дата народження
+        if (hasLastName && hasFirstName && hasDob) return true;
+
+        return false;
+    };
+
+    /** ✅ Чи є таблиця штатних посад */
     const isShtatniPosadySheet = (rows: any[]): boolean => {
         if (!rows.length) return false;
+
         const headers = Object.keys(rows[0]).map((h) => h.toLowerCase().trim());
-        return (
-            headers.includes('shtat_number') ||
-            headers.includes('номер по штату') ||
-            headers.includes('№ по штату') ||
-            headers.includes('№ штату')
+
+        const hasShtat = headers.some(
+            (h) =>
+                h.includes('shtat_number') ||
+                h.includes('номер по штату') ||
+                h.includes('№ по штату') ||
+                h.includes('№ штату') ||
+                h === 'номер' ||
+                h.startsWith('№'),
         );
+
+        const hasUnit = headers.some(
+            (h) => h.includes('підрозділ') || h.includes('unit') || h.includes('підр.'),
+        );
+
+        const hasPosition = headers.some(
+            (h) => h.includes('посада') || h.includes('position') || h.includes('назва посади'),
+        );
+
+        const hasCategory = headers.some(
+            (h) => h === 'кат' || h.includes('категорія') || h.includes('category'),
+        );
+
+        const hasShpk = headers.some(
+            (h) => h === 'шпк' || h.includes('shpk') || h.includes('код шпк'),
+        );
+
+        // ✅ Має бути всі 5 одночасно
+        return hasShtat && hasUnit && hasPosition && hasCategory && hasShpk;
     };
 
     /** Import штатні посади */
@@ -261,9 +329,9 @@ export default function ImportUsersTabContent() {
                 </div>
             )}
 
-            {/* Попередній перегляд для кожного листа */}
             {Object.entries(parsedSheets).map(([sheetName, rows]) => {
-                const isStaff = isShtatniPosadySheet(rows);
+                const sheetIsStaff = isShtatniPosadySheet(rows);
+                const sheetIsUsers = isUsersSheet(rows);
 
                 const visibleColumns =
                     rows.length > 0
@@ -295,25 +363,34 @@ export default function ImportUsersTabContent() {
                                 📄 Лист: {sheetName} ({filteredData.length}/{rows.length} рядків)
                             </h2>
 
-                            {/* ✅ Different button depending on sheet type */}
-                            {isStaff ? (
-                                <button
-                                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow-md transition"
-                                    onClick={() => handleImportShtatniPosady(rows)}
-                                >
-                                    ✅ Імпортувати штатні посади
-                                </button>
-                            ) : (
-                                <button
-                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
-                                    onClick={() => handleImportUsersSheet(rows)}
-                                >
-                                    ✅ Імпортувати користувачів
-                                </button>
-                            )}
+                            <div className="flex gap-3">
+                                {sheetIsStaff && (
+                                    <button
+                                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow-md transition"
+                                        onClick={() => handleImportShtatniPosady(rows)}
+                                    >
+                                        ✅ Імпортувати штатні посади
+                                    </button>
+                                )}
+
+                                {sheetIsUsers && (
+                                    <button
+                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
+                                        onClick={() => handleImportUsersSheet(rows)}
+                                    >
+                                        ✅ Імпортувати користувачів
+                                    </button>
+                                )}
+
+                                {!sheetIsStaff && !sheetIsUsers && (
+                                    <span className="text-gray-400 italic text-sm">
+                                        ❌ Цей лист не підтримується для імпорту
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Table preview */}
+                        {/* Попередній перегляд */}
                         <div className="overflow-auto max-h-[60vh]">
                             <table className="w-full text-sm border-collapse">
                                 <thead className="sticky top-0 bg-gray-100 shadow-sm">
@@ -332,7 +409,9 @@ export default function ImportUsersTabContent() {
                                     {filteredData.map((row, idx) => (
                                         <tr
                                             key={idx}
-                                            className={`transition ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`}
+                                            className={`transition ${
+                                                idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                                            } hover:bg-blue-50`}
                                         >
                                             {visibleColumns.map((colKey) => (
                                                 <td
