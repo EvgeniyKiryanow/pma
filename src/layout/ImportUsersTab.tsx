@@ -1,9 +1,13 @@
+// ImportUsersTabs.tsx
 import React, { useState } from 'react';
 import ImportUsersTabContent from '../components/ExcelTables/ImportUsersTabContent';
 import GeneratedTablesTabContent from '../components/ExcelTables/GeneratedTablesTabContent';
 
 export default function ImportUsersTabs() {
     const [activeTab, setActiveTab] = useState<'import' | 'generated'>('import');
+
+    // ✅ Function to switch to "import" tab
+    const goToImportTab = () => setActiveTab('import');
 
     return (
         <div className="flex flex-col h-full w-full">
@@ -35,7 +39,9 @@ export default function ImportUsersTabs() {
             {/* Tabs content */}
             <div className="flex-1">
                 {activeTab === 'import' && <ImportUsersTabContent />}
-                {activeTab === 'generated' && <GeneratedTablesTabContent />}
+                {activeTab === 'generated' && (
+                    <GeneratedTablesTabContent onRequestImportTab={goToImportTab} />
+                )}
             </div>
         </div>
     );
