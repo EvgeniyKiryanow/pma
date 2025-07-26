@@ -78,13 +78,6 @@ export default function GeneratedTablesTabContent() {
                             </span>
                         </div>
 
-                        {/* Table */}
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full text-center text-sm border-collapse">
-                                <StaffReportTable />
-                            </table>
-                        </div>
-
                         {/* ✅ Export button for Staff Report */}
                         <div className="p-4 border-t flex justify-end">
                             <button
@@ -93,6 +86,12 @@ export default function GeneratedTablesTabContent() {
                             >
                                 📤 Експорт Staff Report (.xlsx)
                             </button>
+                        </div>
+                        {/* Table */}
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-center text-sm border-collapse">
+                                <StaffReportTable />
+                            </table>
                         </div>
                     </div>
                 )}
