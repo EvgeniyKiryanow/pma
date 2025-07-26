@@ -8,7 +8,7 @@ export async function generateStaffReportExcel() {
     const shtatniPosady = useShtatniStore.getState().shtatniPosady;
     const users = useUserStore.getState().users;
 
-    // === Build merged rows like in StaffReportTable ===
+    // === Merge rows same as StaffReportTable ===
     const allRows = shtatniPosady.map((pos) => {
         const assignedUser = users.find(
             (u) => u.position === pos.position_name && u.unitMain === pos.unit_name,
@@ -33,17 +33,16 @@ export async function generateStaffReportExcel() {
         };
     });
 
-    // === Create workbook ===
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Staff Report');
 
-    // === Define Header columns with their specific background ===
+    // === Header columns with custom background colors ===
     const HEADER_COLUMNS = [
-        { header: 'підрозділ', key: 'unit', width: 20, headerBg: '#ffffff' },
-        { header: 'посада', key: 'position', width: 40, headerBg: '#ffffff' },
-        { header: 'В/звання', key: 'rank', width: 20, headerBg: '#ffffff' },
-        { header: 'ПІБ', key: 'fullName', width: 30, headerBg: '#ffffff' },
-        { header: 'ІПН', key: 'taxId', width: 20, headerBg: '#ffffff' },
+        { header: 'підрозділ', key: 'unit', width: 20, headerBg: 'ffffff' },
+        { header: 'посада', key: 'position', width: 40, headerBg: 'ffffff' },
+        { header: 'В/звання', key: 'rank', width: 20, headerBg: 'ffffff' },
+        { header: 'ПІБ', key: 'fullName', width: 30, headerBg: 'ffffff' },
+        { header: 'ІПН', key: 'taxId', width: 20, headerBg: 'ffffff' },
 
         { header: 'статус в районі', key: 'statusInArea', width: 25, headerBg: 'fde9a9' },
         {
@@ -63,7 +62,6 @@ export async function generateStaffReportExcel() {
         { header: 'помилка статусів', key: 'statusNote', width: 25, headerBg: 'f7c7c7' },
     ];
 
-    // Add header row
     ws.columns = HEADER_COLUMNS.map((c) => ({
         header: c.header,
         key: c.key,
@@ -73,6 +71,7 @@ export async function generateStaffReportExcel() {
     const headerRow = ws.getRow(1);
     headerRow.height = 30;
 
+    // === Style header ===
     HEADER_COLUMNS.forEach((col, idx) => {
         const cell = headerRow.getCell(idx + 1);
         cell.font = { bold: true, size: 12 };
@@ -90,52 +89,58 @@ export async function generateStaffReportExcel() {
         };
     });
 
-    // === Determine text color for position ===
+    // === Determine text color for a given position ===
     function getPositionColor(position: string): string {
         const lower = position.toLowerCase();
-        if (lower.includes('командир роти') || lower.includes('заступник')) {
-            return 'FF0000'; // Red
+
+        if (
+            lower.includes('командир роти') ||
+            lower.includes('заступник') ||
+            lower.includes('командир взводу')
+        ) {
+            return 'FF0000'; // 🔴 Red for command
         }
         if (
             lower.includes('головний сержант') ||
             lower.includes('старший технік') ||
-            lower.includes('медик')
+            lower.includes('медик') ||
+            lower.includes('сержант')
         ) {
-            return '008000'; // Green
+            return '008000'; // 🟢 Green for support roles
         }
-        return '000000'; // Black default
+        return '000000'; // ⚫ Default black
     }
 
-    // === Fill rows ===
+    // === Fill data rows ===
     allRows.forEach((rowData) => {
         const row = ws.addRow(rowData);
+
+        // Get color based on the position text
+        const rowPosition = String(rowData.position || '');
+        const dynamicColor = getPositionColor(rowPosition);
+
+        row.height = 22; // a bit taller for better look
 
         row.eachCell((cell, colNumber) => {
             const colKey = HEADER_COLUMNS[colNumber - 1].key;
 
-            // Default styling
+            // ✅ Common cell styles
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
             cell.border = {
                 top: { style: 'thin', color: { argb: '000000' } },
                 bottom: { style: 'thin', color: { argb: '000000' } },
                 left: { style: 'thin', color: { argb: '000000' } },
                 right: { style: 'thin', color: { argb: '000000' } },
             };
-            cell.alignment = { vertical: 'middle', wrapText: true };
 
-            // ✅ Green text for unit
-            if (colKey === 'unit') {
-                cell.font = { color: { argb: '008000' }, bold: true };
-            }
-
-            // ✅ Dynamic color for position
-            if (colKey === 'position') {
-                const color = getPositionColor(String(cell.value || ''));
-                cell.font = { color: { argb: color }, bold: true };
+            // ✅ Apply dynamic color to both "unit" & "position"
+            if (colKey === 'unit' || colKey === 'position') {
+                cell.font = { color: { argb: dynamicColor }, bold: true };
             }
         });
     });
 
-    // ✅ Save file
+    // ✅ Save as Excel
     const buf = await wb.xlsx.writeBuffer();
     saveAs(
         new Blob([buf], {
