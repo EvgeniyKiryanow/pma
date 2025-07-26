@@ -10,31 +10,13 @@ import {
 import { UploadCloud, Search } from 'lucide-react';
 
 export default function ImportUsersTabContent() {
-    const [parsedData, setParsedData] = useState<any[]>([]);
+    const [parsedSheets, setParsedSheets] = useState<Record<string, any[]>>({});
     const [dbColumns, setDbColumns] = useState<string[]>([]);
     const [missingDbFields, setMissingDbFields] = useState<string[]>([]);
     const [existingUsers, setExistingUsers] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
 
     const lowerSearch = searchTerm.toLowerCase();
-
-    const visibleColumns =
-        parsedData.length > 0
-            ? Object.keys(parsedData[0]).filter((header) =>
-                  searchTerm.trim() === '' ? true : header.toLowerCase().includes(lowerSearch),
-              )
-            : [];
-
-    const filteredData =
-        parsedData.length > 0
-            ? parsedData.filter((row) =>
-                  Object.entries(row).some(
-                      ([header, val]) =>
-                          visibleColumns.includes(header) &&
-                          String(val).toLowerCase().includes(lowerSearch),
-                  ),
-              )
-            : [];
 
     useEffect(() => {
         window.electronAPI.getDbColums().then((cols: string[]) => setDbColumns(cols));
@@ -87,46 +69,55 @@ export default function ImportUsersTabContent() {
             if (!data) return;
 
             const workbook = XLSX.read(data, { type: 'binary' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+            const sheetsData: Record<string, any[]> = {};
 
-            const validHeaders = Object.keys(rawJson[0] || {}).filter(
-                (h) => h && !h.startsWith('Unnamed') && !h.startsWith('__EMPTY'),
-            );
+            workbook.SheetNames.forEach((sheetName) => {
+                const worksheet = workbook.Sheets[sheetName];
+                const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
-            const cleanedRows = rawJson.map((row: any) => {
-                const mappedRow: Record<string, string> = {};
+                if (rawJson.length === 0) return;
 
-                validHeaders.forEach((header) => {
-                    let val = row[header];
-                    if (val === 0 || val === '0' || val == null) val = '';
+                const validHeaders = Object.keys(rawJson[0] || {}).filter(
+                    (h) => h && !h.startsWith('Unnamed') && !h.startsWith('__EMPTY'),
+                );
 
-                    const mappedField = findBestDbColumn(header, dbCols);
+                const cleanedRows = rawJson.map((row: any) => {
+                    const mappedRow: Record<string, string> = {};
 
-                    if (mappedField === 'dateOfBirth') {
-                        if (!isNaN(Number(val)) && Number(val) > 10000 && Number(val) < 60000) {
-                            mappedRow[mappedField] = excelSerialToDate(Number(val));
-                        } else if (val instanceof Date) {
-                            mappedRow[mappedField] = val.toISOString().split('T')[0];
+                    validHeaders.forEach((header) => {
+                        let val = row[header];
+                        if (val === 0 || val === '0' || val == null) val = '';
+
+                        const mappedField = findBestDbColumn(header, dbCols);
+
+                        if (mappedField === 'dateOfBirth') {
+                            if (!isNaN(Number(val)) && Number(val) > 10000 && Number(val) < 60000) {
+                                mappedRow[mappedField] = excelSerialToDate(Number(val));
+                            } else if (val instanceof Date) {
+                                mappedRow[mappedField] = val.toISOString().split('T')[0];
+                            } else {
+                                mappedRow[mappedField] = String(val).trim();
+                            }
                         } else {
                             mappedRow[mappedField] = String(val).trim();
                         }
-                    } else {
-                        mappedRow[mappedField] = String(val).trim();
-                    }
+                    });
+
+                    return mappedRow;
                 });
 
-                return mappedRow;
+                sheetsData[sheetName] = cleanedRows;
             });
 
-            setParsedData(cleanedRows);
+            setParsedSheets(sheetsData);
         };
         reader.readAsBinaryString(file);
     };
 
     const handleImportUsers = async () => {
-        if (parsedData.length === 0) return;
+        // Flatten all sheets into one array
+        const allData = Object.values(parsedSheets).flat();
+        if (allData.length === 0) return;
 
         let createdCount = 0;
         let updatedCount = 0;
@@ -135,7 +126,7 @@ export default function ImportUsersTabContent() {
 
         const userLookup = new Map(existingUsers.map((u) => [generateUserKey(u), u]));
 
-        for (const row of parsedData) {
+        for (const row of allData) {
             const mappedRow = mapExcelRowToDb(row);
 
             if (mappedRow.dateOfBirth)
@@ -194,6 +185,8 @@ export default function ImportUsersTabContent() {
         window.location.reload();
     };
 
+    const hasData = Object.keys(parsedSheets).length > 0;
+
     return (
         <div className="flex flex-col items-center justify-start h-full w-full p-8 bg-gray-50">
             {/* Заголовок + опис */}
@@ -203,8 +196,7 @@ export default function ImportUsersTabContent() {
                 </h1>
                 <p className="text-gray-600 mt-2 text-sm">
                     Імпортуйте персональні дані з <strong>Excel</strong> або <strong>CSV</strong>.
-                    Система автоматично розпізнає заголовки й покаже попередній перегляд перед
-                    імпортом.
+                    Система автоматично розпізнає всі листи файлу й покаже попередній перегляд.
                 </p>
             </div>
 
@@ -226,7 +218,7 @@ export default function ImportUsersTabContent() {
             </div>
 
             {/* Якщо є дані → кнопка імпорту */}
-            {parsedData.length > 0 && (
+            {hasData && (
                 <div className="mt-6 flex gap-4">
                     <button
                         className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg shadow-md flex items-center gap-2 transition"
@@ -235,8 +227,23 @@ export default function ImportUsersTabContent() {
                         ✅ Імпортувати користувачів
                     </button>
                     <span className="text-gray-500 text-sm self-center">
-                        ({parsedData.length} рядків готово до імпорту)
+                        ({Object.values(parsedSheets).reduce((acc, rows) => acc + rows.length, 0)}{' '}
+                        рядків готово до імпорту)
                     </span>
+                </div>
+            )}
+
+            {/* Глобальний пошук */}
+            {hasData && (
+                <div className="relative w-full md:w-72 my-6">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                        type="text"
+                        placeholder="Пошук по всіх листах..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 focus:border-blue-400 focus:ring focus:ring-blue-100 text-sm"
+                    />
                 </div>
             )}
 
@@ -250,64 +257,76 @@ export default function ImportUsersTabContent() {
                 </div>
             )}
 
-            {/* Попередній перегляд */}
-            {parsedData.length > 0 && (
-                <div className="mt-8 w-full bg-white rounded-xl shadow-lg border overflow-hidden">
-                    <div className="p-4 border-b bg-gray-50 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                            📄 Попередній перегляд даних
-                        </h2>
-                        <div className="relative w-full md:w-72">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                            <input
-                                type="text"
-                                placeholder="Пошук по заголовках колонок..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 focus:border-blue-400 focus:ring focus:ring-blue-100 text-sm"
-                            />
-                        </div>
-                        <span className="text-gray-500 text-sm">
-                            Показано {visibleColumns.length} колонок з{' '}
-                            {Object.keys(parsedData[0]).length}
-                        </span>
-                    </div>
+            {/* Попередній перегляд для кожного листа */}
+            {Object.entries(parsedSheets).map(([sheetName, rows]) => {
+                const visibleColumns =
+                    rows.length > 0
+                        ? Object.keys(rows[0]).filter((header) =>
+                              searchTerm.trim() === ''
+                                  ? true
+                                  : header.toLowerCase().includes(lowerSearch),
+                          )
+                        : [];
 
-                    <div className="overflow-auto max-h-[70vh]">
-                        <table className="w-full text-sm border-collapse">
-                            <thead className="sticky top-0 bg-gray-100 shadow-sm">
-                                <tr>
-                                    {visibleColumns.map((key) => (
-                                        <th
-                                            key={key}
-                                            className="border border-gray-300 px-3 py-2 text-left text-gray-700 font-medium"
-                                        >
-                                            {key}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {parsedData.map((row, idx) => (
-                                    <tr
-                                        key={idx}
-                                        className={`transition ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`}
-                                    >
-                                        {visibleColumns.map((colKey) => (
-                                            <td
-                                                key={colKey}
-                                                className="border border-gray-200 px-3 py-2 text-gray-800 whitespace-nowrap"
+                const filteredData =
+                    rows.length > 0
+                        ? rows.filter((row) =>
+                              Object.entries(row).some(
+                                  ([header, val]) =>
+                                      visibleColumns.includes(header) &&
+                                      String(val).toLowerCase().includes(lowerSearch),
+                              ),
+                          )
+                        : [];
+
+                return (
+                    <div
+                        key={sheetName}
+                        className="mt-8 w-full bg-white rounded-xl shadow-lg border overflow-hidden"
+                    >
+                        <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+                            <h2 className="text-lg font-semibold text-gray-800">
+                                📄 Лист: {sheetName} ({filteredData.length}/{rows.length} рядків)
+                            </h2>
+                        </div>
+                        <div className="overflow-auto max-h-[60vh]">
+                            <table className="w-full text-sm border-collapse">
+                                <thead className="sticky top-0 bg-gray-100 shadow-sm">
+                                    <tr>
+                                        {visibleColumns.map((key) => (
+                                            <th
+                                                key={key}
+                                                className="border border-gray-300 px-3 py-2 text-left text-gray-700 font-medium"
                                             >
-                                                {row[colKey] as string}
-                                            </td>
+                                                {key}
+                                            </th>
                                         ))}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {filteredData.map((row, idx) => (
+                                        <tr
+                                            key={idx}
+                                            className={`transition ${
+                                                idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                                            } hover:bg-blue-50`}
+                                        >
+                                            {visibleColumns.map((colKey) => (
+                                                <td
+                                                    key={colKey}
+                                                    className="border border-gray-200 px-3 py-2 text-gray-800 whitespace-nowrap"
+                                                >
+                                                    {row[colKey] as string}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })}
         </div>
     );
 }
