@@ -27,6 +27,18 @@ export async function getDb() {
 export async function initializeDb() {
     const db = await getDb();
 
+    await db.exec(`
+  CREATE TABLE IF NOT EXISTS shtatni_posady (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    shtat_number TEXT UNIQUE NOT NULL,  -- номер по штату (const ID)
+    unit_name TEXT,                     -- підрозділ
+    position_name TEXT,                 -- посада
+    category TEXT,                      -- кат
+    shpk_code TEXT,                     -- ШПК
+    extra_data TEXT                     -- JSON for other Excel columns
+  );
+`);
+
     // Create auth table
     await db.exec(`
         CREATE TABLE IF NOT EXISTS auth_user (

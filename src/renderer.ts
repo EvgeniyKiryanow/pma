@@ -1,4 +1,5 @@
 import './index';
+import { ShtatnaPosada } from './types/shtatnaPosada';
 import type { CommentOrHistoryEntry, User } from './types/user';
 
 export {};
@@ -66,6 +67,15 @@ declare global {
             //templates
             getAllReportTemplates: () => Promise<any>;
             convertDocxToPdf: (buffer: ArrayBuffer, fileName: string) => Promise<any>;
+            shtatni: {
+                fetchAll: () => Promise<ShtatnaPosada[]>;
+                import: (
+                    positions: ShtatnaPosada[],
+                ) => Promise<{ added: number; skipped: number; total: number }>;
+                update: (pos: ShtatnaPosada) => Promise<{ success: boolean; message?: string }>;
+                delete: (shtat_number: string) => Promise<{ success: boolean }>;
+                deleteAll: () => Promise<{ success: boolean }>;
+            };
 
             // SQLite-backed template storage
             saveReportFileToDisk: (buffer: ArrayBuffer, name: string) => Promise<string>;

@@ -57,6 +57,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteTodo: (id: number) => ipcRenderer.invoke('delete-todos', id),
 
     //reports
+    shtatni: {
+        fetchAll: () => ipcRenderer.invoke('fetch-shtatni-posady'),
+        import: (positions: any[]) => ipcRenderer.invoke('import-shtatni-posady', positions),
+        update: (pos: any) => ipcRenderer.invoke('update-shtatni-posada', pos),
+        delete: (shtat_number: string) => ipcRenderer.invoke('delete-shtatni-posada', shtat_number),
+        deleteAll: () => ipcRenderer.invoke('delete-all-shtatni-posady'),
+    },
     getAllReportTemplates: async () => {
         return await ipcRenderer.invoke('get-all-report-templates');
     },

@@ -12,7 +12,6 @@ import { UploadCloud, Search } from 'lucide-react';
 export default function ImportUsersTabContent() {
     const [parsedSheets, setParsedSheets] = useState<Record<string, any[]>>({});
     const [dbColumns, setDbColumns] = useState<string[]>([]);
-    const [missingDbFields, setMissingDbFields] = useState<string[]>([]);
     const [existingUsers, setExistingUsers] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -23,19 +22,6 @@ export default function ImportUsersTabContent() {
         window.electronAPI.fetchUsers().then((users: any[]) => setExistingUsers(users));
     }, []);
 
-    const mapExcelRowToDb = (row: Record<string, string>): Record<string, string> => {
-        const mapped: Record<string, string> = {};
-        for (const [excelHeader, value] of Object.entries(row)) {
-            const dbField = HEADER_MAP[excelHeader.trim()];
-            if (dbField) {
-                mapped[dbField] = value?.toString().trim() ?? '';
-            } else {
-                console.warn(`⚠ No mapping found for Excel header: "${excelHeader}"`);
-            }
-        }
-        return mapped;
-    };
-
     const findBestDbColumn = (excelHeader: string, dbCols: string[]): string => {
         const normalize = (str: string) =>
             str
@@ -44,7 +30,6 @@ export default function ImportUsersTabContent() {
                 .trim();
 
         const normExcel = normalize(excelHeader);
-
         const exact = dbCols.find((col) => normalize(col) === normExcel);
         if (exact) return exact;
 
@@ -77,36 +62,7 @@ export default function ImportUsersTabContent() {
 
                 if (rawJson.length === 0) return;
 
-                const validHeaders = Object.keys(rawJson[0] || {}).filter(
-                    (h) => h && !h.startsWith('Unnamed') && !h.startsWith('__EMPTY'),
-                );
-
-                const cleanedRows = rawJson.map((row: any) => {
-                    const mappedRow: Record<string, string> = {};
-
-                    validHeaders.forEach((header) => {
-                        let val = row[header];
-                        if (val === 0 || val === '0' || val == null) val = '';
-
-                        const mappedField = findBestDbColumn(header, dbCols);
-
-                        if (mappedField === 'dateOfBirth') {
-                            if (!isNaN(Number(val)) && Number(val) > 10000 && Number(val) < 60000) {
-                                mappedRow[mappedField] = excelSerialToDate(Number(val));
-                            } else if (val instanceof Date) {
-                                mappedRow[mappedField] = val.toISOString().split('T')[0];
-                            } else {
-                                mappedRow[mappedField] = String(val).trim();
-                            }
-                        } else {
-                            mappedRow[mappedField] = String(val).trim();
-                        }
-                    });
-
-                    return mappedRow;
-                });
-
-                sheetsData[sheetName] = cleanedRows;
+                sheetsData[sheetName] = rawJson; // keep raw rows
             });
 
             setParsedSheets(sheetsData);
@@ -114,11 +70,93 @@ export default function ImportUsersTabContent() {
         reader.readAsBinaryString(file);
     };
 
-    const handleImportUsers = async () => {
-        // Flatten all sheets into one array
-        const allData = Object.values(parsedSheets).flat();
-        if (allData.length === 0) return;
+    /** Check if this sheet is "штатні посади" table */
+    const isShtatniPosadySheet = (rows: any[]): boolean => {
+        if (!rows.length) return false;
+        const headers = Object.keys(rows[0]).map((h) => h.toLowerCase().trim());
+        return (
+            headers.includes('shtat_number') ||
+            headers.includes('номер по штату') ||
+            headers.includes('№ по штату') ||
+            headers.includes('№ штату')
+        );
+    };
 
+    /** Import штатні посади */
+    const handleImportShtatniPosady = async (rows: any[]) => {
+        const positions = rows
+            .map((row) => {
+                // --- Detect shtat_number ---
+                const shtat_number =
+                    row['shtat_number'] ||
+                    row['Номер по штату'] ||
+                    row['№ по штату'] ||
+                    row['№ штату'] ||
+                    row['№'] ||
+                    row['номер'] ||
+                    '';
+
+                if (!shtat_number || String(shtat_number).trim() === '') return null;
+
+                // --- Detect підрозділ ---
+                const unit_name =
+                    row['Підрозділ'] ||
+                    row['підрозділ'] ||
+                    row['unit_name'] ||
+                    row['Unit'] ||
+                    row['підр.'] ||
+                    '';
+
+                // --- Detect посада ---
+                const position_name =
+                    row['Посада'] ||
+                    row['посада'] ||
+                    row['position_name'] ||
+                    row['Назва посади'] ||
+                    row['Посада (повна назва)'] ||
+                    row['Position'] ||
+                    '';
+
+                // --- Detect category (кат) ---
+                const category =
+                    row['Кат'] ||
+                    row['кат'] ||
+                    row['Категорія'] ||
+                    row['категорія'] ||
+                    row['category'] ||
+                    '';
+
+                // --- Detect ШПК ---
+                const shpk_code =
+                    row['ШПК'] || row['шпк'] || row['shpk_code'] || row['Код ШПК'] || '';
+
+                // ✅ Keep original row as extra_data
+                const extra_data = { ...row };
+
+                return {
+                    shtat_number: String(shtat_number).trim(),
+                    unit_name: String(unit_name || '').trim(),
+                    position_name: String(position_name || '').trim(),
+                    category: String(category || '').trim(),
+                    shpk_code: String(shpk_code || '').trim(),
+                    extra_data,
+                };
+            })
+            .filter(Boolean);
+
+        if (!positions.length) {
+            alert('⚠️ Не знайдено валідних рядків з номером по штату!');
+            return;
+        }
+
+        const result = await window.electronAPI.shtatni.import(positions);
+        alert(
+            `✅ Імпортовано ${result.added} нових позицій\nПропущено ${result.skipped} (вже існували в БД)`,
+        );
+    };
+
+    /** Import USERS sheet (classic logic) */
+    const handleImportUsersSheet = async (rows: any[]) => {
         let createdCount = 0;
         let updatedCount = 0;
         let skippedCount = 0;
@@ -126,23 +164,20 @@ export default function ImportUsersTabContent() {
 
         const userLookup = new Map(existingUsers.map((u) => [generateUserKey(u), u]));
 
-        for (const row of allData) {
-            const mappedRow = mapExcelRowToDb(row);
-
-            if (mappedRow.dateOfBirth)
-                mappedRow.dateOfBirth = normalizeExcelDate(mappedRow.dateOfBirth);
-            if (mappedRow.rankAssignmentDate)
-                mappedRow.rankAssignmentDate = normalizeExcelDate(mappedRow.rankAssignmentDate);
-
-            Object.keys(mappedRow).forEach((key) => {
-                mappedRow[key] =
-                    mappedRow[key] !== undefined && mappedRow[key] !== null
-                        ? String(mappedRow[key]).trim()
-                        : '';
+        for (const row of rows) {
+            // Map Excel row → DB user
+            const mappedRow: any = {};
+            Object.entries(row).forEach(([header, value]) => {
+                const dbField = HEADER_MAP[header.trim()];
+                if (!dbField) return;
+                let v = value;
+                if (dbField === 'dateOfBirth' && !isNaN(Number(value))) {
+                    v = excelSerialToDate(Number(value));
+                }
+                mappedRow[dbField] = String(v ?? '').trim();
             });
 
             if (!mappedRow.fullName?.trim()) {
-                console.error(`❌ Skipping row because fullName is missing`, row);
                 skippedCount++;
                 continue;
             }
@@ -152,13 +187,16 @@ export default function ImportUsersTabContent() {
 
             if (existing) {
                 if (needsUpdate(existing, mappedRow)) {
-                    const updatedUser = { ...existing, ...mappedRow, id: existing.id };
                     try {
-                        const result = await window.electronAPI.updateUser(updatedUser);
-                        userLookup.set(key, result);
+                        const updatedUser = await window.electronAPI.updateUser({
+                            ...existing,
+                            ...mappedRow,
+                            id: existing.id,
+                        });
+                        userLookup.set(key, updatedUser);
                         updatedCount++;
                     } catch (err) {
-                        console.error(`❌ Failed to update user: ${existing.fullName}`, err);
+                        console.error('❌ Update failed', err);
                         failedCount++;
                     }
                 } else {
@@ -170,19 +208,15 @@ export default function ImportUsersTabContent() {
                     userLookup.set(key, createdUser);
                     createdCount++;
                 } catch (err) {
-                    console.error(`❌ Failed to create user for row:`, mappedRow, err);
+                    console.error('❌ Creation failed', err);
                     failedCount++;
                 }
             }
         }
 
-        window.alert(
-            `✅ Імпорт завершено!\n\n` +
-                `Створено: ${createdCount}\n` +
-                `Оновлено: ${updatedCount}\n` +
-                `Пропущено: ${skippedCount}\n`,
+        alert(
+            `✅ Імпорт завершено!\n\nСтворено: ${createdCount}\nОновлено: ${updatedCount}\nПропущено: ${skippedCount}`,
         );
-        window.location.reload();
     };
 
     const hasData = Object.keys(parsedSheets).length > 0;
@@ -191,47 +225,27 @@ export default function ImportUsersTabContent() {
         <div className="flex flex-col items-center justify-start h-full w-full p-8 bg-gray-50">
             {/* Заголовок + опис */}
             <div className="text-center mb-8 max-w-2xl">
-                <h1 className="text-3xl font-bold text-gray-800">
-                    📊 Завантаження даних із таблиці
-                </h1>
+                <h1 className="text-3xl font-bold text-gray-800">📊 Завантаження даних із Excel</h1>
                 <p className="text-gray-600 mt-2 text-sm">
-                    Імпортуйте персональні дані з <strong>Excel</strong> або <strong>CSV</strong>.
-                    Система автоматично розпізнає всі листи файлу й покаже попередній перегляд.
+                    Імпортуйте персональні дані або штатні посади з усіх листів{' '}
+                    <strong>Excel</strong>. Для кожного листа доступна окрема кнопка імпорту.
                 </p>
             </div>
 
             {/* Зона завантаження файлу */}
             <div className="w-full max-w-xl bg-white border-2 border-dashed border-blue-300 hover:border-blue-500 transition rounded-xl p-8 text-center shadow-sm">
-                <p className="text-gray-700 mb-3">
-                    Перетягніть сюди файл або натисніть, щоб обрати його вручну
-                </p>
+                <p className="text-gray-700 mb-3">Перетягніть сюди файл або оберіть його вручну</p>
                 <label className="inline-flex items-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-medium shadow transition">
                     <UploadCloud className="w-5 h-5" />
-                    Завантажити Excel/CSV
+                    Завантажити Excel
                     <input
                         type="file"
-                        accept=".xlsx, .xls, .csv"
+                        accept=".xlsx, .xls"
                         className="hidden"
                         onChange={handleFileUpload}
                     />
                 </label>
             </div>
-
-            {/* Якщо є дані → кнопка імпорту */}
-            {hasData && (
-                <div className="mt-6 flex gap-4">
-                    <button
-                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg shadow-md flex items-center gap-2 transition"
-                        onClick={handleImportUsers}
-                    >
-                        ✅ Імпортувати користувачів
-                    </button>
-                    <span className="text-gray-500 text-sm self-center">
-                        ({Object.values(parsedSheets).reduce((acc, rows) => acc + rows.length, 0)}{' '}
-                        рядків готово до імпорту)
-                    </span>
-                </div>
-            )}
 
             {/* Глобальний пошук */}
             {hasData && (
@@ -247,18 +261,10 @@ export default function ImportUsersTabContent() {
                 </div>
             )}
 
-            {/* Попередження про відсутні поля */}
-            {missingDbFields.length > 0 && (
-                <div className="mt-6 w-full max-w-2xl bg-red-50 border-l-4 border-red-400 p-4 rounded">
-                    <p className="text-red-700 font-medium">
-                        ⚠ Деякі заголовки з таблиці відсутні в базі:
-                    </p>
-                    <p className="text-sm text-red-600 mt-1">{missingDbFields.join(', ')}</p>
-                </div>
-            )}
-
             {/* Попередній перегляд для кожного листа */}
             {Object.entries(parsedSheets).map(([sheetName, rows]) => {
+                const isStaff = isShtatniPosadySheet(rows);
+
                 const visibleColumns =
                     rows.length > 0
                         ? Object.keys(rows[0]).filter((header) =>
@@ -288,7 +294,26 @@ export default function ImportUsersTabContent() {
                             <h2 className="text-lg font-semibold text-gray-800">
                                 📄 Лист: {sheetName} ({filteredData.length}/{rows.length} рядків)
                             </h2>
+
+                            {/* ✅ Different button depending on sheet type */}
+                            {isStaff ? (
+                                <button
+                                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow-md transition"
+                                    onClick={() => handleImportShtatniPosady(rows)}
+                                >
+                                    ✅ Імпортувати штатні посади
+                                </button>
+                            ) : (
+                                <button
+                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
+                                    onClick={() => handleImportUsersSheet(rows)}
+                                >
+                                    ✅ Імпортувати користувачів
+                                </button>
+                            )}
                         </div>
+
+                        {/* Table preview */}
                         <div className="overflow-auto max-h-[60vh]">
                             <table className="w-full text-sm border-collapse">
                                 <thead className="sticky top-0 bg-gray-100 shadow-sm">
@@ -307,9 +332,7 @@ export default function ImportUsersTabContent() {
                                     {filteredData.map((row, idx) => (
                                         <tr
                                             key={idx}
-                                            className={`transition ${
-                                                idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                                            } hover:bg-blue-50`}
+                                            className={`transition ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`}
                                         >
                                             {visibleColumns.map((colKey) => (
                                                 <td

@@ -10,6 +10,7 @@ import ReportsTab from './layout/ReportsTab';
 import TablesTab from './components/userTables/TablesTab';
 import InstructionsTab from './layout/InstrtuctionsTab';
 import ImportUsersTab from './layout/ImportUsersTab';
+import ShtatniPosadyTab from './layout/ShtatniPosadyTab';
 
 export default function App() {
     const currentTab = useUserStore((s) => s.currentTab);
@@ -49,6 +50,8 @@ export default function App() {
                 <TablesTab />
             ) : currentTab === 'importUsers' ? (
                 <ImportUsersTab />
+            ) : currentTab === 'shtatni' ? (
+                <ShtatniPosadyTab />
             ) : currentTab === 'instructions' ? (
                 <InstructionsTab />
             ) : null}

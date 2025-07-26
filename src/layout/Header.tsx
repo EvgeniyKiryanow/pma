@@ -22,7 +22,8 @@ type HeaderProps = {
         | 'reports'
         | 'tables'
         | 'instructions'
-        | 'importUsers';
+        | 'importUsers'
+        | 'shtatni';
     setCurrentTab: (
         tab:
             | 'manager'
@@ -31,7 +32,8 @@ type HeaderProps = {
             | 'reports'
             | 'tables'
             | 'instructions'
-            | 'importUsers',
+            | 'importUsers'
+            | 'shtatni',
     ) => void;
 };
 
@@ -40,6 +42,8 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     const [upcomingBirthdays, setUpcomingBirthdays] = useState<User[]>([]);
     const [showBirthdayModal, setShowBirthdayModal] = useState(false);
     const { t, language, setLanguage } = useI18nStore();
+
+    const [hasShtatni, setHasShtatni] = useState(false);
 
     useEffect(() => {
         const loadUpcoming = async () => {
@@ -52,7 +56,6 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
 
                 const dob = new Date(user.dateOfBirth);
                 const nextBirthday = new Date(todayYear, dob.getMonth(), dob.getDate());
-
                 if (nextBirthday < today) nextBirthday.setFullYear(todayYear + 1);
 
                 const diffDays = Math.floor(
@@ -67,11 +70,21 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
         loadUpcoming();
     }, []);
 
+    // ✅ Check if штатні посади table has data
+    useEffect(() => {
+        const checkShtatni = async () => {
+            const shtatni = await window.electronAPI.shtatni.fetchAll();
+            setHasShtatni(shtatni.length > 0);
+        };
+        checkShtatni();
+    }, []);
+
     const handleLogout = () => {
         localStorage.removeItem('authToken');
         window.location.reload();
     };
 
+    // ✅ Base tabs
     const tabs = [
         {
             key: 'manager',
@@ -99,6 +112,19 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
             icon: <BookText className="w-4 h-4" />,
         },
     ] as const;
+
+    // ✅ Conditionally add "Штатні посади" if DB has data
+    const allTabs = hasShtatni
+        ? [
+              ...tabs.slice(0, 4),
+              {
+                  key: 'shtatni',
+                  label: 'Штатні посади',
+                  icon: <FileSpreadsheet className="w-4 h-4" />,
+              },
+              ...tabs.slice(4),
+          ]
+        : tabs;
 
     return (
         <header className="bg-gradient-to-r from-blue-50 to-blue-100 shadow border-b relative">
@@ -153,14 +179,6 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
 
                     {/* ✅ Language Switcher */}
                     <div className="flex items-center gap-1 text-xs bg-white rounded-full px-2 py-1 shadow-sm border">
-                        {/* <button
-              onClick={() => setLanguage('en')}
-              className={`px-2 py-1 rounded-full ${
-                language === 'en' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'
-              }`}
-            >
-              EN
-            </button> */}
                         <button
                             onClick={() => setLanguage('ua')}
                             className={`px-2 py-1 rounded-full ${
@@ -185,7 +203,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
             {/* === MODERN TABS === */}
             <nav className="px-4 sm:px-8 border-t bg-white shadow-lg shadow-gray-300 relative z-10">
                 <div className="flex gap-2 py-2 overflow-x-auto">
-                    {tabs.map((tab) => {
+                    {allTabs.map((tab) => {
                         const isActive = currentTab === tab.key;
                         return (
                             <button
