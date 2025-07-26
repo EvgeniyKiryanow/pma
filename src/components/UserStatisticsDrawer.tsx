@@ -1,6 +1,7 @@
-import { X, BarChart2, Clock, ArrowRight } from 'lucide-react';
-import type { User } from '../types/user';
-import { useEffect, useState } from 'react';
+/* eslint-disable react-hooks/rules-of-hooks */
+import { X, BarChart2, Clock, ArrowRight, RefreshCcw, Briefcase } from 'lucide-react';
+import type { User, CommentOrHistoryEntry } from '../types/user';
+import { useMemo } from 'react';
 
 type Props = {
     user: User;
@@ -10,28 +11,41 @@ type Props = {
 export default function UserStatisticsDrawer({ user, onClose }: Props) {
     if (!user) return null;
 
-    const statusHistory = (user.history || []).filter((h) => h.type === 'statusChange');
-    statusHistory.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    const totalChanges = statusHistory.length;
+    const history = user.history || [];
 
-    // ✅ Avg time between changes
-    let avgTimeDays: number | null = null;
-    if (totalChanges > 1) {
+    // ✅ Separate histories
+    const statusHistory = history.filter((h) => h.type === 'statusChange');
+    const posadaHistory = history.filter(
+        (h) =>
+            h.description?.includes('Призначено на посаду') ||
+            h.description?.includes('Переміщено з посади') ||
+            h.description?.includes('звільнено з посади'),
+    );
+
+    // Sort by date ASC
+    statusHistory.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    posadaHistory.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    const totalStatusChanges = statusHistory.length;
+    const totalPosadaChanges = posadaHistory.length;
+
+    // ✅ Average time between status changes
+    let avgStatusChangeDays: number | null = null;
+    if (totalStatusChanges > 1) {
         let totalDiffMs = 0;
-        for (let i = 0; i < totalChanges - 1; i++) {
+        for (let i = 0; i < totalStatusChanges - 1; i++) {
             totalDiffMs +=
                 new Date(statusHistory[i + 1].date).getTime() -
                 new Date(statusHistory[i].date).getTime();
         }
-        avgTimeDays = Math.max(
+        avgStatusChangeDays = Math.max(
             1,
-            Math.round(totalDiffMs / (totalChanges - 1) / (1000 * 60 * 60 * 24)),
+            Math.round(totalDiffMs / (totalStatusChanges - 1) / (1000 * 60 * 60 * 24)),
         );
     }
 
-    type Period = { status: string; start: Date; end: Date };
-
-    const cleanedPeriods: Period[] = [];
+    // ✅ Extract periods for each status
+    const statusPeriods: { status: string; start: Date; end: Date }[] = [];
     for (let i = 0; i < statusHistory.length; i++) {
         const match = statusHistory[i].description?.match(/"(.+?)"\s*→\s*"(.+?)"/);
         const newStatus = match ? match[2] : null;
@@ -39,69 +53,98 @@ export default function UserStatisticsDrawer({ user, onClose }: Props) {
         const start = new Date(statusHistory[i].date);
         const nextChangeDate =
             i < statusHistory.length - 1 ? new Date(statusHistory[i + 1].date) : new Date();
-        cleanedPeriods.push({ status: newStatus, start, end: nextChangeDate });
+        statusPeriods.push({ status: newStatus, start, end: nextChangeDate });
     }
 
-    // ✅ Merge same-day usage
-    const mergedDayUsage: Record<
-        string,
-        { uniqueDays: Set<string>; periods: { start: Date; end: Date }[] }
-    > = {};
-    cleanedPeriods.forEach((period) => {
-        const dayKey = period.start.toISOString().split('T')[0];
-        if (!mergedDayUsage[period.status]) {
-            mergedDayUsage[period.status] = { uniqueDays: new Set(), periods: [] };
+    // ✅ Group by status usage
+    const groupedStatusUsage = useMemo(() => {
+        const usage: Record<
+            string,
+            { uniqueDays: Set<string>; periods: { start: Date; end: Date }[] }
+        > = {};
+        statusPeriods.forEach((period) => {
+            const key = period.status;
+            if (!usage[key]) {
+                usage[key] = { uniqueDays: new Set(), periods: [] };
+            }
+            usage[key].periods.push({ start: period.start, end: period.end });
+            usage[key].uniqueDays.add(period.start.toISOString().split('T')[0]);
+        });
+        return Object.entries(usage)
+            .map(([status, info]) => ({
+                status,
+                uniqueDays: info.uniqueDays.size,
+                periods: info.periods,
+            }))
+            .sort((a, b) => b.uniqueDays - a.uniqueDays);
+    }, [statusPeriods]);
+
+    const mostFrequentStatus = groupedStatusUsage[0]?.status || '—';
+    const mostFrequentStatusDays = groupedStatusUsage[0]?.uniqueDays || 0;
+
+    // ✅ Analyze POSADA changes
+    const posadaStats = useMemo(() => {
+        const periods: { posada: string; start: Date; end: Date }[] = [];
+        const counts: Record<string, number> = {};
+
+        for (let i = 0; i < posadaHistory.length; i++) {
+            const d = posadaHistory[i].description || '';
+            const startDate = new Date(posadaHistory[i].date);
+            const nextDate =
+                i < posadaHistory.length - 1 ? new Date(posadaHistory[i + 1].date) : new Date();
+
+            let newPosada: string | null = null;
+            if (d.includes('Переміщено з посади')) {
+                const match = d.match(/Переміщено з посади (.+?) → (.+)/);
+                if (match) {
+                    newPosada = match[2].trim();
+                }
+            } else if (d.includes('Призначено на посаду')) {
+                newPosada = d.replace('Призначено на посаду', '').trim();
+            } else if (d.includes('звільнено з посади')) {
+                newPosada = '— (прибрано)';
+            }
+
+            if (newPosada) {
+                periods.push({ posada: newPosada, start: startDate, end: nextDate });
+                counts[newPosada] = (counts[newPosada] || 0) + 1;
+            }
         }
-        mergedDayUsage[period.status].uniqueDays.add(dayKey);
-        mergedDayUsage[period.status].periods.push({ start: period.start, end: period.end });
-    });
 
-    const groupedArray = Object.entries(mergedDayUsage)
-        .map(([status, info]) => ({
-            status,
-            uniqueDays: info.uniqueDays.size,
-            periods: info.periods,
-        }))
-        .sort((a, b) => b.uniqueDays - a.uniqueDays);
-
-    const mostFrequentStatus = groupedArray[0]?.status || '—';
-    const mostFrequentDays = groupedArray[0]?.uniqueDays || 0;
+        const grouped = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+        return {
+            total: posadaHistory.length,
+            periods,
+            mostFrequent: grouped[0]?.[0] || '—',
+            topCounts: grouped,
+        };
+    }, [posadaHistory]);
 
     const lastStatus =
-        cleanedPeriods.length > 0
-            ? cleanedPeriods[cleanedPeriods.length - 1].status
+        statusPeriods.length > 0
+            ? statusPeriods[statusPeriods.length - 1].status
             : user.soldierStatus || '—';
     const lastStatusDate =
-        cleanedPeriods.length > 0
-            ? cleanedPeriods[cleanedPeriods.length - 1].start.toLocaleDateString()
+        statusPeriods.length > 0
+            ? statusPeriods[statusPeriods.length - 1].start.toLocaleDateString()
+            : '—';
+
+    const lastPosada =
+        posadaStats.periods.length > 0
+            ? posadaStats.periods[posadaStats.periods.length - 1].posada
             : '—';
 
     return (
         <>
-            {/* ✅ FULLSCREEN OVERLAY */}
+            {/* Overlay */}
             <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
 
-            {/* ✅ CENTER FLOATING ICON (PULSING WHILE OPEN) */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-                <div className="relative flex flex-col items-center">
-                    {/* glowing circle */}
-                    <div className="absolute w-24 h-24 rounded-full bg-purple-500 opacity-20 animate-ping" />
-                    {/* icon */}
-                    <div className="p-6 rounded-full bg-white shadow-xl animate-bounce-slow">
-                        <BarChart2 className="w-12 h-12 text-purple-600" />
-                    </div>
-                    <span className="mt-2 text-sm text-white font-medium shadow-lg">
-                        Аналіз статистики…
-                    </span>
-                </div>
-            </div>
-
-            {/* ✅ SLIDE-IN DRAWER */}
-            <div className="fixed top-0 right-0 h-full w-[30%] min-w-[340px] bg-white shadow-2xl border-l border-gray-200 z-60 flex flex-col animate-slide-in">
-                {/* HEADER */}
+            {/* Drawer */}
+            <div className="fixed top-0 right-0 h-full w-[30%] min-w-[360px] bg-white shadow-2xl border-l border-gray-200 z-50 flex flex-col animate-slide-in">
+                {/* Header */}
                 <div className="flex justify-between items-center px-5 py-4 border-b bg-gradient-to-r from-purple-50 to-purple-100">
                     <h2 className="text-lg font-bold text-purple-800 flex items-center gap-2">
-                        <BarChart2 className="w-5 h-5" /> Статистика користувача
+                        <BarChart2 className="w-5 h-5" /> Розширена статистика користувача
                     </h2>
                     <button
                         onClick={onClose}
@@ -112,21 +155,26 @@ export default function UserStatisticsDrawer({ user, onClose }: Props) {
                     </button>
                 </div>
 
-                {/* CONTENT */}
+                {/* Content */}
                 <div className="flex-1 overflow-y-auto p-5 space-y-6">
-                    {/* === SUMMARY === */}
+                    {/* STATUS SUMMARY */}
                     <div className="p-4 rounded-lg bg-purple-50 border border-purple-200 shadow-sm space-y-2">
+                        <h3 className="font-semibold text-purple-800 flex items-center gap-2">
+                            📌 Статуси
+                        </h3>
                         <p className="text-sm text-gray-700">
-                            Загальна кількість змін статусу:{' '}
-                            <span className="font-semibold text-purple-800">{totalChanges}</span>
+                            Всього змін статусу:{' '}
+                            <span className="font-semibold text-purple-800">
+                                {totalStatusChanges}
+                            </span>
                         </p>
 
-                        {avgTimeDays !== null && (
+                        {avgStatusChangeDays !== null && (
                             <p className="text-sm text-gray-700 flex items-center gap-1">
                                 <Clock className="w-4 h-4 text-purple-600" />
                                 Середній час між змінами:{' '}
                                 <span className="font-semibold text-purple-800">
-                                    {avgTimeDays} дн.
+                                    {avgStatusChangeDays} дн.
                                 </span>
                             </p>
                         )}
@@ -134,7 +182,7 @@ export default function UserStatisticsDrawer({ user, onClose }: Props) {
                         <p className="text-sm text-gray-700">
                             Найбільше часу у статусі:{' '}
                             <span className="font-semibold text-purple-800">
-                                {mostFrequentStatus} ({mostFrequentDays} дн.)
+                                {mostFrequentStatus} ({mostFrequentStatusDays} дн.)
                             </span>
                         </p>
 
@@ -145,52 +193,100 @@ export default function UserStatisticsDrawer({ user, onClose }: Props) {
                         </p>
                     </div>
 
-                    {/* === GROUPED STATUS LIST === */}
-                    <div>
-                        <h3 className="text-sm font-semibold text-gray-600 mb-3">
-                            Детально по кожному статусу:
+                    {/* POSADA SUMMARY */}
+                    <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 shadow-sm space-y-2">
+                        <h3 className="font-semibold text-blue-800 flex items-center gap-2">
+                            <Briefcase className="w-5 h-5" /> Посади
                         </h3>
 
-                        {groupedArray.length === 0 ? (
+                        <p className="text-sm text-gray-700">
+                            Всього змін посад:{' '}
+                            <span className="font-semibold text-blue-800">
+                                {totalPosadaChanges}
+                            </span>
+                        </p>
+
+                        <p className="text-sm text-gray-700">
+                            Найчастіше займав:{' '}
+                            <span className="font-semibold text-blue-800">
+                                {posadaStats.mostFrequent}
+                            </span>{' '}
+                            ({posadaStats.topCounts[0]?.[1] || 0} разів)
+                        </p>
+
+                        <p className="text-sm text-gray-700">
+                            Поточна посада:{' '}
+                            <span className="font-semibold text-green-700">{lastPosada}</span>
+                        </p>
+
+                        {posadaStats.topCounts.length > 1 && (
+                            <div className="text-xs text-gray-600 mt-2">
+                                <strong>Інші посади:</strong>{' '}
+                                {posadaStats.topCounts
+                                    .slice(1)
+                                    .map(([pos, count]) => `${pos} (${count})`)
+                                    .join(', ')}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* DETAILED TIMELINES */}
+                    <div>
+                        <h3 className="text-sm font-semibold text-gray-600 mb-3">
+                            Детальні періоди:
+                        </h3>
+
+                        {/* Status Periods */}
+                        {groupedStatusUsage.length === 0 ? (
                             <p className="text-gray-400 italic">Немає даних про статуси</p>
                         ) : (
-                            <ul className="space-y-4">
-                                {groupedArray.map((entry, idx) => (
+                            <ul className="space-y-3">
+                                {groupedStatusUsage.map((entry, idx) => (
                                     <li
                                         key={idx}
-                                        className="p-4 rounded-md border border-gray-200 bg-gray-50 shadow-sm hover:shadow-md transition"
+                                        className="p-3 rounded-md border border-gray-200 bg-gray-50 shadow-sm hover:shadow-md transition"
                                     >
-                                        {/* Status Name */}
                                         <h4 className="text-sm font-bold text-purple-800 mb-1">
                                             {entry.status}
                                         </h4>
-
-                                        {/* Periods */}
-                                        <div className="text-xs text-gray-600 mb-2">
-                                            <span className="font-medium">Періоди:</span>{' '}
-                                            {entry.periods.map((p, i) => (
-                                                <span key={i} className="inline-flex items-center">
-                                                    {p.start.toLocaleDateString()}{' '}
-                                                    <ArrowRight className="w-3 h-3 mx-1" />
-                                                    {p.end.toLocaleDateString()}
-                                                    {i < entry.periods.length - 1 && ', '}
-                                                </span>
-                                            ))}
-                                        </div>
-
-                                        {/* Summary */}
-                                        <div className="flex flex-wrap gap-3 text-xs text-gray-700">
-                                            <span className="bg-gray-100 px-2 py-1 rounded-md border">
-                                                Унікальних днів: <strong>{entry.uniqueDays}</strong>
-                                            </span>
-                                            <span className="bg-gray-100 px-2 py-1 rounded-md border">
-                                                Кількість переходів:{' '}
-                                                <strong>{entry.periods.length}</strong>
-                                            </span>
-                                        </div>
+                                        {entry.periods.map((p, i) => (
+                                            <div
+                                                key={i}
+                                                className="flex items-center text-xs text-gray-600"
+                                            >
+                                                {p.start.toLocaleDateString()}{' '}
+                                                <ArrowRight className="w-3 h-3 mx-1" />
+                                                {p.end.toLocaleDateString()}
+                                            </div>
+                                        ))}
                                     </li>
                                 ))}
                             </ul>
+                        )}
+
+                        {/* Posada Periods */}
+                        {posadaStats.periods.length > 0 && (
+                            <>
+                                <h4 className="mt-4 mb-2 text-sm font-semibold text-blue-700">
+                                    Історія посад:
+                                </h4>
+                                <ul className="space-y-2">
+                                    {posadaStats.periods.map((p, idx) => (
+                                        <li
+                                            key={idx}
+                                            className="flex items-center text-xs bg-blue-50 border border-blue-200 rounded-md px-3 py-2"
+                                        >
+                                            <RefreshCcw className="w-3 h-3 mr-2 text-blue-600" />
+                                            <span className="font-medium">{p.posada}</span>
+                                            <span className="ml-auto text-gray-600">
+                                                {p.start.toLocaleDateString()}{' '}
+                                                <ArrowRight className="w-3 h-3 inline-block mx-1" />
+                                                {p.end.toLocaleDateString()}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </>
                         )}
                     </div>
                 </div>
