@@ -51,6 +51,7 @@ export default function UserInfoDetails({ user }: Props) {
 
                     {/* ✅ SHOW номер по штату */}
                     {infoRow('Номер по штату', liveUser.shtatNumber)}
+                    {infoRow('Інформація про сім’ю', liveUser.familyInfo)}
 
                     {infoRow(t('user.position'), liveUser.position)}
                     {infoRow(t('user.rank'), liveUser.rank)}
