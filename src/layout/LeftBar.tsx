@@ -4,7 +4,8 @@ import type { User } from '../types/user';
 import DefaultAvatar from '../icons/DefaultAvatar';
 import { getStatusBadge } from '../utils/statusBadgeUtils';
 import { useI18nStore } from '../stores/i18nStore';
-import { ChevronLeft, ChevronRight } from 'lucide-react'; // ✅ arrow icons
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getCategoryBadge, getShpkBadge } from '../utils/posadyBadgeHelper';
 
 type Props = {
     users: User[];
@@ -132,10 +133,24 @@ export default function LeftBar({ users }: Props) {
                                                         <span className="font-semibold text-gray-800 text-[15px] break-words">
                                                             {user.fullName}
                                                         </span>
-                                                        <div className="flex items-center gap-1 text-xs text-gray-500 flex-wrap">
-                                                            <span className="break-words">
-                                                                {user.rank || '—'}
-                                                            </span>
+                                                        <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                                            {user.shpkCode && (
+                                                                <span
+                                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-medium ${getShpkBadge(user.shpkCode).badgeStyle}`}
+                                                                >
+                                                                    {
+                                                                        getShpkBadge(user.shpkCode)
+                                                                            .icon
+                                                                    }{' '}
+                                                                    {user.shpkCode}
+                                                                </span>
+                                                            )}
+
+                                                            {!user.shpkCode && !user.category && (
+                                                                <span className="text-xs text-gray-500">
+                                                                    {user.rank || '—'}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
