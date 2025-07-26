@@ -18,6 +18,7 @@ export type RelativeContact = {
     notes?: string;
 };
 export type User = {
+    shtatNumber: string | boolean;
     id: number;
     photo?: string;
     fullName: string;

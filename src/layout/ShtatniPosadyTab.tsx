@@ -25,19 +25,54 @@ export default function ShtatniPosadyTab() {
     }, []);
 
     const assignUserToPosada = async (userId: number, pos: ShtatnaPosada) => {
-        const user = users.find((u) => u.id === userId);
-        if (!user) return;
+        const selectedUser = users.find((u) => u.id === userId);
+        if (!selectedUser) return;
 
+        // 1️⃣ Find user who is already assigned to THIS posada and clear it
+        const alreadyOnThisPosada = users.find(
+            (u) =>
+                u.shtatNumber === pos.shtat_number || // exact shtat_number match
+                (u.position === pos.position_name && u.unitMain === pos.unit_name),
+        );
+        if (alreadyOnThisPosada) {
+            const cleared = {
+                ...alreadyOnThisPosada,
+                position: null as string | null,
+                unitMain: null as string | null,
+                shpkCode: null as string | null,
+                category: null as string | null,
+                shtatNumber: null as string | null,
+            };
+            await updateUser(cleared);
+        }
+
+        // 2️⃣ Find if this user currently has ANY other posada & clear it
+        if (selectedUser.shtatNumber) {
+            const clearedOld = {
+                ...selectedUser,
+                position: null as string | null,
+                unitMain: null as string | null,
+                shpkCode: null as string | null,
+                category: null as string | null,
+                shtatNumber: null as string | null,
+            };
+            await updateUser(clearedOld);
+        }
+
+        // 3️⃣ Assign selected user to THIS posada
         const updatedUser = {
-            ...user,
-            position: pos.position_name || user.position,
-            unitMain: pos.unit_name || user.unitMain,
-            shpkCode: pos.shpk_code || user.shpkCode,
-            category: pos.category || user.category,
+            ...selectedUser,
+            position: pos.position_name,
+            unitMain: pos.unit_name,
+            shpkCode: pos.shpk_code,
+            category: pos.category,
+            shtatNumber: pos.shtat_number,
         };
 
         await updateUser(updatedUser);
-        alert(`✅ ${user.fullName} призначений на посаду "${pos.position_name}"`);
+        alert(
+            `✅ ${selectedUser.fullName} призначений на посаду "${pos.position_name}" (№ ${pos.shtat_number})`,
+        );
     };
 
     const handleDelete = async (shtat_number: string) => {
@@ -271,29 +306,29 @@ export default function ShtatniPosadyTab() {
 
                                     {/* ✅ New column: assign/select user */}
                                     <td className="border px-2 py-1">
-                                        {matchedUser ? (
-                                            <span className="text-green-700 font-medium">
-                                                ✅ {matchedUser.fullName}
-                                            </span>
-                                        ) : (
-                                            <select
-                                                className="text-xs border rounded px-1 py-0.5 max-w-[160px]"
-                                                defaultValue=""
-                                                onChange={(e) => {
-                                                    const userId = Number(e.target.value);
-                                                    if (userId) assignUserToPosada(userId, pos);
-                                                }}
-                                            >
-                                                <option value="">
-                                                    -- Призначити користувача --
+                                        <select
+                                            className="text-xs border rounded px-1 py-0.5 max-w-[180px]"
+                                            value={
+                                                // Preselect the currently assigned user for this posada
+                                                users.find(
+                                                    (u) =>
+                                                        u.shtatNumber === pos.shtat_number ||
+                                                        (u.position === pos.position_name &&
+                                                            u.unitMain === pos.unit_name),
+                                                )?.id || ''
+                                            }
+                                            onChange={(e) => {
+                                                const userId = Number(e.target.value);
+                                                if (userId) assignUserToPosada(userId, pos);
+                                            }}
+                                        >
+                                            <option value="">-- Обрати користувача --</option>
+                                            {users.map((u) => (
+                                                <option key={u.id} value={u.id}>
+                                                    {u.fullName}
                                                 </option>
-                                                {users.map((u) => (
-                                                    <option key={u.id} value={u.id}>
-                                                        {u.fullName}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        )}
+                                            ))}
+                                        </select>
                                     </td>
 
                                     {/* Actions */}
