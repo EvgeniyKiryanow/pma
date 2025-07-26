@@ -135,13 +135,14 @@ export function CombatReportBody() {
         // === Planned (за штатом)
         const plannedTotal = shtatniPosady.length;
         const plannedOfficers = shtatniPosady.filter((p) =>
-            p.category?.toLowerCase().includes('офіцер'),
+            p.category?.toLowerCase().includes('оф'),
         ).length;
+        console.log(shtatniPosady, 'plannedOfficers');
         const plannedSoldiers = plannedTotal - plannedOfficers;
 
         // === Actual (за списком)
         const actualTotal = users.length;
-        const actualOfficers = users.filter((u) => u.rank?.toLowerCase().includes('офіцер')).length;
+        const actualOfficers = users.filter((u) => u.rank?.toLowerCase().includes('оф')).length;
         const actualSoldiers = actualTotal - actualOfficers;
 
         const staffingPercent =
