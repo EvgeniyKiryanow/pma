@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useUserStore } from '../../../stores/userStore';
+import { useShtatniStore } from '../../../stores/useShtatniStore';
 import { StatusExcel } from '../../../utils/excelUserStatuses';
 
 // ✅ Count how many users have each soldierStatus
@@ -7,8 +8,7 @@ function countStatuses(users: { soldierStatus?: string }[]) {
     const counts: Record<string, number> = {};
     for (const u of users) {
         if (!u.soldierStatus) continue; // skip if no status
-        const status = u.soldierStatus;
-        counts[status] = (counts[status] || 0) + 1;
+        counts[u.soldierStatus] = (counts[u.soldierStatus] || 0) + 1;
     }
     return counts;
 }
@@ -20,7 +20,6 @@ function sumStatuses(counts: Record<string, number>, statuses: string[]) {
 
 // ✅ Mapping table groups → soldierStatus strings
 const STATUS_GROUPS = {
-    // Positions
     positionsAll: [
         StatusExcel.POSITIONS_INFANTRY,
         StatusExcel.POSITIONS_CREW,
@@ -32,7 +31,6 @@ const STATUS_GROUPS = {
     positionsCalc: [StatusExcel.POSITIONS_CALCULATION],
     positionsUav: [StatusExcel.POSITIONS_UAV],
 
-    // Rotation
     rotationAll: [
         StatusExcel.ROTATION_INFANTRY,
         StatusExcel.ROTATION_CREW,
@@ -44,7 +42,6 @@ const STATUS_GROUPS = {
     rotationCalc: [StatusExcel.ROTATION_CALCULATION],
     rotationUav: [StatusExcel.ROTATION_UAV],
 
-    // Supply
     supplyAll: [
         StatusExcel.SUPPLY_BD,
         StatusExcel.SUPPLY_ENGINEERING,
@@ -54,11 +51,9 @@ const STATUS_GROUPS = {
     supplyEng: [StatusExcel.SUPPLY_ENGINEERING],
     supplyLife: [StatusExcel.SUPPLY_LIFE_SUPPORT],
 
-    // Management
     management: [StatusExcel.MANAGEMENT],
     ksp: [StatusExcel.KSP],
 
-    // Non combat
     nonCombatAll: [
         StatusExcel.NON_COMBAT_ATTACHED_UNITS,
         StatusExcel.NON_COMBAT_TRAINING_NEWCOMERS,
@@ -78,7 +73,6 @@ const STATUS_GROUPS = {
     nonCombatDecision: [StatusExcel.NON_COMBAT_AWAITING_DECISION],
     nonCombatRefusers: [StatusExcel.NON_COMBAT_REFUSERS],
 
-    // Absent
     absentAll: [
         StatusExcel.ABSENT_MEDICAL_LEAVE,
         StatusExcel.ABSENT_ANNUAL_LEAVE,
@@ -108,62 +102,127 @@ const STATUS_GROUPS = {
 };
 
 export function CombatReportBody() {
-    const users = useUserStore((s) => s.users); // ✅ users have soldierStatus string
-    const counts = countStatuses(users);
+    const { fetchAll } = useShtatniStore();
+    const { fetchUsers } = useUserStore();
 
-    // ✅ Total groups
-    const totalPositions = sumStatuses(counts, STATUS_GROUPS.positionsAll);
-    const totalRotation = sumStatuses(counts, STATUS_GROUPS.rotationAll);
-    const totalSupply = sumStatuses(counts, STATUS_GROUPS.supplyAll);
-    const totalManagement = sumStatuses(counts, STATUS_GROUPS.management);
-    const totalKsp = sumStatuses(counts, STATUS_GROUPS.ksp);
+    useEffect(() => {
+        if (shtatniPosady.length === 0) fetchAll();
+        if (users.length === 0) fetchUsers();
+    }, []);
+    const users = useUserStore((s) => s.users);
+    const shtatniPosady = useShtatniStore((s) => s.shtatniPosady);
 
-    const totalNonCombat = sumStatuses(counts, STATUS_GROUPS.nonCombatAll);
-    const totalAbsent = sumStatuses(counts, STATUS_GROUPS.absentAll);
-    const totalMissing = totalNonCombat + totalAbsent;
+    const {
+        plannedTotal,
+        plannedOfficers,
+        plannedSoldiers,
+        actualTotal,
+        actualOfficers,
+        actualSoldiers,
+        staffingPercent,
+        presentPercent,
+        presentTotal,
+        counts,
+        totalPositions,
+        totalRotation,
+        totalSupply,
+        totalManagement,
+        totalKsp,
+        totalNonCombat,
+        totalAbsent,
+        totalMissing,
+    } = useMemo(() => {
+        // === Planned (за штатом)
+        const plannedTotal = shtatniPosady.length;
+        const plannedOfficers = shtatniPosady.filter((p) =>
+            p.category?.toLowerCase().includes('офіцер'),
+        ).length;
+        const plannedSoldiers = plannedTotal - plannedOfficers;
+
+        // === Actual (за списком)
+        const actualTotal = users.length;
+        const actualOfficers = users.filter((u) => u.rank?.toLowerCase().includes('офіцер')).length;
+        const actualSoldiers = actualTotal - actualOfficers;
+
+        const staffingPercent =
+            plannedTotal > 0 ? ((actualTotal / plannedTotal) * 100).toFixed(0) : '0';
+
+        const counts = countStatuses(users);
+
+        const totalPositions = sumStatuses(counts, STATUS_GROUPS.positionsAll);
+        const totalRotation = sumStatuses(counts, STATUS_GROUPS.rotationAll);
+        const totalSupply = sumStatuses(counts, STATUS_GROUPS.supplyAll);
+        const totalManagement = sumStatuses(counts, STATUS_GROUPS.management);
+        const totalKsp = sumStatuses(counts, STATUS_GROUPS.ksp);
+
+        const totalNonCombat = sumStatuses(counts, STATUS_GROUPS.nonCombatAll);
+        const totalAbsent = sumStatuses(counts, STATUS_GROUPS.absentAll);
+        const totalMissing = totalNonCombat + totalAbsent;
+
+        const presentTotal = actualTotal - totalMissing;
+        const presentPercent =
+            actualTotal > 0 ? ((presentTotal / actualTotal) * 100).toFixed(0) : '0';
+
+        return {
+            plannedTotal,
+            plannedOfficers,
+            plannedSoldiers,
+            actualTotal,
+            actualOfficers,
+            actualSoldiers,
+            staffingPercent,
+            presentPercent,
+            presentTotal,
+            counts,
+            totalPositions,
+            totalRotation,
+            totalSupply,
+            totalManagement,
+            totalKsp,
+            totalNonCombat,
+            totalAbsent,
+            totalMissing,
+        };
+    }, [users, shtatniPosady]);
 
     return (
         <tbody>
             <tr className="border-t">
                 {/* № */}
-                <td style={{ borderRightWidth: '3px' }} className="border border-black">
+                <td style={{ borderRightWidth: '3px' }} className="border border-black text-center">
                     1
                 </td>
 
-                {/* ПІДРОЗДІЛИ */}
+                {/* ПІДРОЗДІЛ */}
                 <td
                     style={{ borderLeftWidth: '3px', fontWeight: 'bold' }}
                     className="border border-black"
                 >
-                    1 РОТА
+                    151 ОМБр
                 </td>
 
-                {/* Static штат */}
-                <td className="border border-black">-</td>
-                <td className="border border-black">-</td>
+                {/* === ЗА ШТАТОМ === */}
+                <td className="border border-black">{plannedTotal}</td>
+                <td className="border border-black">{plannedOfficers}</td>
                 <td style={{ borderRightWidth: '3px' }} className="border border-black">
-                    -
+                    {plannedSoldiers}
                 </td>
 
-                {/* Укомплектованість */}
-                <td className="border border-black">
-                    {/* {(((users.length - totalMissing) / users.length) * 100 || 0).toFixed(0)}% */}
-                    -
-                </td>
-                <td className="border border-black">-</td>
-                <td className="border border-black">-</td>
+                {/* === ЗА СПИСКОМ === */}
+                <td className="border border-black">{staffingPercent}%</td>
+                <td className="border border-black">{actualTotal}</td>
+                <td className="border border-black">{actualOfficers}</td>
                 <td style={{ borderRightWidth: '3px' }} className="border border-black">
-                    -
+                    {actualSoldiers}
                 </td>
 
-                {/* % В НАЯВНОСТІ */}
+                {/* === % В НАЯВНОСТІ === */}
                 <td style={{ borderRightWidth: '3px' }} className="border border-black">
-                    {/* {(((users.length - totalMissing) / users.length) * 100 || 0).toFixed(0)}% */}
-                    -
+                    {presentPercent}%
                 </td>
 
-                {/* В НАЯВНОСТІ всього */}
-                <td className="border border-black">{users.length - totalMissing}</td>
+                {/* === В НАЯВНОСТІ ВСЬОГО === */}
+                <td className="border border-black">{presentTotal}</td>
                 <td className="border border-black">-</td>
                 <td style={{ borderRightWidth: '3px' }} className="border border-black">
                     -
@@ -244,7 +303,7 @@ export function CombatReportBody() {
                     {sumStatuses(counts, STATUS_GROUPS.nonCombatRefusers)}
                 </td>
 
-                {/* Підпорядкування іншій ВЧ + ППД НЕ В РАЙОНІ (static) */}
+                {/* Підпорядкування іншій ВЧ + ППД НЕ В РАЙОНІ */}
                 <td className="border border-black">0</td>
                 <td style={{ borderRightWidth: '3px' }} className="border border-black">
                     0
