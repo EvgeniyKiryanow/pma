@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useShtatniStore, ShtatnaPosada } from '../stores/useShtatniStore';
 import { useUserStore } from '../stores/userStore';
+import type { CommentOrHistoryEntry, User } from '../types/user';
+
 import {
     getUnitBadge,
     getPositionBadge,
@@ -28,50 +30,94 @@ export default function ShtatniPosadyTab() {
         const selectedUser = users.find((u) => u.id === userId);
         if (!selectedUser) return;
 
-        // 1️⃣ Find user who is already assigned to THIS posada and clear it
+        const newPosReadable = `${pos.position_name} (${pos.unit_name})`;
+        const oldPosReadable = selectedUser.position
+            ? `${selectedUser.position} (${selectedUser.unitMain})`
+            : null;
+
+        const setSelectedUser = useUserStore.getState().setSelectedUser;
+
+        // ========= 1️⃣ CLEAR USER WHO CURRENTLY HOLDS THIS POSADA =========
         const alreadyOnThisPosada = users.find(
             (u) =>
-                u.shtatNumber === pos.shtat_number || // exact shtat_number match
+                u.shtatNumber === pos.shtat_number ||
                 (u.position === pos.position_name && u.unitMain === pos.unit_name),
         );
+
         if (alreadyOnThisPosada) {
-            const cleared = {
+            const clearedHistory: CommentOrHistoryEntry = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                type: 'history',
+                author: 'System',
+                description: `Користувача ${alreadyOnThisPosada.fullName} звільнено з посади ${pos.position_name} (${pos.unit_name})`,
+                content: '',
+                files: [],
+            };
+
+            const clearedUser: User = {
                 ...alreadyOnThisPosada,
-                position: null as string | null,
-                unitMain: null as string | null,
-                shpkCode: null as string | null,
-                category: null as string | null,
-                shtatNumber: null as string | null,
+                position: null,
+                unitMain: null,
+                shpkCode: null,
+                category: null,
+                shtatNumber: null,
+                history: [...(alreadyOnThisPosada.history || []), clearedHistory],
             };
-            await updateUser(cleared);
+
+            await updateUser(clearedUser);
+
+            // refresh if currently selected
+            if (useUserStore.getState().selectedUser?.id === alreadyOnThisPosada.id) {
+                setSelectedUser(clearedUser);
+            }
         }
 
-        // 2️⃣ Find if this user currently has ANY other posada & clear it
+        // ========= 2️⃣ BUILD HISTORY ENTRY FOR MOVEMENT/ASSIGNMENT =========
+        let newHistory: CommentOrHistoryEntry;
         if (selectedUser.shtatNumber) {
-            const clearedOld = {
-                ...selectedUser,
-                position: null as string | null,
-                unitMain: null as string | null,
-                shpkCode: null as string | null,
-                category: null as string | null,
-                shtatNumber: null as string | null,
+            // User already has another posada → movement
+            newHistory = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                type: 'history',
+                author: 'System',
+                description: `Переміщено з посади ${oldPosReadable} → ${newPosReadable}`,
+                content: '',
+                files: [],
             };
-            await updateUser(clearedOld);
+        } else {
+            // User had no posada → first assignment
+            newHistory = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                type: 'history',
+                author: 'System',
+                description: `Призначено на посаду ${newPosReadable}`,
+                content: '',
+                files: [],
+            };
         }
 
-        // 3️⃣ Assign selected user to THIS posada
-        const updatedUser = {
+        // ========= 3️⃣ FINAL UPDATED USER =========
+        const updatedUser: User = {
             ...selectedUser,
             position: pos.position_name,
             unitMain: pos.unit_name,
             shpkCode: pos.shpk_code,
             category: pos.category,
             shtatNumber: pos.shtat_number,
+            history: [...(selectedUser.history || []), newHistory],
         };
 
+        // ✅ Single update call → saves BOTH position + history
         await updateUser(updatedUser);
+
+        // ✅ Refresh right panel
+        setSelectedUser(updatedUser);
+
         alert(
-            `✅ ${selectedUser.fullName} призначений на посаду "${pos.position_name}" (№ ${pos.shtat_number})`,
+            `✅ ${selectedUser.fullName} призначений на "${pos.position_name}" (${pos.unit_name})`,
         );
     };
 
