@@ -233,22 +233,50 @@ export default function ImportUsersTabContent() {
         const userLookup = new Map(existingUsers.map((u) => [generateUserKey(u), u]));
 
         for (const row of rows) {
-            // Map Excel row → DB user
             const mappedRow: any = {};
+
             Object.entries(row).forEach(([header, value]) => {
                 const dbField = HEADER_MAP[header.trim()];
                 if (!dbField) return;
-                let v = value;
-                if (dbField === 'dateOfBirth' && !isNaN(Number(value))) {
-                    v = excelSerialToDate(Number(value));
+
+                const strVal = String(value ?? '').trim();
+
+                // ❌ Skip if truly empty OR Excel fake zero
+                if (!strVal || strVal === '0') return;
+
+                let v = strVal;
+
+                // ✅ Only convert Excel date serials if it's a valid > 0 number
+                if (dbField === 'dateOfBirth') {
+                    const numVal = Number(value);
+                    if (!isNaN(numVal) && numVal > 0) {
+                        v = excelSerialToDate(numVal);
+                    }
                 }
-                mappedRow[dbField] = String(v ?? '').trim();
+
+                mappedRow[dbField] = v;
             });
 
-            if (!mappedRow.fullName?.trim()) {
+            // ✅ REQUIRE some mandatory fields
+            const hasName = mappedRow.fullName?.trim();
+            const hasDob = mappedRow.dateOfBirth?.trim();
+            const hasPhone = mappedRow.phoneNumber?.trim();
+
+            // ❌ If NO fullName → skip entirely
+            if (!hasName) {
                 skippedCount++;
                 continue;
             }
+            if (!hasDob) {
+                skippedCount++;
+                continue;
+            }
+
+            // (optional) enforce more conditions:
+            // if (!hasDob && !hasPhone) {
+            //     skippedCount++;
+            //     continue;
+            // }
 
             const key = generateUserKey(mappedRow);
             const existing = userLookup.get(key);
