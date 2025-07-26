@@ -1,5 +1,5 @@
 import { CommentOrHistoryEntry } from '../../types/user';
-import { Trash2, CalendarDays, FileText, ArrowRight, Info } from 'lucide-react';
+import { Trash2, CalendarDays, FileText, ArrowRight, Info, RefreshCcw } from 'lucide-react';
 import { useI18nStore } from '../../stores/i18nStore';
 
 type Props = {
@@ -13,24 +13,51 @@ export default function HistoryItem({ entry, onDelete }: Props) {
     const isStatusChange = entry.type === 'statusChange';
     const dateFormatted = new Date(entry.date).toLocaleString();
 
-    // ✅ Разделяем по строкам, если в описании несколько частей
-    const descriptionLines = entry.description?.split('\n') || [];
-    const firstLine = descriptionLines[0] || '';
-    const restLines = descriptionLines.slice(1).join('\n');
+    const description = entry.description || '';
 
-    // ✅ Выделяем prevStatus и newStatus из первой строки
+    // ✅ Detect status changes
     let prevStatus: string | null = null;
     let newStatus: string | null = null;
-    if (isStatusChange && firstLine) {
-        const match = firstLine.match(/"(.+?)"\s*→\s*"(.+?)"/);
+    if (isStatusChange) {
+        const match = description.match(/"(.+?)"\s*→\s*"(.+?)"/);
         if (match) {
             prevStatus = match[1];
             newStatus = match[2];
         }
     }
 
+    // ✅ Detect if it's a POSADA CHANGE
+    const isPosadaChange =
+        description.includes('Призначено на посаду') ||
+        description.includes('Переміщено з посади') ||
+        description.includes('звільнено з посади');
+
+    // ✅ Extract old/new posada values
+    let oldPosada: string | null = null;
+    let newPosada: string | null = null;
+
+    if (description.includes('Переміщено з посади')) {
+        // Переміщено з посади Заступник → Командир
+        const match = description.match(/Переміщено з посади (.+?) → (.+)/);
+        if (match) {
+            oldPosada = match[1].trim();
+            newPosada = match[2].trim();
+        }
+    } else if (description.includes('звільнено з посади')) {
+        // звільнено з посади Заступник командира
+        oldPosada = description.replace(/.*звільнено з посади\s*/, '').trim();
+        newPosada = '— (прибрано)';
+    } else if (description.includes('Призначено на посаду')) {
+        // Призначено на посаду Командир роти
+        newPosada = description.replace('Призначено на посаду', '').trim();
+    }
+
     return (
-        <li className="group relative rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-all">
+        <li
+            className={`group relative rounded-xl border p-5 shadow-sm hover:shadow-md transition-all ${
+                isPosadaChange ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'
+            }`}
+        >
             {/* Delete button */}
             <button
                 onClick={() => onDelete(entry.id)}
@@ -40,22 +67,29 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                 <Trash2 className="w-5 h-5" />
             </button>
 
-            {/* Header (type + date) */}
+            {/* Header */}
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
                 <CalendarDays className="w-4 h-4 text-blue-500" />
                 <span className="uppercase font-medium text-blue-600">
                     {isStatusChange
                         ? t('historyItem.type.statusChange')
-                        : t(`historyItem.type.${entry.type}`)}
+                        : isPosadaChange
+                          ? 'Зміна посади'
+                          : t(`historyItem.type.${entry.type}`)}
                 </span>
                 <span className="text-gray-400">•</span>
                 <span>{dateFormatted}</span>
+
+                {isPosadaChange && (
+                    <span className="ml-2 inline-flex items-center gap-1 text-xs font-semibold text-blue-800 bg-blue-100 px-2 py-0.5 rounded">
+                        <RefreshCcw className="w-3 h-3" /> Переміщення
+                    </span>
+                )}
             </div>
 
-            {/* ✅ Статусный блок */}
+            {/* ✅ STATUS CHANGE BLOCK */}
             {isStatusChange && prevStatus && newStatus && (
                 <div className="p-4 rounded-xl border border-blue-300 bg-gradient-to-br from-blue-50 to-white shadow-sm mb-3">
-                    {/* Title Row */}
                     <div className="flex items-center gap-2 mb-2">
                         <div className="bg-blue-100 text-blue-700 p-2 rounded-full">
                             <Info className="w-4 h-4" />
@@ -65,23 +99,18 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                         </h3>
                     </div>
 
-                    {/* Extra description */}
                     <p className="text-sm text-gray-600 mb-3 leading-snug">
                         {t('historyItem.statusChangeDescription') ||
                             'Статус особового складу був оновлений. Нижче показані старий та новий статус.'}
                     </p>
 
-                    {/* Statuses */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
-                        {/* Old Status */}
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 border border-gray-300 shadow-sm">
                             {prevStatus}
                         </span>
 
-                        {/* Arrow */}
                         <ArrowRight className="hidden sm:inline-block w-6 h-6 text-blue-500" />
 
-                        {/* New Status */}
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800 border border-green-300 shadow-sm mt-2 sm:mt-0">
                             {newStatus}
                         </span>
@@ -89,21 +118,69 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                 </div>
             )}
 
-            {/* ✅ Если есть дополнительный текст после статуса – выводим */}
-            {isStatusChange && restLines && (
-                <p className="text-gray-700 text-sm mb-3 leading-relaxed whitespace-pre-line">
-                    {restLines}
-                </p>
+            {/* ✅ POSADA CHANGE BLOCK */}
+            {isPosadaChange && (
+                <div className="p-4 rounded-xl border border-blue-300 bg-gradient-to-br from-blue-50 to-white shadow-sm mb-3">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="bg-blue-100 text-blue-700 p-2 rounded-full">
+                            <RefreshCcw className="w-4 h-4" />
+                        </div>
+                        <h3 className="text-blue-800 font-semibold text-base">🔄 Зміна посади</h3>
+                    </div>
+
+                    {/* Case: has both old & new */}
+                    {oldPosada && newPosada ? (
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+                            {/* Old */}
+                            <div className="flex-1 px-4 py-2 rounded-lg bg-gray-100 border border-gray-300 text-gray-800 text-sm shadow-sm">
+                                <span className="font-medium text-gray-600 block text-xs">
+                                    Було:
+                                </span>
+                                <span className="font-semibold">{oldPosada}</span>
+                            </div>
+
+                            {/* Arrow */}
+                            <div className="flex justify-center my-2 sm:my-0">
+                                <ArrowRight className="w-6 h-6 text-blue-500" />
+                            </div>
+
+                            {/* New */}
+                            <div
+                                className={`flex-1 px-4 py-2 rounded-lg ${
+                                    newPosada === '— (прибрано)'
+                                        ? 'bg-red-50 border border-red-300 text-red-700'
+                                        : 'bg-green-50 border border-green-300 text-green-800'
+                                } text-sm shadow-sm`}
+                            >
+                                <span
+                                    className={`font-medium block text-xs ${
+                                        newPosada === '— (прибрано)'
+                                            ? 'text-red-600'
+                                            : 'text-green-600'
+                                    }`}
+                                >
+                                    Стало:
+                                </span>
+                                <span className="font-semibold">{newPosada}</span>
+                            </div>
+                        </div>
+                    ) : (
+                        // Case: only new posada
+                        <div className="px-4 py-2 rounded-lg bg-green-50 border border-green-300 text-green-800 shadow-sm">
+                            ✅ <span className="font-semibold">{newPosada || description}</span>
+                        </div>
+                    )}
+                </div>
             )}
 
-            {/* ✅ Обычное описание, если это не статус */}
-            {!isStatusChange && entry.description && (
+            {/* ✅ Normal description for other types */}
+            {!isStatusChange && !isPosadaChange && description && (
                 <p className="text-gray-800 font-medium text-base mb-3 leading-relaxed whitespace-pre-line">
-                    {entry.description}
+                    {description}
                 </p>
             )}
 
-            {/* ✅ Files preview */}
+            {/* ✅ Files preview stays same */}
             {entry.files?.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-3">
                     {entry.files.map((file, i) => (
@@ -148,13 +225,6 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                             )}
                         </div>
                     ))}
-                </div>
-            )}
-
-            {/* ✅ Extra content for text-only */}
-            {entry.type === 'text' && entry.content && (
-                <div className="mt-3 p-3 rounded-md bg-blue-50 text-blue-700 text-sm leading-snug">
-                    {entry.content}
                 </div>
             )}
         </li>
