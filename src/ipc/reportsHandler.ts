@@ -20,10 +20,23 @@ export function registerReportsHandlers() {
         return { success: true };
     });
 
-    // === ✅ CRUD for shtatni_posady ===
     ipcMain.handle('fetch-shtatni-posady', async () => {
         const db = await getDb();
-        return await db.all('SELECT * FROM shtatni_posady ORDER BY shtat_number ASC');
+        const rows = await db.all('SELECT * FROM shtatni_posady ORDER BY shtat_number ASC');
+
+        return rows.map((row: any) => {
+            let parsedExtra = {};
+            try {
+                parsedExtra = row.extra_data ? JSON.parse(row.extra_data) : {};
+            } catch (e) {
+                console.warn('⚠️ Failed to parse extra_data for', row.shtat_number, row.extra_data);
+            }
+
+            return {
+                ...row,
+                extra_data: parsedExtra,
+            };
+        });
     });
 
     ipcMain.handle('import-shtatni-posady', async (_event, positions: any[]) => {
