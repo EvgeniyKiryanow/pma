@@ -137,7 +137,6 @@ export function CombatReportBody() {
         const plannedOfficers = shtatniPosady.filter((p) =>
             p.category?.toLowerCase().includes('оф'),
         ).length;
-        console.log(shtatniPosady, 'plannedOfficers');
         const plannedSoldiers = plannedTotal - plannedOfficers;
 
         // === Actual (за списком)

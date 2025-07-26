@@ -113,7 +113,6 @@ export default function UserFormModalUpdate({
             setPhotoPreview('');
         }
     }, [userToEdit]);
-    console.log(form, 'form');
 
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];

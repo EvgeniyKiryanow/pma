@@ -17,7 +17,6 @@ export default function CustomTitleBar() {
         setChecking(true);
         const result = await window.electronAPI.checkForUpdates();
         setChecking(false);
-        console.log(result, 'result');
         if (result.status === 'error') {
             alert(t('titleBar.updateError') + ': ' + result.message);
         } else {
