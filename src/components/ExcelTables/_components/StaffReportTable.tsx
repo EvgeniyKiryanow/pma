@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useShtatniStore, ShtatnaPosada } from '../../../stores/useShtatniStore';
 import { useUserStore } from '../../../stores/userStore';
+import classifyStatusForReport from '../../../helpers/classifyStatusForReport';
 
 export function StaffReportTable() {
     const { shtatniPosady, fetchAll, updatePosada } = useShtatniStore();
@@ -31,6 +32,10 @@ export function StaffReportTable() {
             );
 
             const extra = pos.extra_data || {};
+            const soldierStatus = assignedUser?.soldierStatus;
+
+            // ✅ Classify soldierStatus → either in-area OR absenceReason
+            const classified = classifyStatusForReport(soldierStatus);
 
             return {
                 shtatNumber: pos.shtat_number,
@@ -39,9 +44,11 @@ export function StaffReportTable() {
                 fullName: assignedUser?.fullName || '',
                 rank: assignedUser?.rank || '',
                 taxId: assignedUser?.taxId || '',
-                statusInArea: extra.statusInArea || '',
+
+                // ✅ Prefer DB extra_data → fallback to soldierStatus auto classification
+                statusInArea: extra.statusInArea || classified.statusInArea,
                 distanceFromLVZ: extra.distanceFromLVZ || '',
-                absenceReason: extra.absenceReason || '',
+                absenceReason: extra.absenceReason || classified.absenceReason,
                 dateFrom: extra.dateFrom || '',
                 dateTo: extra.dateTo || '',
                 statusNote: extra.statusNote || '',
