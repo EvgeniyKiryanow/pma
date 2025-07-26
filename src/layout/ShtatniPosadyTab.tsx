@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useShtatniStore, ShtatnaPosada } from '../stores/useShtatniStore';
+import { useUserStore } from '../stores/userStore';
 import {
     getUnitBadge,
     getPositionBadge,
@@ -11,12 +12,33 @@ import { Pencil, Trash2 } from 'lucide-react';
 export default function ShtatniPosadyTab() {
     const { shtatniPosady, loading, fetchAll, deletePosada, updatePosada, deleteAll } =
         useShtatniStore();
+
+    const { users, fetchUsers, updateUser } = useUserStore();
+
     const [editing, setEditing] = useState<ShtatnaPosada | null>(null);
     const [form, setForm] = useState<Partial<ShtatnaPosada>>({});
 
     useEffect(() => {
+        // ✅ Fetch both posady & users when page loads
         fetchAll();
+        fetchUsers();
     }, []);
+
+    const assignUserToPosada = async (userId: number, pos: ShtatnaPosada) => {
+        const user = users.find((u) => u.id === userId);
+        if (!user) return;
+
+        const updatedUser = {
+            ...user,
+            position: pos.position_name || user.position,
+            unitMain: pos.unit_name || user.unitMain,
+            shpkCode: pos.shpk_code || user.shpkCode,
+            category: pos.category || user.category,
+        };
+
+        await updateUser(updatedUser);
+        alert(`✅ ${user.fullName} призначений на посаду "${pos.position_name}"`);
+    };
 
     const handleDelete = async (shtat_number: string) => {
         if (confirm('Видалити цю посаду?')) {
@@ -45,9 +67,7 @@ export default function ShtatniPosadyTab() {
         }
     };
 
-    /**
-     * ✅ Sort by shtat_number numeric
-     */
+    /** ✅ Sort posady by shtat_number numeric */
     const sortedPosady = useMemo(() => {
         return [...shtatniPosady].sort((a, b) => {
             const numA = parseInt(a.shtat_number.replace(/\D/g, ''), 10) || 0;
@@ -56,12 +76,7 @@ export default function ShtatniPosadyTab() {
         });
     }, [shtatniPosady]);
 
-    /**
-     * ✅ Auto-group by unit sections like:
-     *   "Управління роти" → group header
-     *   "1 взвод" → group header
-     *   "1 відділення" → group header
-     */
+    /** ✅ Auto-group by unit headers */
     const groupedWithHeaders = useMemo(() => {
         const result: Array<{ type: 'header' | 'pos'; data: string | ShtatnaPosada }> = [];
         let lastHeader = '';
@@ -69,7 +84,6 @@ export default function ShtatniPosadyTab() {
         sortedPosady.forEach((pos) => {
             const unitName = (pos.unit_name || '').trim();
 
-            // Detect group keywords
             if (
                 unitName.toLowerCase().includes('управління роти') ||
                 unitName.toLowerCase().includes('взвод') ||
@@ -168,7 +182,7 @@ export default function ShtatniPosadyTab() {
                 </div>
             )}
 
-            {/* ✅ Compact Table with Group Headers */}
+            {/* ✅ Compact Table with Assign column */}
             <div className="overflow-x-auto border rounded shadow bg-white">
                 <table className="w-full text-sm border-collapse">
                     <thead className="bg-gray-100 text-gray-700">
@@ -178,6 +192,8 @@ export default function ShtatniPosadyTab() {
                             <th className="border px-2 py-1 text-left">Посада</th>
                             <th className="border px-2 py-1 text-left">Кат</th>
                             <th className="border px-2 py-1 text-left">ШПК</th>
+                            {/* ✅ New column */}
+                            <th className="border px-2 py-1 text-left">Призначений користувач</th>
                             <th className="border px-2 py-1 text-center w-20">Дії</th>
                         </tr>
                     </thead>
@@ -188,7 +204,7 @@ export default function ShtatniPosadyTab() {
                                 return (
                                     <tr key={`header-${idx}`} className="bg-green-100">
                                         <td
-                                            colSpan={6}
+                                            colSpan={7}
                                             className="px-3 py-1 font-semibold text-green-800 text-left"
                                         >
                                             {headerText}
@@ -202,6 +218,13 @@ export default function ShtatniPosadyTab() {
                             const position = getPositionBadge(pos.position_name);
                             const category = getCategoryBadge(pos.category);
                             const shpk = getShpkBadge(pos.shpk_code);
+
+                            // Find already assigned user if exists
+                            const matchedUser = users.find(
+                                (u) =>
+                                    u.position === pos.position_name &&
+                                    u.unitMain === pos.unit_name,
+                            );
 
                             return (
                                 <tr key={pos.shtat_number} className="hover:bg-gray-50 transition">
@@ -246,6 +269,33 @@ export default function ShtatniPosadyTab() {
                                         </span>
                                     </td>
 
+                                    {/* ✅ New column: assign/select user */}
+                                    <td className="border px-2 py-1">
+                                        {matchedUser ? (
+                                            <span className="text-green-700 font-medium">
+                                                ✅ {matchedUser.fullName}
+                                            </span>
+                                        ) : (
+                                            <select
+                                                className="text-xs border rounded px-1 py-0.5 max-w-[160px]"
+                                                defaultValue=""
+                                                onChange={(e) => {
+                                                    const userId = Number(e.target.value);
+                                                    if (userId) assignUserToPosada(userId, pos);
+                                                }}
+                                            >
+                                                <option value="">
+                                                    -- Призначити користувача --
+                                                </option>
+                                                {users.map((u) => (
+                                                    <option key={u.id} value={u.id}>
+                                                        {u.fullName}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )}
+                                    </td>
+
                                     {/* Actions */}
                                     <td className="border px-2 py-1 text-center">
                                         <button
@@ -267,7 +317,7 @@ export default function ShtatniPosadyTab() {
 
                         {shtatniPosady.length === 0 && !loading && (
                             <tr>
-                                <td colSpan={6} className="text-center p-4 text-gray-500 italic">
+                                <td colSpan={7} className="text-center p-4 text-gray-500 italic">
                                     Немає жодної посади
                                 </td>
                             </tr>
