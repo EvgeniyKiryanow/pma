@@ -43,6 +43,10 @@ declare global {
             getUserHistory: (userId: number, filter: string) => Promise<CommentOrHistoryEntry[]>;
             addUserHistory: (userId: number, newEntry: any) => Promise<CommentOrHistoryEntry[]>;
             deleteUserHistory: (id: number) => Promise<boolean>;
+            editUserHistory: (
+                userId: number,
+                updatedEntry: CommentOrHistoryEntry,
+            ) => Promise<CommentOrHistoryEntry[]>;
 
             // --- Comments CRUD ---
             getUserComments: (userId: number) => Promise<CommentOrHistoryEntry[]>;

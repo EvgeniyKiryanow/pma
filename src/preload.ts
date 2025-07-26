@@ -28,6 +28,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     addUserHistory: (userId: number, newEntry: any) =>
         ipcRenderer.invoke('history:add-entry', userId, newEntry),
     deleteUserHistory: (id: number) => ipcRenderer.invoke('deleteUserHistory', id),
+    editUserHistory: (userId: number, updatedEntry: CommentOrHistoryEntry) =>
+        ipcRenderer.invoke('history:edit-entry', userId, updatedEntry),
 
     // Auth
     hasUser: () => ipcRenderer.invoke('auth:has-user'),

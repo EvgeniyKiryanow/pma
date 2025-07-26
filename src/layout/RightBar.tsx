@@ -4,7 +4,7 @@ import type { User, CommentOrHistoryEntry } from '../types/user';
 import UserInfoDetails from '../components/userInfo/UserInfoDetails';
 import UserHistory from '../components/userInfo/UserHistory';
 import CommentsModal from '../components/userInfo/CommentsModal';
-import { Edit3, MessageCircle, Trash2, ClipboardList } from 'lucide-react';
+import { Edit3, MessageCircle, Trash2 } from 'lucide-react';
 import { useI18nStore } from '../stores/i18nStore';
 import { StatusExcel } from 'src/utils/excelUserStatuses';
 import UserStatisticsDrawer from '../components/UserStatisticsDrawer';
@@ -14,12 +14,26 @@ export default function RightBar() {
     const [dbComments, setDbComments] = useState<CommentOrHistoryEntry[]>([]);
     const sidebarCollapsed = useUserStore((s) => s.sidebarCollapsed);
     const { t } = useI18nStore();
+
+    const user = useUserStore((s) => s.selectedUser);
+    const updateUser = useUserStore((s) => s.updateUser);
+    const deleteUser = useUserStore((s) => s.deleteUser);
+    const openUserFormForEdit = useUserStore((s) => s.openUserFormForEdit);
+    const setSelectedUser = useUserStore((s) => s.setSelectedUser);
+    const [showStatistics, setShowStatistics] = useState(false);
+
+    /** ✅ Refresh full user history from DB */
+    const refreshHistory = async () => {
+        if (!user) return;
+        const freshHistory = await window.electronAPI.getUserHistory(user.id, 'all');
+        updateUser({ ...user, history: freshHistory });
+    };
+
     const handleStatusChange = async (newStatus: StatusExcel) => {
         if (!user) return;
 
         const prevStatus = user.soldierStatus || '—';
 
-        // ✅ Build history entry
         const historyEntry: CommentOrHistoryEntry = {
             id: Date.now(),
             date: new Date().toISOString(),
@@ -30,23 +44,14 @@ export default function RightBar() {
             files: [],
         };
 
-        // ✅ Merge soldierStatus + history in one object
         const updatedUser: User = {
             ...user,
             soldierStatus: newStatus,
             history: [...(user.history || []), historyEntry],
         };
 
-        // ✅ Just one call → store + DB updated
         await updateUser(updatedUser);
     };
-
-    const user = useUserStore((s) => s.selectedUser);
-    const updateUser = useUserStore((s) => s.updateUser);
-    const deleteUser = useUserStore((s) => s.deleteUser);
-    const openUserFormForEdit = useUserStore((s) => s.openUserFormForEdit);
-    const setSelectedUser = useUserStore((s) => s.setSelectedUser);
-    const [showStatistics, setShowStatistics] = useState(false);
 
     const handleAddHistory = (newEntry: CommentOrHistoryEntry, maybeNewStatus?: StatusExcel) => {
         if (!user) return;
@@ -132,6 +137,7 @@ export default function RightBar() {
                     </button>
                 </div>
             </section>
+
             {showStatistics && (
                 <UserStatisticsDrawer user={user} onClose={() => setShowStatistics(false)} />
             )}
@@ -159,6 +165,7 @@ export default function RightBar() {
                             onDeleteHistory={handleDeleteHistory}
                             onStatusChange={handleStatusChange}
                             currentStatus={user.soldierStatus || ''}
+                            refreshHistory={refreshHistory} // ✅ Pass refresh fn to UserHistory
                         />
                     </section>
                 </div>

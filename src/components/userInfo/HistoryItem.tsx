@@ -5,9 +5,10 @@ import { useI18nStore } from '../../stores/i18nStore';
 type Props = {
     entry: CommentOrHistoryEntry;
     onDelete: (id: number) => void;
+    onEdit: (entry: CommentOrHistoryEntry) => void; // ✅ new
 };
 
-export default function HistoryItem({ entry, onDelete }: Props) {
+export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
     const { t } = useI18nStore();
 
     const isStatusChange = entry.type === 'statusChange';
@@ -15,7 +16,6 @@ export default function HistoryItem({ entry, onDelete }: Props) {
 
     const description = entry.description || '';
 
-    // ✅ Detect status changes
     let prevStatus: string | null = null;
     let newStatus: string | null = null;
     if (isStatusChange) {
@@ -26,29 +26,24 @@ export default function HistoryItem({ entry, onDelete }: Props) {
         }
     }
 
-    // ✅ Detect if it's a POSADA CHANGE
     const isPosadaChange =
         description.includes('Призначено на посаду') ||
         description.includes('Переміщено з посади') ||
         description.includes('звільнено з посади');
 
-    // ✅ Extract old/new posada values
     let oldPosada: string | null = null;
     let newPosada: string | null = null;
 
     if (description.includes('Переміщено з посади')) {
-        // Переміщено з посади Заступник → Командир
         const match = description.match(/Переміщено з посади (.+?) → (.+)/);
         if (match) {
             oldPosada = match[1].trim();
             newPosada = match[2].trim();
         }
     } else if (description.includes('звільнено з посади')) {
-        // звільнено з посади Заступник командира
         oldPosada = description.replace(/.*звільнено з посади\s*/, '').trim();
         newPosada = '— (прибрано)';
     } else if (description.includes('Призначено на посаду')) {
-        // Призначено на посаду Командир роти
         newPosada = description.replace('Призначено на посаду', '').trim();
     }
 
@@ -58,14 +53,23 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                 isPosadaChange ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'
             }`}
         >
-            {/* Delete button */}
-            <button
-                onClick={() => onDelete(entry.id)}
-                className="absolute top-3 right-3 opacity-60 group-hover:opacity-100 text-red-500 hover:text-red-700 transition"
-                title={t('historyItem.delete')}
-            >
-                <Trash2 className="w-5 h-5" />
-            </button>
+            {/* Action buttons on hover */}
+            <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                <button
+                    onClick={() => onEdit(entry)}
+                    className="text-blue-500 hover:text-blue-700 text-sm"
+                    title="Редагувати"
+                >
+                    ✏️
+                </button>
+                <button
+                    onClick={() => onDelete(entry.id)}
+                    className="text-red-500 hover:text-red-700"
+                    title={t('historyItem.delete')}
+                >
+                    <Trash2 className="w-5 h-5" />
+                </button>
+            </div>
 
             {/* Header */}
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
@@ -87,7 +91,7 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                 )}
             </div>
 
-            {/* ✅ STATUS CHANGE BLOCK */}
+            {/* ✅ Status Change */}
             {isStatusChange && prevStatus && newStatus && (
                 <div className="p-4 rounded-xl border border-blue-300 bg-gradient-to-br from-blue-50 to-white shadow-sm mb-3">
                     <div className="flex items-center gap-2 mb-2">
@@ -108,9 +112,7 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 border border-gray-300 shadow-sm">
                             {prevStatus}
                         </span>
-
                         <ArrowRight className="hidden sm:inline-block w-6 h-6 text-blue-500" />
-
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800 border border-green-300 shadow-sm mt-2 sm:mt-0">
                             {newStatus}
                         </span>
@@ -118,7 +120,7 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                 </div>
             )}
 
-            {/* ✅ POSADA CHANGE BLOCK */}
+            {/* ✅ Posada Change */}
             {isPosadaChange && (
                 <div className="p-4 rounded-xl border border-blue-300 bg-gradient-to-br from-blue-50 to-white shadow-sm mb-3">
                     <div className="flex items-center gap-2 mb-3">
@@ -128,23 +130,17 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                         <h3 className="text-blue-800 font-semibold text-base">🔄 Зміна посади</h3>
                     </div>
 
-                    {/* Case: has both old & new */}
                     {oldPosada && newPosada ? (
                         <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
-                            {/* Old */}
                             <div className="flex-1 px-4 py-2 rounded-lg bg-gray-100 border border-gray-300 text-gray-800 text-sm shadow-sm">
                                 <span className="font-medium text-gray-600 block text-xs">
                                     Було:
                                 </span>
                                 <span className="font-semibold">{oldPosada}</span>
                             </div>
-
-                            {/* Arrow */}
                             <div className="flex justify-center my-2 sm:my-0">
                                 <ArrowRight className="w-6 h-6 text-blue-500" />
                             </div>
-
-                            {/* New */}
                             <div
                                 className={`flex-1 px-4 py-2 rounded-lg ${
                                     newPosada === '— (прибрано)'
@@ -165,7 +161,6 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                             </div>
                         </div>
                     ) : (
-                        // Case: only new posada
                         <div className="px-4 py-2 rounded-lg bg-green-50 border border-green-300 text-green-800 shadow-sm">
                             ✅ <span className="font-semibold">{newPosada || description}</span>
                         </div>
@@ -173,14 +168,14 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                 </div>
             )}
 
-            {/* ✅ Normal description for other types */}
+            {/* ✅ Regular text */}
             {!isStatusChange && !isPosadaChange && description && (
                 <p className="text-gray-800 font-medium text-base mb-3 leading-relaxed whitespace-pre-line">
                     {description}
                 </p>
             )}
 
-            {/* ✅ Files preview stays same */}
+            {/* ✅ Files */}
             {entry.files?.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-3">
                     {entry.files.map((file, i) => (
@@ -200,11 +195,7 @@ export default function HistoryItem({ entry, onDelete }: Props) {
                                         <FileText className="w-6 h-6" /> {file.name}
                                     </a>
                                 ) : file.type.startsWith('image/') ? (
-                                    <a
-                                        href={file.dataUrl}
-                                        download={file.name}
-                                        title={t('historyItem.download', { name: file.name })}
-                                    >
+                                    <a href={file.dataUrl} download={file.name}>
                                         <img
                                             src={file.dataUrl}
                                             alt={file.name}

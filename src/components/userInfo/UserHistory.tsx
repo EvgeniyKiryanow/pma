@@ -1,46 +1,38 @@
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import type { CommentOrHistoryEntry } from '../../types/user';
 import HistoryItem from './HistoryItem';
 import AddHistoryModal from './AddHistoryModal';
 import { useI18nStore } from '../../stores/i18nStore';
-import { HistoryHeader } from '../HistoryHeader'; // ✅ bring the nice header
+import { HistoryHeader } from '../HistoryHeader';
 import { StatusExcel } from '../../utils/excelUserStatuses';
 
-const FILTER_OPTIONS = [
-    { labelKey: 'history.filters.1day', value: '1day' },
-    { labelKey: 'history.filters.7days', value: '7days' },
-    { labelKey: 'history.filters.14days', value: '14days' },
-    { labelKey: 'history.filters.30days', value: '30days' },
-    { labelKey: 'history.filters.all', value: 'all' },
-];
-
-type FileWithDataUrl = {
-    name: string;
-    type: string;
-    dataUrl: string;
-};
+type FileWithDataUrl = { name: string; type: string; dataUrl: string };
 
 type UserHistoryProps = {
     history: CommentOrHistoryEntry[];
     userId: number;
-    onAddHistory: (entry: CommentOrHistoryEntry) => void;
+    onAddHistory: (entry: CommentOrHistoryEntry, maybeNewStatus?: StatusExcel) => void;
     onDeleteHistory: (id: number) => void;
-    onStatusChange: (status: StatusExcel) => void; // ✅ new
+    onStatusChange: (status: StatusExcel) => void;
     currentStatus?: string;
+    refreshHistory: () => void;
 };
 
 export default function UserHistory({
     history,
+    userId,
     onAddHistory,
     onDeleteHistory,
     onStatusChange,
     currentStatus,
+    refreshHistory,
 }: UserHistoryProps) {
     const [description, setDescription] = useState('');
     const [files, setFiles] = useState<FileWithDataUrl[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedFilter, setSelectedFilter] = useState('30days');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingEntry, setEditingEntry] = useState<CommentOrHistoryEntry | null>(null);
+
     const { t } = useI18nStore();
 
     const filteredHistory = useMemo(() => {
@@ -52,35 +44,82 @@ export default function UserHistory({
         return sorted.filter(
             (entry) =>
                 [entry.description, entry.author, new Date(entry.date).toLocaleDateString()].some(
-                    (field) => field?.toLowerCase().includes(term),
+                    (f) => f?.toLowerCase().includes(term),
                 ) || entry.files?.some((file) => file.name.toLowerCase().includes(term)),
         );
     }, [history, searchTerm]);
 
+    const openAddModal = () => {
+        setEditingEntry(null);
+        setDescription('');
+        setFiles([]);
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (entry: CommentOrHistoryEntry) => {
+        setEditingEntry(entry);
+        setDescription(entry.description || '');
+        setFiles(entry.files || []);
+        setIsModalOpen(true);
+    };
+
+    const handleSaveHistory = async (
+        desc: string,
+        attachedFiles: FileWithDataUrl[],
+        maybeNewStatus?: StatusExcel,
+    ) => {
+        if (editingEntry) {
+            // ✅ Edit existing
+            const updated: CommentOrHistoryEntry = {
+                ...editingEntry,
+                description: desc.trim(),
+                files: attachedFiles,
+                type: maybeNewStatus ? 'statusChange' : editingEntry.type,
+            };
+
+            await window.electronAPI.editUserHistory(userId, updated);
+            if (refreshHistory) refreshHistory();
+        } else {
+            // ✅ Add new
+            const prevStatus = currentStatus || '—';
+            const statusInfo =
+                maybeNewStatus && maybeNewStatus !== prevStatus
+                    ? `✅ Статус змінено з "${prevStatus}" → "${maybeNewStatus}"`
+                    : '';
+            const combinedDescription = [statusInfo, desc.trim()].filter(Boolean).join('\n');
+
+            const newEntry: CommentOrHistoryEntry = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                type: maybeNewStatus ? 'statusChange' : 'history',
+                author: 'You',
+                description: combinedDescription,
+                content: '',
+                files: attachedFiles,
+            };
+            onAddHistory(newEntry, maybeNewStatus);
+        }
+
+        // ✅ reset
+        setIsModalOpen(false);
+        setEditingEntry(null);
+        setDescription('');
+        setFiles([]);
+    };
+
     return (
         <div className="relative">
             <HistoryHeader
-                onAddHistory={() => setIsModalOpen(true)}
+                onAddHistory={openAddModal}
                 currentStatus={currentStatus}
                 onStatusChange={onStatusChange}
             />
 
-            {/* Filters/search */}
-            <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
-                <select
-                    value={selectedFilter}
-                    onChange={(e) => setSelectedFilter(e.target.value)}
-                    className="px-3 py-2 border text-sm rounded shadow-sm focus:outline-blue-500"
-                >
-                    {/* Filters can still exist but won’t refetch */}
-                    <option value="30days">{t('history.filters.30days')}</option>
-                    <option value="all">{t('history.filters.all')}</option>
-                </select>
-
+            <div className="flex justify-end mb-4">
                 <input
                     type="text"
                     placeholder={t('history.searchPlaceholder')}
-                    className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-blue-500 focus:ring-1"
+                    className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-blue-500"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -91,7 +130,12 @@ export default function UserHistory({
             ) : (
                 <ul className="space-y-4">
                     {filteredHistory.map((entry) => (
-                        <HistoryItem key={entry.id} entry={entry} onDelete={onDeleteHistory} />
+                        <HistoryItem
+                            key={entry.id}
+                            entry={entry}
+                            onDelete={onDeleteHistory}
+                            onEdit={openEditModal}
+                        />
                     ))}
                 </ul>
             )}
@@ -105,37 +149,7 @@ export default function UserHistory({
                 files={files}
                 setFiles={setFiles}
                 removeFile={(idx) => setFiles((f) => f.filter((_, i) => i !== idx))}
-                onSubmit={(desc, attachedFiles, maybeNewStatus) => {
-                    const prevStatus = currentStatus || '—';
-
-                    const statusInfo =
-                        maybeNewStatus && maybeNewStatus !== prevStatus
-                            ? `✅ Статус змінено з "${prevStatus}" → "${maybeNewStatus}"`
-                            : '';
-
-                    // ✅ Склеиваем статус + текст (если оба есть)
-                    const combinedDescription = [statusInfo, desc.trim()]
-                        .filter(Boolean)
-                        .join('\n');
-                    console.log(combinedDescription, 'combinedDescription');
-                    const newEntry: CommentOrHistoryEntry = {
-                        id: Date.now(),
-                        date: new Date().toISOString(),
-                        type: maybeNewStatus ? 'statusChange' : 'history',
-                        author: 'You',
-                        description: combinedDescription, // ⬅️ теперь всегда и статус, и текст
-                        content: '',
-                        files: attachedFiles,
-                    };
-
-                    // ✅ сохраняем историю + при необходимости soldierStatus
-                    onAddHistory(newEntry, maybeNewStatus);
-
-                    // ✅ очищаем модалку
-                    setDescription('');
-                    setFiles([]);
-                    setIsModalOpen(false);
-                }}
+                onSubmit={handleSaveHistory}
                 onFileChange={(e) => {
                     if (!e.target.files) return;
                     Array.from(e.target.files).forEach((file) => {
@@ -150,11 +164,8 @@ export default function UserHistory({
                                         dataUrl: reader.result as string,
                                     },
                                 ]);
-                            } else {
-                                console.warn('Unexpected FileReader result', reader.result);
                             }
                         };
-
                         reader.readAsDataURL(file);
                     });
                     e.target.value = '';

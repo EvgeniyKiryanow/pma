@@ -313,6 +313,32 @@ export function registerUserHandlers() {
         );
         return { success: true };
     });
+    ipcMain.handle(
+        'history:edit-entry',
+        async (_event, userId: number, updatedEntry: CommentOrHistoryEntry) => {
+            const db = await getDb();
+
+            const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
+            if (!user) return { success: false, message: 'User not found' };
+
+            const history: CommentOrHistoryEntry[] = user?.history ? JSON.parse(user.history) : [];
+
+            const idx = history.findIndex((h) => h.id === updatedEntry.id);
+            if (idx === -1) return { success: false, message: 'History entry not found' };
+
+            // ✅ Replace old entry with updated one
+            history[idx] = { ...history[idx], ...updatedEntry };
+
+            await db.run(
+                `UPDATE users SET history = ? WHERE id = ?`,
+                JSON.stringify(history),
+                userId,
+            );
+
+            return { success: true };
+        },
+    );
+
     ipcMain.handle('deleteUserHistory', async (_, id: number) => {
         const db = await getDb();
         const users = await db.all('SELECT id, history FROM users');
