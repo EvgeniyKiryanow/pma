@@ -29,6 +29,13 @@ export function AlternateCombatReportBody() {
     return (
         <tbody>
             {SUBUNITS.map((name, index) => {
+                function safeReportValue(
+                    report: Record<string, any>,
+                    field: string,
+                    fallback: string | number = '-',
+                ) {
+                    return report[name]?.[field] ?? fallback;
+                }
                 const isSummary = name === 'ВСЬОГО';
                 const isAttached = name === 'Прикомандировані';
                 const isNormalRow = !isSummary && !isAttached;
@@ -44,7 +51,6 @@ export function AlternateCombatReportBody() {
                         >
                             {index + 1}
                         </td>
-
                         {/* === ПІДРОЗДІЛ === */}
                         <td
                             style={{
@@ -61,7 +67,6 @@ export function AlternateCombatReportBody() {
                         >
                             {name}
                         </td>
-
                         {/* === ЗА ШТАТОМ === */}
                         <EditableCell
                             unitName={name}
@@ -82,7 +87,6 @@ export function AlternateCombatReportBody() {
                             style={{ borderRightWidth: '2px' }}
                             className="border border-black"
                         />
-
                         {/* УКОМПЛЕКТОВАНІСТЬ */}
                         <EditableCell
                             unitName={name}
@@ -91,7 +95,6 @@ export function AlternateCombatReportBody() {
                             style={{ borderRightWidth: '2px' }}
                             className="border border-black"
                         />
-
                         {/* === ЗА СПИСКОМ === */}
                         <EditableCell
                             unitName={name}
@@ -112,7 +115,6 @@ export function AlternateCombatReportBody() {
                             style={{ borderRightWidth: '2px' }}
                             className="border border-black"
                         />
-
                         {/* === В НАЯВНОСТІ % === */}
                         <EditableCell
                             unitName={name}
@@ -121,7 +123,6 @@ export function AlternateCombatReportBody() {
                             style={{ borderRightWidth: '2px' }}
                             className="border border-black"
                         />
-
                         {/* === В НАЯВНОСТІ === */}
                         <EditableCell
                             unitName={name}
@@ -144,216 +145,235 @@ export function AlternateCombatReportBody() {
                             style={{ backgroundColor: '#f8da78', borderRightWidth: '2px' }}
                             className="border border-black"
                         />
-
                         {/* З НИХ */}
+                        {/*На позиціях */}
                         <EditableCell
                             unitName={name}
-                            field="positionsInfantry"
-                            initialValue={0}
+                            field="oNPostition"
+                            initialValue={report[name]?.oNPostition || 0}
                             style={{ backgroundColor: '#9fce63' }}
                             className="border border-black"
                         />
-                        <EditableCell
-                            unitName={name}
-                            field="positionsCrew"
-                            initialValue={0}
-                            style={{ backgroundColor: '#d7dce3' }}
-                            className="border border-black"
-                        />
-                        <EditableCell
-                            unitName={name}
-                            field="positionsCalc"
-                            initialValue={0}
-                            style={{ backgroundColor: '#d7dce3' }}
-                            className="border border-black"
-                        />
-                        <EditableCell
-                            unitName={name}
-                            field="positionsUav"
-                            initialValue={0}
-                            style={{ backgroundColor: '#eab38a' }}
-                            className="border border-black"
-                        />
+                        {/*НБронегруппа */}
                         <EditableCell
                             unitName={name}
                             field="positionsBronegroup"
-                            initialValue={0}
+                            initialValue={report[name]?.positionsBronegroup || 0}
+                            style={{ backgroundColor: '#d7dce3' }}
+                            className="border border-black"
+                        />
+                        {/* позиціях піхоти */}
+                        <EditableCell
+                            unitName={name}
+                            field="positionsInfantry"
+                            initialValue={report[name]?.positionsInfantry || 0}
+                            style={{ backgroundColor: '#d7dce3' }}
+                            className="border border-black"
+                        />
+                        {/*позиціях екіпажі */}
+                        <EditableCell
+                            unitName={name}
+                            field="positionsCrew"
+                            initialValue={report[name]?.positionsCrew || 0}
                             style={{ backgroundColor: '#eab38a' }}
                             className="border border-black"
                         />
+                        {/* позиція розрахунок */}
+                        <EditableCell
+                            unitName={name}
+                            field="positionsCalc"
+                            initialValue={report[name]?.positionsCalc || 0}
+                            style={{ backgroundColor: '#eab38a' }}
+                            className="border border-black"
+                        />
+                        {/*позиціях бпла*/}
+                        <EditableCell
+                            unitName={name}
+                            field="positionsUav"
+                            initialValue={report[name]?.positionsUav || 0}
+                            style={{ backgroundColor: '#eab38a' }}
+                            className="border border-black"
+                        />
+                        {/*резерв піхота */}
                         <EditableCell
                             unitName={name}
                             field="positionsReserveInfantry"
-                            initialValue={0}
+                            initialValue={report[name]?.positionsReserveInfantry || 0}
                             style={{ backgroundColor: '#eab38a' }}
                             className="border border-black"
                         />
+                        {/*управління */}
                         <EditableCell
                             unitName={name}
-                            field="rotationInfantry"
-                            initialValue={0}
+                            field="totalManagement"
+                            initialValue={report[name]?.totalManagement || 0}
                             style={{ backgroundColor: '#eab38a' }}
                             className="border border-black"
                         />
+                        {/*бойове забеспечення */}
                         <EditableCell
                             unitName={name}
-                            field="rotationCrew"
-                            initialValue={0}
+                            field="supplyCombat"
+                            initialValue={report[name]?.supplyCombat || 0}
                             style={{ backgroundColor: '#eab38a' }}
                             className="border border-black"
                         />
+                        {/* забеспечення */}
                         <EditableCell
                             unitName={name}
-                            field="rotationCalc"
-                            initialValue={0}
+                            field="supplyGeneral"
+                            initialValue={report[name]?.supplyGeneral || 0}
                             style={{ backgroundColor: '#eab38a' }}
                             className="border border-black"
                         />
+                        {/* новоприбулі */}
                         <EditableCell
                             unitName={name}
-                            field="rotationUav"
-                            initialValue={0}
+                            field="nonCombatNewcomers"
+                            initialValue={report[name]?.nonCombatNewcomers || 0}
                             style={{ backgroundColor: '#eab38a' }}
                             className="border border-black"
                         />
-
                         {/* === обмежено придатні === */}
                         <EditableCell
                             unitName={name}
                             field="nonCombatLimited"
-                            initialValue={0}
-                            style={{ backgroundColor: '#eab38a' }}
-                            className="border border-black"
-                        />
-                        <EditableCell
-                            unitName={name}
-                            field="nonCombatDecision"
-                            initialValue={0}
+                            initialValue={report[name]?.nonCombatLimited || 0}
                             style={{ backgroundColor: '#f9da77' }}
                             className="border border-black"
                         />
+                        {/* === хворі в підрозділі === */}
                         <EditableCell
                             unitName={name}
-                            field="nonCombatDecision"
-                            initialValue={0}
+                            field="nonCombatLimitedInCombat"
+                            initialValue={report[name]?.nonCombatLimitedInCombat || 0}
                             style={{ backgroundColor: '#f9da77' }}
                             className="border border-black"
                         />
+                        {/* === відмовники === */}
                         <EditableCell
                             unitName={name}
                             field="nonCombatRefusers"
-                            initialValue={0}
+                            initialValue={report[name]?.nonCombatRefusers || 0}
                             style={{ backgroundColor: '#f9da77' }}
                             className="border border-black"
                         />
+                        {/* === звільняються === */}
                         <EditableCell
                             unitName={name}
-                            field="nonCombatExempted"
-                            initialValue={0}
+                            field="absentRehabedOn"
+                            initialValue={report[name]?.absentRehabedOn || 0}
                             style={{ backgroundColor: '#f9da77' }}
                             className="border border-black"
                         />
+                        {/* === maight napravlenya === */}
                         <EditableCell
                             unitName={name}
-                            field="nonCombatHospitalReferral"
-                            initialValue={0}
-                            style={{ backgroundColor: '#f9da77', borderRightWidth: '2px' }}
+                            field="haveOfferToJost"
+                            initialValue={report[name]?.haveOfferToJost || 0}
+                            style={{ backgroundColor: '#f9da77' }}
                             className="border border-black"
                         />
-
-                        {/* === НЕ БГ === */}
+                        {/* === vsego ne bg === */}
                         <EditableCell
                             unitName={name}
-                            field="totalNonCombat"
-                            initialValue={0}
+                            field="nonOnBG"
+                            initialValue={report[name]?.nonOnBG || 0}
                             style={{ backgroundColor: '#b89230', borderRightWidth: '2px' }}
                             className="border border-black"
                         />
-
-                        {/* В ПІДРОЗДІЛІ */}
+                        {/* === v pidrizdili === */}
                         <EditableCell
                             unitName={name}
-                            field="totalManagement"
-                            initialValue={0}
+                            field="inCombatNow"
+                            initialValue={report[name]?.inCombatNow || 0}
                             style={{ borderRightWidth: '2px' }}
                             className="border border-black"
                         />
-
                         {/* ВІДСУТНІ */}
-                        <EditableCell
-                            unitName={name}
-                            field="absentMedical"
-                            initialValue={0}
-                            style={{ backgroundColor: '#eab38a' }}
-                            className="border border-black"
-                        />
-                        <EditableCell
-                            unitName={name}
-                            field="absentAnnual"
-                            initialValue={0}
-                            style={{ backgroundColor: '#eab38a' }}
-                            className="border border-black"
-                        />
-                        <EditableCell
-                            unitName={name}
-                            field="absentFamily"
-                            initialValue={0}
-                            style={{ backgroundColor: '#eab38a' }}
-                            className="border border-black"
-                        />
-                        <EditableCell
-                            unitName={name}
-                            field="absentTraining"
-                            initialValue={0}
-                            style={{ backgroundColor: '#fcf2cf' }}
-                            className="border border-black"
-                        />
-                        <EditableCell
-                            unitName={name}
-                            field="absentBusinessTrip"
-                            initialValue={0}
-                            style={{ backgroundColor: '#fcf2cf' }}
-                            className="border border-black"
-                        />
-                        <EditableCell
-                            unitName={name}
-                            field="absentArrest"
-                            initialValue={0}
-                            style={{ backgroundColor: '#fcf2cf' }}
-                            className="border border-black"
-                        />
-                        <EditableCell
-                            unitName={name}
-                            field="absentHospital"
-                            initialValue={0}
-                            style={{ backgroundColor: '#fcf2cf' }}
-                            className="border border-black"
-                        />
+                        {/* === VLk === */}
                         <EditableCell
                             unitName={name}
                             field="absentVLK"
-                            initialValue={0}
+                            initialValue={report[name]?.absentVLK || 0}
+                            style={{ backgroundColor: '#eab38a' }}
                             className="border border-black"
                         />
+                        {/* Shpitalm */}
                         <EditableCell
                             unitName={name}
-                            field="absent300"
-                            initialValue={0}
+                            field="absentHospital"
+                            initialValue={report[name]?.absentHospital || 0}
+                            style={{ backgroundColor: '#eab38a' }}
                             className="border border-black"
                         />
+                        {/* medrota */}
                         <EditableCell
                             unitName={name}
-                            field="absent500"
-                            initialValue={0}
-                            style={{ borderRightWidth: '2px' }}
+                            field="absentMedCompany"
+                            initialValue={report[name]?.absentMedCompany || 0}
+                            style={{ backgroundColor: '#eab38a' }}
                             className="border border-black"
                         />
-
-                        {/* ВСЬОГО ВІДСУТНІХ */}
+                        {/* vidpystki reabilitaz */}
                         <EditableCell
                             unitName={name}
-                            field="totalAbsent"
-                            initialValue={0}
+                            field="absentRehabLeave"
+                            initialValue={report[name]?.absentRehabLeave || 0}
+                            style={{ backgroundColor: '#fcf2cf' }}
+                            className="border border-black"
+                        />
+                        {/* vidpystki  */}
+                        <EditableCell
+                            unitName={name}
+                            field="absentRehab"
+                            initialValue={report[name]?.absentRehab || 0}
+                            style={{ backgroundColor: '#fcf2cf' }}
+                            className="border border-black"
+                        />
+                        {/* vidradgenya  */}
+                        <EditableCell
+                            unitName={name}
+                            field="absentBusinessTrip"
+                            initialValue={report[name]?.absentBusinessTrip || 0}
+                            style={{ backgroundColor: '#fcf2cf' }}
+                            className="border border-black"
+                        />
+                        {/* CZSH  */}
+                        <EditableCell
+                            unitName={name}
+                            field="absentSZO"
+                            initialValue={report[name]?.absentSZO || 0}
+                            style={{ backgroundColor: '#fcf2cf' }}
+                            className="border border-black"
+                        />
+                        {/* Poranenya  */}
+                        <EditableCell
+                            unitName={name}
+                            field="absentWounded"
+                            initialValue={report[name]?.absentWounded || 0}
+                            style={{}}
+                            className="border border-black"
+                        />
+                        {/* Zagubli  */}
+                        <EditableCell
+                            unitName={name}
+                            field="absent200"
+                            initialValue={report[name]?.absent200 || 0}
+                            className="border border-black"
+                        />
+                        {/* znukli bezvisti  */}
+                        <EditableCell
+                            unitName={name}
+                            field="absentMIA"
+                            initialValue={report[name]?.absentMIA || 0}
+                            className="border border-black"
+                        />
+                        {/* vsego vidsytnix   */}
+                        <EditableCell
+                            unitName={name}
+                            field="absentAllAlternative"
+                            initialValue={report[name]?.absentAllAlternative || 0}
                             style={{ borderRightWidth: '2px' }}
                             className="border border-black"
                         />

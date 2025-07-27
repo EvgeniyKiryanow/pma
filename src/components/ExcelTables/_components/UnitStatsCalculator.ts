@@ -198,16 +198,18 @@ export class UnitStatsCalculator {
         // ------------------ ПОЧАТОК АЛЬТЕРНАТИВОНОГО БЧС ------------------
         // З НИХ ------------------------------------
         const oNPostition = this.sumStatuses(counts, this.STATUS_GROUPS.onPosition); //на позиції
-        const positionsInfantry = this.sumStatuses(counts, this.STATUS_GROUPS.positionsInfantry); // позиції піхоти
         const positionsBronegroup = this.sumStatuses(
             counts,
             this.STATUS_GROUPS.positionsBronegroup,
         ); //бронегруппа
+        const positionsInfantry = this.sumStatuses(counts, this.STATUS_GROUPS.positionsInfantry); // позиції піхоти
+        const positionCrews = this.sumStatuses(counts, this.STATUS_GROUPS.crews); //екіпажі
+        const positionsCalc = this.sumStatuses(counts, this.STATUS_GROUPS.positionsCalc); //позиція розрахунку
+        const positionsUav = this.sumStatuses(counts, this.STATUS_GROUPS.positionsUav); // позиція БПЛА
         const positionsReserveInfantry = this.sumStatuses(
             counts,
             this.STATUS_GROUPS.positionsReserveInfantry,
         ); // резерв піхоти
-        const positionCrews = this.sumStatuses(counts, this.STATUS_GROUPS.crews); //екіпажі
         const totalManagement = this.sumStatuses(counts, this.STATUS_GROUPS.management); //управління
         const supplyCombat = this.sumStatuses(counts, this.STATUS_GROUPS.supplyCombat); // бойове запеспечення
         const supplyGeneral = this.sumStatuses(counts, this.STATUS_GROUPS.supplyGeneral); //забеспечення
@@ -218,7 +220,6 @@ export class UnitStatsCalculator {
             counts,
             this.STATUS_GROUPS.nonCombatLimitedInCombat,
         ); //хворі в підрозділі
-        // absentRehabedOn
         const absentRehabedOn = this.sumStatuses(counts, this.STATUS_GROUPS.absentRehabedOn); //Звільняються
         const nonCombatRefusers = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatRefusers); //відмовники
         const haveOfferToJost = this.sumStatuses(counts, this.STATUS_GROUPS.haveOfferToJost); //мають напрвлення на лік влк
@@ -246,8 +247,7 @@ export class UnitStatsCalculator {
         ); //ВСЬОГО ВІДСУТНІХ ------------------------------------
         const totalPositions = this.sumStatuses(counts, this.STATUS_GROUPS.positionsAll);
         const positionsCrew = this.sumStatuses(counts, this.STATUS_GROUPS.positionsCrew);
-        const positionsCalc = this.sumStatuses(counts, this.STATUS_GROUPS.positionsCalc);
-        const positionsUav = this.sumStatuses(counts, this.STATUS_GROUPS.positionsUav);
+
         // ------------------ КІНЕЦЬ АЛЬТЕРНАТИВОНОГО БЧС ------------------
         const totalRotation = this.sumStatuses(counts, this.STATUS_GROUPS.rotationAll);
         const rotationInfantry = this.sumStatuses(counts, this.STATUS_GROUPS.rotationInfantry);
