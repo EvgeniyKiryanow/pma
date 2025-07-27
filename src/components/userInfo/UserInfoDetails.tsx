@@ -19,7 +19,6 @@ export default function UserInfoDetails({ user }: Props) {
         const fromStore = users.find((u) => u.id === user.id);
         return fromStore || user;
     }, [users, user]);
-    console.log(liveUser, 'liveUser');
     const infoRow = (label: string, value: string | boolean | undefined | null) => (
         <div>
             <span className="block text-sm text-gray-500">{label}</span>

@@ -111,6 +111,7 @@ export function registerBackupHandlers() {
             await db.exec('DELETE FROM todos;');
             await db.exec('DELETE FROM comments;');
             await db.exec('DELETE FROM report_templates;');
+            await db.exec('DELETE FROM shtatni_posady;');
 
             // Delete all report files from disk
             const reportsDir = path.join(app.getPath('userData'), 'reports');
