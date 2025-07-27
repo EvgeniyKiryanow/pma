@@ -5,18 +5,20 @@ import { StaffReportTable } from './_components/StaffReportTable';
 import { generateCombatReportExcel } from './excelTemplates/generateCombatReportExcel';
 import { generateStaffReportExcel } from './excelTemplates/generateStaffReportExcel';
 import { useShtatniStore } from '../../stores/useShtatniStore';
+import { AlternateCombatReportTable } from './_components/AlternateCombatReportTable';
 
 type Props = {
     onRequestImportTab?: () => void; // ✅ new optional callback
 };
 
 export default function GeneratedTablesTabContent({ onRequestImportTab }: Props) {
-    const [activeTable, setActiveTable] = useState<'combat' | 'staff'>('combat');
+    const [activeTable, setActiveTable] = useState<'combat' | 'staff' | 'alternate'>('combat');
     const { shtatniPosady } = useShtatniStore();
     const hasShtatni = shtatniPosady.length > 0;
 
     const tableSections = [
         { id: 'combat', title: '📄 ДОНЕСЕННЯ (Combat Report)' },
+        { id: 'alternate', title: '📄 Альтернативний звіт (Alternate Report)' },
         { id: 'staff', title: '📄 Штатний звіт (Staff Report)' },
     ];
 
@@ -116,6 +118,32 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                         className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
                                     >
                                         📤 Експорт Combat Report (.xlsx)
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTable === 'alternate' && (
+                            <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                                <div className="px-6 py-4 border-b bg-gray-50 rounded-t-xl flex justify-between items-center">
+                                    <h2 className="text-lg font-semibold text-gray-700">
+                                        📄 АЛЬТЕРНАТИВНИЙ ЗВІТ
+                                    </h2>
+                                    <span className="text-xs text-gray-500">
+                                        Оновлено: {new Date().toLocaleDateString()}
+                                    </span>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full text-center text-sm border-collapse">
+                                        <AlternateCombatReportTable />
+                                    </table>
+                                </div>
+                                <div className="p-4 border-t flex justify-end">
+                                    <button
+                                        onClick={generateCombatReportExcel} // Можна буде зробити окрему функцію
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                                    >
+                                        📤 Експорт Alternate Report (.xlsx)
                                     </button>
                                 </div>
                             </div>
