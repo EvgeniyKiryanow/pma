@@ -1,12 +1,12 @@
 import { AlternateCombatReportHeader } from './AlternateCombatReportHeader';
-import { CombatReportBody } from './CombatReportBody';
+import { AlternateCombatReportBody } from './AlternateCombatReportBody';
 
 // На даному етапі повністю така ж таблиця
 export function AlternateCombatReportTable() {
     return (
         <>
             <AlternateCombatReportHeader />
-            {/* <CombatReportBody /> */}
+            <AlternateCombatReportBody />
         </>
     );
 }
