@@ -12,12 +12,14 @@ export class UnitStatsCalculator {
             StatusExcel.POSITIONS_BRONEGROUP,
             StatusExcel.POSITIONS_RESERVE_INFANTRY,
         ],
+        onPosition: [StatusExcel.POSITIONS_ON],
         positionsInfantry: [StatusExcel.POSITIONS_INFANTRY],
         positionsCrew: [StatusExcel.POSITIONS_CREW],
         positionsCalc: [StatusExcel.POSITIONS_CALCULATION],
         positionsUav: [StatusExcel.POSITIONS_UAV],
         positionsBronegroup: [StatusExcel.POSITIONS_BRONEGROUP],
         positionsReserveInfantry: [StatusExcel.POSITIONS_RESERVE_INFANTRY],
+        crews: [StatusExcel.CREWS],
         rotationAll: [
             StatusExcel.ROTATION_INFANTRY,
             StatusExcel.ROTATION_CREW,
@@ -42,6 +44,16 @@ export class UnitStatsCalculator {
         supplyGeneral: [StatusExcel.SUPPLY_GENERAL],
         management: [StatusExcel.MANAGEMENT],
         ksp: [StatusExcel.KSP],
+        inCombatNow: [
+            StatusExcel.ROTATION_INFANTRY,
+            StatusExcel.POSITIONS_BRONEGROUP,
+            StatusExcel.POSITIONS_RESERVE_INFANTRY,
+            StatusExcel.CREWS,
+            StatusExcel.MANAGEMENT,
+            StatusExcel.SUPPLY_COMBAT,
+            StatusExcel.SUPPLY_GENERAL,
+            StatusExcel.NON_COMBAT_TRAINING_NEWCOMERS,
+        ],
         nonCombatAll: [
             StatusExcel.NON_COMBAT_ATTACHED_UNITS,
             StatusExcel.NON_COMBAT_TRAINING_NEWCOMERS,
@@ -53,6 +65,13 @@ export class UnitStatsCalculator {
             StatusExcel.NON_COMBAT_AWAITING_DECISION,
             StatusExcel.NON_COMBAT_REFUSERS,
         ],
+        nonOnBG: [
+            StatusExcel.NON_COMBAT_LIMITED_FITNESS,
+            StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT,
+            StatusExcel.NON_COMBAT_REFUSERS,
+            StatusExcel.ABSENT_REHABED_ON,
+            StatusExcel.HAVE_OFFER_TO_HOS,
+        ],
         nonCombatAttached: [StatusExcel.NON_COMBAT_ATTACHED_UNITS],
         nonCombatTraining: [StatusExcel.NON_COMBAT_TRAINING_NEWCOMERS],
         nonCombatNewcomers: [StatusExcel.NON_COMBAT_NEWCOMERS],
@@ -60,8 +79,12 @@ export class UnitStatsCalculator {
         nonCombatExempted: [StatusExcel.NON_COMBAT_EXEMPTED],
         nonCombatOnSite: [StatusExcel.NON_COMBAT_TREATMENT_ON_SITE],
         nonCombatLimited: [StatusExcel.NON_COMBAT_LIMITED_FITNESS],
+        nonCombatLimitedInCombat: [StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT],
         nonCombatDecision: [StatusExcel.NON_COMBAT_AWAITING_DECISION],
         nonCombatRefusers: [StatusExcel.NON_COMBAT_REFUSERS],
+        haveOfferToJost: [StatusExcel.HAVE_OFFER_TO_HOS],
+        absentRehab: [StatusExcel.ABSENT_REHAB],
+        absentRehabedOn: [StatusExcel.ABSENT_REHABED_ON],
         absentAll: [
             StatusExcel.ABSENT_MEDICAL_LEAVE,
             StatusExcel.ABSENT_ANNUAL_LEAVE,
@@ -81,6 +104,18 @@ export class UnitStatsCalculator {
             StatusExcel.ABSENT_KIA,
             StatusExcel.ABSENT_MIA,
             StatusExcel.ABSENT_WOUNDED,
+        ],
+        absentAllAlternative: [
+            StatusExcel.ABSENT_VLK,
+            StatusExcel.ABSENT_HOSPITAL,
+            StatusExcel.ABSENT_MEDICAL_COMPANY,
+            StatusExcel.ABSENT_REHAB_LEAVE,
+            StatusExcel.ABSENT_REHAB,
+            StatusExcel.ABSENT_BUSINESS_TRIP,
+            StatusExcel.ABSENT_SZO,
+            StatusExcel.ABSENT_WOUNDED,
+            StatusExcel.ABSENT_200,
+            StatusExcel.ABSENT_MIA,
         ],
         absentMedical: [StatusExcel.ABSENT_MEDICAL_LEAVE],
         absentAnnual: [StatusExcel.ABSENT_ANNUAL_LEAVE],
@@ -110,7 +145,7 @@ export class UnitStatsCalculator {
     };
 
     // ✅ Utility: get planned totals for 1 unit
-    static getPlannedTotals(unitName: string) {
+    static getPlannedTotals(unitName: any) {
         return this.PLANNED_TOTALS[unitName] || { total: 0, officer: 0, soldier: 0 };
     }
 
@@ -138,11 +173,11 @@ export class UnitStatsCalculator {
             .replace(/\s+/g, ' '); // collapse multiple spaces
     }
 
-    static filterUsersByUnit(users: any[], unitName: string) {
+    static filterUsersByUnit(users: any, unitName: string) {
         // Normalize "2-й взвод" → "2 взвод"
         const normalizedTarget = this.normalizeUnitName(unitName);
 
-        return users.filter((u) => {
+        return users.filter((u: any) => {
             if (!u.unitMain) return false;
 
             const normalizedUserUnit = this.normalizeUnitName(u.unitMain);
@@ -160,20 +195,60 @@ export class UnitStatsCalculator {
         // [kept same code for positions/rotation/supply/nonCombat/absent]
         // Returns giant object with totalPositions, totalRotation, etc.
 
-        const totalPositions = this.sumStatuses(counts, this.STATUS_GROUPS.positionsAll);
-        const positionsInfantry = this.sumStatuses(counts, this.STATUS_GROUPS.positionsInfantry);
-        const positionsCrew = this.sumStatuses(counts, this.STATUS_GROUPS.positionsCrew);
-        const positionsCalc = this.sumStatuses(counts, this.STATUS_GROUPS.positionsCalc);
-        const positionsUav = this.sumStatuses(counts, this.STATUS_GROUPS.positionsUav);
+        // ------------------ ПОЧАТОК АЛЬТЕРНАТИВОНОГО БЧС ------------------
+        // З НИХ ------------------------------------
+        const oNPostition = this.sumStatuses(counts, this.STATUS_GROUPS.onPosition); //на позиції
+        const positionsInfantry = this.sumStatuses(counts, this.STATUS_GROUPS.positionsInfantry); // позиції піхоти
         const positionsBronegroup = this.sumStatuses(
             counts,
             this.STATUS_GROUPS.positionsBronegroup,
-        );
+        ); //бронегруппа
         const positionsReserveInfantry = this.sumStatuses(
             counts,
             this.STATUS_GROUPS.positionsReserveInfantry,
-        );
+        ); // резерв піхоти
+        const positionCrews = this.sumStatuses(counts, this.STATUS_GROUPS.crews); //екіпажі
+        const totalManagement = this.sumStatuses(counts, this.STATUS_GROUPS.management); //управління
+        const supplyCombat = this.sumStatuses(counts, this.STATUS_GROUPS.supplyCombat); // бойове запеспечення
+        const supplyGeneral = this.sumStatuses(counts, this.STATUS_GROUPS.supplyGeneral); //забеспечення
+        const nonCombatNewcomers = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatNewcomers); //новоприбулі
 
+        const nonCombatLimited = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatLimited); //обмежено придатні
+        const nonCombatLimitedInCombat = this.sumStatuses(
+            counts,
+            this.STATUS_GROUPS.nonCombatLimitedInCombat,
+        ); //хворі в підрозділі
+        // absentRehabedOn
+        const absentRehabedOn = this.sumStatuses(counts, this.STATUS_GROUPS.absentRehabedOn); //Звільняються
+        const nonCombatRefusers = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatRefusers); //відмовники
+        const haveOfferToJost = this.sumStatuses(counts, this.STATUS_GROUPS.haveOfferToJost); //мають напрвлення на лік влк
+
+        // ВСЬОГО НЕ БГ-------------------
+        const nonOnBG = this.sumStatuses(counts, this.STATUS_GROUPS.nonOnBG); //ВСЬОГО НЕ БГ
+        // В ПІДРОЗДІЛІ
+        const inCombatNow = this.sumStatuses(counts, this.STATUS_GROUPS.inCombatNow); //В ПІДЗОЗДІЛІ
+
+        // ВІДСУТНІ ------------------------------------
+        const absentVLK = this.sumStatuses(counts, this.STATUS_GROUPS.absentVLK); //ВЛК
+        const absentHospital = this.sumStatuses(counts, this.STATUS_GROUPS.absentHospital); //шпиталь лікарня
+        const absentMedCompany = this.sumStatuses(counts, this.STATUS_GROUPS.absentMedCompany); //мед рота
+        const absentRehabLeave = this.sumStatuses(counts, this.STATUS_GROUPS.absentRehabLeave); //відпустка реабілітація
+        const absentRehab = this.sumStatuses(counts, this.STATUS_GROUPS.absentRehab); //відпустка
+        const absentBusinessTrip = this.sumStatuses(counts, this.STATUS_GROUPS.absentBusinessTrip); //відрядження
+        const absentSZO = this.sumStatuses(counts, this.STATUS_GROUPS.absentSZO); //CЗЧ
+        const absentWounded = this.sumStatuses(counts, this.STATUS_GROUPS.absentWounded); //поранені
+        const absent200 = this.sumStatuses(counts, this.STATUS_GROUPS.absent200); //загиблі
+        const absentMIA = this.sumStatuses(counts, this.STATUS_GROUPS.absentMIA); //зниклі безвісті
+        //ВСЬОГО ВІДСУТНІХ ------------------------------------
+        const absentAllAlternative = this.sumStatuses(
+            counts,
+            this.STATUS_GROUPS.absentAllAlternative,
+        ); //ВСЬОГО ВІДСУТНІХ ------------------------------------
+        const totalPositions = this.sumStatuses(counts, this.STATUS_GROUPS.positionsAll);
+        const positionsCrew = this.sumStatuses(counts, this.STATUS_GROUPS.positionsCrew);
+        const positionsCalc = this.sumStatuses(counts, this.STATUS_GROUPS.positionsCalc);
+        const positionsUav = this.sumStatuses(counts, this.STATUS_GROUPS.positionsUav);
+        // ------------------ КІНЕЦЬ АЛЬТЕРНАТИВОНОГО БЧС ------------------
         const totalRotation = this.sumStatuses(counts, this.STATUS_GROUPS.rotationAll);
         const rotationInfantry = this.sumStatuses(counts, this.STATUS_GROUPS.rotationInfantry);
         const rotationCrew = this.sumStatuses(counts, this.STATUS_GROUPS.rotationCrew);
@@ -184,47 +259,44 @@ export class UnitStatsCalculator {
         const supplyBd = this.sumStatuses(counts, this.STATUS_GROUPS.supplyBd);
         const supplyEng = this.sumStatuses(counts, this.STATUS_GROUPS.supplyEng);
         const supplyLife = this.sumStatuses(counts, this.STATUS_GROUPS.supplyLife);
-        const supplyCombat = this.sumStatuses(counts, this.STATUS_GROUPS.supplyCombat);
-        const supplyGeneral = this.sumStatuses(counts, this.STATUS_GROUPS.supplyGeneral);
 
-        const totalManagement = this.sumStatuses(counts, this.STATUS_GROUPS.management);
         const totalKsp = this.sumStatuses(counts, this.STATUS_GROUPS.ksp);
 
         const totalNonCombat = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatAll);
         const nonCombatAttached = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatAttached);
         const nonCombatTraining = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatTraining);
-        const nonCombatNewcomers = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatNewcomers);
+
         const nonCombatHospitalReferral = this.sumStatuses(
             counts,
             this.STATUS_GROUPS.nonCombatHospitalReferral,
         );
         const nonCombatExempted = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatExempted);
         const nonCombatOnSite = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatOnSite);
-        const nonCombatLimited = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatLimited);
+
         const nonCombatDecision = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatDecision);
-        const nonCombatRefusers = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatRefusers);
 
         const totalAbsent = this.sumStatuses(counts, this.STATUS_GROUPS.absentAll);
         const absentMedical = this.sumStatuses(counts, this.STATUS_GROUPS.absentMedical);
         const absentAnnual = this.sumStatuses(counts, this.STATUS_GROUPS.absentAnnual);
         const absentFamily = this.sumStatuses(counts, this.STATUS_GROUPS.absentFamily);
         const absentTraining = this.sumStatuses(counts, this.STATUS_GROUPS.absentTraining);
-        const absentBusinessTrip = this.sumStatuses(counts, this.STATUS_GROUPS.absentBusinessTrip);
         const absentArrest = this.sumStatuses(counts, this.STATUS_GROUPS.absentArrest);
-        const absentSZO = this.sumStatuses(counts, this.STATUS_GROUPS.absentSZO);
-        const absentHospital = this.sumStatuses(counts, this.STATUS_GROUPS.absentHospital);
-        const absentVLK = this.sumStatuses(counts, this.STATUS_GROUPS.absentVLK);
+
         const absent300 = this.sumStatuses(counts, this.STATUS_GROUPS.absent300);
         const absent500 = this.sumStatuses(counts, this.STATUS_GROUPS.absent500);
-        const absent200 = this.sumStatuses(counts, this.STATUS_GROUPS.absent200);
-        const absentRehabLeave = this.sumStatuses(counts, this.STATUS_GROUPS.absentRehabLeave);
-        const absentMedCompany = this.sumStatuses(counts, this.STATUS_GROUPS.absentMedCompany);
-        const absentMIA = this.sumStatuses(counts, this.STATUS_GROUPS.absentMIA);
-        const absentWounded = this.sumStatuses(counts, this.STATUS_GROUPS.absentWounded);
 
         const totalMissing = totalNonCombat + totalAbsent;
 
         return {
+            inCombatNow,
+            nonOnBG,
+            absentAllAlternative,
+            absentRehab,
+            haveOfferToJost,
+            absentRehabedOn,
+            oNPostition,
+            positionCrews,
+            nonCombatLimitedInCombat,
             totalPositions,
             positionsInfantry,
             positionsCrew,

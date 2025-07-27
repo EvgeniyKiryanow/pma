@@ -2,8 +2,10 @@ export enum StatusExcel {
     NO_STATUS = 'Без статусу',
 
     // === З НИХ ===
+    POSITIONS_ON = 'На позиції',
     POSITIONS_INFANTRY = 'Позиція піхоти',
     POSITIONS_CREW = 'Позиція екіпажу',
+    CREWS = 'Екіпажі',
     POSITIONS_CALCULATION = 'Позиція розрахунку',
     POSITIONS_UAV = 'Позиція БПЛА',
     POSITIONS_BRONEGROUP = 'Бронєгрупа', // ✅ new
@@ -34,8 +36,10 @@ export enum StatusExcel {
     NON_COMBAT_EXEMPTED = 'Звільнений від фізичного навантаження',
     NON_COMBAT_TREATMENT_ON_SITE = 'Лікування на локації',
     NON_COMBAT_LIMITED_FITNESS = 'Обмежено придатний',
+    NON_COMBAT_LIMITED_FITNESS_IN_COMBAT = 'Хворі в підрозділі',
     NON_COMBAT_AWAITING_DECISION = 'Очікує кадрового рішення',
     NON_COMBAT_REFUSERS = 'Відмовник',
+    HAVE_OFFER_TO_HOS = 'Мають направлення на лік/ обслід/конс /влк',
 
     // === ВІДСУТНІ ===
     ABSENT_MEDICAL_LEAVE = 'Відпустка лікування',
@@ -56,4 +60,6 @@ export enum StatusExcel {
     ABSENT_KIA = 'Загиблі',
     ABSENT_MIA = 'Зниклі безвісті', // ✅ new
     ABSENT_WOUNDED = 'Поранені', // ✅ new
+    ABSENT_REHAB = 'Відпустка',
+    ABSENT_REHABED_ON = 'Звільняються',
 }
