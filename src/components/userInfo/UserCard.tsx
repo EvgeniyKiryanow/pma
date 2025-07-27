@@ -12,7 +12,7 @@ import { useUserStore } from '../../stores/userStore';
 export default function UserCard({ user }: { user: User }) {
     const sidebarCollapsed = useUserStore((s) => s.sidebarCollapsed);
     const { badgeStyle: statusBadge, icon: statusIcon } = getStatusBadge(user.soldierStatus);
-
+    console.log(user, 'user');
     // ✅ Badges for assigned posada
     const unit = getUnitBadge(user.unitMain);
     const posada = getPositionBadge(user.position);
@@ -92,6 +92,11 @@ export default function UserCard({ user }: { user: User }) {
                                 {user.shpkCode && (
                                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium bg-blue-50 text-blue-800 border-blue-200">
                                         📜 <strong>ШПК:</strong> {user.shpkCode}
+                                    </span>
+                                )}
+                                {user.shpkNumber && (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium bg-blue-50 text-blue-800 border-blue-200">
+                                        📜 <strong>Номер по штату</strong> {user.shpkNumber}
                                     </span>
                                 )}
                             </div>
