@@ -10,7 +10,7 @@ export const HEADER_MAP: Record<string, string> = {
     'Дата народження': 'dateOfBirth',
     'Місце народження': 'placeOfBirth',
     Стать: 'gender',
-
+    'Статус військовослужбовця': 'soldierStatus',
     // ✅ Position & rank (all cases)
     посада: 'position',
     'повна посада називний': 'positionNominative',

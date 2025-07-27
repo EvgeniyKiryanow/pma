@@ -71,19 +71,19 @@ export function AlternateCombatReportBody() {
                         <EditableCell
                             unitName={name}
                             field="plannedTotal"
-                            initialValue={0}
+                            initialValue={report[name]?.plannedTotal || 0}
                             className="border border-black"
                         />
                         <EditableCell
                             unitName={name}
                             field="plannedOfficer"
-                            initialValue={0}
+                            initialValue={report[name]?.plannedOfficer || 0}
                             className="border border-black"
                         />
                         <EditableCell
                             unitName={name}
                             field="plannedSoldier"
-                            initialValue={0}
+                            initialValue={report[name]?.plannedSoldier || 0}
                             style={{ borderRightWidth: '2px' }}
                             className="border border-black"
                         />
