@@ -49,6 +49,7 @@ export const HEADER_MAP: Record<string, string> = {
     // ✅ Military data
     ВОС: 'vosCode',
     ШПК: 'shpkCode',
+    '№ по штату': 'shpkNumber',
     КШП: 'kshp',
     кат: 'category',
     'Призовні дані': 'conscriptionInfo',

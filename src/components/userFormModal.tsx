@@ -65,6 +65,7 @@ export default function UserFormModalUpdate({
         // ✅ military specialization defaults
         vosCode: '',
         shpkCode: '',
+        shpkNumber: '',
         category: '',
         kshp: '',
 
@@ -391,6 +392,7 @@ export default function UserFormModalUpdate({
                         <div className="grid grid-cols-3 gap-4">
                             {renderField('vosCode')}
                             {renderField('shpkCode')}
+                            {renderField('shpkNumber')}
                             {renderField('category')}
                             {renderField('kshp')}
                         </div>

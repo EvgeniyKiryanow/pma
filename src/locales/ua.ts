@@ -228,6 +228,7 @@ export const ua = {
         // ✅ Military specialization
         vosCode: 'ВОС',
         shpkCode: 'ШПК',
+        shpkNumber: 'Номер по штату',
         kshp: 'КШП',
         category: 'Категорія',
 

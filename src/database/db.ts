@@ -183,6 +183,7 @@ export async function initializeDb() {
         // ✅ Military specialization
         ['vosCode', 'TEXT'], // ВОС
         ['shpkCode', 'TEXT'], // ШПК
+        ['shpkNumber', 'TEXT'], // ШПК номер
         ['category', 'TEXT'], // кат
         ['kshp', 'TEXT'], // КШП
 

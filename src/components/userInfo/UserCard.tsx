@@ -7,9 +7,10 @@ import {
     getCategoryBadge,
     getShpkBadge,
 } from '../../utils/posadyBadgeHelper';
+import { useUserStore } from '../../stores/userStore';
 
 export default function UserCard({ user }: { user: User }) {
-    // ✅ Status badge for soldierStatus
+    const sidebarCollapsed = useUserStore((s) => s.sidebarCollapsed);
     const { badgeStyle: statusBadge, icon: statusIcon } = getStatusBadge(user.soldierStatus);
 
     // ✅ Badges for assigned posada
@@ -19,8 +20,12 @@ export default function UserCard({ user }: { user: User }) {
     const shpk = getShpkBadge(user.shpkCode);
 
     return (
-        <div className="flex flex-col md:flex-row gap-6 mb-6 p-4 rounded-xl bg-white/80 shadow-md border hover:shadow-lg transition">
-            {/* Avatar */}
+        <div
+            className={`
+        flex gap-6 mb-6 p-4 rounded-xl bg-white/80 shadow-md border hover:shadow-lg transition
+        ${sidebarCollapsed ? 'flex-col' : 'flex-col md:flex-row'}
+      `}
+        >
             {user.photo ? (
                 <img
                     src={user.photo}
@@ -49,45 +54,47 @@ export default function UserCard({ user }: { user: User }) {
                 {user.position && (
                     <div className="mt-3 space-y-2">
                         {/* Posada name */}
-                        <div className="flex flex-wrap gap-2 items-center">
-                            {/* Unit badge */}
-                            <span
-                                className={`inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium ${unit.badgeStyle}`}
-                            >
-                                {unit.icon} {user.unitMain || '—'}
-                            </span>
-
-                            {/* Position badge */}
-                            <span
-                                className={`inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium ${posada.badgeStyle}`}
-                            >
-                                {posada.icon} {user.position || '—'}
-                            </span>
-
-                            {/* Category badge */}
-                            {user.category && (
+                        <div className="mt-3 space-y-2">
+                            <div className="flex flex-wrap gap-2 items-center">
+                                {/* Unit badge */}
                                 <span
-                                    className={`inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium ${category.badgeStyle}`}
+                                    className={`inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium ${unit.badgeStyle}`}
                                 >
-                                    {category.icon} {user.category}
+                                    {unit.icon} <strong>Підрозділ:</strong> {user.unitMain || '—'}
                                 </span>
-                            )}
 
-                            {/* ШПК badge */}
-                            {user.rank && (
+                                {/* Position badge */}
                                 <span
-                                    className={`inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium ${shpk.badgeStyle}`}
+                                    className={`inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium ${posada.badgeStyle}`}
                                 >
-                                    {shpk.icon} {user.rank}
+                                    {posada.icon} <strong>Посада:</strong> {user.position || '—'}
                                 </span>
-                            )}
 
-                            {/* Номер по штату */}
-                            {user.shtatNumber && (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium bg-gray-50 text-gray-700 border-gray-200">
-                                    🆔 № {user.shtatNumber}
-                                </span>
-                            )}
+                                {/* Category badge */}
+                                {user.category && (
+                                    <span
+                                        className={`inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium ${category.badgeStyle}`}
+                                    >
+                                        {category.icon} <strong>Категорія:</strong> {user.category}
+                                    </span>
+                                )}
+
+                                {/* Rank */}
+                                {user.rank && (
+                                    <span
+                                        className={`inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium ${shpk.badgeStyle}`}
+                                    >
+                                        {shpk.icon} <strong>Звання:</strong> {user.rank}
+                                    </span>
+                                )}
+
+                                {/* SHPK code */}
+                                {user.shpkCode && (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium bg-blue-50 text-blue-800 border-blue-200">
+                                        📜 <strong>ШПК:</strong> {user.shpkCode}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}

@@ -98,6 +98,7 @@ export default function UserInfoDetails({ user }: Props) {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-800">
                             {infoRow(t('user.vosCode'), liveUser.vosCode)}
                             {infoRow(t('user.shpkCode'), liveUser.shpkCode)}
+                            {infoRow(t('user.shpkNumber'), liveUser.shpkNumber)}
                             {infoRow(t('user.category'), liveUser.category)}
                             {infoRow(t('user.kshp'), liveUser.kshp)}
                         </div>

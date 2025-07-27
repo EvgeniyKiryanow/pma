@@ -55,6 +55,7 @@ export async function upgradeDbSchema() {
         // ✅ Military specialization
         vosCode: 'TEXT', // ВОС
         shpkCode: 'TEXT', // ШПК
+        shpkNumber: 'TEXT', // ШПК номер
         category: 'TEXT', // кат
         kshp: 'TEXT', // КШП
 

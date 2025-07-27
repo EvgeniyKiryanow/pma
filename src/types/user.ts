@@ -67,6 +67,7 @@ export type User = {
     // ✅ Military specialization
     vosCode?: string;
     shpkCode?: string;
+    shpkNumber?: string;
     category?: string;
     kshp?: string;
 

@@ -38,7 +38,7 @@ export function registerUserHandlers() {
         healthConditions, maritalStatus, familyInfo, religion,
         recruitingOffice, driverLicenses, bloodType,
         unitMain, unitLevel1, unitLevel2, platoon, squad,
-        vosCode, shpkCode, category, kshp,
+        vosCode, shpkCode,shpkNumber, category, kshp,
         rankAssignedBy, rankAssignmentDate, appointmentOrder, previousStatus,
         placeOfBirth, taxId, serviceType, recruitmentOfficeDetails, ubdStatus, childrenInfo,
         bzvpStatus, rvbzPresence, absenceReason, absenceFromDate, absenceToDate,
@@ -46,7 +46,7 @@ export function registerUserHandlers() {
         personalPrisonFileExists, tDotData,
         positionNominative, positionGenitive, positionDative, positionInstrumental, soldierStatus
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?,
         ?, ?, ?, ?,
         ?, ?, ?, ?,
@@ -106,6 +106,7 @@ export function registerUserHandlers() {
             // ✅ military specialization
             user.vosCode,
             user.shpkCode,
+            user.shpkNumber,
             user.category,
             user.kshp,
 
@@ -170,7 +171,7 @@ export function registerUserHandlers() {
             healthConditions = ?, maritalStatus = ?, familyInfo = ?, religion = ?,
             recruitingOffice = ?, driverLicenses = ?, bloodType = ?,
             unitMain = ?, unitLevel1 = ?, unitLevel2 = ?, platoon = ?, squad = ?,
-            vosCode = ?, shpkCode = ?, category = ?, kshp = ?,
+            vosCode = ?, shpkCode = ?, shpkNumber = ?, category = ?, kshp = ?,
             rankAssignedBy = ?, rankAssignmentDate = ?, appointmentOrder = ?, previousStatus = ?,
             placeOfBirth = ?, taxId = ?, serviceType = ?, recruitmentOfficeDetails = ?, 
             ubdStatus = ?, childrenInfo = ?,
@@ -230,6 +231,7 @@ export function registerUserHandlers() {
                 // ✅ military specialization
                 user.vosCode,
                 user.shpkCode,
+                user.shpkNumber,
                 user.category,
                 user.kshp,
 
