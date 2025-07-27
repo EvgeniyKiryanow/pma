@@ -54,10 +54,11 @@ export function normalizeExcelDate(raw: any): string {
 
 /** ✅ Generate a unique key for user matching */
 export function generateUserKey(user: any): string {
-    if (user.taxId && user.taxId.trim()) return `TAXID_${user.taxId.trim()}`;
     const name = (user.fullName || '').trim().toLowerCase();
     const dob = (user.dateOfBirth || '').trim();
-    return `${name}_${dob}`;
+    const taxId = (user.taxId || '').trim();
+
+    return `key_${name}_${dob}_${taxId}`;
 }
 
 /** ✅ Detect if existing user needs update */

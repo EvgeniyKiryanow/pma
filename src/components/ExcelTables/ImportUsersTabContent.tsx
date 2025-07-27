@@ -77,9 +77,12 @@ export default function ImportUsersTabContent() {
         const headers = Object.keys(rows[0]).map((h) => h.toLowerCase().trim());
 
         const hasFullname = headers.some(
-            (h) => h.includes('fullname') || h.includes('full name') || h.includes('піб'),
+            (h) =>
+                h.includes('fullname') ||
+                h.includes('full name') ||
+                h.includes('піб') ||
+                h.includes('ПІБ'),
         );
-
         const hasLastName = headers.some(
             (h) =>
                 h.includes('прізвищ') ||
@@ -99,7 +102,7 @@ export default function ImportUsersTabContent() {
 
         const hasDob = headers.some(
             (h) =>
-                h.includes('дата народ') ||
+                h.includes('Дата народ') ||
                 h.includes('date of birth') ||
                 h.includes('дн') ||
                 h.includes('dob'),
@@ -109,7 +112,7 @@ export default function ImportUsersTabContent() {
         if (hasFullname && hasDob) return true;
 
         // ✅ Якщо є прізвище + ім’я + дата народження
-        if (hasLastName && hasFirstName && hasDob) return true;
+        // if (hasLastName && hasFirstName && hasDob) return true;
 
         return false;
     };
@@ -277,12 +280,6 @@ export default function ImportUsersTabContent() {
                 skippedCount++;
                 continue;
             }
-
-            // (optional) enforce more conditions:
-            // if (!hasDob && !hasPhone) {
-            //     skippedCount++;
-            //     continue;
-            // }
 
             const key = generateUserKey(mappedRow);
             const existing = userLookup.get(key);
