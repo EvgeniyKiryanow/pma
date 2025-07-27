@@ -126,6 +126,35 @@ export const STATUS_GROUPS = {
     absentMIA: [StatusExcel.ABSENT_MIA],
     absentWounded: [StatusExcel.ABSENT_WOUNDED],
 };
+function normalizeUnit(unitMain?: string): string {
+    if (!unitMain) return 'UNKNOWN';
+
+    // Lowercase + remove extra spaces
+    let norm = unitMain.toLowerCase().trim();
+
+    // Normalize line breaks
+    norm = norm.replace(/\r?\n|\r/g, ' ');
+
+    // ✅ Управління (always normalize to "Управління роти")
+    if (norm.includes('управління')) {
+        return 'Управління роти';
+    }
+
+    // ✅ If contains "взвод", cut everything after → "1 взвод"
+    const vzvodMatch = norm.match(/(\d+\s*[-й]?\s*взвод)/);
+    if (vzvodMatch) return vzvodMatch[1].replace(/\s+/g, ' ').trim();
+
+    // ✅ If contains "відділення", cut → "1 відділення"
+    const vidMatch = norm.match(/(\d+\s*[-й]?\s*відділення)/);
+    if (vidMatch) return vidMatch[1].replace(/\s+/g, ' ').trim();
+
+    // ✅ If contains "рота" (like "3 механізована рота"), return normalized
+    const rotaMatch = norm.match(/(\d+\s*[-й]?\s*.*рота)/);
+    if (rotaMatch) return rotaMatch[1].replace(/\s+/g, ' ').trim();
+
+    // Otherwise return the whole thing cleaned
+    return norm.replace(/\s+/g, ' ');
+}
 
 export function AlternateCombatReportBody() {
     const { fetchAll } = useShtatniStore();
@@ -139,93 +168,131 @@ export function AlternateCombatReportBody() {
     const users = useUserStore((s) => s.users);
     const shtatniPosady = useShtatniStore((s) => s.shtatniPosady);
 
-    const {
-        plannedTotal,
-        plannedOfficers,
-        plannedSoldiers,
-        actualTotal,
-        actualOfficers,
-        actualSoldiers,
-        staffingPercent,
-        presentPercent,
-        presentTotal,
-        presentTotalOfficer,
-        presentTotalSoldier,
-        counts,
-        totalPositions,
-        totalRotation,
-        totalSupply,
-        totalManagement,
-        totalKsp,
-        totalNonCombat,
-        totalAbsent,
-        totalMissing,
-    } = useMemo(() => {
-        // === Planned (за штатом)
-        const plannedTotal = shtatniPosady.length;
-        const plannedOfficers = shtatniPosady.filter((p) =>
-            p.category?.toLowerCase().includes('оф'),
-        ).length;
-        const plannedSoldiers = plannedTotal - plannedOfficers;
+    const groupedByUnit = useMemo(() => {
+        return users.reduce<Record<string, typeof users>>((acc, user) => {
+            const unit = normalizeUnit(user.unitMain);
+            if (!acc[unit]) acc[unit] = [];
+            acc[unit].push(user);
+            return acc;
+        }, {});
+    }, [users]);
 
-        // === Actual (за списком)
-        const actualTotal = users.length;
-        const actualOfficers = users.filter((u) => u.category?.toLowerCase().includes('оф')).length;
-        const actualSoldiers = actualTotal - actualOfficers;
+    // ✅ also sort keys: Управління first, then numeric взводs
+    const sortedUnits = useMemo(() => {
+        return Object.keys(groupedByUnit).sort((a, b) => {
+            if (a === 'Управління роти') return -1; // always first
+            if (b === 'Управління роти') return 1;
 
-        // === % Staffing (укоплектованість)
-        const staffingPercent =
-            plannedTotal > 0 ? ((actualTotal / plannedTotal) * 100).toFixed(0) : '0';
+            const numA = parseInt(a, 10) || 0;
+            const numB = parseInt(b, 10) || 0;
+            return numA - numB;
+        });
+    }, [groupedByUnit]);
 
-        // === Status counts
-        const counts = countStatuses(users);
+    const calculationsByUnit = useMemo(() => {
+        const result: Record<
+            string,
+            {
+                plannedTotal: number;
+                plannedOfficers: number;
+                plannedSoldiers: number;
+                actualTotal: number;
+                actualOfficers: number;
+                actualSoldiers: number;
+                staffingPercent: string;
+                presentPercent: string;
+                presentTotal: number;
+                presentTotalOfficer: number;
+                presentTotalSoldier: number;
+                counts: Record<string, number>;
+                totalPositions: number;
+                totalRotation: number;
+                totalSupply: number;
+                totalManagement: number;
+                totalKsp: number;
+                totalNonCombat: number;
+                totalAbsent: number;
+                totalMissing: number;
+            }
+        > = {};
 
-        const totalPositions = sumStatuses(counts, STATUS_GROUPS.positionsAll);
-        const totalRotation = sumStatuses(counts, STATUS_GROUPS.rotationAll);
-        const totalSupply = sumStatuses(counts, STATUS_GROUPS.supplyAll);
-        const totalManagement = sumStatuses(counts, STATUS_GROUPS.management);
-        const totalKsp = sumStatuses(counts, STATUS_GROUPS.ksp);
+        for (const unit of Object.keys(groupedByUnit)) {
+            const unitUsers = groupedByUnit[unit];
 
-        const totalNonCombat = sumStatuses(counts, STATUS_GROUPS.nonCombatAll);
-        const totalAbsent = sumStatuses(counts, STATUS_GROUPS.absentAll);
-        const totalMissing = totalNonCombat + totalAbsent;
+            // === Planned (за штатом) only for this unit
+            // TODO update here
+            const plannedTotal = shtatniPosady.length;
+            const plannedOfficers = shtatniPosady.filter(
+                (p) =>
+                    normalizeUnit(p.unitMain) === unit && p.category?.toLowerCase().includes('оф'),
+            ).length;
+            const plannedSoldiers = plannedTotal - plannedOfficers;
 
-        // === Присутні всі
-        const presentTotal = actualTotal - totalMissing;
-        const presentPercent =
-            actualTotal > 0 ? ((presentTotal / actualTotal) * 100).toFixed(0) : '0';
+            // === Actual (за списком) only for this unit
+            const actualTotal = unitUsers.length;
+            const actualOfficers = unitUsers.filter((u) =>
+                u.category?.toLowerCase().includes('оф'),
+            ).length;
+            const actualSoldiers = actualTotal - actualOfficers;
 
-        const absentStatuses = [...STATUS_GROUPS.nonCombatAll, ...STATUS_GROUPS.absentAll];
-        const presentUsers = users.filter((u) => !absentStatuses.includes(u.soldierStatus as any));
+            // === % Staffing (укоплектованість)
+            const staffingPercent =
+                plannedTotal > 0 ? ((actualTotal / plannedTotal) * 100).toFixed(0) : '0';
 
-        const presentTotalOfficer = presentUsers.filter((u) =>
-            u.category?.toLowerCase().includes('оф'),
-        ).length;
-        const presentTotalSoldier = presentUsers.length - presentTotalOfficer;
+            // === Status counts for this unit only
+            const counts = countStatuses(unitUsers);
 
-        return {
-            plannedTotal,
-            plannedOfficers,
-            plannedSoldiers,
-            actualTotal,
-            actualOfficers,
-            actualSoldiers,
-            staffingPercent,
-            presentPercent,
-            presentTotal,
-            presentTotalOfficer,
-            presentTotalSoldier,
-            counts,
-            totalPositions,
-            totalRotation,
-            totalSupply,
-            totalManagement,
-            totalKsp,
-            totalNonCombat,
-            totalAbsent,
-            totalMissing,
-        };
-    }, [users, shtatniPosady]);
+            const totalPositions = sumStatuses(counts, STATUS_GROUPS.positionsAll);
+            const totalRotation = sumStatuses(counts, STATUS_GROUPS.rotationAll);
+            const totalSupply = sumStatuses(counts, STATUS_GROUPS.supplyAll);
+            const totalManagement = sumStatuses(counts, STATUS_GROUPS.management);
+            const totalKsp = sumStatuses(counts, STATUS_GROUPS.ksp);
+
+            const totalNonCombat = sumStatuses(counts, STATUS_GROUPS.nonCombatAll);
+            const totalAbsent = sumStatuses(counts, STATUS_GROUPS.absentAll);
+            const totalMissing = totalNonCombat + totalAbsent;
+
+            // === Присутні only for this unit
+            const presentTotal = actualTotal - totalMissing;
+            const presentPercent =
+                actualTotal > 0 ? ((presentTotal / actualTotal) * 100).toFixed(0) : '0';
+
+            const absentStatuses = [...STATUS_GROUPS.nonCombatAll, ...STATUS_GROUPS.absentAll];
+            const presentUsers = unitUsers.filter(
+                (u) => !absentStatuses.includes(u.soldierStatus as any),
+            );
+
+            const presentTotalOfficer = presentUsers.filter((u) =>
+                u.category?.toLowerCase().includes('оф'),
+            ).length;
+            const presentTotalSoldier = presentUsers.length - presentTotalOfficer;
+
+            result[unit] = {
+                plannedTotal,
+                plannedOfficers,
+                plannedSoldiers,
+                actualTotal,
+                actualOfficers,
+                actualSoldiers,
+                staffingPercent,
+                presentPercent,
+                presentTotal,
+                presentTotalOfficer,
+                presentTotalSoldier,
+                counts,
+                totalPositions,
+                totalRotation,
+                totalSupply,
+                totalManagement,
+                totalKsp,
+                totalNonCombat,
+                totalAbsent,
+                totalMissing,
+            };
+        }
+
+        return result;
+    }, [groupedByUnit, shtatniPosady]);
 
     const SUBUNITS = [
         'Управління роти',
@@ -238,158 +305,184 @@ export function AlternateCombatReportBody() {
 
     return (
         <tbody>
-            {SUBUNITS.map((name, index) => (
-                <tr key={index} className="border-t">
-                    {/* === № column === */}
-                    <td
-                        style={{ borderRightWidth: '2px' }}
-                        className="border border-black text-center"
-                    >
-                        {index + 1}
-                    </td>
+            {SUBUNITS.map((name, index) => {
+                const isSummary = name === 'ВСЬОГО';
+                const isAttached = name === 'Прикомандировані';
+                const isNormalRow = !isSummary && !isAttached;
+                return (
+                    <tr key={index} className="border-t">
+                        {/* === № column === */}
+                        <td
+                            style={{
+                                borderRightWidth: '2px',
+                                backgroundColor: isSummary || isAttached ? '#f0f0f0' : undefined,
+                            }}
+                            className="border border-black text-center"
+                        >
+                            {index + 1}
+                        </td>
 
-                    {/* === ПІДРОЗДІЛ === */}
-                    <td
-                        style={{ borderWidth: '2px', borderRightWidth: '2px', fontWeight: 'bold' }}
-                        className="border border-black"
-                    >
-                        {name}
-                    </td>
+                        {/* === ПІДРОЗДІЛ === */}
+                        <td
+                            style={{
+                                borderWidth: '2px',
+                                borderRightWidth: '2px',
+                                fontWeight: 'bold',
+                                backgroundColor: isSummary
+                                    ? '#d3d3d3'
+                                    : isAttached
+                                      ? '#f7f7f7'
+                                      : '#92fc7a',
+                            }}
+                            className="border border-black"
+                        >
+                            {name}
+                        </td>
 
-                    {/* === ЗА ШТАТОМ === */}
-                    <td className="border border-black">{plannedTotal}</td>
-                    <td className="border border-black">{plannedOfficers}</td>
-                    <td style={{ borderRightWidth: '2px' }} className="border border-black">
-                        {plannedSoldiers}
-                    </td>
+                        {/* === ЗА ШТАТОМ === */}
+                        <td className="border border-black">0</td>
+                        <td className="border border-black">0</td>
+                        <td style={{ borderRightWidth: '2px' }} className="border border-black">
+                            0
+                        </td>
 
-                    {/* УКОМПЛЕКТОВАНІСТЬ*/}
-                    <td style={{ borderRightWidth: '2px' }} className="border border-black">
-                        0
-                    </td>
+                        {/* УКОМПЛЕКТОВАНІСТЬ*/}
+                        <td style={{ borderRightWidth: '2px' }} className="border border-black">
+                            0
+                        </td>
 
-                    {/* === ЗА СПИСКОМ === */}
-                    <td className="border border-black">{actualTotal}</td>
-                    <td className="border border-black">{actualOfficers}</td>
-                    <td style={{ borderRightWidth: '2px' }} className="border border-black">
-                        {actualSoldiers}
-                    </td>
+                        {/* === ЗА СПИСКОМ === */}
+                        <td className="border border-black">0</td>
+                        <td className="border border-black">0</td>
+                        <td style={{ borderRightWidth: '2px' }} className="border border-black">
+                            0
+                        </td>
 
-                    {/* === В НАЯВНОСТІ %=== */}
-                    <td style={{ borderRightWidth: '2px' }} className="border border-black">
-                        0
-                    </td>
+                        {/* === В НАЯВНОСТІ %=== */}
+                        <td style={{ borderRightWidth: '2px' }} className="border border-black">
+                            0
+                        </td>
 
-                    {/* === В НАЯВНОСТІ === */}
-                    <td style={{ backgroundColor: '#f8da78' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#f8da78' }} className="border border-black">
-                        0
-                    </td>
-                    <td
-                        style={{ backgroundColor: '#f8da78', borderRightWidth: '2px' }}
-                        className="border border-black"
-                    >
-                        0
-                    </td>
+                        {/* === В НАЯВНОСТІ === */}
+                        <td style={{ backgroundColor: '#f8da78' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#f8da78' }} className="border border-black">
+                            0
+                        </td>
+                        <td
+                            style={{ backgroundColor: '#f8da78', borderRightWidth: '2px' }}
+                            className="border border-black"
+                        >
+                            0
+                        </td>
 
-                    {/* З НИХ */}
-                    <td style={{ backgroundColor: '#9fce63' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#d7dce3' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#d7dce3' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
-                        {totalSupply}
-                    </td>
-                    <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
-                        0
-                    </td>
+                        {/* З НИХ */}
+                        <td style={{ backgroundColor: '#9fce63' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#d7dce3' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#d7dce3' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
+                            0
+                        </td>
 
-                    {/* === обмежено придатні  === */}
-                    <td style={{ backgroundColor: '#f9da77' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#f9da77' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#f9da77' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#f9da77' }} className="border border-black" />
-                    <td
-                        style={{ backgroundColor: '#f9da77', borderRightWidth: '2px' }}
-                        className="border border-black"
-                    >
-                        0
-                    </td>
+                        {/* === обмежено придатні  === */}
+                        <td style={{ backgroundColor: '#f9da77' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#f9da77' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#f9da77' }} className="border border-black">
+                            0
+                        </td>
+                        <td
+                            style={{ backgroundColor: '#f9da77' }}
+                            className="border border-black"
+                        />
+                        <td
+                            style={{ backgroundColor: '#f9da77', borderRightWidth: '2px' }}
+                            className="border border-black"
+                        >
+                            0
+                        </td>
 
-                    {/* === НЕ БГ === */}
-                    <td
-                        style={{ backgroundColor: '#b89230', borderRightWidth: '2px' }}
-                        className="border border-black"
-                    >
-                        0
-                    </td>
+                        {/* === НЕ БГ === */}
+                        <td
+                            style={{ backgroundColor: '#b89230', borderRightWidth: '2px' }}
+                            className="border border-black"
+                        >
+                            0
+                        </td>
 
-                    {/* В ПІДРОЗДІЛІ */}
-                    <td style={{ borderRightWidth: '2px' }} className="border border-black">
-                        0
-                    </td>
+                        {/* В ПІДРОЗДІЛІ */}
+                        <td style={{ borderRightWidth: '2px' }} className="border border-black">
+                            0
+                        </td>
 
-                    {/* ВІДСУТНІ */}
-                    <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#fcf2cf' }} className="border border-black" />
-                    <td style={{ backgroundColor: '#fcf2cf' }} className="border border-black">
-                        0
-                    </td>
-                    <td style={{ backgroundColor: '#fcf2cf' }} className="border border-black" />
-                    <td style={{ backgroundColor: '#fcf2cf' }} className="border border-black">
-                        0
-                    </td>
-                    <td className="border border-black">0</td>
-                    <td className="border border-black">0</td>
-                    <td style={{ borderRightWidth: '2px' }} className="border border-black">
-                        0
-                    </td>
+                        {/* ВІДСУТНІ */}
+                        <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
+                            0
+                        </td>
+                        <td style={{ backgroundColor: '#eab38a' }} className="border border-black">
+                            0
+                        </td>
+                        <td
+                            style={{ backgroundColor: '#fcf2cf' }}
+                            className="border border-black"
+                        />
+                        <td style={{ backgroundColor: '#fcf2cf' }} className="border border-black">
+                            0
+                        </td>
+                        <td
+                            style={{ backgroundColor: '#fcf2cf' }}
+                            className="border border-black"
+                        />
+                        <td style={{ backgroundColor: '#fcf2cf' }} className="border border-black">
+                            0
+                        </td>
+                        <td className="border border-black">0</td>
+                        <td className="border border-black">0</td>
+                        <td style={{ borderRightWidth: '2px' }} className="border border-black">
+                            0
+                        </td>
 
-                    {/* ВСЬОГО ВІДСУТНІХ */}
-                    <td style={{ borderRightWidth: '2px' }} className="border border-black">
-                        0
-                    </td>
-                </tr>
-            ))}
+                        {/* ВСЬОГО ВІДСУТНІХ */}
+                        <td style={{ borderRightWidth: '2px' }} className="border border-black">
+                            0
+                        </td>
+                    </tr>
+                );
+            })}
         </tbody>
     );
 }

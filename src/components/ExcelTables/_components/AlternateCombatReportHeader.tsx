@@ -14,7 +14,7 @@ type ColumnConfig = {
 export function AlternateCombatReportHeader() {
     return (
         <thead>
-            <AlternateCombatReportHeadTitle />
+            {/* <AlternateCombatReportHeadTitle /> */}
             <AlternateCombatReportHeadMainGroups />
             <AlternateCombatReportHeadDetails />
         </thead>
@@ -146,7 +146,7 @@ function AlternateCombatReportHeadMainGroups() {
                 colSpan={3}
                 style={{
                     height: '3vh',
-                    backgroundColor: '#f8da78',
+                    // backgroundColor: '#f8da78',
                     borderLeftWidth: '2px',
                     borderTopWidth: '2px',
                     borderRightWidth: '2px',
@@ -162,7 +162,7 @@ function AlternateCombatReportHeadMainGroups() {
                 colSpan={16}
                 style={{
                     height: '3vh',
-                    backgroundColor: '#f8da78',
+                    // backgroundColor: '#f8da78',
                     borderTopWidth: '2px',
                     borderBottomWidth: '2px',
                     fontWeight: 'bold',
@@ -218,7 +218,7 @@ function AlternateCombatReportHeadMainGroups() {
                 colSpan={10}
                 style={{
                     height: '3vh',
-                    backgroundColor: '#f0ccb0',
+                    // backgroundColor: '#f0ccb0',
                     borderTopWidth: '2px',
                     borderRightWidth: '2px',
                     borderBottomWidth: '2px',
@@ -233,7 +233,7 @@ function AlternateCombatReportHeadMainGroups() {
                 style={{
                     height: '120px',
                     width: '50px',
-                    backgroundColor: '#f0f0f0',
+                    // backgroundColor: '#f0f0f0',
                     padding: '10px',
                     lineHeight: '01',
                     borderTopWidth: '2px',

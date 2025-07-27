@@ -7,6 +7,7 @@ export type ShtatnaPosada = {
     category?: string;
     shpk_code?: string;
     extra_data?: Record<string, any>;
+    unitMain?: any;
 };
 
 type ShtatniState = {
