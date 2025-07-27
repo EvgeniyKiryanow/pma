@@ -253,6 +253,12 @@ export default function ImportUsersTabContent() {
                         v = excelSerialToDate(numVal);
                     }
                 }
+                if (dbField === 'rankAssignmentDate') {
+                    const numVal = Number(value);
+                    if (!isNaN(numVal) && numVal > 0) {
+                        v = excelSerialToDate(numVal);
+                    }
+                }
 
                 mappedRow[dbField] = v;
             });

@@ -20,6 +20,7 @@ export const HEADER_MAP: Record<string, string> = {
     'В/звання за списком': 'rank',
     'Ким присвоєно, № наказу': 'rankAssignedBy',
     'Дата присвоєння': 'rankAssignmentDate',
+    'Дата присвоєння_1': 'rankAssignmentDate',
 
     // ✅ Rights & service info
     Права: 'rights',
