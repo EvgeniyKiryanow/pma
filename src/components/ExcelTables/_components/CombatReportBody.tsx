@@ -106,8 +106,8 @@ export function CombatReportBody() {
     const { fetchUsers } = useUserStore();
 
     useEffect(() => {
-        if (shtatniPosady.length === 0) fetchAll();
-        if (users.length === 0) fetchUsers();
+        fetchAll();
+        fetchUsers();
     }, []);
     const users = useUserStore((s) => s.users);
     const shtatniPosady = useShtatniStore((s) => s.shtatniPosady);
@@ -141,7 +141,8 @@ export function CombatReportBody() {
 
         // === Actual (за списком)
         const actualTotal = users.length;
-        const actualOfficers = users.filter((u) => u.rank?.toLowerCase().includes('оф')).length;
+        const actualOfficers = users.filter((u) => u.category?.toLowerCase().includes('оф')).length;
+        console.log(users, 'actualOfficers');
         const actualSoldiers = actualTotal - actualOfficers;
 
         const staffingPercent =
