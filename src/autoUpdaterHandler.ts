@@ -34,8 +34,27 @@ export function setupAutoUpdater() {
     });
 
     autoUpdater.on('error', (err) => {
-        log.error('❌ AutoUpdater error:', err?.stack || err?.message || err);
-        dialog.showErrorBox('Auto Update Error', err?.message || String(err));
+        const message = err?.message || String(err);
+        log.error('❌ Помилка автооновлення:', err?.stack || message);
+
+        let extraHint = '';
+
+        // Якщо Windows → показуємо підказку про Smart App Control
+        if (process.platform === 'win32') {
+            extraHint =
+                '\n\n❗ Якщо ви використовуєте Windows 11, оновлення може бути заблоковане функцією Smart App Control.\n' +
+                'Щоб вимкнути його:\n' +
+                '1️⃣ Відкрийте **Параметри → Конфіденційність та безпека**.\n' +
+                '2️⃣ Перейдіть у **Безпека Windows → Керування додатками/браузером**.\n' +
+                '3️⃣ Знайдіть **Smart App Control** та вимкніть.\n' +
+                '4️⃣ Перезавантажте компʼютер і повторіть спробу оновлення.';
+        }
+
+        dialog.showMessageBox({
+            type: 'error',
+            title: 'Помилка автооновлення',
+            message: `Не вдалося встановити оновлення:\n${message}${extraHint}`,
+        });
     });
 
     // ✅ Show progress in dock/taskbar
