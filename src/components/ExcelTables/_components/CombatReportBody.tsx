@@ -121,6 +121,8 @@ export function CombatReportBody() {
         actualSoldiers,
         staffingPercent,
         presentPercent,
+        presentTotalSoldier,
+        presentTotalOfficer,
         presentTotal,
         counts,
         totalPositions,
@@ -137,17 +139,19 @@ export function CombatReportBody() {
         const plannedOfficers = shtatniPosady.filter((p) =>
             p.category?.toLowerCase().includes('оф'),
         ).length;
+        // === Planned
         const plannedSoldiers = plannedTotal - plannedOfficers;
 
         // === Actual (за списком)
         const actualTotal = users.length;
         const actualOfficers = users.filter((u) => u.category?.toLowerCase().includes('оф')).length;
-        console.log(users, 'actualOfficers');
         const actualSoldiers = actualTotal - actualOfficers;
 
+        // === % Staffing
         const staffingPercent =
             plannedTotal > 0 ? ((actualTotal / plannedTotal) * 100).toFixed(0) : '0';
 
+        // === Status counts
         const counts = countStatuses(users);
 
         const totalPositions = sumStatuses(counts, STATUS_GROUPS.positionsAll);
@@ -160,10 +164,24 @@ export function CombatReportBody() {
         const totalAbsent = sumStatuses(counts, STATUS_GROUPS.absentAll);
         const totalMissing = totalNonCombat + totalAbsent;
 
+        // === Присутні всі
         const presentTotal = actualTotal - totalMissing;
+
+        // === Відсоток присутніх
         const presentPercent =
             actualTotal > 0 ? ((presentTotal / actualTotal) * 100).toFixed(0) : '0';
 
+        // === Тепер визначаємо присутніх користувачів (відфільтруємо відсутніх)
+        const absentStatuses = [...STATUS_GROUPS.nonCombatAll, ...STATUS_GROUPS.absentAll];
+
+        const presentUsers = users.filter((u) => !absentStatuses.includes(u.soldierStatus as any));
+
+        // === Присутні офіцери і солдати окремо
+        const presentTotalOfficer = presentUsers.filter((u) =>
+            u.category?.toLowerCase().includes('оф'),
+        ).length;
+
+        const presentTotalSoldier = presentUsers.length - presentTotalOfficer;
         return {
             plannedTotal,
             plannedOfficers,
@@ -173,6 +191,8 @@ export function CombatReportBody() {
             actualSoldiers,
             staffingPercent,
             presentPercent,
+            presentTotalSoldier,
+            presentTotalOfficer,
             presentTotal,
             counts,
             totalPositions,
@@ -224,9 +244,9 @@ export function CombatReportBody() {
 
                 {/* === В НАЯВНОСТІ ВСЬОГО === */}
                 <td className="border border-black">{presentTotal}</td>
-                <td className="border border-black">-</td>
+                <td className="border border-black">{presentTotalOfficer}</td>
                 <td style={{ borderRightWidth: '3px' }} className="border border-black">
-                    -
+                    {presentTotalSoldier}
                 </td>
 
                 {/* === На позиціях === */}

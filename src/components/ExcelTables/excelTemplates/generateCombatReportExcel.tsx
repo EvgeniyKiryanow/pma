@@ -152,24 +152,26 @@ export async function generateCombatReportExcel() {
     const users = useUserStore.getState().users;
     const shtatniPosady = useShtatniStore.getState().shtatniPosady;
 
-    // === basic numbers ===
+    // === Planned (штатні)
     const plannedTotal = shtatniPosady.length;
     const plannedOfficers = shtatniPosady.filter((p) =>
         p.category?.trim().toLowerCase().includes('оф'),
     ).length;
     const plannedSoldiers = plannedTotal - plannedOfficers;
 
+    // === Actual (за списком)
     const actualTotal = users.length;
     const actualOfficers = users.filter((u) =>
         u.category?.trim().toLowerCase().includes('оф'),
     ).length;
     const actualSoldiers = actualTotal - actualOfficers;
 
+    // === Відсоток укомплектованості
     const staffingPercent =
         plannedTotal > 0 ? ((actualTotal / plannedTotal) * 100).toFixed(0) : '0';
 
+    // === Статусні групи
     const counts = countStatuses(users);
-
     const totalPositions = sumStatuses(counts, STATUS_GROUPS.positionsAll);
     const totalRotation = sumStatuses(counts, STATUS_GROUPS.rotationAll);
     const totalSupply = sumStatuses(counts, STATUS_GROUPS.supplyAll);
@@ -180,8 +182,23 @@ export async function generateCombatReportExcel() {
     const totalAbsent = sumStatuses(counts, STATUS_GROUPS.absentAll);
     const totalMissing = totalNonCombat + totalAbsent;
 
+    // === Присутні загалом
     const presentTotal = actualTotal - totalMissing;
     const presentPercent = actualTotal > 0 ? ((presentTotal / actualTotal) * 100).toFixed(0) : '0';
+
+    // === Визначаємо відсутніх статусом
+    const absentStatuses = [...STATUS_GROUPS.nonCombatAll, ...STATUS_GROUPS.absentAll];
+
+    // === Присутні користувачі (ті, хто не в списку відсутніх)
+    const presentUsers = users.filter((u) => !absentStatuses.includes(u.soldierStatus as any));
+
+    // === Присутні офіцери
+    const presentTotalOfficer = presentUsers.filter((u) =>
+        u.category?.trim().toLowerCase().includes('оф'),
+    ).length;
+
+    // === Присутні солдати
+    const presentTotalSoldier = presentUsers.length - presentTotalOfficer;
 
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Combat Report', { properties: { defaultRowHeight: 35 } });
@@ -396,8 +413,8 @@ export async function generateCombatReportExcel() {
         actualSoldiers,
         `${presentPercent}%`,
         presentTotal,
-        '-',
-        '-',
+        presentTotalOfficer,
+        presentTotalSoldier,
         totalPositions,
         sumStatuses(counts, STATUS_GROUPS.positionsInfantry),
         sumStatuses(counts, STATUS_GROUPS.positionsCrew),
