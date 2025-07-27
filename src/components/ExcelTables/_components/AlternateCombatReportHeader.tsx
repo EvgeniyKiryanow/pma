@@ -292,28 +292,81 @@ function AlternateCombatReportHeadDetails() {
         { label: 'СЗЧ', backgroundColor: '#f0ccb0', bold: true },
         { label: 'Поранені', backgroundColor: '#f0ccb0', bold: true },
         { label: 'Загиблі', backgroundColor: '#f0ccb0', bold: true },
-        { label: 'Зниклі ,безвісті', backgroundColor: '#f0ccb0', bold: true },
+        { label: 'Зниклі безвісті', backgroundColor: '#f0ccb0', bold: true },
     ];
 
+    const labelWithBreaks: Record<string, string> = {
+        'Мають направлення на лік / обслід/ конс/ влк':
+            'Мають направлення<br/>на лік / обслід/ конс/ влк',
+        'НОВОПРИБУЛІ НАВЧАННЯ В ПІДЗОЗДІЛІ': 'НОВОПРИБУЛІ <br/> НАВЧАННЯ В ПІДЗОЗДІЛІ',
+    };
     return (
         <tr>
             {combatReportColumns.map((col, index) => {
+                const shouldRotate = [
+                    'Всього за штатом',
+                    'Офіцери',
+                    'Сержанти/Солдати',
+                    'Всього за списком',
+                    'Всього в наявності',
+                    'НА ПОЗИЦІЇ',
+                    'БРОНЄГРУПА',
+                    'РЕЗЕРВ ПІХОТА',
+                    'ПОЗИЦІЇ ПІХОТИ',
+                    'ПОЗИЦІЇ ЕКІПАЖ',
+                    'ПОЗИЦІЇ РОЗРАХУНОК',
+                    'ПОЗИЦІЇ БПЛА',
+                    'УПРАВЛІННЯ',
+                    'БОЙОВЕ ЗАБЕСПЕЧЕННЯ',
+                    'ЗАБЕСПЕЧЕННЯ',
+                    'НОВОПРИБУЛІ НАВЧАННЯ В ПІДЗОЗДІЛІ',
+                    'Обмежено придатні',
+                    'Хворі в підрозділі',
+                    'Відмовники',
+                    'Звільнються',
+                    'Мають направлення на лік / обслід/ конс/ влк',
+                    'ВЛК',
+                    'Шпиталь / Лікарня',
+                    'Мед. Рота',
+                    'Відпустка (реабілітація)',
+                    'Відпустка',
+                    'Відрядження',
+                    'СЗЧ',
+                    'Поранені',
+                    'Загиблі',
+                    'Зниклі ,безвісті',
+                ].includes(col.label);
+
                 const style: React.CSSProperties = {
                     maxWidth: '30px',
-                    height: '100%',
-                    wordWrap: 'break-word',
-                    transform: 'rotate(0deg)',
                     backgroundColor: col.backgroundColor,
                     fontWeight: col.bold ? 'bold' : undefined,
                     borderRightWidth: col.rightBorder ? '2px' : undefined,
                     borderLeftWidth: col.leftBorder ? '2px' : undefined,
                     borderTopWidth: col.topBorder ? '2px' : undefined,
                     borderBottomWidth: col.bottomBorder ? '2px' : undefined,
+
+                    ...(shouldRotate
+                        ? {
+                              writingMode: 'vertical-rl',
+                              transform: 'rotate(180deg)',
+                              whiteSpace: 'nowrap',
+                              textAlign: 'center',
+                              lineHeight: '1',
+                              padding: '15px',
+                          }
+                        : {}),
                 };
 
                 return (
                     <th key={index} className="font-medium border border-black" style={style}>
-                        {col.label}
+                        {labelWithBreaks[col.label] ? (
+                            <span
+                                dangerouslySetInnerHTML={{ __html: labelWithBreaks[col.label] }}
+                            />
+                        ) : (
+                            col.label
+                        )}
                     </th>
                 );
             })}
