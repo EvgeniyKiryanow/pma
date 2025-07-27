@@ -160,7 +160,9 @@ export async function generateCombatReportExcel() {
     const plannedSoldiers = plannedTotal - plannedOfficers;
 
     const actualTotal = users.length;
-    const actualOfficers = users.filter((u) => u.rank?.trim().toLowerCase().includes('оф')).length;
+    const actualOfficers = users.filter((u) =>
+        u.category?.trim().toLowerCase().includes('оф'),
+    ).length;
     const actualSoldiers = actualTotal - actualOfficers;
 
     const staffingPercent =
