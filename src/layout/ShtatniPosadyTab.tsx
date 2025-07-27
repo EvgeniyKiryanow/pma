@@ -19,6 +19,49 @@ export default function ShtatniPosadyTab() {
 
     const [editing, setEditing] = useState<ShtatnaPosada | null>(null);
     const [form, setForm] = useState<Partial<ShtatnaPosada>>({});
+    const unassignUserFromPosada = async (pos: ShtatnaPosada) => {
+        // знайти користувача, який зараз займає цю посаду
+        const assignedUser = users.find(
+            (u) =>
+                u.shtatNumber === pos.shtat_number ||
+                (u.position === pos.position_name && u.unitMain === pos.unit_name),
+        );
+
+        if (!assignedUser) {
+            alert('❗ На цю посаду зараз ніхто не призначений');
+            return;
+        }
+
+        const historyEntry: CommentOrHistoryEntry = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            type: 'history',
+            author: 'System',
+            description: `Користувача ${assignedUser.fullName} звільнено з посади ${pos.position_name} (${pos.unit_name})`,
+            content: '',
+            files: [],
+        };
+
+        const clearedUser: User = {
+            ...assignedUser,
+            position: null,
+            unitMain: null,
+            shpkCode: null,
+            category: null,
+            shtatNumber: null,
+            history: [...(assignedUser.history || []), historyEntry],
+        };
+
+        await updateUser(clearedUser);
+
+        // якщо цей користувач зараз відкритий у правій панелі – оновлюємо стан
+        const setSelectedUser = useUserStore.getState().setSelectedUser;
+        if (useUserStore.getState().selectedUser?.id === assignedUser.id) {
+            setSelectedUser(clearedUser);
+        }
+
+        alert(`✅ ${assignedUser.fullName} звільнений з посади "${pos.position_name}"`);
+    };
 
     useEffect(() => {
         // ✅ Fetch both posady & users when page loads
@@ -355,7 +398,6 @@ export default function ShtatniPosadyTab() {
                                         <select
                                             className="text-xs border rounded px-1 py-0.5 max-w-[180px]"
                                             value={
-                                                // Preselect the currently assigned user for this posada
                                                 users.find(
                                                     (u) =>
                                                         u.shtatNumber === pos.shtat_number ||
@@ -364,11 +406,23 @@ export default function ShtatniPosadyTab() {
                                                 )?.id || ''
                                             }
                                             onChange={(e) => {
-                                                const userId = Number(e.target.value);
+                                                const selectedValue = e.target.value;
+
+                                                if (selectedValue === 'remove') {
+                                                    // користувач вибрав "Зняти"
+                                                    unassignUserFromPosada(pos);
+                                                    return;
+                                                }
+
+                                                const userId = Number(selectedValue);
                                                 if (userId) assignUserToPosada(userId, pos);
                                             }}
                                         >
+                                            {/* перша опція - зняти */}
                                             <option value="">-- Обрати користувача --</option>
+                                            <option value="remove">✖ Зняти користувача</option>
+
+                                            {/* решта користувачів */}
                                             {users.map((u) => (
                                                 <option key={u.id} value={u.id}>
                                                     {u.fullName}
