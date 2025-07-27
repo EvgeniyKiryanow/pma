@@ -401,12 +401,9 @@ export default function ShtatniPosadyTab() {
                                         <select
                                             className="text-xs border rounded px-1 py-0.5 max-w-[180px]"
                                             value={
-                                                users.find(
-                                                    (u) =>
-                                                        u.shtatNumber === pos.shtat_number ||
-                                                        (u.position === pos.position_name &&
-                                                            u.unitMain === pos.unit_name),
-                                                )?.id || ''
+                                                // ✅ find user who is assigned to this posada by shtatNumber
+                                                users.find((u) => u.shpkNumber === pos.shtat_number)
+                                                    ?.id || ''
                                             }
                                             onChange={(e) => {
                                                 const selectedValue = e.target.value;
@@ -421,14 +418,19 @@ export default function ShtatniPosadyTab() {
                                                 if (userId) assignUserToPosada(userId, pos);
                                             }}
                                         >
-                                            {/* перша опція - зняти */}
+                                            {/* перша опція */}
                                             <option value="">-- Обрати користувача --</option>
+
+                                            {/* опція для зняття */}
                                             <option value="remove">✖ Зняти користувача</option>
 
-                                            {/* решта користувачів */}
+                                            {/* ✅ Список усіх користувачів */}
                                             {users.map((u) => (
                                                 <option key={u.id} value={u.id}>
-                                                    {u.fullName}
+                                                    {u.fullName}{' '}
+                                                    {u.shtatNumber === pos.shtat_number
+                                                        ? '✅ (призначений)'
+                                                        : ''}
                                                 </option>
                                             ))}
                                         </select>

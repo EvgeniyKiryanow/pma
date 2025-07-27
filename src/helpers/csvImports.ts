@@ -57,8 +57,9 @@ export function generateUserKey(user: any): string {
     const name = (user.fullName || '').trim().toLowerCase();
     const dob = (user.dateOfBirth || '').trim();
     const taxId = (user.taxId || '').trim();
+    const shpkNumber = (user.shpkNumber || '').trim();
 
-    return `key_${name}_${dob}_${taxId}`;
+    return `key_${name}_${dob}_${taxId}_${shpkNumber}`;
 }
 
 /** ✅ Detect if existing user needs update */
