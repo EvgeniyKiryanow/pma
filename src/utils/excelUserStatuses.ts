@@ -53,7 +53,7 @@ export enum StatusExcel {
     ABSENT_HOSPITALIZED = 'Шпиталь / Лікарня', // ✅ new
     ABSENT_MEDICAL_COMPANY = 'Мед. Рота', // ✅ new
     ABSENT_REHAB_LEAVE = 'Відпустка (реабілітація)', // ✅ new
-    ABSENT_KIA = 'Загиблі', // ✅ new
+    ABSENT_KIA = 'Загиблі',
     ABSENT_MIA = 'Зниклі безвісті', // ✅ new
     ABSENT_WOUNDED = 'Поранені', // ✅ new
 }
