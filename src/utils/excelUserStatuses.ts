@@ -6,6 +6,8 @@ export enum StatusExcel {
     POSITIONS_CREW = 'Позиція екіпажу',
     POSITIONS_CALCULATION = 'Позиція розрахунку',
     POSITIONS_UAV = 'Позиція БПЛА',
+    POSITIONS_BRONEGROUP = 'Бронєгрупа', // ✅ new
+    POSITIONS_RESERVE_INFANTRY = 'Резерв піхота', // ✅ new
 
     // === РОТАЦІЯ ТА РЕЗЕРВ ===
     ROTATION_INFANTRY = 'Ротація піхота',
@@ -17,6 +19,8 @@ export enum StatusExcel {
     SUPPLY_BD = 'Забезпечення БД',
     SUPPLY_ENGINEERING = 'Забезпечення інженерне',
     SUPPLY_LIFE_SUPPORT = 'Забезпечення життєдіяльності',
+    SUPPLY_COMBAT = 'Бойове забезпечення', // ✅ new
+    SUPPLY_GENERAL = 'Забезпечення', // ✅ new
 
     // === УПРАВЛІННЯ ===
     MANAGEMENT = 'Управління',
@@ -25,6 +29,7 @@ export enum StatusExcel {
     // === НЕ БГ ===
     NON_COMBAT_ATTACHED_UNITS = 'Приданий в інший підрозділ',
     NON_COMBAT_TRAINING_NEWCOMERS = 'Навчання, новоприбулий',
+    NON_COMBAT_NEWCOMERS = 'Новоприбулі навчання в підрозділі', // ✅ new
     NON_COMBAT_HOSPITAL_REFERRAL = 'Має направлення на лікування',
     NON_COMBAT_EXEMPTED = 'Звільнений від фізичного навантаження',
     NON_COMBAT_TREATMENT_ON_SITE = 'Лікування на локації',
@@ -45,4 +50,10 @@ export enum StatusExcel {
     ABSENT_300 = '300',
     ABSENT_500 = '500',
     ABSENT_200 = '200',
+    ABSENT_HOSPITALIZED = 'Шпиталь / Лікарня', // ✅ new
+    ABSENT_MEDICAL_COMPANY = 'Мед. Рота', // ✅ new
+    ABSENT_REHAB_LEAVE = 'Відпустка (реабілітація)', // ✅ new
+    ABSENT_KIA = 'Загиблі', // ✅ new
+    ABSENT_MIA = 'Зниклі безвісті', // ✅ new
+    ABSENT_WOUNDED = 'Поранені', // ✅ new
 }
