@@ -84,17 +84,24 @@ function AlternateCombatReportHeadMainGroups() {
             </th>
 
             <th
-                className="font-medium border border-black"
+                className="font-medium border border-black text-center align-middle"
                 rowSpan={2}
                 style={{
-                    height: '3vh',
+                    height: '120px',
+                    width: '50px',
                     backgroundColor: '#f0f0f0',
+                    padding: '20px',
+                    lineHeight: '01',
                     borderTopWidth: '2px',
                     borderRightWidth: '2px',
                     fontWeight: 'bold',
+                    writingMode: 'vertical-rl', // ✅ rotates text
+                    transform: 'rotate(180deg)', // ✅ flips to correct reading direction
+                    whiteSpace: 'nowrap', // ✅ avoids breaking text
                 }}
             >
-                % УКОМПЛЕКТОВАННОСТІ
+                %<br />
+                УКОМПЛЕКТОВАНІСТЬ
             </th>
 
             {/* ЗА СПИСКОМ */}
@@ -115,17 +122,23 @@ function AlternateCombatReportHeadMainGroups() {
 
             {/* % В НАЯВНОСТІ */}
             <th
-                className="font-medium border border-black"
+                className="font-medium border border-black text-center align-middle"
                 rowSpan={2}
                 style={{
-                    height: '3vh',
+                    height: '120px',
+                    width: '50px',
                     backgroundColor: '#f0f0f0',
+                    padding: '20px',
+                    lineHeight: '01',
                     borderTopWidth: '2px',
                     borderRightWidth: '2px',
                     fontWeight: 'bold',
+                    writingMode: 'vertical-rl', // ✅ rotates text
+                    transform: 'rotate(180deg)', // ✅ flips to correct reading direction
+                    whiteSpace: 'nowrap', // ✅ avoids breaking text
                 }}
             >
-                % В НАЯВНОСТІ
+                %<br />В НАЯВНОСТІ
             </th>
 
             <th
@@ -160,29 +173,40 @@ function AlternateCombatReportHeadMainGroups() {
 
             {/* Дві окремі */}
             <th
-                className="font-medium border border-black"
+                className="font-medium border border-black text-center align-middle"
                 rowSpan={2}
                 style={{
-                    height: '3vh',
-                    backgroundColor: '#c2d6eb',
-                    borderLeftWidth: '2px',
+                    height: '120px',
+                    width: '50px',
+                    backgroundColor: '#f0f0f0',
+                    padding: '10px',
+                    lineHeight: '01',
                     borderTopWidth: '2px',
                     borderRightWidth: '2px',
                     fontWeight: 'bold',
+                    writingMode: 'vertical-rl', // ✅ rotates text
+                    transform: 'rotate(180deg)', // ✅ flips to correct reading direction
+                    whiteSpace: 'nowrap', // ✅ avoids breaking text
                 }}
             >
                 ВСЬОГО НЕ БГ
             </th>
 
             <th
-                className="font-medium border border-black"
+                className="font-medium border border-black text-center align-middle"
                 rowSpan={2}
                 style={{
-                    height: '3vh',
-                    backgroundColor: '#d8e9bc',
+                    height: '120px',
+                    width: '50px',
+                    backgroundColor: '#f0f0f0',
+                    padding: '10px',
+                    lineHeight: '01',
                     borderTopWidth: '2px',
                     borderRightWidth: '2px',
                     fontWeight: 'bold',
+                    writingMode: 'vertical-rl', // ✅ rotates text
+                    transform: 'rotate(180deg)', // ✅ flips to correct reading direction
+                    whiteSpace: 'nowrap', // ✅ avoids breaking text
                 }}
             >
                 В ПІДРОЗДІЛІ
@@ -204,17 +228,23 @@ function AlternateCombatReportHeadMainGroups() {
                 ВІДСУТНІ
             </th>
             <th
-                className="font-medium border border-black"
+                className="font-medium border border-black text-center align-middle"
                 rowSpan={2}
                 style={{
-                    height: '3vh',
-                    backgroundColor: '#f0ccb0',
+                    height: '120px',
+                    width: '50px',
+                    backgroundColor: '#f0f0f0',
+                    padding: '10px',
+                    lineHeight: '01',
                     borderTopWidth: '2px',
-                    borderLeftWidth: '2px',
                     borderRightWidth: '2px',
+                    fontWeight: 'bold',
+                    writingMode: 'vertical-rl', // ✅ rotates text
+                    transform: 'rotate(180deg)', // ✅ flips to correct reading direction
+                    whiteSpace: 'nowrap', // ✅ avoids breaking text
                 }}
             >
-                ВСЬОГО ВІДСУТНІСТЬ
+                ВСЬОГО ВІДСУТНІX
             </th>
         </tr>
     );
