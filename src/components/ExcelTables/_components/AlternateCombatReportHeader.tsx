@@ -5,6 +5,10 @@ type ColumnConfig = {
     backgroundColor?: string;
     bold?: boolean;
     rightBorder?: boolean;
+    leftBorder?: boolean;
+    topBorder?: boolean;
+    bottomBorder?: boolean;
+    fontWeight?: boolean;
 };
 
 export function AlternateCombatReportHeader() {
@@ -55,11 +59,12 @@ function AlternateCombatReportHeadMainGroups() {
                 style={{
                     height: '3vh',
                     backgroundColor: '#f0f0f0',
-                    borderLeftWidth: '3px',
-                    borderTopWidth: '3px',
+                    borderLeftWidth: '2px',
+                    borderTopWidth: '2px',
+                    fontWeight: 'bold',
                 }}
             >
-                ПІДРОЗДІЛИ
+                Підрозділи
             </th>
 
             {/* ЗА ШТАТОМ */}
@@ -69,10 +74,13 @@ function AlternateCombatReportHeadMainGroups() {
                 style={{
                     height: '3vh',
                     backgroundColor: '#f0f0f0',
-                    borderTopWidth: '3px',
+                    borderTopWidth: '2px',
+                    borderLeftWidth: '2px',
+                    borderRightWidth: '2px',
+                    borderBottomWidth: '2px',
                 }}
             >
-                ЗА ШТАТОМ
+                За штатом
             </th>
 
             <th
@@ -81,7 +89,9 @@ function AlternateCombatReportHeadMainGroups() {
                 style={{
                     height: '3vh',
                     backgroundColor: '#f0f0f0',
-                    borderTopWidth: '3px',
+                    borderTopWidth: '2px',
+                    borderRightWidth: '2px',
+                    fontWeight: 'bold',
                 }}
             >
                 % УКОМПЛЕКТОВАННОСТІ
@@ -94,12 +104,13 @@ function AlternateCombatReportHeadMainGroups() {
                 style={{
                     height: '3vh',
                     backgroundColor: '#f0f0f0',
-                    borderLeftWidth: '3px',
-                    borderTopWidth: '3px',
-                    borderRightWidth: '3px',
+                    borderLeftWidth: '2px',
+                    borderTopWidth: '2px',
+                    borderRightWidth: '2px',
+                    borderBottomWidth: '2px',
                 }}
             >
-                ЗА СПИСКОМ
+                За списком
             </th>
 
             {/* % В НАЯВНОСТІ */}
@@ -109,7 +120,9 @@ function AlternateCombatReportHeadMainGroups() {
                 style={{
                     height: '3vh',
                     backgroundColor: '#f0f0f0',
-                    borderTopWidth: '3px',
+                    borderTopWidth: '2px',
+                    borderRightWidth: '2px',
+                    fontWeight: 'bold',
                 }}
             >
                 % В НАЯВНОСТІ
@@ -121,45 +134,14 @@ function AlternateCombatReportHeadMainGroups() {
                 style={{
                     height: '3vh',
                     backgroundColor: '#f8da78',
-                    borderLeftWidth: '3px',
-                    borderTopWidth: '3px',
-                    borderRightWidth: '3px',
+                    borderLeftWidth: '2px',
+                    borderTopWidth: '2px',
+                    borderRightWidth: '2px',
+                    borderBottomWidth: '2px',
                 }}
             >
                 В НАЯВНОСТІ
             </th>
-            {/* <th
-                className="font-medium border border-black"
-                rowSpan={2}
-                style={{
-                    height: '3vh',
-                    backgroundColor: '#f8da78',
-                    borderLeftWidth: '3px',
-                    borderTopWidth: '3px',
-                }}
-            >
-                В НАЯВНОСТІ ВСЬОГО
-            </th>
-
-            <th
-                className="font-medium border border-black"
-                rowSpan={2}
-                style={{ height: '3vh', borderTopWidth: '3px' }}
-            >
-                ОФІЦЕРИ
-            </th>
-
-            <th
-                className="font-medium border border-black"
-                rowSpan={2}
-                style={{
-                    height: '3vh',
-                    borderTopWidth: '3px',
-                    borderRightWidth: '3px',
-                }}
-            >
-                СЕРЖАНТИ СОЛДАТИ
-            </th> */}
 
             {/* З НИХ */}
             <th
@@ -168,8 +150,9 @@ function AlternateCombatReportHeadMainGroups() {
                 style={{
                     height: '3vh',
                     backgroundColor: '#f8da78',
-                    borderTopWidth: '3px',
-                    borderBottomWidth: '3px',
+                    borderTopWidth: '2px',
+                    borderBottomWidth: '2px',
+                    fontWeight: 'bold',
                 }}
             >
                 З НИХ
@@ -182,8 +165,10 @@ function AlternateCombatReportHeadMainGroups() {
                 style={{
                     height: '3vh',
                     backgroundColor: '#c2d6eb',
-                    borderLeftWidth: '3px',
-                    borderTopWidth: '3px',
+                    borderLeftWidth: '2px',
+                    borderTopWidth: '2px',
+                    borderRightWidth: '2px',
+                    fontWeight: 'bold',
                 }}
             >
                 ВСЬОГО НЕ БГ
@@ -195,8 +180,9 @@ function AlternateCombatReportHeadMainGroups() {
                 style={{
                     height: '3vh',
                     backgroundColor: '#d8e9bc',
-                    borderTopWidth: '3px',
-                    borderRightWidth: '3px',
+                    borderTopWidth: '2px',
+                    borderRightWidth: '2px',
+                    fontWeight: 'bold',
                 }}
             >
                 В ПІДРОЗДІЛІ
@@ -209,8 +195,10 @@ function AlternateCombatReportHeadMainGroups() {
                 style={{
                     height: '3vh',
                     backgroundColor: '#f0ccb0',
-                    borderTopWidth: '3px',
-                    borderRightWidth: '3px',
+                    borderTopWidth: '2px',
+                    borderRightWidth: '2px',
+                    borderBottomWidth: '2px',
+                    fontWeight: 'bold',
                 }}
             >
                 ВІДСУТНІ
@@ -221,10 +209,12 @@ function AlternateCombatReportHeadMainGroups() {
                 style={{
                     height: '3vh',
                     backgroundColor: '#f0ccb0',
-                    borderTopWidth: '3px',
+                    borderTopWidth: '2px',
+                    borderLeftWidth: '2px',
+                    borderRightWidth: '2px',
                 }}
             >
-                ВІДСУТНІСТЬ ВСЬОГО:
+                ВСЬОГО ВІДСУТНІСТЬ
             </th>
         </tr>
     );
@@ -232,31 +222,30 @@ function AlternateCombatReportHeadMainGroups() {
 
 function AlternateCombatReportHeadDetails() {
     const combatReportColumns: ColumnConfig[] = [
-        { label: 'ВСЬОГО ЗА ШТАТОМ', backgroundColor: '#f0f0f0' },
-        { label: 'ОФІЦЕРИ', backgroundColor: '#f0f0f0' },
-        { label: 'СЕРЖАНТИ/СОЛДАТИ', backgroundColor: '#f0f0f0', rightBorder: true },
+        { label: 'Всього за штатом', backgroundColor: '#f0f0f0', leftBorder: true },
+        { label: 'Офіцери', backgroundColor: '#f0f0f0' },
+        { label: 'Сержанти/Солдати', backgroundColor: '#f0f0f0', rightBorder: true },
 
         // { label: '% УКОМПЛЕКТОВАННОСТІ', backgroundColor: '#f0f0f0' },
-        { label: 'ВСЬОГО ЗА СПИСКОМ', backgroundColor: '#f0f0f0' },
-        { label: 'ОФІЦЕРИ', backgroundColor: '#f0f0f0' },
-        { label: 'СЕРЖАНТИ/СОЛДАТИ', backgroundColor: '#f0f0f0', rightBorder: true },
-
-        { label: 'ВСЬОГО', backgroundColor: '#f8da78' },
-        { label: 'ОФІЦЕРИ', backgroundColor: '#f8da78' },
-        { label: 'СЕРЖАНТИ/СОЛДАТИ', backgroundColor: '#f8da78', rightBorder: true },
-
-        { label: 'НА ПОЗИЦІЇ', backgroundColor: '#f0ccb0' },
-        { label: 'БРОНЄГРУПА', backgroundColor: '#f0ccb0' },
-        { label: 'РЕЗЕРВ ПІХОТА', backgroundColor: '#f0ccb0' },
-        { label: 'ПОЗИЦІЇ ПІХОТИ', backgroundColor: '#f0ccb0' },
-        { label: 'ПОЗИЦІЇ ЕКІПАЖ', backgroundColor: '#f0ccb0' },
-        { label: 'ПОЗИЦІЇ РОЗРАХУНОК', backgroundColor: '#f0ccb0' },
-        { label: 'ПОЗИЦІЇ БПЛА', backgroundColor: '#f0ccb0' },
-        { label: 'УПРАВЛІННЯ' },
-        { label: 'БОЙОВЕ ЗАБЕСПЕЧЕННЯ' },
-        { label: 'ЗАБЕСПЕЧЕННЯ' },
-        { label: 'НОВОПРИБУЛІ НАВЧАННЯ В ПІДЗОЗДІЛІ' },
-
+        { label: 'Всього за списком', backgroundColor: '#f0f0f0' },
+        { label: 'Офіцери', backgroundColor: '#f0f0f0' },
+        { label: 'Сержанти/Солдати', backgroundColor: '#f0f0f0', rightBorder: true },
+        // В НАЯВНОСТІ
+        { label: 'Всього в наявності', backgroundColor: '#f8da78' },
+        { label: 'Офіцери', backgroundColor: '#f8da78' },
+        { label: 'Сержанти/Солдати', backgroundColor: '#f8da78', rightBorder: true },
+        // З НИХ
+        { label: 'НА ПОЗИЦІЇ', backgroundColor: '#f0ccb0', bold: true },
+        { label: 'БРОНЄГРУПА', backgroundColor: '#f0ccb0', bold: true },
+        { label: 'РЕЗЕРВ ПІХОТА', backgroundColor: '#f0ccb0', bold: true },
+        { label: 'ПОЗИЦІЇ ПІХОТИ', backgroundColor: '#f0ccb0', bold: true },
+        { label: 'ПОЗИЦІЇ ЕКІПАЖ', backgroundColor: '#f0ccb0', bold: true },
+        { label: 'ПОЗИЦІЇ РОЗРАХУНОК', backgroundColor: '#f0ccb0', bold: true },
+        { label: 'ПОЗИЦІЇ БПЛА', backgroundColor: '#f0ccb0', bold: true },
+        { label: 'УПРАВЛІННЯ', bold: true },
+        { label: 'БОЙОВЕ ЗАБЕСПЕЧЕННЯ', bold: true },
+        { label: 'ЗАБЕСПЕЧЕННЯ', bold: true },
+        { label: 'НОВОПРИБУЛІ НАВЧАННЯ В ПІДЗОЗДІЛІ', rightBorder: true, bold: true },
         { label: 'Обмежено придатні', backgroundColor: '#d8e9bc' },
         { label: 'Хворі в підрозділі', backgroundColor: '#d8e9bc' },
         { label: 'Відмовники', backgroundColor: '#d8e9bc' },
@@ -267,35 +256,13 @@ function AlternateCombatReportHeadDetails() {
         { label: 'ВЛК', backgroundColor: '#f6cd9f' },
         { label: 'Шпиталь / Лікарня', backgroundColor: '#f0ccb0' },
         { label: 'Мед. Рота', backgroundColor: '#f0ccb0' },
-        { label: 'Відпустка (реабілітація)', backgroundColor: '#fcf2d0' },
-        { label: 'Відпустка', backgroundColor: '#fcf2d0' },
-        { label: 'Відрядження', backgroundColor: '#fcf2d0' },
-        { label: 'СЗЧ', backgroundColor: '#f0ccb0' },
-        { label: 'Поранені', backgroundColor: '#f0ccb0' },
-        { label: 'Загиблі', backgroundColor: '#f0ccb0' },
-        { label: 'ЗагЗниклі безвістіиблі', backgroundColor: '#f0ccb0' },
-
-        // { label: 'придані в інші підзозділи', backgroundColor: '#fcf2d0', bold: true },
-        // { label: 'навчання,новоприбувші', backgroundColor: '#fcf2d0', bold: true },
-        // { label: 'мають направлення на лік.', backgroundColor: '#fcf2d0', bold: true },
-        // { label: 'звільнено від фізичного навантаження', backgroundColor: '#fcf2d0', bold: true },
-        // { label: 'лікування на локації', backgroundColor: '#fcf2d0', bold: true },
-        // { label: 'обмежено придатні', backgroundColor: '#fcf2d0', bold: true },
-        // { label: 'очікують кадрового рішення', backgroundColor: '#fcf2d0', bold: true },
-        // { label: 'відмовники', backgroundColor: '#fcf2d0', bold: true },
-
-        // { label: 'ВІДПУСТКА ЛІКУВАННЯ', backgroundColor: '#fcf2d0' },
-        // { label: 'ВІДПУСТКА ЩОРІЧНА', backgroundColor: '#fcf2d0' },
-        // { label: 'ВІДПУСТКА ЗА СІМЕЙНИМИ', backgroundColor: '#fcf2d0' },
-        // { label: 'НАВЧАННЯ', backgroundColor: '#fcf2d0' },
-        // { label: 'ВІДРЯДЖЕННЯ', backgroundColor: '#fcf2d0' },
-        // { label: 'АРЕШТ', backgroundColor: '#f0ccb0' },
-        // { label: 'СЗЧ', backgroundColor: '#f0ccb0' },
-        // { label: 'ШПИТАЛЬ', backgroundColor: '#f0ccb0' },
-        // { label: 'ВЛК', backgroundColor: '#f6cd9f' },
-        // { label: '300', backgroundColor: '#f0ccb0' },
-        // { label: '500', backgroundColor: '#f0ccb0' },
-        // { label: '200', backgroundColor: '#f0ccb0', rightBorder: true },
+        { label: 'Відпустка (реабілітація)', backgroundColor: '#fcf2d0', bold: true },
+        { label: 'Відпустка', backgroundColor: '#fcf2d0', bold: true },
+        { label: 'Відрядження', backgroundColor: '#fcf2d0', bold: true },
+        { label: 'СЗЧ', backgroundColor: '#f0ccb0', bold: true },
+        { label: 'Поранені', backgroundColor: '#f0ccb0', bold: true },
+        { label: 'Загиблі', backgroundColor: '#f0ccb0', bold: true },
+        { label: 'Зниклі ,безвісті', backgroundColor: '#f0ccb0', bold: true },
     ];
 
     return (
@@ -308,7 +275,10 @@ function AlternateCombatReportHeadDetails() {
                     transform: 'rotate(0deg)',
                     backgroundColor: col.backgroundColor,
                     fontWeight: col.bold ? 'bold' : undefined,
-                    borderRightWidth: col.rightBorder ? '3px' : undefined,
+                    borderRightWidth: col.rightBorder ? '2px' : undefined,
+                    borderLeftWidth: col.leftBorder ? '2px' : undefined,
+                    borderTopWidth: col.topBorder ? '2px' : undefined,
+                    borderBottomWidth: col.bottomBorder ? '2px' : undefined,
                 };
 
                 return (
