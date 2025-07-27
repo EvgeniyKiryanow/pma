@@ -20,18 +20,17 @@ export default function ShtatniPosadyTab() {
     const [editing, setEditing] = useState<ShtatnaPosada | null>(null);
     const [form, setForm] = useState<Partial<ShtatnaPosada>>({});
     const unassignUserFromPosada = async (pos: ShtatnaPosada) => {
-        // знайти користувача, який зараз займає цю посаду
-        const assignedUser = users.find(
-            (u) =>
-                u.shtatNumber === pos.shtat_number ||
-                (u.position === pos.position_name && u.unitMain === pos.unit_name),
-        );
+        // ✅ знайти користувача, який зараз займає цю посаду (по shpkNumber)
+        const assignedUser = users.find((u) => u.shpkNumber === pos.shtat_number);
 
         if (!assignedUser) {
-            alert('❗ На цю посаду зараз ніхто не призначений');
+            alert(
+                `❗ На посаду "${pos.position_name}" (${pos.unit_name}) зараз ніхто не призначений`,
+            );
             return;
         }
 
+        // ✅ Запис в історію
         const historyEntry: CommentOrHistoryEntry = {
             id: Date.now(),
             date: new Date().toISOString(),
@@ -42,26 +41,30 @@ export default function ShtatniPosadyTab() {
             files: [],
         };
 
+        // ✅ Очищуємо дані посади у користувача
         const clearedUser: User = {
             ...assignedUser,
             position: null,
             unitMain: null,
             shpkCode: null,
-            shpkNumber: null,
+            shpkNumber: null, // ключове!
             category: null,
             shtatNumber: null,
             history: [...(assignedUser.history || []), historyEntry],
         };
 
+        // ✅ Оновлюємо користувача в Zustand/БД
         await updateUser(clearedUser);
 
-        // якщо цей користувач зараз відкритий у правій панелі – оновлюємо стан
+        // ✅ Якщо цей користувач зараз відкритий у правій панелі – оновлюємо стан
         const setSelectedUser = useUserStore.getState().setSelectedUser;
         if (useUserStore.getState().selectedUser?.id === assignedUser.id) {
             setSelectedUser(clearedUser);
         }
 
-        alert(`✅ ${assignedUser.fullName} звільнений з посади "${pos.position_name}"`);
+        alert(
+            `✅ ${assignedUser.fullName} звільнений з посади "${pos.position_name}" (${pos.unit_name})`,
+        );
     };
 
     useEffect(() => {
@@ -401,7 +404,6 @@ export default function ShtatniPosadyTab() {
                                         <select
                                             className="text-xs border rounded px-1 py-0.5 max-w-[180px]"
                                             value={
-                                                // ✅ find user who is assigned to this posada by shtatNumber
                                                 users.find((u) => u.shpkNumber === pos.shtat_number)
                                                     ?.id || ''
                                             }
@@ -409,7 +411,6 @@ export default function ShtatniPosadyTab() {
                                                 const selectedValue = e.target.value;
 
                                                 if (selectedValue === 'remove') {
-                                                    // користувач вибрав "Зняти"
                                                     unassignUserFromPosada(pos);
                                                     return;
                                                 }
@@ -421,18 +422,28 @@ export default function ShtatniPosadyTab() {
                                             {/* перша опція */}
                                             <option value="">-- Обрати користувача --</option>
 
-                                            {/* опція для зняття */}
-                                            <option value="remove">✖ Зняти користувача</option>
+                                            {/* ✅ завжди показуємо опцію для зняття, якщо вже є призначений */}
+                                            {users.some(
+                                                (u) => u.shpkNumber === pos.shtat_number,
+                                            ) && (
+                                                <option value="remove">✖ Зняти користувача</option>
+                                            )}
 
-                                            {/* ✅ Список усіх користувачів */}
-                                            {users.map((u) => (
-                                                <option key={u.id} value={u.id}>
-                                                    {u.fullName}{' '}
-                                                    {u.shtatNumber === pos.shtat_number
-                                                        ? '✅ (призначений)'
-                                                        : ''}
-                                                </option>
-                                            ))}
+                                            {/* ✅ Список вільних + призначеного */}
+                                            {users
+                                                .filter(
+                                                    (u) =>
+                                                        !u.shpkNumber ||
+                                                        u.shpkNumber === pos.shtat_number, // free OR this posada
+                                                )
+                                                .map((u) => (
+                                                    <option key={u.id} value={u.id}>
+                                                        {u.fullName}{' '}
+                                                        {u.shpkNumber === pos.shtat_number
+                                                            ? '✅ (призначений)'
+                                                            : ''}
+                                                    </option>
+                                                ))}
                                         </select>
                                     </td>
 
