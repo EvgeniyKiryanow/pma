@@ -74,11 +74,11 @@ export default function UserCard({ user }: { user: User }) {
                             )}
 
                             {/* ШПК badge */}
-                            {user.shpkCode && (
+                            {user.rank && (
                                 <span
                                     className={`inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-medium ${shpk.badgeStyle}`}
                                 >
-                                    {shpk.icon} {user.shpkCode}
+                                    {shpk.icon} {user.rank}
                                 </span>
                             )}
 

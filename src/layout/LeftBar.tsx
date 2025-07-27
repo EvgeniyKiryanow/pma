@@ -134,7 +134,7 @@ export default function LeftBar({ users }: Props) {
                                                             {user.fullName}
                                                         </span>
                                                         <div className="flex flex-wrap items-center gap-1 mt-0.5">
-                                                            {user.shpkCode && (
+                                                            {user.rank && (
                                                                 <span
                                                                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-medium ${getShpkBadge(user.shpkCode).badgeStyle}`}
                                                                 >
@@ -142,15 +142,16 @@ export default function LeftBar({ users }: Props) {
                                                                         getShpkBadge(user.shpkCode)
                                                                             .icon
                                                                     }{' '}
-                                                                    {user.shpkCode}
+                                                                    {user.rank}
                                                                 </span>
                                                             )}
 
+                                                            {/* 
                                                             {!user.shpkCode && !user.category && (
                                                                 <span className="text-xs text-gray-500">
                                                                     {user.rank || '—'}
                                                                 </span>
-                                                            )}
+                                                            )} */}
                                                         </div>
                                                     </div>
                                                 </div>
