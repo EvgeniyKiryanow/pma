@@ -144,7 +144,7 @@ export default function UserFormModalUpdate({
     const handleChange = <K extends keyof User>(key: K, value: User[K]) => {
         setForm((prev) => ({ ...prev, [key]: value }));
     };
-
+    const allUsers = useUserStore((s) => s.users);
     const handleSubmit = () => {
         const finalUser: User = {
             id: userToEdit?.id ?? Date.now(),
@@ -153,6 +153,17 @@ export default function UserFormModalUpdate({
             comments: form.comments || [],
             history: form.history || [],
         } as User;
+
+        const duplicate = allUsers.find(
+            (u) => u.shpkNumber && u.shpkNumber === finalUser.shpkNumber && u.id !== finalUser.id, // allow if editing same user
+        );
+
+        if (duplicate) {
+            alert(
+                `❗ Користувач "${duplicate.fullName}" вже має цей номер по штату (${finalUser.shpkNumber}).\n\nБудь ласка, виберіть інший.`,
+            );
+            return;
+        }
 
         isEditing ? updateUser(finalUser) : addUser(finalUser);
         onClose();
