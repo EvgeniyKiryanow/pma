@@ -90,19 +90,19 @@ export async function generateAlternateCombatReportExcelTemplate(report: Record<
     ws.getRow(2).height = 150;
 
     // Slightly wider columns
-    ws.getColumn('C').width = 4;
-    ws.getColumn('D').width = 4;
-    ws.getColumn('E').width = 4;
+    ws.getColumn('C').width = 4.5;
+    ws.getColumn('D').width = 4.5;
+    ws.getColumn('E').width = 4.5;
 
     // Set row 2 height taller for rotated text
     ws.getRow(2).height = 150;
 
     ws.mergeCells('F1:F2');
-    ws.getCell('F1').value = '% УКОПМЛЕКТОВАНІСТЬ';
+    ws.getCell('F1').value = '%\nУКОПМЛЕКТОВАНІСТЬ';
     styleHeader(ws.getCell('F1'), { rotate: true });
 
     // Optional: adjust width and height for readability
-    ws.getColumn('F').width = 4.5;
+    ws.getColumn('F').width = 5.5;
     ws.getRow(2).height = 150;
 
     ws.mergeCells('G1:I1');
@@ -124,13 +124,15 @@ export async function generateAlternateCombatReportExcelTemplate(report: Record<
 
     // Adjust row height and column widths
     ws.getRow(2).height = 150;
-    ws.getColumn('G').width = 4;
-    ws.getColumn('H').width = 4;
-    ws.getColumn('I').width = 4;
+    ws.getColumn('G').width = 4.5;
+    ws.getColumn('H').width = 4.5;
+    ws.getColumn('I').width = 4.5;
 
     ws.mergeCells('J1:J2');
-    ws.getCell('J1').value = '% В НАЯВНОСТІ';
-    styleHeader(ws.getCell('J1'), { rotate: true });
+    ws.getCell('J1').value = '%\nВ НАЯВНОСТІ';
+    styleHeader(ws.getCell('J1'), {
+        rotate: true, // keep if you want vertical text
+    });
 
     // Main header
     ws.mergeCells('K1:M1');
@@ -152,9 +154,9 @@ export async function generateAlternateCombatReportExcelTemplate(report: Record<
 
     // Adjust row height and column widths
     ws.getRow(2).height = 150;
-    ws.getColumn('K').width = 4;
-    ws.getColumn('L').width = 4;
-    ws.getColumn('M').width = 4;
+    ws.getColumn('K').width = 4.5;
+    ws.getColumn('L').width = 4.5;
+    ws.getColumn('M').width = 4.5;
 
     // === "З НИХ" group ===
     const znukhColumns = [
@@ -173,7 +175,7 @@ export async function generateAlternateCombatReportExcelTemplate(report: Record<
         { label: 'Хворі в підрозділі', bg: '#f8da78' },
         { label: 'Відмовники', bg: '#f8da78' },
         { label: 'Звільняються', bg: '#f8da78' },
-        { label: 'Мають направлення на лік / обслід/ конс/ влк', bg: '#f8da78' },
+        { label: 'Мають направлення на лік \n / обслід/ конс/ влк', bg: '#f8da78' },
     ];
 
     // === Helper to convert column number to Excel-style letter
@@ -298,7 +300,11 @@ export async function generateAlternateCombatReportExcelTemplate(report: Record<
     });
 
     // === Dynamic body rows definition
-    const bodyRows = [
+    type BodyRow = {
+        label: string;
+        values: number[];
+    };
+    const bodyRows: BodyRow[] = [
         { label: 'Управління роти', values: [] },
         { label: '1-й взвод', values: [] },
         { label: '2-й взвод', values: [] },
@@ -326,7 +332,11 @@ export async function generateAlternateCombatReportExcelTemplate(report: Record<
                 bold: false,
             });
         }
+
+        // ✅ Set normal row height
+        ws.getRow(rowIndex).height = 20;
     }
+
     const exportFields = [
         'plannedTotal',
         'plannedOfficer',
