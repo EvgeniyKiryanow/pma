@@ -51,126 +51,118 @@ export async function generateAlternateCombatReportExcelTemplate() {
     styleHeader(ws.getCell('A1'));
 
     ws.mergeCells('B1:B2');
-    ws.getCell('B1').value = 'Підрозділ';
-    styleHeader(ws.getCell('B1'), { backgroundColor: '#92fc7a', borderLeft: true });
+    ws.getCell('B1').value = 'Підрозділи';
+    styleHeader(ws.getCell('B1'));
 
     ws.mergeCells('C1:E1');
-    ws.getCell('C1').value = 'За Штатом';
-    styleHeader(ws.getCell('C1'), {
-        backgroundColor: '#f0f0f0',
-        borderLeft: true,
-        borderRight: true,
-    });
+    ws.getCell('C1').value = 'За штатом';
+    styleHeader(ws.getCell('B1'));
+
+    ws.mergeCells('C2');
+    ws.getCell('C2').value = 'Всього за штатом';
+    ws.mergeCells('D2');
+    ws.getCell('D2').value = 'Офіцери';
+    ws.mergeCells('E2');
+    ws.getCell('E2').value = 'Сержанти/Солдати';
 
     ws.mergeCells('F1:F2');
-    ws.getCell('F1').value = '% УКОМПЛЕКТОВАНІСТЬ';
-    styleHeader(ws.getCell('F1'), {
-        rotate: true,
-        borderRight: true,
-        padding: 20,
-        borderTop: true,
-    });
+    ws.getCell('F1').value = '% УКОПМЛЕКТОВАНІСТЬ';
+    styleHeader(ws.getCell('F1'));
 
     ws.mergeCells('G1:I1');
-    ws.getCell('G1').value = 'За Списком';
-    styleHeader(ws.getCell('G1'), {
-        backgroundColor: '#f0f0f0',
-        borderLeft: true,
-        borderRight: true,
-    });
+    ws.getCell('G1').value = 'За списком';
+    styleHeader(ws.getCell('G1'));
+
+    ws.mergeCells('G2');
+    ws.getCell('G2').value = 'Всього за списком';
+    ws.mergeCells('H2');
+    ws.getCell('H2').value = 'Офіцери';
+    ws.mergeCells('I2');
+    ws.getCell('I2').value = 'Сержанти/Солдати';
 
     ws.mergeCells('J1:J2');
     ws.getCell('J1').value = '% В НАЯВНОСТІ';
-    styleHeader(ws.getCell('J1'), {
-        rotate: true,
-        borderRight: true,
-        padding: 20,
-        borderTop: true,
-    });
+    styleHeader(ws.getCell('J1'));
 
     ws.mergeCells('K1:M1');
     ws.getCell('K1').value = 'В НАЯВНОСТІ';
-    styleHeader(ws.getCell('K1'), {
-        backgroundColor: '#f8da78',
-        borderLeft: true,
-        borderRight: true,
-    });
+    styleHeader(ws.getCell('G1'));
 
-    ws.mergeCells('N1:Y1');
+    ws.mergeCells('K2');
+    ws.getCell('K2').value = 'Всього за наявності';
+    ws.mergeCells('L2');
+    ws.getCell('L2').value = 'Офіцери';
+    ws.mergeCells('M2');
+    ws.getCell('M2').value = 'Сержанти/Солдати';
+    // === "З НИХ" group ===
+    const znukhColumns = [
+        { label: 'НА ПОЗИЦІЯ', bg: '#f0ccb0' },
+        { label: 'БРОНЄГРУПА', bg: '#f0ccb0' },
+        { label: 'ПОЗИЦІЇ ПІХОТИ', bg: '#f0ccb0' },
+        { label: 'ПОЗИЦІЇ ЕКІПАЖ', bg: '#f0ccb0' },
+        { label: 'ПОЗИЦІЇ РОЗРАХУНОК', bg: '#f0ccb0' },
+        { label: 'ПОЗИЦІЇ БПЛА', bg: '#f0ccb0' },
+        { label: 'РЕЗЕРВ ПІХОТИ', bg: '#d8e9bc' },
+        { label: 'УПРАВЛІННЯ', bg: '#d8e9bc' },
+        { label: 'БОЙОВЕ ЗАБЕСПЕЧЕННЯ', bg: '#d8e9bc' },
+        { label: 'ЗАБЕСПЕЧЕННЯ', bg: '#d8e9bc' },
+        { label: 'НОВОПРИБУЛІ НАВЧАННЯ В ПІДРОЗДІЛІ', bg: '#d8e9bc' },
+        { label: 'Обмежено придатні', bg: '#c2d6eb' },
+        { label: 'Хворі в підрозділі', bg: '#c2d6eb' },
+        { label: 'Відмовники', bg: '#c2d6eb' },
+        { label: 'Звільняються', bg: '#c2d6eb' },
+        { label: 'Мають направлення на лік / обслід/ конс/ влк' }, // <- this one will be moved
+    ];
+
+    // === Helper to convert column number to Excel-style letter
+    function getExcelColumnLetter(colIndex: number): string {
+        let letter = '';
+        while (colIndex > 0) {
+            const mod = (colIndex - 1) % 26;
+            letter = String.fromCharCode(65 + mod) + letter;
+            colIndex = Math.floor((colIndex - 1) / 26);
+        }
+        return letter;
+    }
+
+    // === З НИХ Group Header (N to AC = 16 columns) ===
+    ws.mergeCells('N1:AC1');
     ws.getCell('N1').value = 'З НИХ';
-    styleHeader(ws.getCell('N1'), {
-        backgroundColor: '#f8da78',
-        borderTop: true,
-        borderBottom: true,
-        bold: true,
+    styleHeader(ws.getCell('N1'));
+
+    // === All 16 subheaders under З НИХ ===
+    znukhColumns.forEach((col, idx) => {
+        const colNumber = 14 + idx; // N = 14
+        const colLetter = getExcelColumnLetter(colNumber);
+        const cell = ws.getCell(`${colLetter}2`);
+        cell.value = col.label;
+        styleHeader(cell, {
+            backgroundColor: col.bg,
+        });
     });
 
-    ws.mergeCells('Z1:Z2');
-    ws.getCell('Z1').value = 'ВСЬОГО НЕ БГ';
-    styleHeader(ws.getCell('Z1'), {
-        backgroundColor: '#b89230',
-        rotate: true,
-        padding: 10,
-        borderTop: true,
-        borderRight: true,
-    });
+    // === ВСЬОГО НЕ БГ === (next column = AD)
+    ws.mergeCells('AD1:AD2');
+    const totalCell = ws.getCell('AD1');
+    totalCell.value = 'ВСЬОГО НЕ БГ';
+    styleHeader(totalCell);
 
-    ws.mergeCells('AA1:AA2');
-    ws.getCell('AA1').value = 'В ПІДРОЗДІЛІ';
-    styleHeader(ws.getCell('AA1'), {
-        rotate: true,
-        padding: 10,
-        borderTop: true,
-        borderRight: true,
-    });
+    // === В ПІДРОЗДІЛІ === (next = AE)
+    ws.mergeCells('AE1:AE2');
+    const inUnitCell = ws.getCell('AE1');
+    inUnitCell.value = 'В ПІДРОЗДІЛІ';
+    styleHeader(inUnitCell);
 
-    ws.mergeCells('AB1:AK1');
-    ws.getCell('AB1').value = 'ВІДСУТНІ';
-    styleHeader(ws.getCell('AB1'), {
-        borderTop: true,
-        borderBottom: true,
-        borderRight: true,
-        bold: true,
-    });
+    // === ВІДСУТНІ group (10 columns: AF to AO) ===
+    ws.mergeCells('AF1:AO1');
+    const absentHeader = ws.getCell('AF1');
+    absentHeader.value = 'ВІДСУТНІ';
+    styleHeader(absentHeader);
 
-    ws.mergeCells('AL1:AL2');
-    ws.getCell('AL1').value = 'ВСЬОГО ВІДСУТНІX';
-    styleHeader(ws.getCell('AL1'), {
-        rotate: true,
-        borderTop: true,
-        borderRight: true,
-    });
-
-    // Row 2 (Detailed labels)
-    const detailedLabels = [
-        'Всього за штатом',
-        'Офіцери',
-        'Сержанти/Солдати',
-        'Всього за списком',
-        'Офіцери',
-        'Сержанти/Солдати',
-        'Всього в наявності',
-        'Офіцери',
-        'Сержанти/Солдати',
-        'НА ПОЗИЦІЇ',
-        'БРОНЄГРУПА',
-        'ПОЗИЦІЇ ПІХОТИ',
-        'ПОЗИЦІЇ ЕКІПАЖ',
-        'ПОЗИЦІЇ РОЗРАХУНОК',
-        'ПОЗИЦІЇ БПЛА',
-        'РЕЗЕРВ ПІХОТА',
-        'УПРАВЛІННЯ',
-        'БОЙОВЕ ЗАБЕСПЕЧЕННЯ',
-        'ЗАБЕСПЕЧЕННЯ',
-        'НОВОПРИБУЛІ НАВЧАННЯ В ПІДЗОЗДІЛІ',
-        'Обмежено придатні',
-        'Хворі в підрозділі',
-        'Відмовники',
-        'Звільнються',
-        'Мають направлення на лік / обслід/ конс/ влк',
+    const absentSubheaders = [
         'ВЛК',
-        'Шпиталь / Лікарня',
-        'Мед. Рота',
+        'Шпиталь/ЛІкарня',
+        'Мед.Рота',
         'Відпустка (реабілітація)',
         'Відпустка',
         'Відрядження',
@@ -180,32 +172,19 @@ export async function generateAlternateCombatReportExcelTemplate() {
         'Зниклі безвісті',
     ];
 
-    const row2 = ws.getRow(2);
-    const colIdx = 3;
-    detailedLabels.forEach((label, i) => {
-        const cell = row2.getCell(colIdx + i);
+    // Start from column 32 (AF)
+    absentSubheaders.forEach((label, idx) => {
+        const colLetter = getExcelColumnLetter(32 + idx);
+        const cell = ws.getCell(`${colLetter}2`);
         cell.value = label;
-        styleHeader(cell, {
-            backgroundColor:
-                label.includes('НА ПОЗИЦІЇ') || label.includes('ПОЗИЦІЇ')
-                    ? '#eab38a'
-                    : label.includes('в наявності')
-                      ? '#f8da78'
-                      : label.includes('штатом') || label.includes('списком')
-                        ? '#f0f0f0'
-                        : label.includes('ВЛК') || label.includes('Шпиталь')
-                          ? '#eab38a'
-                          : label.includes('реабілітація') ||
-                              label.includes('Відпустка') ||
-                              label.includes('СЗЧ')
-                            ? '#fcf2cf'
-                            : undefined,
-            rotate: true,
-        });
+        styleHeader(cell);
     });
 
-    ws.columns.forEach((col) => (col.width = 4.5));
-    row2.height = 150;
+    // === ВСЬОГО ВІДСУТНІХ === (next = AP)
+    ws.mergeCells('AP1:AP2');
+    const totalAbsentCell = ws.getCell('AP1');
+    totalAbsentCell.value = 'ВСЬОГО ВІДСУТНІХ';
+    styleHeader(totalAbsentCell);
 
     const buffer = await wb.xlsx.writeBuffer();
     saveAs(
