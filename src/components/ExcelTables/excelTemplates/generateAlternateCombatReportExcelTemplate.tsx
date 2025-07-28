@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
-export async function generateAlternateCombatReportExcelTemplate() {
+export async function generateAlternateCombatReportExcelTemplate(report: Record<string, any>) {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Alternate Report', { properties: { defaultRowHeight: 100 } });
 
@@ -303,7 +303,7 @@ export async function generateAlternateCombatReportExcelTemplate() {
         { label: '1-й взвод', values: [] },
         { label: '2-й взвод', values: [] },
         { label: '3-й взвод', values: [] },
-        { label: 'Всього прикомандировані', values: [] },
+        { label: 'ВСЬОГО', values: [] },
     ];
 
     // === Function to insert a body row
@@ -327,13 +327,65 @@ export async function generateAlternateCombatReportExcelTemplate() {
             });
         }
     }
+    const exportFields = [
+        'plannedTotal',
+        'plannedOfficer',
+        'plannedSoldier',
 
-    // === Add all body rows starting from row 3
+        'staffingPercent',
+        'actualTotal',
+        'actualOfficers',
+        'actualSoldiers',
+
+        'presentPercent',
+        'presentTotal',
+        'presentOfficer',
+        'presentSoldier',
+
+        'oNPostition',
+        'positionsBronegroup',
+        'positionsInfantry',
+        'positionsCrew',
+        'positionsCalc',
+        'positionsUav',
+        'positionsReserveInfantry',
+        'totalManagement',
+        'supplyCombat',
+        'supplyGeneral',
+        'nonCombatNewcomers',
+
+        'nonCombatLimited',
+        'nonCombatLimitedInCombat',
+        'nonCombatRefusers',
+        'absentRehabedOn',
+        'haveOfferToJost',
+
+        'nonOnBG',
+        'inCombatNow',
+
+        'absentVLK',
+        'absentHospital',
+        'absentMedCompany',
+        'absentRehabLeave',
+        'absentRehab',
+        'absentBusinessTrip',
+        'absentSZO',
+        'absentWounded',
+        'absent200',
+        'absentMIA',
+        'absentAllAlternative',
+    ];
+    // const reportMap = Object.fromEntries(report.map((r) => [r.unit, r]));
+
+    bodyRows.forEach((row) => {
+        const rowReport = report[row.label] ?? {};
+        row.values = exportFields.map((field) => rowReport[field] ?? 0);
+    });
+
     const startRow = 3;
     bodyRows.forEach((row, i) => {
         addStyledBodyRow(startRow + i, row.label, row.values);
     });
-
     const buffer = await wb.xlsx.writeBuffer();
     saveAs(
         new Blob([buffer], {

@@ -1,5 +1,5 @@
 // GeneratedTablesTabContent.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CombatReportTable } from './_components/CombatReportTable';
 import { StaffReportTable } from './_components/StaffReportTable';
 import { generateCombatReportExcel } from './excelTemplates/generateCombatReportExcel';
@@ -7,6 +7,8 @@ import { generateStaffReportExcel } from './excelTemplates/generateStaffReportEx
 import { useShtatniStore } from '../../stores/useShtatniStore';
 import { AlternateCombatReportTable } from './_components/AlternateCombatReportTable';
 import { generateAlternateCombatReportExcelTemplate } from './excelTemplates/generateAlternateCombatReportExcelTemplate';
+import { useUserStore } from '../../stores/userStore';
+import { UnitStatsCalculator } from './_components/UnitStatsCalculator';
 
 type Props = {
     onRequestImportTab?: () => void; // ✅ new optional callback
@@ -16,6 +18,16 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
     const [activeTable, setActiveTable] = useState<'combat' | 'staff' | 'alternate'>('combat');
     const { shtatniPosady } = useShtatniStore();
     const hasShtatni = shtatniPosady.length > 0;
+    const { fetchAll } = useShtatniStore();
+    const { fetchUsers } = useUserStore();
+
+    useEffect(() => {
+        fetchAll();
+        fetchUsers();
+    }, []);
+
+    const users = useUserStore((s) => s.users);
+    const report = UnitStatsCalculator.generateFullReport(users, shtatniPosady);
 
     const tableSections = [
         { id: 'combat', title: '📄 ДОНЕСЕННЯ (Combat Report)' },
@@ -141,7 +153,9 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                 </div>
                                 <div className="p-4 border-t flex justify-end">
                                     <button
-                                        onClick={generateAlternateCombatReportExcelTemplate}
+                                        onClick={() =>
+                                            generateAlternateCombatReportExcelTemplate(report)
+                                        }
                                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
                                     >
                                         📤 Експорт Alternate Report (.xlsx)
