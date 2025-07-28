@@ -273,8 +273,6 @@ export async function generateAlternateCombatReportExcelTemplate() {
     ws.getColumn('AP').width = 3.5;
 
     // BODY
-    const bodyRowIndex = 3;
-
     // Build column → header bg map
     const headerBgMap = new Map<string, string | undefined>();
 
@@ -299,23 +297,42 @@ export async function generateAlternateCombatReportExcelTemplate() {
         }
     });
 
-    // === Insert body row: "Управління роти"
-    ws.getCell(`B${bodyRowIndex}`).value = 'Управління роти';
-    styleHeader(ws.getCell(`B${bodyRowIndex}`), {
-        backgroundColor: '#9fce63',
-        bold: false,
-    });
+    // === Dynamic body rows definition
+    const bodyRows = [
+        { label: 'Управління роти', values: [] },
+        { label: '1-й взвод', values: [] },
+        { label: '2-й взвод', values: [] },
+        { label: '3-й взвод', values: [] },
+        { label: 'Всього прикомандировані', values: [] },
+    ];
 
-    // Fill rest of the row with 0 and matching bg
-    for (let col = 3; col <= ws.columnCount; col++) {
-        const colLetter = getExcelColumnLetter(col);
-        const cell = ws.getCell(`${colLetter}${bodyRowIndex}`);
-        cell.value = 0;
-        styleHeader(cell, {
-            backgroundColor: headerBgMap.get(colLetter),
+    // === Function to insert a body row
+    function addStyledBodyRow(rowIndex: number, label: string, values: number[] = []) {
+        // Column B label
+        const labelCell = ws.getCell(`B${rowIndex}`);
+        labelCell.value = label;
+        styleHeader(labelCell, {
+            backgroundColor: '#9fce63',
             bold: false,
         });
+
+        // Fill values with matching bg color
+        for (let col = 3; col <= ws.columnCount; col++) {
+            const colLetter = getExcelColumnLetter(col);
+            const cell = ws.getCell(`${colLetter}${rowIndex}`);
+            cell.value = values[col - 3] ?? 0;
+            styleHeader(cell, {
+                backgroundColor: headerBgMap.get(colLetter),
+                bold: false,
+            });
+        }
     }
+
+    // === Add all body rows starting from row 3
+    const startRow = 3;
+    bodyRows.forEach((row, i) => {
+        addStyledBodyRow(startRow + i, row.label, row.values);
+    });
 
     const buffer = await wb.xlsx.writeBuffer();
     saveAs(
