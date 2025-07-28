@@ -272,6 +272,51 @@ export async function generateAlternateCombatReportExcelTemplate() {
     // Optional: consistent width
     ws.getColumn('AP').width = 3.5;
 
+    // BODY
+    const bodyRowIndex = 3;
+
+    // Build column → header bg map
+    const headerBgMap = new Map<string, string | undefined>();
+
+    // Step through row 2 (subheaders)
+    ws.getRow(2).eachCell((cell, colNumber) => {
+        const colLetter = getExcelColumnLetter(colNumber);
+        const fill = cell.fill as ExcelJS.FillPattern | undefined;
+        const bg =
+            fill && 'fgColor' in fill && fill.fgColor?.argb ? `#${fill.fgColor.argb}` : undefined;
+        headerBgMap.set(colLetter, bg);
+    });
+
+    // Fallbacks for merged headers in row 1
+    ['A', 'B', 'F', 'J', 'AD', 'AE', 'AP'].forEach((colLetter) => {
+        if (!headerBgMap.has(colLetter)) {
+            const fill = ws.getCell(`${colLetter}1`).fill as ExcelJS.FillPattern | undefined;
+            const bg =
+                fill && 'fgColor' in fill && fill.fgColor?.argb
+                    ? `#${fill.fgColor.argb}`
+                    : undefined;
+            headerBgMap.set(colLetter, bg);
+        }
+    });
+
+    // === Insert body row: "Управління роти"
+    ws.getCell(`B${bodyRowIndex}`).value = 'Управління роти';
+    styleHeader(ws.getCell(`B${bodyRowIndex}`), {
+        backgroundColor: '#9fce63',
+        bold: false,
+    });
+
+    // Fill rest of the row with 0 and matching bg
+    for (let col = 3; col <= ws.columnCount; col++) {
+        const colLetter = getExcelColumnLetter(col);
+        const cell = ws.getCell(`${colLetter}${bodyRowIndex}`);
+        cell.value = 0;
+        styleHeader(cell, {
+            backgroundColor: headerBgMap.get(colLetter),
+            bold: false,
+        });
+    }
+
     const buffer = await wb.xlsx.writeBuffer();
     saveAs(
         new Blob([buffer], {
