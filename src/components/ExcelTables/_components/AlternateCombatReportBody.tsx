@@ -16,7 +16,6 @@ export function AlternateCombatReportBody() {
     const users = useUserStore((s) => s.users);
     const shtatniPosady = useShtatniStore((s) => s.shtatniPosady);
     const report = UnitStatsCalculator.generateFullReport(users, shtatniPosady);
-    console.log(users, 'users');
 
     const SUBUNITS = [
         'Управління роти',

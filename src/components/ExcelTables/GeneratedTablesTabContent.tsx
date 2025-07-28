@@ -6,6 +6,7 @@ import { generateCombatReportExcel } from './excelTemplates/generateCombatReport
 import { generateStaffReportExcel } from './excelTemplates/generateStaffReportExcel';
 import { useShtatniStore } from '../../stores/useShtatniStore';
 import { AlternateCombatReportTable } from './_components/AlternateCombatReportTable';
+import { generateAlternateCombatReportExcelTemplate } from './excelTemplates/generateAlternateCombatReportExcelTemplate';
 
 type Props = {
     onRequestImportTab?: () => void; // ✅ new optional callback
@@ -140,7 +141,7 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                 </div>
                                 <div className="p-4 border-t flex justify-end">
                                     <button
-                                        onClick={generateCombatReportExcel} // Можна буде зробити окрему функцію
+                                        onClick={generateAlternateCombatReportExcelTemplate}
                                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
                                     >
                                         📤 Експорт Alternate Report (.xlsx)
