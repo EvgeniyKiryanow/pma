@@ -253,16 +253,19 @@ export class UnitStatsCalculator {
     }
 
     static filterUsersByUnit(users: any, unitName: string) {
-        // Normalize "2-й взвод" → "2 взвод"
         const normalizedTarget = this.normalizeUnitName(unitName);
 
         return users.filter((u: any) => {
             if (!u.unitMain) return false;
 
-            const normalizedUserUnit = this.normalizeUnitName(u.unitMain);
+            // Split on common delimiters like newlines, commas, or semicolons
+            const rawUnits = u.unitMain.split(/\r?\n|,|;/g);
 
-            // ✅ MATCH if startsWith (so "2 взвод" matches "2 взвод 1 відділення")
-            return normalizedUserUnit.startsWith(normalizedTarget);
+            // Normalize each part individually
+            const normalizedParts = rawUnits.map((part: string) => this.normalizeUnitName(part));
+
+            // ✅ Match if any of the parts starts with the target
+            return normalizedParts.some((part: any) => part.startsWith(normalizedTarget));
         });
     }
 
