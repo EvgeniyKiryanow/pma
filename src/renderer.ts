@@ -36,6 +36,7 @@ declare global {
             addUser: (user: any) => Promise<User>;
             updateUser: (user: User) => Promise<User>;
             deleteUser: (id: number) => Promise<boolean>;
+            bulkUpdateUsers: (user: any) => Promise<any>;
 
             getDbColums: () => Promise<string[]>;
 

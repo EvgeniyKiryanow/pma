@@ -143,6 +143,85 @@ export class UnitStatsCalculator {
         '3-й взвод': { total: 34, officer: 1, soldier: 33 },
         ВСЬОГО: { total: 0, officer: 0, soldier: 0 }, // sum later
     };
+    // === Actual (за списком)
+    // const actualTotal = users.length;
+    // const actualOfficers = users.filter((u) => u.category?.toLowerCase().includes('оф')).length;
+    // const actualSoldiers = actualTotal - actualOfficers;
+
+    // // === % Staffing
+    // const staffingPercent =
+    //     plannedTotal > 0 ? ((actualTotal / plannedTotal) * 100).toFixed(0) : '0';
+    // // === Присутні всі
+    // const presentTotal = actualTotal - totalMissing;
+
+    // // === Відсоток присутніх
+    // const presentPercent =
+    //     actualTotal > 0 ? ((presentTotal / actualTotal) * 100).toFixed(0) : '0';
+
+    // // === Тепер визначаємо присутніх користувачів (відфільтруємо відсутніх)
+    // const absentStatuses = [...STATUS_GROUPS.nonCombatAll, ...STATUS_GROUPS.absentAll];
+
+    // const presentUsers = users.filter((u) => !absentStatuses.includes(u.soldierStatus as any));
+
+    // // === Присутні офіцери і солдати окремо
+    // const presentTotalOfficer = presentUsers.filter((u) =>
+    //     u.category?.toLowerCase().includes('оф'),
+    // ).length;
+
+    // const presentTotalSoldier = presentUsers.length - presentTotalOfficer;
+    static calculateAdditionalStats(
+        users: any[],
+        planned: { total: number; officer: number; soldier: number },
+    ) {
+        // 1. Загальна кількість користувачів (actualTotal)
+        const actualTotal = users.length;
+
+        // 2. Кількість офіцерів
+        const actualOfficers = users.filter((u) => u.category?.toLowerCase().includes('оф')).length;
+
+        // 3. Кількість солдатів
+        const actualSoldiers = actualTotal - actualOfficers;
+
+        // 4. Відсоток укомплектованості
+        const staffingPercent =
+            planned.total > 0 ? ((actualTotal / planned.total) * 100).toFixed(0) + '%' : '0';
+
+        // 5. Кількість відсутніх
+        const totalMissing = this.calculateStatusTotalsExplicit(users).totalMissing;
+
+        // 6. Кількість присутніх
+        const presentTotal = actualTotal - totalMissing;
+
+        // 7. Відсоток присутніх
+        const presentPercent =
+            actualTotal > 0 ? ((presentTotal / actualTotal) * 100).toFixed(0) : '0';
+
+        // 8. Список присутніх користувачів (тобто не absent)
+        const absentStatuses = [
+            ...this.STATUS_GROUPS.nonCombatAll,
+            ...this.STATUS_GROUPS.absentAll,
+        ];
+        const presentUsers = users.filter((u) => !absentStatuses.includes(u.soldierStatus as any));
+
+        // 9. Присутні офіцери
+        const presentTotalOfficer = presentUsers.filter((u) =>
+            u.category?.toLowerCase().includes('оф'),
+        ).length;
+
+        // 10. Присутні солдати
+        const presentTotalSoldier = presentUsers.length - presentTotalOfficer;
+
+        return {
+            actualTotal,
+            actualOfficers,
+            actualSoldiers,
+            staffingPercent,
+            presentTotal,
+            presentPercent,
+            presentTotalOfficer,
+            presentTotalSoldier,
+        };
+    }
 
     // ✅ Utility: get planned totals for 1 unit
     static getPlannedTotals(unitName: any) {
@@ -364,7 +443,7 @@ export class UnitStatsCalculator {
 
         for (const unitName of UNITS) {
             if (unitName === 'ВСЬОГО') {
-                // sum planned, calculate actual for ALL users
+                // === Глобальна агрегація по всім підрозділам
                 const plannedSum = Object.keys(this.PLANNED_TOTALS).reduce(
                     (acc, key) => {
                         if (key === 'ВСЬОГО') return acc;
@@ -379,6 +458,7 @@ export class UnitStatsCalculator {
                 );
 
                 const actualGlobal = this.calculateStatusTotalsExplicit(users);
+                const additionalGlobal = this.calculateAdditionalStats(users, plannedSum);
 
                 result[unitName] = {
                     unit: 'ВСЬОГО',
@@ -386,11 +466,14 @@ export class UnitStatsCalculator {
                     plannedOfficer: plannedSum.officer,
                     plannedSoldier: plannedSum.soldier,
                     ...actualGlobal,
+                    ...additionalGlobal, // ✅ Глобальна статистика
                 };
             } else {
+                // === Обробка для кожного підрозділу
                 const unitUsers = this.filterUsersByUnit(users, unitName);
                 const planned = this.getPlannedTotals(unitName);
                 const actual = this.calculateStatusTotalsExplicit(unitUsers);
+                const additional = this.calculateAdditionalStats(unitUsers, planned);
 
                 result[unitName] = {
                     unit: unitName,
@@ -398,6 +481,7 @@ export class UnitStatsCalculator {
                     plannedOfficer: planned.officer,
                     plannedSoldier: planned.soldier,
                     ...actual,
+                    ...additional, // ✅ Додаткові метрики по підрозділу
                 };
             }
         }

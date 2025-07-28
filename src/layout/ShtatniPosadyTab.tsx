@@ -19,6 +19,10 @@ export default function ShtatniPosadyTab() {
 
     const [editing, setEditing] = useState<ShtatnaPosada | null>(null);
     const [form, setForm] = useState<Partial<ShtatnaPosada>>({});
+    const [usersLoaded, setUsersLoaded] = useState(false);
+    const [posadyLoaded, setPosadyLoaded] = useState(false);
+    const [hasSyncedUsers, setHasSyncedUsers] = useState(false);
+
     const unassignUserFromPosada = async (pos: ShtatnaPosada) => {
         // ✅ знайти користувача, який зараз займає цю посаду (по shpkNumber)
         const assignedUser = users.find((u) => u.shpkNumber === pos.shtat_number);
@@ -66,12 +70,66 @@ export default function ShtatniPosadyTab() {
             `✅ ${assignedUser.fullName} звільнений з посади "${pos.position_name}" (${pos.unit_name})`,
         );
     };
+    const mergeUserAssignmentsOnce = async () => {
+        const usersToFix: User[] = [];
+
+        for (const u of users) {
+            const pos = shtatniPosady.find((p) => String(p.shtat_number) === String(u.shpkNumber));
+            if (!pos) continue;
+
+            const needsUpdate =
+                u.position !== pos.position_name ||
+                u.unitMain !== pos.unit_name ||
+                u.category !== pos.category ||
+                u.shpkCode !== pos.shpk_code ||
+                String(u.shpkNumber) !== String(pos.shtat_number) ||
+                String(u.shtatNumber) !== String(pos.shtat_number);
+
+            if (needsUpdate) {
+                usersToFix.push({
+                    ...u,
+                    position: pos.position_name,
+                    unitMain: pos.unit_name,
+                    category: pos.category,
+                    shpkCode: pos.shpk_code,
+                    shpkNumber: pos.shtat_number,
+                    shtatNumber: pos.shtat_number,
+                });
+            }
+        }
+
+        if (usersToFix.length) {
+            await window.electronAPI.bulkUpdateUsers(usersToFix);
+
+            // ✅ Refresh all users once after merge
+            const fresh = await window.electronAPI.fetchUsers();
+            useUserStore.setState({ users: fresh });
+        }
+    };
 
     useEffect(() => {
-        // ✅ Fetch both posady & users when page loads
-        fetchAll();
-        fetchUsers();
+        let cancelled = false;
+
+        fetchUsers().then(() => {
+            if (!cancelled) setUsersLoaded(true);
+        });
+        fetchAll().then(() => {
+            if (!cancelled) setPosadyLoaded(true);
+        });
+
+        return () => {
+            // ✅ Reset state when component unmounts
+            cancelled = true;
+            setUsersLoaded(false);
+            setPosadyLoaded(false);
+        };
     }, []);
+
+    useEffect(() => {
+        if (!usersLoaded || !posadyLoaded || hasSyncedUsers) return;
+
+        mergeUserAssignmentsOnce().then(() => setHasSyncedUsers(true));
+    }, [usersLoaded, posadyLoaded, hasSyncedUsers]);
 
     const assignUserToPosada = async (userId: number, pos: ShtatnaPosada) => {
         const selectedUser = users.find((u) => u.id === userId);
@@ -158,8 +216,6 @@ export default function ShtatniPosadyTab() {
             shtatNumber: pos.shtat_number,
             history: [...(selectedUser.history || []), newHistory],
         };
-
-        // ✅ Single update call → saves BOTH position + history
         await updateUser(updatedUser);
 
         // ✅ Refresh right panel

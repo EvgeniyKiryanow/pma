@@ -19,7 +19,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     addUser: (user: User) => ipcRenderer.invoke('add-user', user),
     updateUser: (user: User) => ipcRenderer.invoke('update-user', user),
     deleteUser: (id: any) => ipcRenderer.invoke('delete-user', id),
-
+    bulkUpdateUsers: (users: any) => ipcRenderer.invoke('bulkUpdateUsers', users),
     getDbColums: () => ipcRenderer.invoke('users:get-db-columns'),
 
     // History

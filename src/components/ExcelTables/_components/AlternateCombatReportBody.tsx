@@ -16,7 +16,7 @@ export function AlternateCombatReportBody() {
     const users = useUserStore((s) => s.users);
     const shtatniPosady = useShtatniStore((s) => s.shtatniPosady);
     const report = UnitStatsCalculator.generateFullReport(users, shtatniPosady);
-    console.log(report, 'report');
+
     const SUBUNITS = [
         'Управління роти',
         '1-й взвод',
@@ -91,30 +91,24 @@ export function AlternateCombatReportBody() {
                         <EditableCell
                             unitName={name}
                             field="staffingPercent"
-                            initialValue={0}
-                            style={{ borderRightWidth: '2px' }}
-                            className="border border-black"
+                            initialValue={safeReportValue(report, 'staffingPercent')}
                         />
-                        {/* === ЗА СПИСКОМ === */}
                         <EditableCell
                             unitName={name}
                             field="actualTotal"
-                            initialValue={0}
-                            className="border border-black"
+                            initialValue={safeReportValue(report, 'actualTotal')}
                         />
                         <EditableCell
                             unitName={name}
-                            field="actualOfficer"
-                            initialValue={0}
-                            className="border border-black"
+                            field="actualOfficers"
+                            initialValue={safeReportValue(report, 'actualOfficers')}
                         />
                         <EditableCell
                             unitName={name}
-                            field="actualSoldier"
-                            initialValue={0}
-                            style={{ borderRightWidth: '2px' }}
-                            className="border border-black"
+                            field="actualSoldiers"
+                            initialValue={safeReportValue(report, 'actualSoldiers')}
                         />
+
                         {/* === В НАЯВНОСТІ % === */}
                         <EditableCell
                             unitName={name}

@@ -282,6 +282,37 @@ export function registerUserHandlers() {
         await db.run('DELETE FROM users WHERE id = ?', userId);
         return true;
     });
+    // main.ts or preload.ts
+    ipcMain.handle('bulkUpdateUsers', async (_event, updatedUsers: any) => {
+        const db = await getDb();
+
+        try {
+            for (const user of updatedUsers) {
+                await db.run(
+                    `UPDATE users SET 
+                    position = ?, 
+                    unitMain = ?, 
+                    category = ?, 
+                    shpkCode = ?, 
+                    shpkNumber = ?
+                 WHERE id = ?`,
+                    [
+                        user.position,
+                        user.unitMain,
+                        user.category,
+                        user.shpkCode,
+                        user.shpkNumber,
+                        user.id,
+                    ],
+                );
+            }
+
+            return { success: true };
+        } catch (err) {
+            console.error('❌ Error in bulkUpdateUsers:', err);
+            throw err;
+        }
+    });
 
     ipcMain.handle('users:get-db-columns', async () => {
         const db = await getDb();
