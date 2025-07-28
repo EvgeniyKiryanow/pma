@@ -115,7 +115,7 @@ export default function AddHistoryModal({
                             type="file"
                             multiple
                             onChange={onFileChange}
-                            accept="image/*,audio/*,application/pdf"
+                            accept=".doc,.docx,.xls,.xlsx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf,image/*"
                             className="hidden"
                         />
                     </div>
