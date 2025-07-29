@@ -3,6 +3,7 @@ import { X, Paperclip, Image as ImageIcon, FileText, ShieldCheck } from 'lucide-
 import type { CommentOrHistoryEntry } from '../../types/user';
 import { StatusExcel } from '../../utils/excelUserStatuses';
 import { useI18nStore } from '../../stores/i18nStore';
+import FilePreviewModal from '../../components/FilePreviewModal';
 
 type FileWithDataUrl = {
     name: string;
@@ -37,6 +38,7 @@ export default function AddHistoryModal({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { t } = useI18nStore();
     const [newStatus, setNewStatus] = useState<string>('');
+    const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
 
     if (!isOpen) return null;
 
@@ -132,10 +134,15 @@ export default function AddHistoryModal({
                                         <img
                                             src={file.dataUrl}
                                             alt={file.name}
-                                            className="w-full h-32 object-cover"
+                                            className="w-full h-32 object-cover cursor-pointer"
+                                            onClick={() => setPreviewFile(file)}
                                         />
                                     ) : (
-                                        <div className="flex flex-col items-center justify-center h-32 text-gray-600 text-sm p-2">
+                                        <button
+                                            onClick={() => setPreviewFile(file)}
+                                            className="flex flex-col items-center justify-center h-32 w-full text-gray-600 text-sm p-2 hover:bg-gray-100 transition"
+                                            title="Переглянути файл"
+                                        >
                                             {file.type === 'application/pdf' ? (
                                                 <FileText className="w-6 h-6 mb-1" />
                                             ) : (
@@ -144,8 +151,9 @@ export default function AddHistoryModal({
                                             <span className="truncate max-w-[90%]">
                                                 {file.name}
                                             </span>
-                                        </div>
+                                        </button>
                                     )}
+
                                     <button
                                         onClick={() => removeFile(i)}
                                         className="absolute top-2 right-2 bg-white/70 hover:bg-red-100 text-red-600 rounded-full p-1 shadow"
@@ -158,6 +166,9 @@ export default function AddHistoryModal({
                         </div>
                     )}
                 </div>
+                {previewFile && (
+                    <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
+                )}
 
                 {/* === FOOTER === */}
                 <div className="flex justify-between items-center px-6 py-4 border-t bg-gray-50">

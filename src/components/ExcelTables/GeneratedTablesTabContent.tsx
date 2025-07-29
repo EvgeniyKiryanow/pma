@@ -30,7 +30,7 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
     const report = UnitStatsCalculator.generateFullReport(users, shtatniPosady);
 
     const tableSections = [
-        { id: 'combat', title: '📄 ДОНЕСЕННЯ (Combat Report)' },
+        // { id: 'combat', title: '📄 ДОНЕСЕННЯ (Combat Report)' },
         { id: 'alternate', title: '📄 Альтернативний звіт (Alternate Report)' },
         { id: 'staff', title: '📄 Штатний звіт (Staff Report)' },
     ];
@@ -108,7 +108,7 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                     </div>
                 ) : (
                     <>
-                        {activeTable === 'combat' && (
+                        {/* {activeTable === 'combat' && (
                             <div className="bg-white rounded-xl shadow-lg border border-gray-200">
                                 <div className="px-6 py-4 border-b bg-gray-50 rounded-t-xl flex justify-between items-center">
                                     <h2 className="text-lg font-semibold text-gray-700">
@@ -132,7 +132,7 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                     </button>
                                 </div>
                             </div>
-                        )}
+                        )} */}
 
                         {activeTable === 'alternate' && (
                             <div className="bg-white rounded-xl shadow-lg border border-gray-200">
