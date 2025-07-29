@@ -97,6 +97,7 @@ declare global {
                 analyzeWords: (words: string[]) => Promise<any>;
             };
             hideApp: () => Promise<void>;
+            toggleFullScreen: () => Promise<void>;
         };
     }
 }

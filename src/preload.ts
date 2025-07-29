@@ -87,7 +87,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         analyzeWords: (words: string[]) => ipcRenderer.invoke('analyze-words', words),
     },
 
-    //close
+    //Screen
     closeApp: () => ipcRenderer.send('app:close'),
     hideApp: () => ipcRenderer.invoke('hide-app'),
+    toggleFullScreen: () => ipcRenderer.send('app:toggle-fullscreen'),
 });

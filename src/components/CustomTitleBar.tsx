@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { X, RotateCcw, Upload, Trash2, Download, Minus } from 'lucide-react';
+import { X, RotateCcw, Upload, Trash2, Download, Minus, Maximize2 } from 'lucide-react';
+
 import { useI18nStore } from '../stores/i18nStore';
 
 export default function CustomTitleBar() {
@@ -109,6 +110,13 @@ export default function CustomTitleBar() {
                     onClick={() => window.electronAPI.hideApp()}
                 >
                     <Minus className="w-4 h-4" />
+                </button>
+                <button
+                    className="p-1 hover:bg-gray-500 rounded"
+                    title={t('titleBar.fullscreen')}
+                    onClick={() => window.electronAPI.toggleFullScreen()}
+                >
+                    <Maximize2 className="w-4 h-4" />
                 </button>
                 <button
                     className="p-1 hover:bg-red-500 rounded"

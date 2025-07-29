@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron';
+import { app, ipcMain, BrowserWindow } from 'electron';
 import { getDb } from '../database/db';
 import { CommentOrHistoryEntry } from 'src/types/user';
 
@@ -432,6 +432,12 @@ export function registerUserHandlers() {
             app.exit(0);
         } else {
             app.quit();
+        }
+    });
+    ipcMain.on('app:toggle-fullscreen', () => {
+        const win = BrowserWindow.getFocusedWindow();
+        if (win) {
+            win.setFullScreen(!win.isFullScreen());
         }
     });
 }
