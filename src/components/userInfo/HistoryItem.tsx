@@ -1,6 +1,8 @@
 import { CommentOrHistoryEntry } from '../../types/user';
 import { Trash2, CalendarDays, FileText, ArrowRight, Info, RefreshCcw } from 'lucide-react';
 import { useI18nStore } from '../../stores/i18nStore';
+import { useState } from 'react';
+import FilePreviewModal, { FileWithDataUrl } from '../../components/FilePreviewModal';
 
 type Props = {
     entry: CommentOrHistoryEntry;
@@ -10,6 +12,8 @@ type Props = {
 
 export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
     const { t } = useI18nStore();
+    const [showFullDesc, setShowFullDesc] = useState(false);
+    const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
 
     const isStatusChange = entry.type === 'statusChange';
     const dateFormatted = new Date(entry.date).toLocaleString();
@@ -170,9 +174,24 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
 
             {/* ✅ Regular text */}
             {!isStatusChange && !isPosadaChange && description && (
-                <p className="text-gray-800 font-medium text-base mb-3 leading-relaxed whitespace-pre-line">
-                    {description}
-                </p>
+                <div className="mb-3">
+                    <p
+                        className={`text-gray-800 font-medium text-base leading-relaxed whitespace-pre-line transition-all ${
+                            showFullDesc ? '' : 'max-h-32 overflow-hidden'
+                        }`}
+                    >
+                        {description}
+                    </p>
+
+                    {description.length > 200 && ( // show toggle if long
+                        <button
+                            onClick={() => setShowFullDesc(!showFullDesc)}
+                            className="mt-2 text-sm text-blue-600 hover:underline"
+                        >
+                            {showFullDesc ? '⬆️ Згорнути' : '⬇️ Показати повністю'}
+                        </button>
+                    )}
+                </div>
             )}
 
             {/* ✅ Files */}
@@ -181,42 +200,53 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
                     {entry.files.map((file, i) => (
                         <div
                             key={i}
-                            className="relative border rounded-lg overflow-hidden bg-gray-50 shadow-sm hover:shadow-md transition"
+                            className="relative border rounded-lg overflow-hidden bg-gray-50 shadow-sm hover:shadow-md transition flex flex-col"
                         >
+                            {/* === Preview Button === */}
                             {file.dataUrl ? (
-                                file.type === 'application/pdf' ? (
-                                    <a
-                                        href={file.dataUrl}
-                                        download={file.name}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex flex-col items-center justify-center gap-2 p-4 text-blue-600 text-sm hover:underline"
-                                    >
-                                        <FileText className="w-6 h-6" /> {file.name}
-                                    </a>
-                                ) : file.type.startsWith('image/') ? (
-                                    <a href={file.dataUrl} download={file.name}>
+                                <button
+                                    onClick={() =>
+                                        setPreviewFile({
+                                            name: file.name,
+                                            type: file.type,
+                                            dataUrl: file.dataUrl,
+                                        })
+                                    }
+                                    className="flex-1 w-full text-left"
+                                >
+                                    {file.type.startsWith('image/') ? (
                                         <img
                                             src={file.dataUrl}
                                             alt={file.name}
                                             className="w-full h-32 object-cover hover:scale-105 transition-transform"
                                         />
-                                    </a>
-                                ) : (
-                                    <a
-                                        href={file.dataUrl}
-                                        download={file.name}
-                                        className="block p-4 text-center text-sm text-blue-600 hover:underline"
-                                    >
-                                        📎 {file.name}
-                                    </a>
-                                )
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center gap-2 p-4 text-blue-600 text-sm hover:underline">
+                                            <FileText className="w-6 h-6" /> {file.name}
+                                        </div>
+                                    )}
+                                </button>
                             ) : (
                                 <span className="p-3 text-xs">{file.name}</span>
+                            )}
+
+                            {/* === Download Button === */}
+                            {file.dataUrl && (
+                                <a
+                                    href={file.dataUrl}
+                                    download={file.name}
+                                    className="text-center text-sm text-blue-500 hover:underline p-2 border-t border-gray-200"
+                                >
+                                    ⬇️ Завантажити
+                                </a>
                             )}
                         </div>
                     ))}
                 </div>
+            )}
+
+            {previewFile && (
+                <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
             )}
         </li>
     );
