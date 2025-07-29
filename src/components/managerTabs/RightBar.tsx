@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { useUserStore } from '../stores/userStore';
-import type { User, CommentOrHistoryEntry } from '../types/user';
-import UserInfoDetails from '../components/userInfo/UserInfoDetails';
-import UserHistory from '../components/userInfo/UserHistory';
-import CommentsModal from '../components/userInfo/CommentsModal';
+import { useUserStore } from '../../stores/userStore';
+import type { User, CommentOrHistoryEntry } from '../../types/user';
+import UserInfoDetails from '../userInfo/UserInfoDetails';
+import UserHistory from '../userInfo/UserHistory';
+import CommentsModal from '../userInfo/CommentsModal';
 import { Edit3, MessageCircle, Trash2 } from 'lucide-react';
-import { useI18nStore } from '../stores/i18nStore';
-import { StatusExcel } from 'src/utils/excelUserStatuses';
-import UserStatisticsDrawer from '../components/UserStatisticsDrawer';
+import { useI18nStore } from '../../stores/i18nStore';
+import { StatusExcel } from '../../utils/excelUserStatuses';
+import UserStatisticsDrawer from '../UserStatisticsDrawer';
 
 export default function RightBar() {
     const [showComments, setShowComments] = useState(false);

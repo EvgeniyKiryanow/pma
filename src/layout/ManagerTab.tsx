@@ -1,7 +1,7 @@
 // src/layout/ManagerTab.tsx
 import { useState } from 'react';
-import LeftBar from './LeftBar';
-import RightBar from './RightBar';
+import LeftBar from '../components/managerTabs/LeftBar';
+import RightBar from '../components/managerTabs/RightBar';
 import RozporyadzhennyaTab from '../components/managerTabs/RozporyadzhennyaTab';
 import VyklyucheniTab from '../components/managerTabs/VyklyucheniTab';
 import { useUserStore } from '../stores/userStore';
