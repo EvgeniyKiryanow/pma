@@ -13,6 +13,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getBackupIntervalInDays: () => ipcRenderer.invoke('backup:get-interval'),
     getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
     getBackupPath: () => ipcRenderer.invoke('backup:get-backup-path'),
+    // New shared directives methods
+    directives: {
+        add: (entry: {
+            userId: number;
+            type: 'order' | 'exclude' | 'restore';
+            title: string;
+            description?: string;
+            file: any;
+            date: string;
+            period?: { from: string; to?: string };
+        }) => ipcRenderer.invoke('directives:add', entry),
+
+        getAllByType: (type: 'order' | 'exclude' | 'restore') =>
+            ipcRenderer.invoke('directives:getAllByType', type),
+    },
 
     // User CRUD
     fetchUsers: () => ipcRenderer.invoke('fetch-users'),

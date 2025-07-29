@@ -142,6 +142,19 @@ export async function initializeDb() {
             createdAt TEXT DEFAULT CURRENT_TIMESTAMP
         );
     `);
+    await db.exec(`
+  CREATE TABLE IF NOT EXISTS user_directives (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userId INTEGER NOT NULL,
+    type TEXT NOT NULL, -- 'order', 'exclude', 'restore'
+    title TEXT NOT NULL,
+    description TEXT,
+    file TEXT,
+    period_from TEXT,
+    period_to TEXT,
+    date TEXT NOT NULL
+  );
+`);
 
     // ✅ Upgrade missing user columns
     const userColumns = await db.all(`PRAGMA table_info(users);`);

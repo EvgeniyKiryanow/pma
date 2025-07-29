@@ -98,6 +98,29 @@ declare global {
             };
             hideApp: () => Promise<void>;
             toggleFullScreen: () => Promise<void>;
+            // directives
+            directives: {
+                add: (entry: {
+                    userId: number;
+                    type: 'order' | 'exclude' | 'restore';
+                    title: string;
+                    description?: string;
+                    file: any;
+                    date: string;
+                    period?: { from: string; to?: string };
+                }) => Promise<void>;
+
+                getAllByType: (type: 'order' | 'exclude' | 'restore') => Promise<
+                    {
+                        userId: number;
+                        title: string;
+                        description?: string;
+                        file: any;
+                        date: string;
+                        period?: { from: string; to?: string };
+                    }[]
+                >;
+            };
         };
     }
 }
