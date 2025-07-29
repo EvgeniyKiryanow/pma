@@ -23,6 +23,9 @@ type UserStore = {
 
     sidebarCollapsed: boolean;
     setSidebarCollapsed: (val: boolean) => void;
+
+    headerCollapsed: boolean;
+    setHeaderCollapsed: (value: boolean) => void;
 };
 
 export const useUserStore = create<UserStore>((set, get) => ({
@@ -31,8 +34,11 @@ export const useUserStore = create<UserStore>((set, get) => ({
     editingUser: null,
     isUserFormOpen: false,
     currentTab: 'manager',
+
     sidebarCollapsed: false,
     setSidebarCollapsed: (val) => set({ sidebarCollapsed: val }),
+    headerCollapsed: false,
+    setHeaderCollapsed: (value) => set({ headerCollapsed: value }),
     setCurrentTab: (tab: any) => set({ currentTab: tab }),
     clearUser: () =>
         set({

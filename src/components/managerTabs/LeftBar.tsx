@@ -196,17 +196,3 @@ export default function LeftBar({ users }: Props) {
         </div>
     );
 }
-
-{
-    /* {user.photo ? (
-                                                <img
-                                                    src={user.photo}
-                                                    alt={user.fullName}
-                                                    className="h-12 w-12 rounded-full object-cover border border-gray-300 shadow-sm hover:scale-105 transition-transform"
-                                                />
-                                            ) : (
-                                                <div className="h-12 w-12 rounded-full bg-gray-100 border flex items-center justify-center text-gray-400 hover:scale-105 transition-transform">
-                                                    <DefaultAvatar />
-                                                </div>
-                                            )} */
-}

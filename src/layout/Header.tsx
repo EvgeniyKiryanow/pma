@@ -47,6 +47,8 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     const [showIncompleteModal, setShowIncompleteModal] = useState(false);
     const incompleteEntries = useIncompleteHistoryStore((s) => s.entries);
     const [usersById, setUsersById] = useState<Record<number, User>>({});
+    const headerCollapsed = useUserStore((s) => s.headerCollapsed);
+    const setHeaderCollapsed = useUserStore((s) => s.setHeaderCollapsed);
 
     const [hasShtatni, setHasShtatni] = useState(false);
     useEffect(() => {

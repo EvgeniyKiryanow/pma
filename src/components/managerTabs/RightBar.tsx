@@ -8,6 +8,9 @@ import { Edit3, MessageCircle, Trash2 } from 'lucide-react';
 import { useI18nStore } from '../../stores/i18nStore';
 import { StatusExcel } from '../../utils/excelUserStatuses';
 import UserStatisticsDrawer from '../UserStatisticsDrawer';
+import RozporyadzhennyaModal from './_components/RozporyadzhennyaModal';
+import VyklyuchennyaModal from './_components/VyklyuchennyaModal';
+import VidnovytyModal from './_components/VidnovytyModal';
 
 export default function RightBar() {
     const [showComments, setShowComments] = useState(false);
@@ -21,6 +24,9 @@ export default function RightBar() {
     const openUserFormForEdit = useUserStore((s) => s.openUserFormForEdit);
     const setSelectedUser = useUserStore((s) => s.setSelectedUser);
     const [showStatistics, setShowStatistics] = useState(false);
+    const [showOrderModal, setShowOrderModal] = useState(false);
+    const [showExcludeModal, setShowExcludeModal] = useState(false);
+    const [showRestoreModal, setShowRestoreModal] = useState(false);
 
     /** ✅ Refresh full user history from DB */
     const refreshHistory = async () => {
@@ -104,11 +110,26 @@ export default function RightBar() {
         <aside className="flex-1 bg-gradient-to-b from-white via-gray-50 to-gray-100 shadow-inner overflow-y-auto max-h-[calc(100vh-56px)]">
             {/* === HEADER ACTIONS === */}
             <section className="sticky top-0 z-20 backdrop-blur-md bg-white/80 border-b border-gray-200 shadow-sm flex flex-wrap justify-between items-center gap-3 px-4 py-4">
-                {/* User title */}
-                <h2 className="text-lg font-semibold text-gray-800">{user.fullName}</h2>
-
-                {/* Action Buttons */}
                 <div className="flex gap-2">
+                    <button
+                        onClick={() => setShowOrderModal(true)}
+                        className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition bg-blue-500 hover:bg-blue-600 text-white"
+                    >
+                        📤 Подати розпорядження
+                    </button>
+                    <button
+                        onClick={() => setShowExcludeModal(true)}
+                        className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition bg-red-500 hover:bg-red-600 text-white"
+                    >
+                        ❌ Виключити
+                    </button>
+
+                    <button
+                        onClick={() => setShowRestoreModal(true)}
+                        className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition bg-green-500 hover:bg-green-600 text-white"
+                    >
+                        ♻️ Відновити
+                    </button>
                     <button
                         onClick={() => openUserFormForEdit(user)}
                         className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition bg-yellow-500 hover:bg-yellow-600 text-white"
@@ -175,6 +196,9 @@ export default function RightBar() {
             {showComments && (
                 <CommentsModal userId={user.id} onClose={() => setShowComments(false)} />
             )}
+            {showOrderModal && <RozporyadzhennyaModal onClose={() => setShowOrderModal(false)} />}
+            {showExcludeModal && <VyklyuchennyaModal onClose={() => setShowExcludeModal(false)} />}
+            {showRestoreModal && <VidnovytyModal onClose={() => setShowRestoreModal(false)} />}
         </aside>
     );
 }
