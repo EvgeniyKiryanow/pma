@@ -113,4 +113,26 @@ export async function upgradeDbSchema() {
     } else {
         console.log('✅ DB schema is already up to date.');
     }
+    const historyColumns = await db.all(`PRAGMA table_info(user_history);`);
+    const historyColumnNames = historyColumns.map((c: any) => c.name);
+
+    const missingHistoryColumns: { name: string; type: string }[] = [];
+
+    if (!historyColumnNames.includes('period_from')) {
+        missingHistoryColumns.push({ name: 'period_from', type: 'TEXT' });
+    }
+    if (!historyColumnNames.includes('period_to')) {
+        missingHistoryColumns.push({ name: 'period_to', type: 'TEXT' });
+    }
+
+    for (const { name, type } of missingHistoryColumns) {
+        await db.exec(`ALTER TABLE user_history ADD COLUMN ${name} ${type};`);
+    }
+
+    if (missingHistoryColumns.length) {
+        console.log(
+            '✅ user_history schema upgraded. Added columns:',
+            missingHistoryColumns.map((c) => c.name),
+        );
+    }
 }

@@ -8,6 +8,10 @@ export type CommentOrHistoryEntry = {
     type: MediaType;
     content: string;
     description?: string;
+    period?: {
+        from: string;
+        to: string;
+    };
 };
 
 export type RelativeContact = {

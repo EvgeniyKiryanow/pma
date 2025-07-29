@@ -1,5 +1,13 @@
 import { CommentOrHistoryEntry } from '../../types/user';
-import { Trash2, CalendarDays, FileText, ArrowRight, Info, RefreshCcw } from 'lucide-react';
+import {
+    Trash2,
+    CalendarDays,
+    FileText,
+    ArrowRight,
+    Info,
+    RefreshCcw,
+    CalendarRange,
+} from 'lucide-react';
 import { useI18nStore } from '../../stores/i18nStore';
 import { useState } from 'react';
 import FilePreviewModal, { FileWithDataUrl } from '../../components/FilePreviewModal';
@@ -24,7 +32,6 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
     let newStatus: string | null = null;
     if (isStatusChange) {
         const match = description.match(/"(.+?)"\s*→\s*"(.+?)"/);
-        console.log(match, 'match');
         if (match) {
             prevStatus = match[1];
             newStatus = match[2];
@@ -243,6 +250,19 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
                             )}
                         </div>
                     ))}
+                </div>
+            )}
+            {/* ✅ Period display (if exists) */}
+            {entry.period && (
+                <div className="mt-6 bg-blue-100/60 border border-blue-200 rounded-xl px-6 py-4 flex items-center gap-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <CalendarRange className="w-6 h-6 text-blue-600 shrink-0" />
+                        <span className="text-md font-bold text-blue-800">Період:</span>
+                    </div>
+                    <div className="text-md font-semibold text-gray-800 bg-white px-4 py-2 rounded-lg border border-gray-300 shadow-inner">
+                        {new Date(entry.period.from).toLocaleDateString()} —{' '}
+                        {new Date(entry.period.to).toLocaleDateString()}
+                    </div>
                 </div>
             )}
 

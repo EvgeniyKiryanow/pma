@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Paperclip, Image as ImageIcon, FileText, ShieldCheck } from 'lucide-react';
 import type { CommentOrHistoryEntry } from '../../types/user';
 import { StatusExcel } from '../../utils/excelUserStatuses';
@@ -19,9 +19,15 @@ type AddHistoryModalProps = {
     files: FileWithDataUrl[];
     setFiles: (val: FileWithDataUrl[]) => void;
     removeFile: (index: number) => void;
-    onSubmit: (description: string, files: FileWithDataUrl[], maybeNewStatus?: StatusExcel) => void; // ✅ always returns 3 values
+    onSubmit: (
+        description: string,
+        files: FileWithDataUrl[],
+        maybeNewStatus?: StatusExcel,
+        period?: { from: string; to: string },
+    ) => void; // ✅ always returns 3 values
     onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     currentStatus?: string;
+    initialPeriod?: { from: string; to: string };
 };
 
 export default function AddHistoryModal({
@@ -34,20 +40,26 @@ export default function AddHistoryModal({
     onSubmit,
     onFileChange,
     currentStatus = '',
+    initialPeriod,
 }: AddHistoryModalProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { t } = useI18nStore();
     const [newStatus, setNewStatus] = useState<string>('');
     const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
+    const [period, setPeriod] = useState<{ from: string; to: string }>({ from: '', to: '' });
+
+    useEffect(() => {
+        if (initialPeriod) {
+            setPeriod(initialPeriod);
+        }
+    }, [initialPeriod]);
 
     if (!isOpen) return null;
 
     const handleSave = () => {
-        // ✅ Return all values back to parent
-        onSubmit(description, files, newStatus ? (newStatus as StatusExcel) : undefined);
-
-        // ✅ Reset modal
+        onSubmit(description, files, newStatus ? (newStatus as StatusExcel) : undefined, period);
         setNewStatus('');
+        setPeriod(initialPeriod || { from: '', to: '' });
     };
 
     return (
@@ -86,6 +98,42 @@ export default function AddHistoryModal({
                                 </option>
                             ))}
                         </select>
+                    </div>
+                    {/* ✅ PERIOD RANGE */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {/* FROM DATE */}
+                        <div className="flex flex-col">
+                            <label
+                                htmlFor="period-from"
+                                className="mb-1 text-sm font-medium text-gray-600"
+                            >
+                                📅 Період з
+                            </label>
+                            <input
+                                id="period-from"
+                                type="date"
+                                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200/50 transition"
+                                value={period.from}
+                                onChange={(e) => setPeriod((p) => ({ ...p, from: e.target.value }))}
+                            />
+                        </div>
+
+                        {/* TO DATE */}
+                        <div className="flex flex-col">
+                            <label
+                                htmlFor="period-to"
+                                className="mb-1 text-sm font-medium text-gray-600"
+                            >
+                                🗓️ Період по
+                            </label>
+                            <input
+                                id="period-to"
+                                type="date"
+                                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200/50 transition"
+                                value={period.to}
+                                onChange={(e) => setPeriod((p) => ({ ...p, to: e.target.value }))}
+                            />
+                        </div>
                     </div>
 
                     {/* ✅ DESCRIPTION */}

@@ -32,6 +32,7 @@ export default function UserHistory({
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<CommentOrHistoryEntry | null>(null);
+    const [initialPeriod, setInitialPeriod] = useState<{ from: string; to: string } | undefined>();
 
     const { t } = useI18nStore();
 
@@ -48,11 +49,11 @@ export default function UserHistory({
                 ) || entry.files?.some((file) => file.name.toLowerCase().includes(term)),
         );
     }, [history, searchTerm]);
-
     const openAddModal = () => {
         setEditingEntry(null);
         setDescription('');
         setFiles([]);
+        setInitialPeriod(undefined);
         setIsModalOpen(true);
     };
 
@@ -60,6 +61,7 @@ export default function UserHistory({
         setEditingEntry(entry);
         setDescription(entry.description || '');
         setFiles(entry.files || []);
+        setInitialPeriod(entry.period);
         setIsModalOpen(true);
     };
 
@@ -67,6 +69,7 @@ export default function UserHistory({
         desc: string,
         attachedFiles: FileWithDataUrl[],
         maybeNewStatus?: StatusExcel,
+        period?: { from: string; to: string },
     ) => {
         if (editingEntry) {
             // ✅ Edit existing
@@ -75,6 +78,7 @@ export default function UserHistory({
                 description: desc.trim(),
                 files: attachedFiles,
                 type: maybeNewStatus ? 'statusChange' : editingEntry.type,
+                period: period || undefined,
             };
 
             await window.electronAPI.editUserHistory(userId, updated);
@@ -96,7 +100,9 @@ export default function UserHistory({
                 description: combinedDescription,
                 content: '',
                 files: attachedFiles,
+                period: period || undefined,
             };
+
             onAddHistory(newEntry, maybeNewStatus);
         }
 
@@ -147,6 +153,7 @@ export default function UserHistory({
                 description={description}
                 setDescription={setDescription}
                 files={files}
+                initialPeriod={initialPeriod}
                 setFiles={setFiles}
                 removeFile={(idx) => setFiles((f) => f.filter((_, i) => i !== idx))}
                 onSubmit={handleSaveHistory}
