@@ -1,8 +1,6 @@
 import './index.css';
 import { useEffect } from 'react';
 import Header from './layout/Header';
-import LeftBar from './layout/LeftBar';
-import RightBar from './layout/RightBar';
 import UserFormModalUpdate from './components/userFormModal';
 import { useUserStore } from './stores/userStore';
 import BackupPanel from './layout/BackupPanel';
@@ -11,6 +9,7 @@ import TablesTab from './components/userTables/TablesTab';
 import InstructionsTab from './layout/InstrtuctionsTab';
 import ImportUsersTab from './layout/ImportUsersTab';
 import ShtatniPosadyTab from './layout/ShtatniPosadyTab';
+import ManagerTab from './layout/ManagerTab';
 
 export default function App() {
     const currentTab = useUserStore((s) => s.currentTab);
@@ -39,8 +38,7 @@ export default function App() {
             <Header currentTab={currentTab} setCurrentTab={setCurrentTab} />
             {currentTab === 'manager' ? (
                 <div className="flex flex-1 overflow-hidden">
-                    <LeftBar users={users} />
-                    <RightBar />
+                    <ManagerTab />
                 </div>
             ) : currentTab === 'backups' ? (
                 <BackupPanel />
