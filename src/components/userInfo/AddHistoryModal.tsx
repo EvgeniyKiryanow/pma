@@ -50,7 +50,7 @@ export default function AddHistoryModal({
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="relative w-full max-w-3xl bg-white rounded-xl shadow-2xl overflow-hidden animate-fade-in">
+            <div className="relative w-full max-w-3xl max-h-screen bg-white rounded-xl shadow-2xl animate-fade-in flex flex-col">
                 {/* === HEADER === */}
                 <div className="flex justify-between items-center px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-blue-100">
                     <h2 className="text-xl font-bold text-gray-800">{t('historyModal.title')}</h2>
@@ -64,7 +64,7 @@ export default function AddHistoryModal({
                 </div>
 
                 {/* === CONTENT === */}
-                <div className="p-6 space-y-6">
+                <div className="p-6 space-y-6 overflow-y-auto flex-1">
                     {/* ✅ STATUS DROPDOWN */}
                     <div>
                         <label className="block mb-2 text-sm font-semibold text-gray-700 flex items-center gap-2">
