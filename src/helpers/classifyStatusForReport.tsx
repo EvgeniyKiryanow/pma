@@ -29,6 +29,12 @@ export default function classifyStatusForReport(status?: string) {
         StatusExcel.SUPPLY_GENERAL,
         StatusExcel.MANAGEMENT,
         StatusExcel.KSP,
+        StatusExcel.NON_COMBAT_NEWCOMERS,
+        StatusExcel.NON_COMBAT_LIMITED_FITNESS,
+        StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT,
+        StatusExcel.NON_COMBAT_REFUSERS,
+        StatusExcel.ABSENT_REHABED_ON,
+        StatusExcel.HAVE_OFFER_TO_HOS,
     ];
 
     // ❌ ABSENT / NON-COMBAT
@@ -36,15 +42,11 @@ export default function classifyStatusForReport(status?: string) {
         // Non-combat
         StatusExcel.NON_COMBAT_ATTACHED_UNITS,
         StatusExcel.NON_COMBAT_TRAINING_NEWCOMERS,
-        StatusExcel.NON_COMBAT_NEWCOMERS,
         StatusExcel.NON_COMBAT_HOSPITAL_REFERRAL,
         StatusExcel.NON_COMBAT_EXEMPTED,
         StatusExcel.NON_COMBAT_TREATMENT_ON_SITE,
-        StatusExcel.NON_COMBAT_LIMITED_FITNESS,
-        StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT,
+
         StatusExcel.NON_COMBAT_AWAITING_DECISION,
-        StatusExcel.NON_COMBAT_REFUSERS,
-        StatusExcel.HAVE_OFFER_TO_HOS,
 
         // Absent
         StatusExcel.ABSENT_MEDICAL_LEAVE,
@@ -66,7 +68,6 @@ export default function classifyStatusForReport(status?: string) {
         StatusExcel.ABSENT_KIA,
         StatusExcel.ABSENT_MIA,
         StatusExcel.ABSENT_REHAB,
-        StatusExcel.ABSENT_REHABED_ON,
     ];
 
     if (inAreaStatuses.some((s) => status.includes(s))) {

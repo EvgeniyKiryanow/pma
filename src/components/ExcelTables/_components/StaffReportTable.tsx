@@ -52,7 +52,6 @@ export function StaffReportTable() {
 
             // ✅ Classify soldierStatus → either in-area OR absenceReason
             const classified = classifyStatusForReport(soldierStatus);
-
             return {
                 shtatNumber: pos.shtat_number,
                 unit: pos.unit_name || '',
