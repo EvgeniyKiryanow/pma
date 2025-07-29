@@ -24,6 +24,7 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
     let newStatus: string | null = null;
     if (isStatusChange) {
         const match = description.match(/"(.+?)"\s*→\s*"(.+?)"/);
+        console.log(match, 'match');
         if (match) {
             prevStatus = match[1];
             newStatus = match[2];
@@ -96,7 +97,7 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
             </div>
 
             {/* ✅ Status Change */}
-            {isStatusChange && prevStatus && newStatus && (
+            {isStatusChange && (
                 <div className="p-4 rounded-xl border border-blue-300 bg-gradient-to-br from-blue-50 to-white shadow-sm mb-3">
                     <div className="flex items-center gap-2 mb-2">
                         <div className="bg-blue-100 text-blue-700 p-2 rounded-full">

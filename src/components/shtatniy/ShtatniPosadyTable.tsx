@@ -147,12 +147,26 @@ export default function ShtatniPosadyTable({
                                             value={matchedUser.soldierStatus || ''}
                                             onChange={(e) => {
                                                 const newStatus = e.target.value;
+                                                const previousStatus = matchedUser.soldierStatus;
+
                                                 const updatedUser = {
                                                     ...matchedUser,
                                                     soldierStatus: newStatus,
+                                                    history: [
+                                                        ...(matchedUser.history || []),
+                                                        {
+                                                            id: Date.now(),
+                                                            date: new Date().toISOString(),
+                                                            type: 'statusChange',
+                                                            author: 'System',
+                                                            description: `Статус змінено з "${previousStatus}" → "${newStatus}"`,
+                                                            content: `Статус змінено з "${previousStatus}" на "${newStatus}"`,
+                                                            files: [] as CommentOrHistoryEntry['files'],
+                                                        },
+                                                    ],
                                                 };
 
-                                                updateUser(updatedUser); // Or call your store action
+                                                updateUser(updatedUser);
                                             }}
                                         >
                                             <option value="">-- Обрати статус --</option>
