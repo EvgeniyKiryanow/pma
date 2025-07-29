@@ -58,11 +58,16 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
     } else if (description.includes('Призначено на посаду')) {
         newPosada = description.replace('Призначено на посаду', '').trim();
     }
-
+    const isIncompleteStatusChange =
+        isStatusChange && (!entry.period || !entry.files || entry.files.length === 0);
     return (
         <li
             className={`group relative rounded-xl border p-5 shadow-sm hover:shadow-md transition-all ${
-                isPosadaChange ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'
+                isIncompleteStatusChange
+                    ? 'border-red-500 bg-gradient-to-br from-red-50 to-white shadow-md'
+                    : isPosadaChange
+                      ? 'border-blue-300 bg-blue-50'
+                      : 'border-gray-200 bg-white'
             }`}
         >
             {/* Action buttons on hover */}
@@ -82,7 +87,12 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
                     <Trash2 className="w-5 h-5" />
                 </button>
             </div>
-
+            {isIncompleteStatusChange && (
+                <div className="mb-4 inline-flex items-center gap-2 bg-red-100 border border-red-300 text-red-700 text-xs font-semibold px-3 py-1 rounded-full shadow-sm animate-pulse z-10">
+                    <Info className="w-4 h-4" />
+                    Відсутній файл або період
+                </div>
+            )}
             {/* Header */}
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
                 <CalendarDays className="w-4 h-4 text-blue-500" />
@@ -102,7 +112,6 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
                     </span>
                 )}
             </div>
-
             {/* ✅ Status Change */}
             {isStatusChange && (
                 <div className="p-4 rounded-xl border border-blue-300 bg-gradient-to-br from-blue-50 to-white shadow-sm mb-3">
