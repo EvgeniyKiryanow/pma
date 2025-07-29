@@ -1,8 +1,6 @@
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { dialog, BrowserWindow, app } from 'electron';
-import { exec } from 'child_process';
-import path from 'path';
 
 let updaterInitialized = false;
 let updateDownloaded = false;
@@ -34,27 +32,8 @@ export function setupAutoUpdater() {
     });
 
     autoUpdater.on('error', (err) => {
-        const message = err?.message || String(err);
-        log.error('❌ Помилка автооновлення:', err?.stack || message);
-
-        let extraHint = '';
-
-        // Якщо Windows → показуємо підказку про Smart App Control
-        if (process.platform === 'win32') {
-            extraHint =
-                '\n\n❗ Якщо ви використовуєте Windows 11, оновлення може бути заблоковане функцією Smart App Control.\n' +
-                'Щоб вимкнути його:\n' +
-                '1️⃣ Відкрийте **Параметри → Конфіденційність та безпека**.\n' +
-                '2️⃣ Перейдіть у **Безпека Windows → Керування додатками/браузером**.\n' +
-                '3️⃣ Знайдіть **Smart App Control** та вимкніть.\n' +
-                '4️⃣ Перезавантажте компʼютер і повторіть спробу оновлення.';
-        }
-
-        dialog.showMessageBox({
-            type: 'error',
-            title: 'Помилка автооновлення',
-            message: `Не вдалося встановити оновлення:\n${message}${extraHint}`,
-        });
+        log.error('❌ AutoUpdater error:', err?.stack || err?.message || err);
+        dialog.showErrorBox('Auto Update Error', err?.message || String(err));
     });
 
     // ✅ Show progress in dock/taskbar
@@ -67,9 +46,11 @@ export function setupAutoUpdater() {
 
         const win = BrowserWindow.getFocusedWindow();
         if (win) {
+            // Show a progress bar in the dock/taskbar
             win.setProgressBar(progress.percent / 100);
         }
 
+        // Optional: update the dock badge on macOS
         if (process.platform === 'darwin') {
             app.dock.setBadge(`${Math.round(progress.percent)}%`);
         }
@@ -79,6 +60,7 @@ export function setupAutoUpdater() {
         log.info(`✅ Update downloaded: version ${info.version}`);
         updateDownloaded = true;
 
+        // Reset dock badge/progress
         const win = BrowserWindow.getFocusedWindow();
         if (win) win.setProgressBar(-1);
         if (process.platform === 'darwin') app.dock.setBadge('');
@@ -111,20 +93,6 @@ export function setupAutoUpdater() {
     });
 }
 
-// ✅ Новый метод: жёсткое завершение процесса перед установкой
-function forceKillOwnProcessAndInstall() {
-    const exeName = path.basename(process.execPath);
-
-    log.info(`🔪 Force killing process: ${exeName}`);
-    exec(`taskkill /F /IM ${exeName}`, (err) => {
-        if (err) {
-            log.error('❌ Failed to taskkill', err);
-        }
-        log.info('✅ Process killed, running quitAndInstall');
-        autoUpdater.quitAndInstall(false, true);
-    });
-}
-
 function quitAndInstallProperly() {
     isQuitting = true;
 
@@ -150,11 +118,8 @@ function quitAndInstallProperly() {
                         app.exit(0);
                     }
                 }, 1500);
-            } else if (process.platform === 'win32') {
-                log.info('🪟 Windows → force kill before quitAndInstall');
-                forceKillOwnProcessAndInstall();
             } else {
-                log.info('🐧 Linux → quitAndInstall WITH restart');
+                log.info('🪟 Windows/Linux → quitAndInstall WITH restart');
                 autoUpdater.quitAndInstall(false, true);
             }
         } catch (err) {
