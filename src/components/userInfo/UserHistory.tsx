@@ -5,6 +5,7 @@ import AddHistoryModal from './AddHistoryModal';
 import { useI18nStore } from '../../stores/i18nStore';
 import { HistoryHeader } from '../HistoryHeader';
 import { StatusExcel } from '../../utils/excelUserStatuses';
+import { useIncompleteHistoryStore } from '../../stores/useIncompleteHistoryStore';
 
 type FileWithDataUrl = { name: string; type: string; dataUrl: string };
 

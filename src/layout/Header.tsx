@@ -9,6 +9,7 @@ import {
     DatabaseBackup,
     FileSpreadsheet,
     BookText,
+    Info,
 } from 'lucide-react';
 import type { User } from '../types/user';
 import { useI18nStore } from '../stores/i18nStore';
@@ -36,14 +37,58 @@ type HeaderProps = {
             | 'shtatni',
     ) => void;
 };
+import { useIncompleteHistoryStore } from '../stores/useIncompleteHistoryStore';
 
 export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     const openUserFormForAdd = useUserStore((s) => s.openUserFormForAdd);
     const [upcomingBirthdays, setUpcomingBirthdays] = useState<User[]>([]);
     const [showBirthdayModal, setShowBirthdayModal] = useState(false);
     const { t, language, setLanguage } = useI18nStore();
+    const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+    const incompleteEntries = useIncompleteHistoryStore((s) => s.entries);
+    const [usersById, setUsersById] = useState<Record<number, User>>({});
 
     const [hasShtatni, setHasShtatni] = useState(false);
+    useEffect(() => {
+        const loadUsers = async () => {
+            const allUsers: User[] = await window.electronAPI.fetchUsers();
+            const map = Object.fromEntries(allUsers.map((u) => [u.id, u]));
+            setUsersById(map);
+        };
+        loadUsers();
+    }, []);
+    useEffect(() => {
+        const checkIncompleteHistories = async () => {
+            const allUsers: User[] = await window.electronAPI.fetchUsers();
+            useIncompleteHistoryStore.getState().clearAll(); // 🔄 clear previous entries
+
+            for (const user of allUsers) {
+                if (!user.history) continue;
+
+                user.history.forEach((entry) => {
+                    const isStatusChange = entry.type === 'statusChange';
+                    const hasNoFiles = !entry.files || entry.files.length === 0;
+                    const hasNoPeriod = !entry.period;
+
+                    if (isStatusChange && (hasNoFiles || hasNoPeriod)) {
+                        useIncompleteHistoryStore
+                            .getState()
+                            .addIncomplete(
+                                user.id,
+                                entry.id,
+                                hasNoFiles && hasNoPeriod
+                                    ? 'missing_both'
+                                    : hasNoFiles
+                                      ? 'missing_file'
+                                      : 'missing_period',
+                            );
+                    }
+                });
+            }
+        };
+
+        checkIncompleteHistories();
+    }, []);
 
     useEffect(() => {
         const loadUpcoming = async () => {
@@ -148,10 +193,19 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         </span>
                     </div>
                 </div>
-
                 {/* Right Controls */}
                 <div className="flex items-center gap-3">
-                    {/* ✅ Birthdays */}
+                    {incompleteEntries.length > 0 && (
+                        <button
+                            onClick={() => setShowIncompleteModal(true)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm rounded-full bg-red-100 hover:bg-red-200 text-red-900 border border-red-300 shadow-sm animate-pulse font-semibold transition"
+                            title="Записи без файлу або періоду"
+                        >
+                            <Info className="w-4 h-4" />
+                            {incompleteEntries.length} записів потребують термінового заповнення
+                        </button>
+                    )}
+
                     {upcomingBirthdays.length > 0 && (
                         <button
                             onClick={() => setShowBirthdayModal(true)}
@@ -222,7 +276,6 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                     })}
                 </div>
             </nav>
-
             {/* === Birthday Modal === */}
             {showBirthdayModal && (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
@@ -252,6 +305,85 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         <button
                             onClick={() => setShowBirthdayModal(false)}
                             className="absolute top-2 right-3 text-gray-500 hover:text-red-600 text-lg font-bold"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
+            {showIncompleteModal && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+                    <div className="bg-white max-w-2xl w-full rounded-xl p-6 shadow-xl border relative">
+                        <h2 className="text-xl font-bold mb-3 text-red-700 flex items-center gap-2">
+                            <Info className="w-5 h-5 text-red-600" />
+                            Виявлено записи без файлу або періоду
+                        </h2>
+
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 mb-5">
+                            📌 <strong>Інструкція:</strong> Щоб виправити помилки:
+                            <ol className="list-decimal list-inside mt-2 space-y-1">
+                                <li>
+                                    Перейдіть у вкладку <strong>&quot;Менеджер&quot;</strong>.
+                                </li>
+                                <li>Знайдіть користувача за ім’ям, вказаним нижче.</li>
+                                <li>
+                                    Перейдіть до розділу <strong>історії</strong> цього користувача.
+                                </li>
+                                <li>
+                                    У пошуку введіть:{' '}
+                                    <code className="bg-gray-100 px-1 py-0.5 rounded border text-red-600 text-xs">
+                                        Відсутній файл або період
+                                    </code>
+                                    .
+                                </li>
+                                <li>Оновіть відповідні записи, додавши файл та/або період.</li>
+                            </ol>
+                        </div>
+
+                        <div className="space-y-4 max-h-[400px] overflow-y-auto text-sm">
+                            {Object.entries(
+                                incompleteEntries.reduce<Record<number, any>>((acc, entry) => {
+                                    if (!acc[entry.userId]) acc[entry.userId] = [];
+                                    acc[entry.userId].push(entry);
+                                    return acc;
+                                }, {}),
+                            ).map(([userIdStr, entries]) => {
+                                const user = usersById[Number(userIdStr)];
+                                return (
+                                    <div
+                                        key={userIdStr}
+                                        className="border border-gray-200 bg-gray-50 rounded-lg p-3 shadow-sm"
+                                    >
+                                        <div className="font-semibold text-blue-800 text-sm mb-2">
+                                            👤 {user?.fullName || `Користувач (ID ${userIdStr})`}
+                                        </div>
+                                        <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                            {entries.map((entry: any) => (
+                                                <li key={entry.entryId}>
+                                                    <span className="text-gray-500">Запис</span> №{' '}
+                                                    <span className="font-mono text-blue-700">
+                                                        {entry.entryId}
+                                                    </span>
+                                                    :{' '}
+                                                    {
+                                                        {
+                                                            missing_file: 'відсутній файл',
+                                                            missing_period: 'відсутній період',
+                                                            missing_both: 'немає файлу та періоду',
+                                                        }[entry.reason]
+                                                    }
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <button
+                            onClick={() => setShowIncompleteModal(false)}
+                            className="absolute top-3 right-4 text-gray-500 hover:text-red-600 text-xl font-bold"
+                            aria-label="Закрити"
                         >
                             ✕
                         </button>
