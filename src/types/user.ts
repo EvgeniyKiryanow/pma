@@ -1,4 +1,13 @@
-export type MediaType = 'text' | 'pdf' | 'audio' | 'image' | 'video' | 'history' | 'statusChange';
+export type MediaType =
+    | 'text'
+    | 'pdf'
+    | 'audio'
+    | 'image'
+    | 'video'
+    | 'history'
+    | 'statusChange'
+    | 'exclude'
+    | 'order';
 
 export type CommentOrHistoryEntry = {
     files: any[];

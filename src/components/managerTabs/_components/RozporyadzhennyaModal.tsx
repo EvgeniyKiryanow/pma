@@ -1,15 +1,21 @@
 import { useRef, useState } from 'react';
 import { X, Eye, UploadCloud, Info } from 'lucide-react';
 import FilePreviewModal, { FileWithDataUrl } from '../../FilePreviewModal';
+import { useUserStore } from '../../../stores/userStore';
+import { CommentOrHistoryEntry, User } from '../../../types/user';
+import { useRozporyadzhennyaStore } from '../../../stores/useRozporyadzhennyaStore';
 
 export default function RozporyadzhennyaModal({ onClose }: { onClose: () => void }) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const user = useUserStore((s) => s.selectedUser);
+    const updateUser = useUserStore((s) => s.updateUser);
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [period, setPeriod] = useState({ from: '', to: '' });
     const [file, setFile] = useState<FileWithDataUrl | null>(null);
     const [showPreview, setShowPreview] = useState(false);
+    const addRozporyadzhennya = useRozporyadzhennyaStore((s) => s.addEntry);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
@@ -26,10 +32,39 @@ export default function RozporyadzhennyaModal({ onClose }: { onClose: () => void
         reader.readAsDataURL(f);
     };
 
-    const handleSubmit = () => {
-        if (!title || !period.from || !file) {
-            return;
-        }
+    const handleSubmit = async () => {
+        if (!title || !period.from || !file || !user) return;
+
+        const now = new Date().toISOString();
+
+        // ✅ 1. Save into store instead of to disk
+        addRozporyadzhennya({
+            userId: user.id,
+            title,
+            description,
+            period,
+            file,
+            date: now, // ✅ замість createdAt
+        });
+
+        // ✅ 2. Add to user history
+        const historyEntry: CommentOrHistoryEntry = {
+            id: Date.now(),
+            type: 'order',
+            date: now,
+            author: 'System',
+            description: `Подано розпорядження: ${title}`,
+            content: description,
+            files: [file],
+            period,
+        };
+
+        updateUser({
+            ...user,
+            history: [...(user.history || []), historyEntry],
+        });
+
+        // ✅ 3. Close modal
         onClose();
     };
 
@@ -162,7 +197,7 @@ export default function RozporyadzhennyaModal({ onClose }: { onClose: () => void
                                 : 'bg-blue-600 hover:bg-blue-700 text-white'
                         }`}
                     >
-                        Зберегти розпорядження
+                        Вивести в розпорядження
                     </button>
                 </div>
             </div>

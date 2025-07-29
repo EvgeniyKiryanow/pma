@@ -210,6 +210,62 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
                     )}
                 </div>
             )}
+            {entry.type === 'order' && (
+                <div className="p-4 rounded-xl border border-yellow-400 bg-gradient-to-br from-yellow-50 to-white shadow-sm mb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="bg-yellow-200 text-yellow-800 p-2 rounded-full">📤</div>
+                        <h3 className="text-yellow-800 font-semibold text-base">
+                            Подано розпорядження
+                        </h3>
+                    </div>
+
+                    {description && (
+                        <p className="text-sm text-gray-700 mb-3 whitespace-pre-line">
+                            {description}
+                        </p>
+                    )}
+
+                    {entry.period?.from && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <CalendarDays className="w-4 h-4 text-yellow-500" />
+                            <span>
+                                Дата подання:{' '}
+                                <span className="font-medium text-gray-800">
+                                    {new Date(entry.period.from).toLocaleDateString()}
+                                </span>
+                            </span>
+                        </div>
+                    )}
+                </div>
+            )}
+            {entry.type === 'exclude' && (
+                <div className="p-4 rounded-xl border border-red-400 bg-gradient-to-br from-red-50 to-white shadow-sm mb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="bg-red-200 text-red-800 p-2 rounded-full">❌</div>
+                        <h3 className="text-red-800 font-semibold text-base">
+                            Користувача виключено
+                        </h3>
+                    </div>
+
+                    {description && (
+                        <p className="text-sm text-gray-700 mb-3 whitespace-pre-line">
+                            {description}
+                        </p>
+                    )}
+
+                    {entry.period?.from && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <CalendarDays className="w-4 h-4 text-red-500" />
+                            <span>
+                                Дата виключення:{' '}
+                                <span className="font-medium text-gray-800">
+                                    {new Date(entry.period.from).toLocaleDateString()}
+                                </span>
+                            </span>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* ✅ Files */}
             {entry.files?.length > 0 && (

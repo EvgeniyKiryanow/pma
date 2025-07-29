@@ -143,6 +143,7 @@ export const ua = {
             comment: 'Коментар',
             text: 'Текст',
             statusChange: 'Був змінений статус!',
+            order: 'Розпорядження',
         },
     },
     historyModal: {

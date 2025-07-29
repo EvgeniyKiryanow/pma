@@ -115,7 +115,7 @@ export default function RightBar() {
                         onClick={() => setShowOrderModal(true)}
                         className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-blue-100 text-blue-800 hover:bg-blue-200 transition border border-blue-200"
                     >
-                        📤 Подати
+                        📤 Подати розпорядження
                     </button>
 
                     <button
