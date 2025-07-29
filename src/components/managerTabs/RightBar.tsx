@@ -109,52 +109,55 @@ export default function RightBar() {
     return (
         <aside className="flex-1 bg-gradient-to-b from-white via-gray-50 to-gray-100 shadow-inner overflow-y-auto max-h-[calc(100vh-56px)]">
             {/* === HEADER ACTIONS === */}
-            <section className="sticky top-0 z-20 backdrop-blur-md bg-white/80 border-b border-gray-200 shadow-sm flex flex-wrap justify-between items-center gap-3 px-4 py-4">
-                <div className="flex gap-2">
+            <section className="sticky top-0 z-20 backdrop-blur-md bg-white/90 border-b border-gray-200 shadow-sm px-4 py-3">
+                <div className="flex flex-wrap gap-2 items-center">
                     <button
                         onClick={() => setShowOrderModal(true)}
-                        className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition bg-blue-500 hover:bg-blue-600 text-white"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-blue-100 text-blue-800 hover:bg-blue-200 transition border border-blue-200"
                     >
-                        📤 Подати розпорядження
+                        📤 Подати
                     </button>
+
                     <button
                         onClick={() => setShowExcludeModal(true)}
-                        className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition bg-red-500 hover:bg-red-600 text-white"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-red-100 text-red-800 hover:bg-red-200 transition border border-red-200"
                     >
                         ❌ Виключити
                     </button>
 
                     <button
                         onClick={() => setShowRestoreModal(true)}
-                        className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition bg-green-500 hover:bg-green-600 text-white"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-green-100 text-green-800 hover:bg-green-200 transition border border-green-200"
                     >
                         ♻️ Відновити
                     </button>
+
                     <button
                         onClick={() => openUserFormForEdit(user)}
-                        className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition bg-yellow-500 hover:bg-yellow-600 text-white"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-yellow-200 transition"
                     >
-                        <Edit3 className="w-4 h-4" /> {t('rightBar.edit')}
+                        <Edit3 className="w-4 h-4" /> Редагувати
                     </button>
 
                     <button
                         onClick={handleShowComments}
-                        className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition bg-blue-600 hover:bg-blue-700 text-white"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-indigo-100 text-indigo-800 hover:bg-indigo-200 border border-indigo-200 transition"
                     >
-                        <MessageCircle className="w-4 h-4" /> {t('rightBar.comments')}
+                        <MessageCircle className="w-4 h-4" /> Коментарі
                     </button>
 
                     <button
                         onClick={handleDeleteUser}
-                        className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition bg-red-500 hover:bg-red-600 text-white"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-red-200 text-red-900 hover:bg-red-300 border border-red-300 transition"
                     >
-                        <Trash2 className="w-4 h-4" /> {t('rightBar.delete')}
+                        <Trash2 className="w-4 h-4" /> Видалити
                     </button>
+
                     <button
                         onClick={() => setShowStatistics(true)}
-                        className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg shadow-sm transition bg-purple-600 hover:bg-purple-700 text-white"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-purple-100 text-purple-800 hover:bg-purple-200 border border-purple-200 transition"
                     >
-                        📊 {t('rightBar.statistics')}
+                        📊 Статистика
                     </button>
                 </div>
             </section>
