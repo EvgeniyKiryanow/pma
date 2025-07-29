@@ -42,14 +42,26 @@ export default function UserHistory({
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
         );
         if (!searchTerm.trim()) return sorted;
+
         const term = searchTerm.toLowerCase();
-        return sorted.filter(
-            (entry) =>
+
+        return sorted.filter((entry) => {
+            const matchesBasicFields =
                 [entry.description, entry.author, new Date(entry.date).toLocaleDateString()].some(
                     (f) => f?.toLowerCase().includes(term),
-                ) || entry.files?.some((file) => file.name.toLowerCase().includes(term)),
-        );
+                ) || entry.files?.some((file) => file.name.toLowerCase().includes(term));
+
+            const isIncomplete =
+                entry.type === 'statusChange' &&
+                (!entry.period || !entry.files || entry.files.length === 0);
+
+            const matchesMissingHint =
+                isIncomplete && ['відсутній', 'файл', 'період'].some((w) => w.startsWith(term));
+
+            return matchesBasicFields || matchesMissingHint;
+        });
     }, [history, searchTerm]);
+
     const openAddModal = () => {
         setEditingEntry(null);
         setDescription('');
