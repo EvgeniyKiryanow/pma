@@ -9,7 +9,6 @@ export enum StatusExcel {
     POSITIONS_CREW = 'Позиція екіпажу',
     POSITIONS_CALCULATION = 'Позиція розрахунку',
     POSITIONS_UAV = 'Позиція БПЛА',
-
     POSITIONS_RESERVE_INFANTRY = 'Резерв піхота',
     MANAGEMENT = 'Управління',
     SUPPLY_COMBAT = 'Бойове забезпечення',
