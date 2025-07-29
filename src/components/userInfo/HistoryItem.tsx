@@ -266,6 +266,34 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
                     )}
                 </div>
             )}
+            {entry.type === 'restore' && (
+                <div className="p-4 rounded-xl border border-green-400 bg-gradient-to-br from-green-50 to-white shadow-sm mb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="bg-green-200 text-green-800 p-2 rounded-full">♻️</div>
+                        <h3 className="text-green-800 font-semibold text-base">
+                            Користувача відновлено
+                        </h3>
+                    </div>
+
+                    {entry.content && (
+                        <p className="text-sm text-gray-700 mb-3 whitespace-pre-line">
+                            {entry.content}
+                        </p>
+                    )}
+
+                    {entry.period?.from && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <CalendarDays className="w-4 h-4 text-green-500" />
+                            <span>
+                                Дата відновлення:{' '}
+                                <span className="font-medium text-gray-800">
+                                    {new Date(entry.period.from).toLocaleDateString()}
+                                </span>
+                            </span>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* ✅ Files */}
             {entry.files?.length > 0 && (

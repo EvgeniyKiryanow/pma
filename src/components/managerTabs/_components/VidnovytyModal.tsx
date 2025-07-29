@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react';
 import { X, Eye, UploadCloud, Info } from 'lucide-react';
 import FilePreviewModal, { FileWithDataUrl } from '../../FilePreviewModal';
+import { useUserStore } from '../../../stores/userStore';
+import { useVidnovlennyaStore } from '../../../stores/useVidnovlennyaStore';
+import type { CommentOrHistoryEntry } from '../../../types/user';
 
 export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -9,6 +12,9 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
     const [periodFrom, setPeriodFrom] = useState('');
     const [file, setFile] = useState<FileWithDataUrl | null>(null);
     const [showPreview, setShowPreview] = useState(false);
+    const user = useUserStore((s) => s.selectedUser);
+    const updateUser = useUserStore((s) => s.updateUser);
+    const addVidnovlennya = useVidnovlennyaStore((s) => s.addVidnovlennya);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
@@ -26,9 +32,36 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
     };
 
     const handleSubmit = () => {
-        if (!title || !periodFrom || !file) return;
+        if (!title || !periodFrom || !file || !user) return;
 
-        console.log({ title, description, periodFrom, file });
+        // ✅ 1. Save to store
+        addVidnovlennya({
+            userId: user.id,
+            title,
+            description,
+            period: { from: periodFrom },
+            file,
+            date: new Date().toISOString(),
+        });
+
+        // ✅ 2. Add to history
+        const historyEntry: CommentOrHistoryEntry = {
+            id: Date.now(),
+            type: 'restore',
+            date: new Date().toISOString(),
+            author: 'System',
+            description: `Відновлено користувача: ${title}`,
+            content: description,
+            files: [file],
+            period: { from: periodFrom, to: periodFrom },
+        };
+
+        updateUser({
+            ...user,
+            history: [...(user.history || []), historyEntry],
+        });
+
+        // ✅ 3. Close modal
         onClose();
     };
 

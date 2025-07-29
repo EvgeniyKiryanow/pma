@@ -7,6 +7,7 @@ export type MediaType =
     | 'history'
     | 'statusChange'
     | 'exclude'
+    | 'restore'
     | 'order';
 
 export type CommentOrHistoryEntry = {
