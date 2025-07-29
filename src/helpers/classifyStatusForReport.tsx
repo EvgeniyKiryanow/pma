@@ -6,8 +6,10 @@ export default function classifyStatusForReport(status?: string) {
     // ✅ IN-AREA (combat / rotation / supply / mgmt)
     const inAreaStatuses = [
         // Combat positions
+        StatusExcel.POSITIONS_ON,
         StatusExcel.POSITIONS_INFANTRY,
         StatusExcel.POSITIONS_CREW,
+        StatusExcel.CREWS,
         StatusExcel.POSITIONS_CALCULATION,
         StatusExcel.POSITIONS_UAV,
         StatusExcel.POSITIONS_BRONEGROUP,
@@ -29,7 +31,7 @@ export default function classifyStatusForReport(status?: string) {
         StatusExcel.KSP,
     ];
 
-    // ✅ ABSENT / NON-COMBAT
+    // ❌ ABSENT / NON-COMBAT
     const absentStatuses = [
         // Non-combat
         StatusExcel.NON_COMBAT_ATTACHED_UNITS,
@@ -39,8 +41,10 @@ export default function classifyStatusForReport(status?: string) {
         StatusExcel.NON_COMBAT_EXEMPTED,
         StatusExcel.NON_COMBAT_TREATMENT_ON_SITE,
         StatusExcel.NON_COMBAT_LIMITED_FITNESS,
+        StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT,
         StatusExcel.NON_COMBAT_AWAITING_DECISION,
         StatusExcel.NON_COMBAT_REFUSERS,
+        StatusExcel.HAVE_OFFER_TO_HOS,
 
         // Absent
         StatusExcel.ABSENT_MEDICAL_LEAVE,
@@ -61,6 +65,8 @@ export default function classifyStatusForReport(status?: string) {
         StatusExcel.ABSENT_WOUNDED,
         StatusExcel.ABSENT_KIA,
         StatusExcel.ABSENT_MIA,
+        StatusExcel.ABSENT_REHAB,
+        StatusExcel.ABSENT_REHABED_ON,
     ];
 
     if (inAreaStatuses.some((s) => status.includes(s))) {

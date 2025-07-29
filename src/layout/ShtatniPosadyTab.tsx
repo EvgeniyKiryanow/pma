@@ -143,11 +143,7 @@ export default function ShtatniPosadyTab() {
         const setSelectedUser = useUserStore.getState().setSelectedUser;
 
         // ========= 1️⃣ CLEAR USER WHO CURRENTLY HOLDS THIS POSADA =========
-        const alreadyOnThisPosada = users.find(
-            (u) =>
-                u.shtatNumber === pos.shtat_number ||
-                (u.position === pos.position_name && u.unitMain === pos.unit_name),
-        );
+        const alreadyOnThisPosada = users.find((u) => u.shtatNumber === pos.shtat_number);
 
         if (alreadyOnThisPosada) {
             const clearedHistory: CommentOrHistoryEntry = {
