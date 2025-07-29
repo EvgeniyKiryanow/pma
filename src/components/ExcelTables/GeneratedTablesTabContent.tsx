@@ -74,7 +74,7 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                             w-[220px] leading-snug z-50"
                                     >
                                         🛈 Щоб увімкнути ці звіти, спочатку імпортуйте або додайте
-                                        штатні посади
+                                        БЧС
                                     </div>
                                 )}
                             </div>
@@ -87,12 +87,10 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
             <main className="flex-1 p-6 overflow-auto">
                 {!hasShtatni ? (
                     <div className="flex flex-col items-center justify-center text-center mt-20 space-y-4">
-                        <h2 className="text-2xl font-bold text-gray-800">
-                            ❗ Потрібні штатні посади
-                        </h2>
+                        <h2 className="text-2xl font-bold text-gray-800">❗ Потрібний БЧС</h2>
                         <p className="max-w-xl text-gray-600 leading-relaxed">
                             Щоб створити <b>Донесення</b> або <b>Штатний звіт</b>, спочатку
-                            імпортуйте або додайте штатні посади у відповідному розділі.
+                            імпортуйте або додайте БЧСу відповідному розділі.
                         </p>
                         <p className="text-sm text-gray-500 italic">
                             Після додавання посади ці таблиці будуть доступні автоматично.

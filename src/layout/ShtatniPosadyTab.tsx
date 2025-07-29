@@ -286,7 +286,7 @@ export default function ShtatniPosadyTab() {
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">📋 Штатні посади</h2>
+                <h2 className="text-2xl font-bold">📋 БЧС</h2>
                 {shtatniPosady.length > 0 && (
                     <button
                         className="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600"

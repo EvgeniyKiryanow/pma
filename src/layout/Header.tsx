@@ -119,7 +119,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
               ...tabs.slice(0, 4),
               {
                   key: 'shtatni',
-                  label: 'Штатні посади',
+                  label: 'БЧС',
                   icon: <FileSpreadsheet className="w-4 h-4" />,
               },
               ...tabs.slice(4),

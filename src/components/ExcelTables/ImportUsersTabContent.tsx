@@ -400,7 +400,7 @@ export default function ImportUsersTabContent() {
                                         className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow-md transition"
                                         onClick={() => handleImportShtatniPosady(rows)}
                                     >
-                                        ✅ Імпортувати штатні посади
+                                        ✅ Імпортувати БЧС
                                     </button>
                                 )}
 
