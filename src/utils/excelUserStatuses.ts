@@ -1,65 +1,62 @@
 export enum StatusExcel {
+    // TODO MAKE STATUS ONE FOR NEXT БЧС
     NO_STATUS = 'Без статусу',
 
     // === З НИХ ===
     POSITIONS_ON = 'На позиції',
+    POSITIONS_BRONEGROUP = 'Бронєгрупа',
     POSITIONS_INFANTRY = 'Позиція піхоти',
     POSITIONS_CREW = 'Позиція екіпажу',
-    CREWS = 'Екіпажі',
     POSITIONS_CALCULATION = 'Позиція розрахунку',
     POSITIONS_UAV = 'Позиція БПЛА',
-    POSITIONS_BRONEGROUP = 'Бронєгрупа', // ✅ new
-    POSITIONS_RESERVE_INFANTRY = 'Резерв піхота', // ✅ new
 
-    // === РОТАЦІЯ ТА РЕЗЕРВ ===
-    ROTATION_INFANTRY = 'Ротація піхота',
-    ROTATION_CREW = 'Ротація екіпаж',
-    ROTATION_CALCULATION = 'Ротація розрахунок',
-    ROTATION_UAV = 'Ротація БПЛА',
-
-    // === ЗАБЕЗПЕЧЕННЯ ===
-    SUPPLY_BD = 'Забезпечення БД',
-    SUPPLY_ENGINEERING = 'Забезпечення інженерне',
-    SUPPLY_LIFE_SUPPORT = 'Забезпечення життєдіяльності',
-    SUPPLY_COMBAT = 'Бойове забезпечення', // ✅ new
-    SUPPLY_GENERAL = 'Забезпечення', // ✅ new
-
-    // === УПРАВЛІННЯ ===
+    POSITIONS_RESERVE_INFANTRY = 'Резерв піхота',
     MANAGEMENT = 'Управління',
-    KSP = 'КСП',
-
-    // === НЕ БГ ===
-    NON_COMBAT_ATTACHED_UNITS = 'Приданий в інший підрозділ',
-    NON_COMBAT_TRAINING_NEWCOMERS = 'Навчання, новоприбулий',
-    NON_COMBAT_NEWCOMERS = 'Новоприбулі навчання в підрозділі', // ✅ new
-    NON_COMBAT_HOSPITAL_REFERRAL = 'Має направлення на лікування',
-    NON_COMBAT_EXEMPTED = 'Звільнений від фізичного навантаження',
-    NON_COMBAT_TREATMENT_ON_SITE = 'Лікування на локації',
+    SUPPLY_COMBAT = 'Бойове забезпечення',
+    SUPPLY_GENERAL = 'Забезпечення',
+    NON_COMBAT_NEWCOMERS = 'Новоприбулі навчання в підрозділі',
     NON_COMBAT_LIMITED_FITNESS = 'Обмежено придатний',
     NON_COMBAT_LIMITED_FITNESS_IN_COMBAT = 'Хворі в підрозділі',
-    NON_COMBAT_AWAITING_DECISION = 'Очікує кадрового рішення',
     NON_COMBAT_REFUSERS = 'Відмовник',
+    ABSENT_REHABED_ON = 'Звільняються',
     HAVE_OFFER_TO_HOS = 'Мають направлення на лік/ обслід/конс /влк',
 
-    // === ВІДСУТНІ ===
-    ABSENT_MEDICAL_LEAVE = 'Відпустка лікування',
-    ABSENT_ANNUAL_LEAVE = 'Відпустка щорічна',
-    ABSENT_FAMILY_LEAVE = 'Відпустка за сімейними обставинами',
-    ABSENT_TRAINING = 'Навчання',
-    ABSENT_BUSINESS_TRIP = 'Відрядження',
-    ABSENT_ARREST = 'Арешт',
-    ABSENT_SZO = 'СЗЧ',
-    ABSENT_HOSPITAL = 'Шпиталь',
     ABSENT_VLK = 'ВЛК',
-    ABSENT_300 = '300',
-    ABSENT_500 = '500',
-    ABSENT_200 = '200',
-    ABSENT_HOSPITALIZED = 'Шпиталь / Лікарня', // ✅ new
-    ABSENT_MEDICAL_COMPANY = 'Мед. Рота', // ✅ new
-    ABSENT_REHAB_LEAVE = 'Відпустка (реабілітація)', // ✅ new
-    ABSENT_KIA = 'Загиблі',
-    ABSENT_MIA = 'Зниклі безвісті', // ✅ new
-    ABSENT_WOUNDED = 'Поранені', // ✅ new
+    ABSENT_HOSPITALIZED = 'Шпиталь / Лікарня',
+    ABSENT_MEDICAL_COMPANY = 'Мед. Рота',
+    ABSENT_REHAB_LEAVE = 'Відпустка (реабілітація)',
     ABSENT_REHAB = 'Відпустка',
-    ABSENT_REHABED_ON = 'Звільняються',
+    ABSENT_BUSINESS_TRIP = 'Відрядження',
+    ABSENT_SZO = 'СЗЧ',
+    ABSENT_WOUNDED = 'Поранені',
+    ABSENT_KIA = 'Загиблі',
+    ABSENT_MIA = 'Зниклі безвісті',
 }
+// ABSENT_ARREST = 'Арешт',
+// ABSENT_HOSPITAL = 'Шпиталь',
+// ABSENT_300 = '300',
+// ABSENT_500 = '500',
+// ABSENT_200 = '200',
+// KSP = 'КСП',
+// CREWS = 'Екіпажі',
+// === РОТАЦІЯ ТА РЕЗЕРВ ===
+// ROTATION_INFANTRY = 'Ротація піхота',
+// ROTATION_CREW = 'Ротація екіпаж',
+// ROTATION_CALCULATION = 'Ротація розрахунок',
+// ROTATION_UAV = 'Ротація БПЛА',
+
+// === ЗАБЕЗПЕЧЕННЯ ===
+// SUPPLY_BD = 'Забезпечення БД',
+// SUPPLY_ENGINEERING = 'Забезпечення інженерне',
+// SUPPLY_LIFE_SUPPORT = 'Забезпечення життєдіяльності',
+
+// NON_COMBAT_ATTACHED_UNITS = 'Приданий в інший підрозділ',
+// NON_COMBAT_TRAINING_NEWCOMERS = 'Навчання, новоприбулий',
+// NON_COMBAT_HOSPITAL_REFERRAL = 'Має направлення на лікування',
+// NON_COMBAT_EXEMPTED = 'Звільнений від фізичного навантаження',
+// NON_COMBAT_TREATMENT_ON_SITE = 'Лікування на локації',
+// NON_COMBAT_AWAITING_DECISION = 'Очікує кадрового рішення',
+// ABSENT_MEDICAL_LEAVE = 'Відпустка лікування',
+// ABSENT_ANNUAL_LEAVE = 'Відпустка щорічна',
+// ABSENT_FAMILY_LEAVE = 'Відпустка за сімейними обставинами',
+// ABSENT_TRAINING = 'Навчання',
