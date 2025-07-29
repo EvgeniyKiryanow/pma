@@ -142,6 +142,12 @@ export default function RozporyadzhennyaModal({ onClose }: { onClose: () => void
                             />
                         </div>
                     </div>
+                    {user?.soldierStatus && (
+                        <div className="mb-4 px-4 py-2 rounded-lg border border-yellow-300 bg-yellow-50 text-yellow-800 text-sm font-medium">
+                            Поточний статус:{' '}
+                            <span className="font-semibold">{user.soldierStatus}</span>
+                        </div>
+                    )}
 
                     {/* Upload */}
                     <div>

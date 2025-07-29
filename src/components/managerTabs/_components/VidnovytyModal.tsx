@@ -32,7 +32,7 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
     };
 
     const handleSubmit = () => {
-        if (!title || !periodFrom || !file || !user) return;
+        if (!title || !file || !user) return;
 
         // ✅ 1. Save to store
         addVidnovlennya({
@@ -173,9 +173,9 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
                 <div className="mt-6 flex justify-end">
                     <button
                         onClick={handleSubmit}
-                        disabled={!title || !periodFrom || !file}
+                        disabled={!title || !file}
                         className={`px-6 py-2 rounded-lg shadow font-medium text-sm transition ${
-                            !title || !periodFrom || !file
+                            !title || !file
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 : 'bg-green-600 hover:bg-green-700 text-white'
                         }`}
