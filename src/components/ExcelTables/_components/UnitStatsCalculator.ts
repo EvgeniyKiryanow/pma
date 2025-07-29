@@ -19,50 +19,26 @@ export class UnitStatsCalculator {
         positionsUav: [StatusExcel.POSITIONS_UAV],
         positionsBronegroup: [StatusExcel.POSITIONS_BRONEGROUP],
         positionsReserveInfantry: [StatusExcel.POSITIONS_RESERVE_INFANTRY],
-        crews: [StatusExcel.CREWS],
-        rotationAll: [
-            StatusExcel.ROTATION_INFANTRY,
-            StatusExcel.ROTATION_CREW,
-            StatusExcel.ROTATION_CALCULATION,
-            StatusExcel.ROTATION_UAV,
-        ],
-        rotationInfantry: [StatusExcel.ROTATION_INFANTRY],
-        rotationCrew: [StatusExcel.ROTATION_CREW],
-        rotationCalc: [StatusExcel.ROTATION_CALCULATION],
-        rotationUav: [StatusExcel.ROTATION_UAV],
-        supplyAll: [
-            StatusExcel.SUPPLY_BD,
-            StatusExcel.SUPPLY_ENGINEERING,
-            StatusExcel.SUPPLY_LIFE_SUPPORT,
-            StatusExcel.SUPPLY_COMBAT,
-            StatusExcel.SUPPLY_GENERAL,
-        ],
-        supplyBd: [StatusExcel.SUPPLY_BD],
-        supplyEng: [StatusExcel.SUPPLY_ENGINEERING],
-        supplyLife: [StatusExcel.SUPPLY_LIFE_SUPPORT],
+
+        supplyAll: [StatusExcel.SUPPLY_COMBAT, StatusExcel.SUPPLY_GENERAL],
+
         supplyCombat: [StatusExcel.SUPPLY_COMBAT],
         supplyGeneral: [StatusExcel.SUPPLY_GENERAL],
         management: [StatusExcel.MANAGEMENT],
-        ksp: [StatusExcel.KSP],
+
         inCombatNow: [
-            StatusExcel.ROTATION_INFANTRY,
             StatusExcel.POSITIONS_BRONEGROUP,
             StatusExcel.POSITIONS_RESERVE_INFANTRY,
-            StatusExcel.CREWS,
+
             StatusExcel.MANAGEMENT,
             StatusExcel.SUPPLY_COMBAT,
             StatusExcel.SUPPLY_GENERAL,
-            StatusExcel.NON_COMBAT_TRAINING_NEWCOMERS,
         ],
         nonCombatAll: [
-            StatusExcel.NON_COMBAT_ATTACHED_UNITS,
-            StatusExcel.NON_COMBAT_TRAINING_NEWCOMERS,
             StatusExcel.NON_COMBAT_NEWCOMERS,
-            StatusExcel.NON_COMBAT_HOSPITAL_REFERRAL,
-            StatusExcel.NON_COMBAT_EXEMPTED,
-            StatusExcel.NON_COMBAT_TREATMENT_ON_SITE,
+
             StatusExcel.NON_COMBAT_LIMITED_FITNESS,
-            StatusExcel.NON_COMBAT_AWAITING_DECISION,
+
             StatusExcel.NON_COMBAT_REFUSERS,
         ],
         nonOnBG: [
@@ -72,32 +48,23 @@ export class UnitStatsCalculator {
             StatusExcel.ABSENT_REHABED_ON,
             StatusExcel.HAVE_OFFER_TO_HOS,
         ],
-        nonCombatAttached: [StatusExcel.NON_COMBAT_ATTACHED_UNITS],
-        nonCombatTraining: [StatusExcel.NON_COMBAT_TRAINING_NEWCOMERS],
+
         nonCombatNewcomers: [StatusExcel.NON_COMBAT_NEWCOMERS],
-        nonCombatHospitalReferral: [StatusExcel.NON_COMBAT_HOSPITAL_REFERRAL],
-        nonCombatExempted: [StatusExcel.NON_COMBAT_EXEMPTED],
-        nonCombatOnSite: [StatusExcel.NON_COMBAT_TREATMENT_ON_SITE],
+
         nonCombatLimited: [StatusExcel.NON_COMBAT_LIMITED_FITNESS],
         nonCombatLimitedInCombat: [StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT],
-        nonCombatDecision: [StatusExcel.NON_COMBAT_AWAITING_DECISION],
+
         nonCombatRefusers: [StatusExcel.NON_COMBAT_REFUSERS],
         haveOfferToJost: [StatusExcel.HAVE_OFFER_TO_HOS],
         absentRehab: [StatusExcel.ABSENT_REHAB],
         absentRehabedOn: [StatusExcel.ABSENT_REHABED_ON],
         absentAll: [
-            StatusExcel.ABSENT_MEDICAL_LEAVE,
-            StatusExcel.ABSENT_ANNUAL_LEAVE,
-            StatusExcel.ABSENT_FAMILY_LEAVE,
-            StatusExcel.ABSENT_TRAINING,
             StatusExcel.ABSENT_BUSINESS_TRIP,
-            StatusExcel.ABSENT_ARREST,
+
             StatusExcel.ABSENT_SZO,
-            StatusExcel.ABSENT_HOSPITAL,
+
             StatusExcel.ABSENT_VLK,
-            StatusExcel.ABSENT_300,
-            StatusExcel.ABSENT_500,
-            StatusExcel.ABSENT_200,
+
             StatusExcel.ABSENT_HOSPITALIZED,
             StatusExcel.ABSENT_MEDICAL_COMPANY,
             StatusExcel.ABSENT_REHAB_LEAVE,
@@ -107,28 +74,23 @@ export class UnitStatsCalculator {
         ],
         absentAllAlternative: [
             StatusExcel.ABSENT_VLK,
-            StatusExcel.ABSENT_HOSPITAL,
             StatusExcel.ABSENT_MEDICAL_COMPANY,
             StatusExcel.ABSENT_REHAB_LEAVE,
             StatusExcel.ABSENT_REHAB,
             StatusExcel.ABSENT_BUSINESS_TRIP,
             StatusExcel.ABSENT_SZO,
             StatusExcel.ABSENT_WOUNDED,
-            StatusExcel.ABSENT_200,
+
             StatusExcel.ABSENT_MIA,
         ],
-        absentMedical: [StatusExcel.ABSENT_MEDICAL_LEAVE],
-        absentAnnual: [StatusExcel.ABSENT_ANNUAL_LEAVE],
-        absentFamily: [StatusExcel.ABSENT_FAMILY_LEAVE],
-        absentTraining: [StatusExcel.ABSENT_TRAINING],
+
         absentBusinessTrip: [StatusExcel.ABSENT_BUSINESS_TRIP],
-        absentArrest: [StatusExcel.ABSENT_ARREST],
+
         absentSZO: [StatusExcel.ABSENT_SZO],
-        absentHospital: [StatusExcel.ABSENT_HOSPITAL, StatusExcel.ABSENT_HOSPITALIZED],
+        absentHospital: [StatusExcel.ABSENT_HOSPITALIZED],
         absentVLK: [StatusExcel.ABSENT_VLK],
-        absent300: [StatusExcel.ABSENT_300],
-        absent500: [StatusExcel.ABSENT_500],
-        absent200: [StatusExcel.ABSENT_200, StatusExcel.ABSENT_KIA],
+
+        absent200: [StatusExcel.ABSENT_KIA],
         absentRehabLeave: [StatusExcel.ABSENT_REHAB_LEAVE],
         absentMedCompany: [StatusExcel.ABSENT_MEDICAL_COMPANY],
         absentMIA: [StatusExcel.ABSENT_MIA],
@@ -143,32 +105,7 @@ export class UnitStatsCalculator {
         '3-й взвод': { total: 34, officer: 1, soldier: 33 },
         ВСЬОГО: { total: 0, officer: 0, soldier: 0 }, // sum later
     };
-    // === Actual (за списком)
-    // const actualTotal = users.length;
-    // const actualOfficers = users.filter((u) => u.category?.toLowerCase().includes('оф')).length;
-    // const actualSoldiers = actualTotal - actualOfficers;
 
-    // // === % Staffing
-    // const staffingPercent =
-    //     plannedTotal > 0 ? ((actualTotal / plannedTotal) * 100).toFixed(0) : '0';
-    // // === Присутні всі
-    // const presentTotal = actualTotal - totalMissing;
-
-    // // === Відсоток присутніх
-    // const presentPercent =
-    //     actualTotal > 0 ? ((presentTotal / actualTotal) * 100).toFixed(0) : '0';
-
-    // // === Тепер визначаємо присутніх користувачів (відфільтруємо відсутніх)
-    // const absentStatuses = [...STATUS_GROUPS.nonCombatAll, ...STATUS_GROUPS.absentAll];
-
-    // const presentUsers = users.filter((u) => !absentStatuses.includes(u.soldierStatus as any));
-
-    // // === Присутні офіцери і солдати окремо
-    // const presentTotalOfficer = presentUsers.filter((u) =>
-    //     u.category?.toLowerCase().includes('оф'),
-    // ).length;
-
-    // const presentTotalSoldier = presentUsers.length - presentTotalOfficer;
     static calculateAdditionalStats(
         users: any[],
         planned: { total: number; officer: number; soldier: number },
@@ -285,7 +222,7 @@ export class UnitStatsCalculator {
             this.STATUS_GROUPS.positionsBronegroup,
         ); //бронегруппа
         const positionsInfantry = this.sumStatuses(counts, this.STATUS_GROUPS.positionsInfantry); // позиції піхоти
-        const positionCrews = this.sumStatuses(counts, this.STATUS_GROUPS.crews); //екіпажі
+
         const positionsCalc = this.sumStatuses(counts, this.STATUS_GROUPS.positionsCalc); //позиція розрахунку
         const positionsUav = this.sumStatuses(counts, this.STATUS_GROUPS.positionsUav); // позиція БПЛА
         const positionsReserveInfantry = this.sumStatuses(
@@ -331,41 +268,10 @@ export class UnitStatsCalculator {
         const positionsCrew = this.sumStatuses(counts, this.STATUS_GROUPS.positionsCrew);
 
         // ------------------ КІНЕЦЬ АЛЬТЕРНАТИВОНОГО БЧС ------------------
-        const totalRotation = this.sumStatuses(counts, this.STATUS_GROUPS.rotationAll);
-        const rotationInfantry = this.sumStatuses(counts, this.STATUS_GROUPS.rotationInfantry);
-        const rotationCrew = this.sumStatuses(counts, this.STATUS_GROUPS.rotationCrew);
-        const rotationCalc = this.sumStatuses(counts, this.STATUS_GROUPS.rotationCalc);
-        const rotationUav = this.sumStatuses(counts, this.STATUS_GROUPS.rotationUav);
-
-        const totalSupply = this.sumStatuses(counts, this.STATUS_GROUPS.supplyAll);
-        const supplyBd = this.sumStatuses(counts, this.STATUS_GROUPS.supplyBd);
-        const supplyEng = this.sumStatuses(counts, this.STATUS_GROUPS.supplyEng);
-        const supplyLife = this.sumStatuses(counts, this.STATUS_GROUPS.supplyLife);
-
-        const totalKsp = this.sumStatuses(counts, this.STATUS_GROUPS.ksp);
 
         const totalNonCombat = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatAll);
-        const nonCombatAttached = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatAttached);
-        const nonCombatTraining = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatTraining);
-
-        const nonCombatHospitalReferral = this.sumStatuses(
-            counts,
-            this.STATUS_GROUPS.nonCombatHospitalReferral,
-        );
-        const nonCombatExempted = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatExempted);
-        const nonCombatOnSite = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatOnSite);
-
-        const nonCombatDecision = this.sumStatuses(counts, this.STATUS_GROUPS.nonCombatDecision);
 
         const totalAbsent = this.sumStatuses(counts, this.STATUS_GROUPS.absentAll);
-        const absentMedical = this.sumStatuses(counts, this.STATUS_GROUPS.absentMedical);
-        const absentAnnual = this.sumStatuses(counts, this.STATUS_GROUPS.absentAnnual);
-        const absentFamily = this.sumStatuses(counts, this.STATUS_GROUPS.absentFamily);
-        const absentTraining = this.sumStatuses(counts, this.STATUS_GROUPS.absentTraining);
-        const absentArrest = this.sumStatuses(counts, this.STATUS_GROUPS.absentArrest);
-
-        const absent300 = this.sumStatuses(counts, this.STATUS_GROUPS.absent300);
-        const absent500 = this.sumStatuses(counts, this.STATUS_GROUPS.absent500);
 
         const totalMissing = totalNonCombat + totalAbsent;
 
@@ -379,7 +285,7 @@ export class UnitStatsCalculator {
             supplyGeneral,
             supplyCombat,
             totalManagement,
-            positionCrews,
+
             positionsReserveInfantry,
             positionsBronegroup,
             positionsInfantry,
@@ -401,41 +307,7 @@ export class UnitStatsCalculator {
             absentMedCompany,
             absentHospital,
             absentVLK,
-
-            totalRotation,
-            rotationInfantry,
-            rotationCrew,
-            rotationCalc,
-            rotationUav,
-
-            totalSupply,
-            supplyBd,
-            supplyEng,
-            supplyLife,
-
-            totalKsp,
-
-            totalNonCombat,
-            nonCombatAttached,
-            nonCombatTraining,
-
-            nonCombatHospitalReferral,
-            nonCombatExempted,
-            nonCombatOnSite,
-
-            nonCombatDecision,
-
             totalAbsent,
-            absentMedical,
-            absentAnnual,
-            absentFamily,
-            absentTraining,
-
-            absentArrest,
-
-            absent300,
-            absent500,
-
             totalMissing,
         };
     }

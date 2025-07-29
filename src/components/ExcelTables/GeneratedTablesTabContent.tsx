@@ -1,6 +1,6 @@
 // GeneratedTablesTabContent.tsx
 import React, { useEffect, useState } from 'react';
-import { CombatReportTable } from './_components/CombatReportTable';
+// import { CombatReportTable } from './_components/CombatReportTable';
 import { StaffReportTable } from './_components/StaffReportTable';
 import { generateCombatReportExcel } from './excelTemplates/generateCombatReportExcel';
 import { generateStaffReportExcel } from './excelTemplates/generateStaffReportExcel';
