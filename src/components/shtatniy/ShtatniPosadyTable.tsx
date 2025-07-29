@@ -8,6 +8,8 @@ import {
 } from '../../utils/posadyBadgeHelper';
 import type { User, CommentOrHistoryEntry } from '../../types/user';
 import type { ShtatnaPosada } from '../../stores/useShtatniStore';
+import { StatusExcel } from '../../utils/excelUserStatuses';
+import { useUserStore } from '../../stores/userStore';
 
 type GroupedEntry = {
     type: 'header' | 'pos';
@@ -31,6 +33,7 @@ export default function ShtatniPosadyTable({
     onAssign,
     onUnassign,
 }: Props) {
+    const updateUser = useUserStore((s) => s.updateUser);
     return (
         <div className="overflow-x-auto border rounded shadow bg-white">
             <table className="w-full text-sm border-collapse">
@@ -41,7 +44,10 @@ export default function ShtatniPosadyTable({
                         <th className="border px-2 py-1 text-left">Посада</th>
                         <th className="border px-2 py-1 text-left">Кат</th>
                         <th className="border px-2 py-1 text-left">ШПК</th>
-                        <th className="border px-2 py-1 text-left">Призначений користувач</th>
+                        <th className="border px-2 py-1 text-left">
+                            Призначений військовослужбовець
+                        </th>
+                        <th className="border px-2 py-1 text-left">Статус</th>
                         <th className="border px-2 py-1 text-center w-20">Дії</th>
                     </tr>
                 </thead>
@@ -134,6 +140,33 @@ export default function ShtatniPosadyTable({
                                             ))}
                                     </select>
                                 </td>
+                                <td className="border px-2 py-1">
+                                    {matchedUser ? (
+                                        <select
+                                            className="text-xs border rounded px-1 py-0.5 max-w-[180px]"
+                                            value={matchedUser.soldierStatus || ''}
+                                            onChange={(e) => {
+                                                const newStatus = e.target.value;
+                                                const updatedUser = {
+                                                    ...matchedUser,
+                                                    soldierStatus: newStatus,
+                                                };
+
+                                                updateUser(updatedUser); // Or call your store action
+                                            }}
+                                        >
+                                            <option value="">-- Обрати статус --</option>
+                                            {Object.values(StatusExcel).map((s) => (
+                                                <option key={s} value={s}>
+                                                    {s}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <span className="text-gray-400 text-xs italic">—</span>
+                                    )}
+                                </td>
+
                                 <td className="border px-2 py-1 text-center">
                                     <button
                                         onClick={() => onEdit(pos)}
