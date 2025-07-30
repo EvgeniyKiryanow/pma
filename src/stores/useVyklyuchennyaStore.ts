@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { FileWithDataUrl } from '../components/FilePreviewModal';
+import { useUserStore } from './userStore';
 
 export type VyklyuchennyaEntry = {
     id: number;
@@ -53,10 +54,21 @@ export const useVyklyuchennyaStore = create<VyklyuchennyaStore>((set, get) => ({
     },
 
     removeVyklyuchennya: async (id) => {
-        await window.electronAPI.directives.deleteById(id);
-        set((state) => ({
-            list: state.list.filter((entry) => entry.id !== id),
-        }));
+        const entry = get().list.find((e) => e.id === id);
+        if (entry) {
+            // Restore shpkNumber from file meta
+            const user = useUserStore.getState().users.find((u) => u.id === entry.userId);
+
+            if (user) {
+                useUserStore.getState().updateUser({
+                    ...user,
+                    shpkNumber: null, // ✅ restore it
+                });
+            }
+
+            await window.electronAPI.directives.deleteById(id);
+            await get().fetchAll();
+        }
     },
 
     clearAllVyklyuchennya: async () => {
