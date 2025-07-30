@@ -113,7 +113,7 @@ export function AlternateCombatReportBody() {
                         <EditableCell
                             unitName={name}
                             field="presentPercent"
-                            initialValue={0}
+                            initialValue={report[name]?.percentNowCurrent || 0}
                             style={{ borderRightWidth: '2px' }}
                             className="border border-black"
                         />
@@ -121,7 +121,7 @@ export function AlternateCombatReportBody() {
                         <EditableCell
                             unitName={name}
                             field="presentTotal"
-                            initialValue={0}
+                            initialValue={report[name]?.inCombatNow || 0}
                             style={{ backgroundColor: '#f8da78' }}
                             className="border border-black"
                         />

@@ -347,26 +347,39 @@ export class UnitStatsCalculator {
                 const actualGlobal = this.calculateStatusTotalsExplicit(users);
                 const additionalGlobal = this.calculateAdditionalStats(users, plannedSum);
 
+                // ✅ Add percentNowCurrent for ВСЬОГО
+                const percentNowCurrent =
+                    plannedSum.total > 0
+                        ? ((actualGlobal.inCombatNow / plannedSum.total) * 100).toFixed(0) + '%'
+                        : '0%';
+
                 result[unitName] = {
                     unit: 'ВСЬОГО',
                     plannedTotal: plannedSum.total,
                     plannedOfficer: plannedSum.officer,
                     plannedSoldier: plannedSum.soldier,
+                    percentNowCurrent, // ✅ added here
                     ...actualGlobal,
                     ...additionalGlobal,
                 };
             } else {
-                // === Обробка для кожного підрозділу
                 const unitUsers = this.filterUsersByUnit(users, unitName);
                 const planned = this.getPlannedTotals(unitName);
                 const actual = this.calculateStatusTotalsExplicit(unitUsers);
                 const additional = this.calculateAdditionalStats(unitUsers, planned);
+
+                // ✅ NEW: Add current inCombat percentage
+                const percentNowCurrent =
+                    planned.total > 0
+                        ? ((actual.inCombatNow / planned.total) * 100).toFixed(0) + '%'
+                        : '0%';
 
                 result[unitName] = {
                     unit: unitName,
                     plannedTotal: planned.total,
                     plannedOfficer: planned.officer,
                     plannedSoldier: planned.soldier,
+                    percentNowCurrent,
                     ...actual,
                     ...additional,
                 };
