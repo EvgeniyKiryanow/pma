@@ -182,27 +182,39 @@ export class UnitStatsCalculator {
 
     static normalizeUnitName(name: string) {
         return name
-            .replace(/\r?\n|\r/g, ' ') // newlines → space
-            .replace(/-й/g, '') // remove "-й" so 2-й → 2
             .toLowerCase()
+            .replace(/-й/g, '') // '2-й взвод' → '2 взвод'
+            .replace(/-/g, ' ') // '1-взвод' → '1 взвод'
             .trim()
-            .replace(/\s+/g, ' '); // collapse multiple spaces
+            .replace(/\s+/g, ' ');
     }
 
     static filterUsersByUnit(users: any, unitName: any) {
-        const normalizedTarget = this.normalizeUnitName(unitName); // e.g., "управління роти"
-        const targetWords = normalizedTarget.split(' '); // ['управління', 'роти']
+        const normalizedTarget = this.normalizeUnitName(unitName);
 
         return users.filter((u: any) => {
-            if (!u.unitMain) return false;
+            const unitMain = u.unitMain || u.unit || '';
+            const parts = unitMain
+                .split(/\r?\n|,|;/g)
+                .map((p: any) => p.trim())
+                .filter(Boolean);
 
-            const rawUnits = (u.unitMain || u.unit || '').split(/\r?\n|,|;/g);
-            const normalizedParts = rawUnits.map((part: string) => this.normalizeUnitName(part));
+            const normalizedLines = parts.map(this.normalizeUnitName);
 
-            // Join all normalized parts into one string for broader matching
-            const fullNormalizedUnit = normalizedParts.join(' '); // e.g., "управління 2 взвод"
-            // Check if all words in the target exist somewhere in the full unit
-            return targetWords.every((word) => fullNormalizedUnit.includes(word));
+            // exact single-line match
+            if (normalizedLines.includes(normalizedTarget)) {
+                return true;
+            }
+
+            // additionally try pairwise combinations: line[i] + ' ' + line[i+1]
+            for (let i = 0; i < normalizedLines.length - 1; i++) {
+                const combined = `${normalizedLines[i]} ${normalizedLines[i + 1]}`.trim();
+                if (combined === normalizedTarget) {
+                    return true;
+                }
+            }
+
+            return false;
         });
     }
 
