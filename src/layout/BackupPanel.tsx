@@ -46,9 +46,26 @@ export default function BackupPanel() {
             <div className="flex-1 p-8 overflow-y-auto">
                 {activeTab === 'changeLogs' && (
                     <div className="max-w-xl mx-auto space-y-6">
-                        <h2 className="text-2xl font-bold text-gray-800">
-                            {t('backupPanel.changeLogs')}
-                        </h2>
+                        <div className="mb-6">
+                            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                                {t('backupPanel.changeLogs')}
+                            </h2>
+                            <p className="text-gray-700 text-sm leading-relaxed">
+                                Тут ви можете <strong>експортувати</strong> або{' '}
+                                <strong>імпортувати</strong> зашифровані журнали змін. Кожен експорт
+                                захищений паролем, який ви самі обираєте. Тільки користувачі, які
+                                знають цей пароль, зможуть розшифрувати та імпортувати файл на інших
+                                пристроях.
+                            </p>
+                            <ul className="text-gray-600 text-sm mt-2 list-disc list-inside">
+                                <li>Пароль повинен містити мінімум 6 символів.</li>
+                                <li>Паролі не зберігаються — збережіть їх самостійно.</li>
+                                <li>
+                                    Файли експорту мають розширення <code>.pmc</code> і містять лише
+                                    зміни.
+                                </li>
+                            </ul>
+                        </div>
 
                         <div className="flex justify-center gap-4">
                             <button
