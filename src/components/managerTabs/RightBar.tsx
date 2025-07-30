@@ -114,7 +114,7 @@ export default function RightBar() {
                     {/* ✅ Only show if user is not excluded */}
                     {user.shpkNumber !== 'excluded' && (
                         <>
-                            {user.shpkNumber !== 'order' && (
+                            {!user.shpkNumber?.toString().includes('order') && (
                                 <button
                                     onClick={() => setShowOrderModal(true)}
                                     className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-blue-100 text-blue-800 hover:bg-blue-200 transition border border-blue-200"
@@ -129,13 +129,14 @@ export default function RightBar() {
                             >
                                 ❌ Виключити
                             </button>
-
-                            <button
-                                onClick={() => setShowRestoreModal(true)}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-green-100 text-green-800 hover:bg-green-200 transition border border-green-200"
-                            >
-                                ♻️ Відновити
-                            </button>
+                            {user.shpkNumber?.toString().includes('order') && (
+                                <button
+                                    onClick={() => setShowRestoreModal(true)}
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-green-100 text-green-800 hover:bg-green-200 transition border border-green-200"
+                                >
+                                    ♻️ Відновити
+                                </button>
+                            )}
 
                             <button
                                 onClick={() => openUserFormForEdit(user)}
