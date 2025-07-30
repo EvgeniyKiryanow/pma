@@ -11,7 +11,7 @@ export default function RozporyadzhennyaTab() {
     const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
     const [showTable, setShowTable] = useState(true);
     const { users, updateUser } = useUserStore();
-    const orderedUsers = users.filter((u) => u.shpkNumber === 'order');
+    const orderedUsers = users.filter((u) => u.shpkNumber?.toString().includes('order'));
 
     useEffect(() => {
         fetchAll();

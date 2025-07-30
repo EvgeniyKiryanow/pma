@@ -1,4 +1,3 @@
-// src/layout/ManagerTab.tsx
 import { useState } from 'react';
 import LeftBar from '../components/managerTabs/LeftBar';
 import RightBar from '../components/managerTabs/RightBar';
@@ -16,6 +15,12 @@ export default function ManagerTab() {
     const [activeSubTab, setActiveSubTab] = useState<'main' | 'orders' | 'excluded'>('main');
     const users = useUserStore((s) => s.users);
     const selectedUser = useUserStore((s) => s.selectedUser);
+    const setSelectedUser = useUserStore((s) => s.setSelectedUser);
+
+    const handleTabChange = (tabId: 'main' | 'orders' | 'excluded') => {
+        setActiveSubTab(tabId);
+        setSelectedUser(null); // ✅ clear selected user on tab switch
+    };
 
     return (
         <div className="flex flex-col flex-1 overflow-hidden">
@@ -28,7 +33,7 @@ export default function ManagerTab() {
                                 ? 'bg-blue-600 text-white'
                                 : 'text-gray-600 hover:bg-gray-100'
                         }`}
-                        onClick={() => setActiveSubTab(tab.id as any)}
+                        onClick={() => handleTabChange(tab.id as any)}
                     >
                         {tab.label}
                     </button>
@@ -40,11 +45,19 @@ export default function ManagerTab() {
                     <div className="flex h-full">
                         <LeftBar
                             users={users.filter(
-                                (u) => u.shpkNumber !== 'excluded' && u.shpkNumber !== 'order',
+                                (u) =>
+                                    u.shpkNumber !== 'excluded' &&
+                                    !(
+                                        typeof u.shpkNumber === 'string' &&
+                                        u.shpkNumber.includes('order')
+                                    ),
                             )}
                         />
-                        {selectedUser?.shpkNumber !== 'excluded' &&
-                            selectedUser?.shpkNumber !== 'order' && <RightBar />}
+
+                        {typeof selectedUser?.shpkNumber !== 'string' ||
+                        !selectedUser.shpkNumber.includes('order') ? (
+                            <RightBar />
+                        ) : null}
                     </div>
                 ) : activeSubTab === 'orders' ? (
                     <RozporyadzhennyaTab />
