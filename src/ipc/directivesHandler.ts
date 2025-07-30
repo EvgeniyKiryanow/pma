@@ -33,10 +33,23 @@ export function registerDirectivesHandler() {
             return;
         }
 
-        // 2. Видаляємо
+        // 🔐 2. Перетворюємо file у JSON-строку, якщо потрібно
+        if (row.file && typeof row.file === 'object') {
+            try {
+                row.file = JSON.stringify(row.file);
+            } catch (err) {
+                console.warn(
+                    `[Directives] ⚠️ Неможливо серіалізувати поле "file" для id=${row.id}`,
+                    err,
+                );
+                row.file = null;
+            }
+        }
+
+        // 3. Видаляємо
         await db.run(`DELETE FROM user_directives WHERE id = ?`, [id]);
 
-        // 3. Логуємо зміну
+        // 4. Логуємо зміну
         try {
             await db.run(
                 `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
@@ -45,7 +58,7 @@ export function registerDirectivesHandler() {
                 row.id,
                 'delete',
                 JSON.stringify(row),
-                'local', // або clientId, якщо буде
+                'local',
             );
         } catch (err) {
             console.warn(`[ChangeHistory] ❌ Помилка при логуванні delete id=${id}`, err);
