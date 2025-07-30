@@ -347,10 +347,10 @@ export async function generateAlternateCombatReportExcelTemplate(report: Record<
         'actualOfficers',
         'actualSoldiers',
 
-        'presentPercent',
-        'presentTotal',
-        'presentOfficer',
-        'presentSoldier',
+        'percentNowCurrent',
+        'inCombatNow',
+        'inCombatNowOfficer',
+        'inCombatNowSoldier',
 
         'oNPostition',
         'positionsBronegroup',
