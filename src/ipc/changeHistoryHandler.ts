@@ -1,6 +1,7 @@
 import { ipcMain, dialog } from 'electron';
 import fs from 'fs/promises';
 import { getDb } from '../database/db';
+import { randomBytes } from 'crypto';
 
 export function registerChangeHistoryHandler() {
     ipcMain.handle('change-history:log', async (_event, change) => {
@@ -50,10 +51,12 @@ export function registerChangeHistoryHandler() {
         try {
             const content = await fs.readFile(filePaths[0], 'utf-8');
             const changes = JSON.parse(content);
+            const importedSourceId = randomBytes(20).toString('hex').slice(0, 30); // 30 символів
+
             let importedCount = 0;
 
             for (const change of changes) {
-                const { table_name, record_id, operation, timestamp, source_id } = change;
+                const { table_name, record_id, operation, timestamp } = change;
                 let data: any = change.data;
 
                 if (typeof data === 'string') {
@@ -73,7 +76,6 @@ export function registerChangeHistoryHandler() {
                     continue;
                 }
 
-                // Map period
                 if (table_name === 'user_directives') {
                     if (data.period) {
                         data.period_from = data.period.from || '';
@@ -88,14 +90,15 @@ export function registerChangeHistoryHandler() {
 
                 const cleanValue = (v: any) => (v === undefined ? null : v);
 
+                // Додаємо до логів з новим імпортованим source_id
                 await db.run(
                     `INSERT OR IGNORE INTO change_history (table_name, record_id, operation, data, source_id, timestamp)
-                     VALUES (?, ?, ?, ?, ?, ?)`,
+                 VALUES (?, ?, ?, ?, ?, ?)`,
                     table_name,
                     record_id,
                     operation,
                     JSON.stringify(data),
-                    source_id ?? null,
+                    importedSourceId,
                     timestamp,
                 );
 
@@ -152,17 +155,41 @@ export function registerChangeHistoryHandler() {
                 }
             }
 
+            // 🧹 Після імпорту видаляємо тільки імпортовані логи
+            await db.run(`DELETE FROM change_history WHERE source_id = ?`, importedSourceId);
+
             return { imported: importedCount };
         } catch (err) {
             console.warn('[ChangeHistory] ❌ Помилка при імпорті:', err);
             return { imported: 0 };
         }
     });
-
     ipcMain.handle('change-history:export', async () => {
         const db = await getDb();
+
         try {
-            const logs = await db.all(`SELECT * FROM change_history ORDER BY timestamp ASC`);
+            // 1. Генеруємо унікальний source_id для цього експорту
+            const exportSourceId = randomBytes(20).toString('hex').slice(0, 30);
+
+            // 2. Оновлюємо всі логи без source_id або з source_id='local'
+            await db.run(
+                `UPDATE change_history SET source_id = ?
+             WHERE source_id IS NULL OR source_id = 'local'`,
+                exportSourceId,
+            );
+
+            // 3. Отримуємо всі логи для цього source_id
+            const logs = await db.all(
+                `SELECT * FROM change_history WHERE source_id = ? ORDER BY timestamp ASC`,
+                exportSourceId,
+            );
+
+            if (!logs || logs.length === 0) {
+                console.warn('[ChangeHistory] ⚠️ Немає логів для експорту');
+                return { exported: 0 };
+            }
+
+            // 4. Запитуємо шлях збереження
             const { canceled, filePath } = await dialog.showSaveDialog({
                 title: 'Export Change Log',
                 defaultPath: 'change_log.json',
@@ -171,7 +198,12 @@ export function registerChangeHistoryHandler() {
 
             if (canceled || !filePath) return { exported: 0 };
 
+            // 5. Записуємо у файл
             await fs.writeFile(filePath, JSON.stringify(logs, null, 2), 'utf-8');
+
+            // 6. Видаляємо ці логи з бази
+            await db.run(`DELETE FROM change_history WHERE source_id = ?`, exportSourceId);
+
             return { exported: logs.length };
         } catch (err) {
             console.warn('[ChangeHistory] ❌ Помилка при експорті:', err);
