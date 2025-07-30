@@ -128,8 +128,8 @@ declare global {
                 clearByType: (type: 'order' | 'exclude' | 'restore') => Promise<void>;
             };
             // LOGS
-            exportChangeLogs: () => Promise<void>;
-            importChangeLogs: () => Promise<void>;
+            exportChangeLogs: (password: string) => Promise<void>;
+            importChangeLogs: (password: string) => Promise<void>;
             changeHistory: {
                 log: (change: {
                     table: string;

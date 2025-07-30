@@ -116,8 +116,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     toggleFullScreen: () => ipcRenderer.send('app:toggle-fullscreen'),
 
     // LOGS
-    exportChangeLogs: () => ipcRenderer.invoke('change-history:export'),
-    importChangeLogs: () => ipcRenderer.invoke('change-history:import'),
+    exportChangeLogs: (password: string) => ipcRenderer.invoke('change-history:export', password),
+    importChangeLogs: (password: string) => ipcRenderer.invoke('change-history:import', password),
     changeHistory: {
         log: (change: {
             table: string;

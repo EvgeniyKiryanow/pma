@@ -1,12 +1,36 @@
-import { ipcMain, dialog } from 'electron';
+import { ipcMain, dialog, BrowserWindow } from 'electron';
 import fs from 'fs/promises';
 import { getDb } from '../database/db';
-import { randomBytes } from 'crypto';
+import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
+
+function encryptWithPassword(json: any, password: string): Buffer {
+    const iv = randomBytes(12);
+    const key = Buffer.from(password.padEnd(32, ' '), 'utf8');
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
+
+    const plaintext = Buffer.from(JSON.stringify(json), 'utf8');
+    const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+    const authTag = cipher.getAuthTag();
+
+    return Buffer.concat([iv, authTag, encrypted]);
+}
+
+function decryptWithPassword(buffer: Buffer, password: string): any {
+    const iv = buffer.slice(0, 12);
+    const tag = buffer.slice(12, 28);
+    const encrypted = buffer.slice(28);
+
+    const key = Buffer.from(password.padEnd(32, ' '), 'utf8');
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    return JSON.parse(decrypted.toString('utf8'));
+}
 
 export function registerChangeHistoryHandler() {
     ipcMain.handle('change-history:log', async (_event, change) => {
         const db = await getDb();
-
         const { table, recordId, operation, data, sourceId } = change;
 
         if (!table || !recordId || !operation) {
@@ -15,7 +39,6 @@ export function registerChangeHistoryHandler() {
         }
 
         let jsonData: string | null = null;
-
         try {
             jsonData = data !== undefined ? JSON.stringify(data) : null;
         } catch (err) {
@@ -26,7 +49,7 @@ export function registerChangeHistoryHandler() {
         try {
             await db.run(
                 `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-             VALUES (?, ?, ?, ?, ?)`,
+                 VALUES (?, ?, ?, ?, ?)`,
                 table,
                 recordId,
                 operation,
@@ -38,21 +61,77 @@ export function registerChangeHistoryHandler() {
         }
     });
 
-    ipcMain.handle('change-history:import', async () => {
+    ipcMain.handle('change-history:export', async (_e, password: string) => {
+        const db = await getDb();
+        try {
+            const exportSourceId = randomBytes(20).toString('hex').slice(0, 30);
+            await db.run(
+                `UPDATE change_history SET source_id = ? WHERE source_id IS NULL OR source_id = 'local'`,
+                exportSourceId,
+            );
+
+            const logs = await db.all(
+                `SELECT * FROM change_history WHERE source_id = ? ORDER BY timestamp ASC`,
+                exportSourceId,
+            );
+
+            if (!logs || logs.length === 0) {
+                console.warn('[ChangeHistory] ⚠️ Немає логів для експорту');
+                return { exported: 0 };
+            }
+
+            if (!password || password.length < 4) {
+                console.warn('[ChangeHistory] ❌ Пароль занадто короткий або не вказаний');
+                return { exported: 0 };
+            }
+
+            const encrypted = encryptWithPassword(logs, password);
+
+            const { canceled, filePath } = await dialog.showSaveDialog({
+                title: 'Export Change Log (Encrypted)',
+                defaultPath: 'change_log.pmc',
+                filters: [{ name: 'Encrypted Logs', extensions: ['pmc'] }],
+            });
+
+            if (canceled || !filePath) return { exported: 0 };
+
+            await fs.writeFile(filePath, encrypted);
+            await db.run(`DELETE FROM change_history WHERE source_id = ?`, exportSourceId);
+
+            return { exported: logs.length };
+        } catch (err) {
+            console.warn('[ChangeHistory] ❌ Помилка при експорті:', err);
+            return { exported: 0 };
+        }
+    });
+
+    ipcMain.handle('change-history:import', async (_e, password: string) => {
         const db = await getDb();
         const { canceled, filePaths } = await dialog.showOpenDialog({
-            title: 'Import Change Log',
-            filters: [{ name: 'JSON', extensions: ['json'] }],
+            title: 'Import Encrypted Change Log',
+            filters: [{ name: 'Encrypted Logs', extensions: ['pmc'] }],
             properties: ['openFile'],
         });
 
         if (canceled || filePaths.length === 0) return { imported: 0 };
 
         try {
-            const content = await fs.readFile(filePaths[0], 'utf-8');
-            const changes = JSON.parse(content);
-            const importedSourceId = randomBytes(20).toString('hex').slice(0, 30); // 30 символів
+            const buffer = await fs.readFile(filePaths[0]);
 
+            if (!password || password.length < 4) {
+                console.warn('[ChangeHistory] ❌ Пароль занадто короткий або не вказаний');
+                return { imported: 0 };
+            }
+
+            let changes;
+            try {
+                changes = decryptWithPassword(buffer, password);
+            } catch (err) {
+                console.warn('[ChangeHistory] ❌ Невірний пароль або файл пошкоджено');
+                return { imported: 0, error: 'invalid-password' };
+            }
+
+            const importedSourceId = randomBytes(20).toString('hex').slice(0, 30);
             let importedCount = 0;
 
             for (const change of changes) {
@@ -62,19 +141,12 @@ export function registerChangeHistoryHandler() {
                 if (typeof data === 'string') {
                     try {
                         data = JSON.parse(data);
-                    } catch (err) {
-                        console.warn('[ChangeHistory] ❌ Неможливо розпарсити `data`:', data);
+                    } catch {
                         continue;
                     }
                 }
 
-                if (!data || typeof data !== 'object' || !data.id) {
-                    console.warn(
-                        '[ChangeHistory] ❌ Пропущено — некоректні `data` або `id`:',
-                        change,
-                    );
-                    continue;
-                }
+                if (!data || typeof data !== 'object' || !data.id) continue;
 
                 if (table_name === 'user_directives') {
                     if (data.period) {
@@ -82,15 +154,13 @@ export function registerChangeHistoryHandler() {
                         data.period_to = data.period.to || '';
                         delete data.period;
                     }
-
                     if (data.file && typeof data.file === 'object') {
                         data.file = JSON.stringify(data.file);
                     }
                 }
 
-                const cleanValue = (v: any) => (v === undefined ? null : v);
+                const clean = (v: any) => (v === undefined ? null : v);
 
-                // Додаємо до логів з новим імпортованим source_id
                 await db.run(
                     `INSERT OR IGNORE INTO change_history (table_name, record_id, operation, data, source_id, timestamp)
                  VALUES (?, ?, ?, ?, ?, ?)`,
@@ -104,110 +174,37 @@ export function registerChangeHistoryHandler() {
 
                 try {
                     if (operation === 'insert') {
-                        const columns = Object.keys(data);
-                        const placeholders = columns.map(() => '?').join(', ');
-                        const values = columns.map((k) => cleanValue(data[k]));
-
-                        const result = await db.run(
-                            `INSERT OR IGNORE INTO ${table_name} (${columns.join(', ')}) VALUES (${placeholders})`,
-                            values,
-                        );
-
-                        if (result.changes > 0) importedCount++;
-                        else
-                            console.warn(
-                                `[ChangeHistory] ⚠️ Insert пропущено — запис з id=${record_id} вже існує у ${table_name}`,
-                            );
+                        const keys = Object.keys(data);
+                        const values = keys.map((k) => clean(data[k]));
+                        const sql = `INSERT OR IGNORE INTO ${table_name} (${keys.join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`;
+                        const res = await db.run(sql, values);
+                        if (res.changes > 0) importedCount++;
                     } else if (operation === 'update') {
                         const keys = Object.keys(data).filter((k) => k !== 'id');
-                        const setClause = keys.map((k) => `${k} = ?`).join(', ');
-                        const values = keys.map((k) => cleanValue(data[k]));
+                        const values = keys.map((k) => clean(data[k]));
                         values.push(record_id);
-
-                        const result = await db.run(
-                            `UPDATE ${table_name} SET ${setClause} WHERE id = ?`,
-                            values,
-                        );
-
-                        if (result.changes > 0) importedCount++;
-                        else
-                            console.warn(
-                                `[ChangeHistory] ⚠️ Update пропущено — запис з id=${record_id} не знайдено у ${table_name}`,
-                            );
+                        const sql = `UPDATE ${table_name} SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`;
+                        const res = await db.run(sql, values);
+                        if (res.changes > 0) importedCount++;
                     } else if (operation === 'delete') {
-                        const result = await db.run(`DELETE FROM ${table_name} WHERE id = ?`, [
+                        const res = await db.run(`DELETE FROM ${table_name} WHERE id = ?`, [
                             record_id,
                         ]);
-
-                        if (result.changes > 0) importedCount++;
-                        else
-                            console.warn(
-                                `[ChangeHistory] ⚠️ Delete пропущено — запис з id=${record_id} не знайдено у ${table_name}`,
-                            );
-                    } else {
-                        console.warn(`[ChangeHistory] ❌ Невідома операція: ${operation}`, change);
+                        if (res.changes > 0) importedCount++;
                     }
                 } catch (err) {
                     console.warn(
-                        `[ChangeHistory] ❌ Помилка застосування ${operation} у ${table_name} id=${record_id}`,
+                        `[ChangeHistory] ❌ Помилка застосування ${operation} до ${table_name} id=${record_id}`,
                         err,
                     );
                 }
             }
 
-            // 🧹 Після імпорту видаляємо тільки імпортовані логи
             await db.run(`DELETE FROM change_history WHERE source_id = ?`, importedSourceId);
-
             return { imported: importedCount };
         } catch (err) {
             console.warn('[ChangeHistory] ❌ Помилка при імпорті:', err);
             return { imported: 0 };
-        }
-    });
-    ipcMain.handle('change-history:export', async () => {
-        const db = await getDb();
-
-        try {
-            // 1. Генеруємо унікальний source_id для цього експорту
-            const exportSourceId = randomBytes(20).toString('hex').slice(0, 30);
-
-            // 2. Оновлюємо всі логи без source_id або з source_id='local'
-            await db.run(
-                `UPDATE change_history SET source_id = ?
-             WHERE source_id IS NULL OR source_id = 'local'`,
-                exportSourceId,
-            );
-
-            // 3. Отримуємо всі логи для цього source_id
-            const logs = await db.all(
-                `SELECT * FROM change_history WHERE source_id = ? ORDER BY timestamp ASC`,
-                exportSourceId,
-            );
-
-            if (!logs || logs.length === 0) {
-                console.warn('[ChangeHistory] ⚠️ Немає логів для експорту');
-                return { exported: 0 };
-            }
-
-            // 4. Запитуємо шлях збереження
-            const { canceled, filePath } = await dialog.showSaveDialog({
-                title: 'Export Change Log',
-                defaultPath: 'change_log.json',
-                filters: [{ name: 'JSON', extensions: ['json'] }],
-            });
-
-            if (canceled || !filePath) return { exported: 0 };
-
-            // 5. Записуємо у файл
-            await fs.writeFile(filePath, JSON.stringify(logs, null, 2), 'utf-8');
-
-            // 6. Видаляємо ці логи з бази
-            await db.run(`DELETE FROM change_history WHERE source_id = ?`, exportSourceId);
-
-            return { exported: logs.length };
-        } catch (err) {
-            console.warn('[ChangeHistory] ❌ Помилка при експорті:', err);
-            return { exported: 0 };
         }
     });
 }

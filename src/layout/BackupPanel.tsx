@@ -4,6 +4,9 @@ import { useI18nStore } from '../stores/i18nStore';
 
 export default function BackupPanel() {
     const [activeTab, setActiveTab] = useState<'settings' | 'actions' | 'changeLogs'>('actions');
+    const [showPasswordModal, setShowPasswordModal] = useState<null | 'export' | 'import'>(null);
+    const [passwordInput, setPasswordInput] = useState('');
+
     const { t } = useI18nStore();
 
     return (
@@ -101,33 +104,81 @@ export default function BackupPanel() {
 
                         <div className="flex justify-center gap-4">
                             <button
-                                onClick={async () => {
-                                    try {
-                                        await window.electronAPI.exportChangeLogs();
-                                        alert(t('backupPanel.exportSuccess'));
-                                    } catch {
-                                        alert(t('backupPanel.exportFail'));
-                                    }
-                                }}
+                                onClick={() => setShowPasswordModal('export')}
                                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow"
                             >
                                 {t('backupPanel.exportChangeLogs')}
                             </button>
 
                             <button
-                                onClick={async () => {
-                                    try {
-                                        await window.electronAPI.importChangeLogs();
-                                        alert(t('backupPanel.importSuccess'));
-                                    } catch {
-                                        alert(t('backupPanel.importFail'));
-                                    }
-                                }}
+                                onClick={() => setShowPasswordModal('import')}
                                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded shadow"
                             >
                                 {t('backupPanel.importChangeLogs')}
                             </button>
                         </div>
+
+                        {showPasswordModal && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                                <div className="bg-white p-6 rounded shadow-md max-w-sm w-full">
+                                    <h2 className="text-lg font-semibold mb-4">
+                                        {showPasswordModal === 'export'
+                                            ? 'Введіть пароль для шифрування логів'
+                                            : 'Введіть пароль для розшифрування логів'}
+                                    </h2>
+                                    <input
+                                        type="password"
+                                        value={passwordInput}
+                                        onChange={(e) => setPasswordInput(e.target.value)}
+                                        className="w-full border rounded p-2 mb-4"
+                                        placeholder="Пароль"
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setShowPasswordModal(null);
+                                                setPasswordInput('');
+                                            }}
+                                            className="px-3 py-1 rounded bg-gray-300 hover:bg-gray-400"
+                                        >
+                                            Скасувати
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                const password = passwordInput;
+                                                setShowPasswordModal(null);
+                                                setPasswordInput('');
+
+                                                if (!password) return;
+
+                                                try {
+                                                    if (showPasswordModal === 'export') {
+                                                        await window.electronAPI.exportChangeLogs(
+                                                            password,
+                                                        );
+                                                        alert(t('backupPanel.exportSuccess'));
+                                                    } else {
+                                                        await window.electronAPI.importChangeLogs(
+                                                            password,
+                                                        );
+                                                        alert(t('backupPanel.importSuccess'));
+                                                    }
+                                                } catch {
+                                                    alert(
+                                                        showPasswordModal === 'export'
+                                                            ? t('backupPanel.exportFail')
+                                                            : t('backupPanel.importFail'),
+                                                    );
+                                                }
+                                            }}
+                                            className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white"
+                                        >
+                                            OK
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
