@@ -64,7 +64,9 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
             const allUsers: User[] = await window.electronAPI.fetchUsers();
             useIncompleteHistoryStore.getState().clearAll(); // 🔄 clear previous entries
 
-            for (const user of allUsers) {
+            for (const user of allUsers.filter(
+                (u) => u.shpkNumber !== 'excluded' && !String(u.shpkNumber).includes('order'),
+            )) {
                 if (!user.history) continue;
 
                 user.history.forEach((entry) => {
@@ -99,6 +101,8 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
             const todayYear = today.getFullYear();
 
             const upcoming = users.filter((user: User) => {
+                if (user.shpkNumber === 'excluded' || String(user.shpkNumber).includes('order'))
+                    return false;
                 if (!user.dateOfBirth) return false;
 
                 const dob = new Date(user.dateOfBirth);
