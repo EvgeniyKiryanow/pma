@@ -129,7 +129,8 @@ declare global {
             };
             // LOGS
             exportChangeLogs: (password: string) => Promise<void>;
-            importChangeLogs: (password: string) => Promise<void>;
+            importChangeLogs: (password: string) => Promise<{ imported: number; error?: string }>;
+
             changeHistory: {
                 log: (change: {
                     table: string;

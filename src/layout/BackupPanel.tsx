@@ -67,27 +67,30 @@ export default function BackupPanel() {
                         </div>
 
                         {showPasswordModal && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-                                <div className="bg-white p-6 rounded shadow-md max-w-sm w-full">
-                                    <h2 className="text-lg font-semibold mb-4">
+                            <div className="fixed inset-0 z-50 bg-white bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
+                                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-fade-in">
+                                    <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
                                         {showPasswordModal === 'export'
                                             ? 'Введіть пароль для шифрування логів'
                                             : 'Введіть пароль для розшифрування логів'}
                                     </h2>
+
                                     <input
                                         type="password"
                                         value={passwordInput}
                                         onChange={(e) => setPasswordInput(e.target.value)}
-                                        className="w-full border rounded p-2 mb-4"
+                                        className="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
                                         placeholder="Пароль (мін. 6 символів)"
+                                        autoFocus
                                     />
-                                    <div className="flex justify-end gap-2">
+
+                                    <div className="flex justify-end gap-3">
                                         <button
                                             onClick={() => {
                                                 setShowPasswordModal(null);
                                                 setPasswordInput('');
                                             }}
-                                            className="px-3 py-1 rounded bg-gray-300 hover:bg-gray-400"
+                                            className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700"
                                         >
                                             Скасувати
                                         </button>
@@ -116,7 +119,6 @@ export default function BackupPanel() {
                                                             await window.electronAPI.importChangeLogs(
                                                                 password,
                                                             );
-
                                                         if (result?.error === 'invalid-password') {
                                                             alert(
                                                                 'Невірний пароль. Спробуйте ще раз.',
@@ -124,7 +126,6 @@ export default function BackupPanel() {
                                                             setShowPasswordModal('import');
                                                             return;
                                                         }
-
                                                         alert(t('backupPanel.importSuccess'));
                                                     }
                                                 } catch {
@@ -135,7 +136,7 @@ export default function BackupPanel() {
                                                     );
                                                 }
                                             }}
-                                            className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white"
+                                            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
                                         >
                                             OK
                                         </button>
