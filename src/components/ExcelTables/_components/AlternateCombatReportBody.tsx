@@ -125,17 +125,18 @@ export function AlternateCombatReportBody() {
                             style={{ backgroundColor: '#f8da78' }}
                             className="border border-black"
                         />
+                        {/* inCombatNowOfficer */}
                         <EditableCell
                             unitName={name}
                             field="presentOfficer"
-                            initialValue={0}
+                            initialValue={report[name]?.inCombatNowOfficer || 0}
                             style={{ backgroundColor: '#f8da78' }}
                             className="border border-black"
                         />
                         <EditableCell
                             unitName={name}
                             field="presentSoldier"
-                            initialValue={0}
+                            initialValue={report[name]?.inCombatNowSoldier || 0}
                             style={{ backgroundColor: '#f8da78', borderRightWidth: '2px' }}
                             className="border border-black"
                         />

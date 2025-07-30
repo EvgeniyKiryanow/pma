@@ -123,7 +123,7 @@ export class UnitStatsCalculator {
         const staffingPercent =
             planned.total > 0 ? ((actualTotal / planned.total) * 100).toFixed(0) + '%' : '0';
 
-        // 5. Кількість відсутніх
+        // 5. Всі статуси відсутніх
         const totalMissing = this.calculateStatusTotalsExplicit(users).totalMissing;
 
         // 6. Кількість присутніх
@@ -148,6 +148,17 @@ export class UnitStatsCalculator {
         // 10. Присутні солдати
         const presentTotalSoldier = presentUsers.length - presentTotalOfficer;
 
+        // ✅ 11. Бойові статуси (inCombatNow)
+        const inCombatNowUsers = users.filter((u) =>
+            this.STATUS_GROUPS.inCombatNow.includes(u.soldierStatus as any),
+        );
+
+        const inCombatNow = inCombatNowUsers.length;
+        const inCombatNowOfficer = inCombatNowUsers.filter((u) =>
+            u.category?.toLowerCase().includes('оф'),
+        ).length;
+        const inCombatNowSoldier = inCombatNow - inCombatNowOfficer;
+
         return {
             actualTotal,
             actualOfficers,
@@ -157,6 +168,9 @@ export class UnitStatsCalculator {
             presentPercent,
             presentTotalOfficer,
             presentTotalSoldier,
+            inCombatNow,
+            inCombatNowOfficer,
+            inCombatNowSoldier,
         };
     }
 
