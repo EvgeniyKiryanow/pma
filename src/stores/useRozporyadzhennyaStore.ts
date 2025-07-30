@@ -23,7 +23,6 @@ type RozporyadzhennyaStore = {
 
 export const useRozporyadzhennyaStore = create<RozporyadzhennyaStore>((set, get) => ({
     entries: [],
-
     addEntry: async (entry) => {
         await window.electronAPI.directives.add({
             userId: entry.userId,
