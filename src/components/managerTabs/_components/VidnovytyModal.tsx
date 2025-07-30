@@ -58,6 +58,7 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
 
         updateUser({
             ...user,
+            shpkNumber: String(user.shpkNumber || '').replace(/_(order|excluded)$/, ''),
             history: [...(user.history || []), historyEntry],
         });
 
