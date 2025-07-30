@@ -3,7 +3,6 @@ import { useUserStore } from '../stores/userStore';
 import {
     LogOut,
     PlusCircle,
-    Gift,
     Users,
     FileBarChart,
     DatabaseBackup,
@@ -14,6 +13,7 @@ import {
 import type { User } from '../types/user';
 import { useI18nStore } from '../stores/i18nStore';
 import LogoSvg from '../icons/LogoSvg';
+import EventsModalLauncher from '../components/EventsModalLauncher';
 
 type HeaderProps = {
     currentTab:
@@ -41,8 +41,6 @@ import { useIncompleteHistoryStore } from '../stores/useIncompleteHistoryStore';
 
 export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     const openUserFormForAdd = useUserStore((s) => s.openUserFormForAdd);
-    const [upcomingBirthdays, setUpcomingBirthdays] = useState<User[]>([]);
-    const [showBirthdayModal, setShowBirthdayModal] = useState(false);
     const { t, language, setLanguage } = useI18nStore();
     const [showIncompleteModal, setShowIncompleteModal] = useState(false);
     const incompleteEntries = useIncompleteHistoryStore((s) => s.entries);
@@ -92,33 +90,6 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
         };
 
         checkIncompleteHistories();
-    }, []);
-
-    useEffect(() => {
-        const loadUpcoming = async () => {
-            const users = await window.electronAPI.fetchUsers();
-            const today = new Date();
-            const todayYear = today.getFullYear();
-
-            const upcoming = users.filter((user: User) => {
-                if (user.shpkNumber === 'excluded' || String(user.shpkNumber).includes('order'))
-                    return false;
-                if (!user.dateOfBirth) return false;
-
-                const dob = new Date(user.dateOfBirth);
-                const nextBirthday = new Date(todayYear, dob.getMonth(), dob.getDate());
-                if (nextBirthday < today) nextBirthday.setFullYear(todayYear + 1);
-
-                const diffDays = Math.floor(
-                    (nextBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-                );
-                return diffDays >= 0 && diffDays <= 7;
-            });
-
-            setUpcomingBirthdays(upcoming);
-        };
-
-        loadUpcoming();
     }, []);
 
     // ✅ Check if штатні посади table has data
@@ -212,19 +183,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         </button>
                     )}
 
-                    {upcomingBirthdays.length > 0 && (
-                        <button
-                            onClick={() => setShowBirthdayModal(true)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-full bg-yellow-100 hover:bg-yellow-200 text-yellow-900 border border-yellow-300 transition"
-                            title={t('header.viewBirthdays')}
-                        >
-                            <Gift className="w-4 h-4" />
-                            {upcomingBirthdays.length}{' '}
-                            {upcomingBirthdays.length === 1
-                                ? t('header.upcomingBirthday')
-                                : t('header.upcomingBirthdays')}
-                        </button>
-                    )}
+                    <EventsModalLauncher />
 
                     {/* ✅ Add User (only in Manager) */}
                     {currentTab === 'manager' && (
@@ -283,40 +242,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                 </div>
             </nav>
             {/* === Birthday Modal === */}
-            {showBirthdayModal && (
-                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-                    <div className="bg-white max-w-md w-full rounded-lg p-6 shadow-lg border relative">
-                        <h2 className="text-lg font-bold mb-4">{t('header.birthdayTitle')}</h2>
 
-                        <ul className="space-y-2 max-h-[300px] overflow-y-auto">
-                            {upcomingBirthdays.map((user) => {
-                                const dob = new Date(user.dateOfBirth!);
-                                const dateStr = dob.toLocaleDateString('uk-UA', {
-                                    day: '2-digit',
-                                    month: 'long',
-                                });
-
-                                return (
-                                    <li
-                                        key={user.id}
-                                        className="flex justify-between items-center text-sm text-gray-800 border-b pb-1"
-                                    >
-                                        <span>{user.fullName}</span>
-                                        <span className="text-gray-500">{dateStr}</span>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-
-                        <button
-                            onClick={() => setShowBirthdayModal(false)}
-                            className="absolute top-2 right-3 text-gray-500 hover:text-red-600 text-lg font-bold"
-                        >
-                            ✕
-                        </button>
-                    </div>
-                </div>
-            )}
             {showIncompleteModal && (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
                     <div className="bg-white max-w-2xl w-full rounded-xl p-6 shadow-xl border relative">
@@ -364,22 +290,32 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                                             👤 {user?.fullName || `Користувач (ID ${userIdStr})`}
                                         </div>
                                         <ul className="list-disc pl-5 text-gray-700 space-y-1">
-                                            {entries.map((entry: any) => (
-                                                <li key={entry.entryId}>
-                                                    <span className="text-gray-500">Запис</span> №{' '}
-                                                    <span className="font-mono text-blue-700">
-                                                        {entry.entryId}
-                                                    </span>
-                                                    :{' '}
-                                                    {
+                                            {entries.map(
+                                                (entry: {
+                                                    entryId: number;
+                                                    reason:
+                                                        | 'missing_file'
+                                                        | 'missing_period'
+                                                        | 'missing_both';
+                                                }) => (
+                                                    <li key={entry.entryId}>
+                                                        <span className="text-gray-500">Запис</span>{' '}
+                                                        №{' '}
+                                                        <span className="font-mono text-blue-700">
+                                                            {entry.entryId}
+                                                        </span>
+                                                        :{' '}
                                                         {
-                                                            missing_file: 'відсутній файл',
-                                                            missing_period: 'відсутній період',
-                                                            missing_both: 'немає файлу та періоду',
-                                                        }[entry.reason]
-                                                    }
-                                                </li>
-                                            ))}
+                                                            {
+                                                                missing_file: 'відсутній файл',
+                                                                missing_period: 'відсутній період',
+                                                                missing_both:
+                                                                    'немає файлу та періоду',
+                                                            }[entry.reason]
+                                                        }
+                                                    </li>
+                                                ),
+                                            )}
                                         </ul>
                                     </div>
                                 );
