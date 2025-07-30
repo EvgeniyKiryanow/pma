@@ -143,6 +143,8 @@ export default function EventsModalLauncher() {
 
     useEffect(() => {
         const loadEvents = async () => {
+            const today = new Date();
+            const year = today.getFullYear();
             const [users, orderEntries] = await Promise.all([
                 window.electronAPI.fetchUsers(),
                 fetchOrderEntriesFromDb(),
@@ -160,10 +162,6 @@ export default function EventsModalLauncher() {
                 StatusExcel.ABSENT_WOUNDED,
             ];
 
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const yyyyMmDdTomorrow = tomorrow.toISOString().split('T')[0];
-
             const usersWithRelevantStatus = users.filter((user) =>
                 relevantStatuses.includes(user.soldierStatus?.trim() as StatusExcel),
             );
@@ -173,6 +171,7 @@ export default function EventsModalLauncher() {
                 name: string;
                 dateLabel: string;
                 daysLeft: number;
+                soldierStatus?: string;
             }[] = [];
 
             for (const user of usersWithRelevantStatus) {
@@ -190,21 +189,24 @@ export default function EventsModalLauncher() {
 
                 const latest = matching[0];
 
-                if (latest.period?.to === yyyyMmDdTomorrow) {
-                    const dateLabel = new Date(latest.period.to).toLocaleDateString('uk-UA');
-                    endingStatus.push({
-                        id: user.id,
-                        name: user.fullName,
-                        dateLabel,
-                        daysLeft: 1,
-                    });
-                }
+                const toDate = new Date(latest.period?.to);
+                const diffDays = Math.floor(
+                    (toDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+                );
+
+                // Allow between -3 (ended 3 days ago) and 7 (upcoming)
+                if (diffDays < -3 || diffDays > 7) continue;
+
+                endingStatus.push({
+                    id: user.id,
+                    name: user.fullName,
+                    dateLabel: toDate.toLocaleDateString('uk-UA'),
+                    daysLeft: diffDays,
+                    soldierStatus: user.soldierStatus,
+                });
             }
 
             setEndingStatusItems(endingStatus);
-
-            const today = new Date();
-            const year = today.getFullYear();
 
             // 🎂 Birthdays
             const birthdayList = users
@@ -247,6 +249,7 @@ export default function EventsModalLauncher() {
 
             // 📋 Orders (розпорядження)
             // const today = new Date();
+
             const orderList = orderEntries
                 .map((entry) => {
                     const user = users.find((u) => u.id === entry.userId);
@@ -257,7 +260,8 @@ export default function EventsModalLauncher() {
                         (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
                     );
 
-                    if (diffDays < 0 || diffDays > 7) return null;
+                    // Show if ends in 7 days ahead OR up to 3 days ago
+                    if (diffDays < -3 || diffDays > 7) return null;
 
                     return {
                         id: user.id,
