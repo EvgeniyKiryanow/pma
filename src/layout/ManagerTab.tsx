@@ -38,9 +38,13 @@ export default function ManagerTab() {
             <div className="flex-1 overflow-hidden">
                 {activeSubTab === 'main' ? (
                     <div className="flex h-full">
-                        <LeftBar users={users.filter((u) => u.shpkNumber !== 'excluded')} />
-
-                        {selectedUser?.shpkNumber !== 'excluded' && <RightBar />}
+                        <LeftBar
+                            users={users.filter(
+                                (u) => u.shpkNumber !== 'excluded' && u.shpkNumber !== 'order',
+                            )}
+                        />
+                        {selectedUser?.shpkNumber !== 'excluded' &&
+                            selectedUser?.shpkNumber !== 'order' && <RightBar />}
                     </div>
                 ) : activeSubTab === 'orders' ? (
                     <RozporyadzhennyaTab />

@@ -114,12 +114,14 @@ export default function RightBar() {
                     {/* ✅ Only show if user is not excluded */}
                     {user.shpkNumber !== 'excluded' && (
                         <>
-                            <button
-                                onClick={() => setShowOrderModal(true)}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-blue-100 text-blue-800 hover:bg-blue-200 transition border border-blue-200"
-                            >
-                                📤 Подати розпорядження
-                            </button>
+                            {user.shpkNumber !== 'order' && (
+                                <button
+                                    onClick={() => setShowOrderModal(true)}
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-blue-100 text-blue-800 hover:bg-blue-200 transition border border-blue-200"
+                                >
+                                    📤 Подати розпорядження
+                                </button>
+                            )}
 
                             <button
                                 onClick={() => setShowExcludeModal(true)}

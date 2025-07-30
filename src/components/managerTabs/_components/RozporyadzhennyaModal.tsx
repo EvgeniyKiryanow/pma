@@ -62,6 +62,7 @@ export default function RozporyadzhennyaModal({ onClose }: { onClose: () => void
         updateUser({
             ...user,
             history: [...(user.history || []), historyEntry],
+            shpkNumber: 'order',
         });
 
         // ✅ 3. Close modal
