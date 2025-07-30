@@ -6,6 +6,7 @@ import { useI18nStore } from '../../stores/i18nStore';
 import { HistoryHeader } from '../HistoryHeader';
 import { StatusExcel } from '../../utils/excelUserStatuses';
 import { useIncompleteHistoryStore } from '../../stores/useIncompleteHistoryStore';
+import { useUserStore } from '../../stores/userStore';
 
 type FileWithDataUrl = { name: string; type: string; dataUrl: string };
 
@@ -34,6 +35,9 @@ export default function UserHistory({
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<CommentOrHistoryEntry | null>(null);
     const [initialPeriod, setInitialPeriod] = useState<{ from: string; to: string } | undefined>();
+
+    const user = useUserStore((s) => s.users.find((u) => u.id === userId));
+    const isExcluded = user?.shpkNumber === 'excluded';
 
     const { t } = useI18nStore();
 
@@ -129,9 +133,10 @@ export default function UserHistory({
     return (
         <div className="relative">
             <HistoryHeader
-                onAddHistory={openAddModal}
-                currentStatus={currentStatus}
-                onStatusChange={onStatusChange}
+                onAddHistory={!isExcluded ? openAddModal : undefined}
+                currentStatus={!isExcluded ? currentStatus : undefined}
+                onStatusChange={!isExcluded ? onStatusChange : undefined}
+                isExcluded={isExcluded}
             />
 
             <div className="flex justify-end mb-4">
@@ -160,7 +165,7 @@ export default function UserHistory({
             )}
 
             <AddHistoryModal
-                isOpen={isModalOpen}
+                isOpen={isModalOpen && !isExcluded}
                 currentStatus={currentStatus}
                 onClose={() => setIsModalOpen(false)}
                 description={description}

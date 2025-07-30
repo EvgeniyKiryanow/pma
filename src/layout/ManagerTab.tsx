@@ -15,6 +15,7 @@ const tabLabels = [
 export default function ManagerTab() {
     const [activeSubTab, setActiveSubTab] = useState<'main' | 'orders' | 'excluded'>('main');
     const users = useUserStore((s) => s.users);
+    const selectedUser = useUserStore((s) => s.selectedUser);
 
     return (
         <div className="flex flex-col flex-1 overflow-hidden">
@@ -37,8 +38,9 @@ export default function ManagerTab() {
             <div className="flex-1 overflow-hidden">
                 {activeSubTab === 'main' ? (
                     <div className="flex h-full">
-                        <LeftBar users={users} />
-                        <RightBar />
+                        <LeftBar users={users.filter((u) => u.shpkNumber !== 'excluded')} />
+
+                        {selectedUser?.shpkNumber !== 'excluded' && <RightBar />}
                     </div>
                 ) : activeSubTab === 'orders' ? (
                     <RozporyadzhennyaTab />

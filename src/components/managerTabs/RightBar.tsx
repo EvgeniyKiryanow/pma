@@ -111,40 +111,45 @@ export default function RightBar() {
             {/* === HEADER ACTIONS === */}
             <section className="sticky top-0 z-20 backdrop-blur-md bg-white/90 border-b border-gray-200 shadow-sm px-4 py-3">
                 <div className="flex flex-wrap gap-2 items-center">
-                    <button
-                        onClick={() => setShowOrderModal(true)}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-blue-100 text-blue-800 hover:bg-blue-200 transition border border-blue-200"
-                    >
-                        📤 Подати розпорядження
-                    </button>
+                    {/* ✅ Only show if user is not excluded */}
+                    {user.shpkNumber !== 'excluded' && (
+                        <>
+                            <button
+                                onClick={() => setShowOrderModal(true)}
+                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-blue-100 text-blue-800 hover:bg-blue-200 transition border border-blue-200"
+                            >
+                                📤 Подати розпорядження
+                            </button>
 
-                    <button
-                        onClick={() => setShowExcludeModal(true)}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-red-100 text-red-800 hover:bg-red-200 transition border border-red-200"
-                    >
-                        ❌ Виключити
-                    </button>
+                            <button
+                                onClick={() => setShowExcludeModal(true)}
+                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-red-100 text-red-800 hover:bg-red-200 transition border border-red-200"
+                            >
+                                ❌ Виключити
+                            </button>
 
-                    <button
-                        onClick={() => setShowRestoreModal(true)}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-green-100 text-green-800 hover:bg-green-200 transition border border-green-200"
-                    >
-                        ♻️ Відновити
-                    </button>
+                            <button
+                                onClick={() => setShowRestoreModal(true)}
+                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-green-100 text-green-800 hover:bg-green-200 transition border border-green-200"
+                            >
+                                ♻️ Відновити
+                            </button>
 
-                    <button
-                        onClick={() => openUserFormForEdit(user)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-yellow-200 transition"
-                    >
-                        <Edit3 className="w-4 h-4" /> Редагувати
-                    </button>
+                            <button
+                                onClick={() => openUserFormForEdit(user)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-yellow-200 transition"
+                            >
+                                <Edit3 className="w-4 h-4" /> Редагувати
+                            </button>
 
-                    <button
-                        onClick={handleShowComments}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-indigo-100 text-indigo-800 hover:bg-indigo-200 border border-indigo-200 transition"
-                    >
-                        <MessageCircle className="w-4 h-4" /> Коментарі
-                    </button>
+                            <button
+                                onClick={handleShowComments}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-indigo-100 text-indigo-800 hover:bg-indigo-200 border border-indigo-200 transition"
+                            >
+                                <MessageCircle className="w-4 h-4" /> Коментарі
+                            </button>
+                        </>
+                    )}
 
                     <button
                         onClick={handleDeleteUser}

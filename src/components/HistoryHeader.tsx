@@ -6,9 +6,15 @@ type HistoryHeaderProps = {
     currentStatus?: string;
     onAddHistory: () => void;
     onStatusChange: (status: StatusExcel) => void;
+    isExcluded: any;
 };
 
-export function HistoryHeader({ currentStatus, onAddHistory, onStatusChange }: HistoryHeaderProps) {
+export function HistoryHeader({
+    currentStatus,
+    onAddHistory,
+    onStatusChange,
+    isExcluded,
+}: HistoryHeaderProps) {
     const { t } = useI18nStore();
 
     return (
@@ -29,33 +35,35 @@ export function HistoryHeader({ currentStatus, onAddHistory, onStatusChange }: H
                 </div>
 
                 {/* Right: Actions */}
-                <div className="flex flex-wrap gap-3 items-center">
-                    {/* Soldier status dropdown */}
-                    <div className="relative">
-                        <ShieldCheck className="absolute left-3 top-2.5 w-4 h-4 text-gray-500" />
-                        <select
-                            className="w-[220px] pl-9 pr-4 py-2 rounded-full border border-gray-300 bg-white text-sm shadow hover:border-blue-400 focus:border-blue-500 focus:ring focus:ring-blue-200 transition"
-                            value={currentStatus || ''}
-                            onChange={(e) => onStatusChange(e.target.value as StatusExcel)}
-                        >
-                            <option value="">{t('historyItem.changeStatus')}</option>
-                            {Object.values(StatusExcel).map((status) => (
-                                <option key={status} value={status}>
-                                    {status}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                {!isExcluded && (
+                    <div className="flex flex-wrap gap-3 items-center">
+                        {/* Soldier status dropdown */}
+                        <div className="relative">
+                            <ShieldCheck className="absolute left-3 top-2.5 w-4 h-4 text-gray-500" />
+                            <select
+                                className="w-[220px] pl-9 pr-4 py-2 rounded-full border border-gray-300 bg-white text-sm shadow hover:border-blue-400 focus:border-blue-500 focus:ring focus:ring-blue-200 transition"
+                                value={currentStatus || ''}
+                                onChange={(e) => onStatusChange(e.target.value as StatusExcel)}
+                            >
+                                <option value="">{t('historyItem.changeStatus')}</option>
+                                {Object.values(StatusExcel).map((status) => (
+                                    <option key={status} value={status}>
+                                        {status}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
-                    {/* Add History button */}
-                    <button
-                        onClick={onAddHistory}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-md transition-all"
-                    >
-                        <Plus className="w-4 h-4" />
-                        {t('history.add')}
-                    </button>
-                </div>
+                        {/* Add History button */}
+                        <button
+                            onClick={onAddHistory}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-md transition-all"
+                        >
+                            <Plus className="w-4 h-4" />
+                            {t('history.add')}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
