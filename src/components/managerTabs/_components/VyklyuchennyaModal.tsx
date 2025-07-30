@@ -3,6 +3,8 @@ import { X, Eye, UploadCloud, Info } from 'lucide-react';
 import FilePreviewModal, { FileWithDataUrl } from '../../FilePreviewModal';
 import { useUserStore } from '../../../stores/userStore';
 import { useVyklyuchennyaStore } from '../../../stores/useVyklyuchennyaStore';
+import { v4 as uuidv4 } from 'uuid';
+
 export default function VyklyuchennyaModal({ onClose }: { onClose: () => void }) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [title, setTitle] = useState('');
@@ -35,7 +37,7 @@ export default function VyklyuchennyaModal({ onClose }: { onClose: () => void })
 
         // 1. Save to store
         addVyklyuchennya({
-            id: Date.now(),
+            id: uuidv4(),
             userId: user.id,
             title,
             description,
@@ -47,6 +49,7 @@ export default function VyklyuchennyaModal({ onClose }: { onClose: () => void })
         // 2. Add to history
         updateUser({
             ...user,
+            shpkNumber: 'excluded',
             history: [
                 ...(user.history || []),
                 {

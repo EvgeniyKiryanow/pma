@@ -147,6 +147,7 @@
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "tailwindcss": "^4.1.11",
+    "uuid": "^11.1.0",
     "xlsx": "^0.18.5",
     "xlsx-js-style": "^1.2.0",
     "zustand": "^5.0.6"

@@ -11,6 +11,7 @@ export default function VyklyucheniTab() {
     useEffect(() => {
         fetchAll();
     }, []);
+    console.log(users, 'users');
 
     return (
         <div className="p-4">
