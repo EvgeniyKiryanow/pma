@@ -22,6 +22,19 @@ export function registerDirectivesHandler() {
             ],
         );
     });
+    ipcMain.handle('directives:deleteById', async (_e, id: string) => {
+        const db = await getDb();
+        await db.run(`DELETE FROM user_directives WHERE id = ?`, [id]);
+    });
+
+    ipcMain.handle('directives:delete', async (_e, { userId, date }) => {
+        const db = await getDb();
+        await db.run(`DELETE FROM user_directives WHERE userId = ? AND date = ?`, [userId, date]);
+    });
+    ipcMain.handle('directives:clearByType', async (_e, type: string) => {
+        const db = await getDb();
+        await db.run(`DELETE FROM user_directives WHERE type = ?`, [type]);
+    });
 
     ipcMain.handle('directives:getAllByType', async (_e, type: string) => {
         const db = await getDb();
@@ -31,7 +44,9 @@ export function registerDirectivesHandler() {
         );
 
         return rows.map((row: any) => ({
+            id: row.id, // ✅ include ID
             userId: row.userId,
+            type: row.type,
             title: row.title,
             description: row.description,
             file: row.file ? JSON.parse(row.file) : null,

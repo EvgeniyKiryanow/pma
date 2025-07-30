@@ -112,14 +112,20 @@ declare global {
 
                 getAllByType: (type: 'order' | 'exclude' | 'restore') => Promise<
                     {
+                        id: number;
                         userId: number;
+                        type: 'order' | 'exclude' | 'restore';
                         title: string;
                         description?: string;
                         file: any;
                         date: string;
-                        period?: { from: string; to?: string };
+                        period: { from: string; to: string };
                     }[]
                 >;
+
+                deleteById: (id: number) => Promise<void>;
+                delete: (params: { userId: number; date: string }) => Promise<void>;
+                clearByType: (type: 'order' | 'exclude' | 'restore') => Promise<void>;
             };
         };
     }

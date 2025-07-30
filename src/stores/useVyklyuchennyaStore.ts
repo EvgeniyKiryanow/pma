@@ -15,35 +15,52 @@ type VyklyuchennyaStore = {
     list: VyklyuchennyaEntry[];
     addVyklyuchennya: (entry: Omit<VyklyuchennyaEntry, 'id'>) => Promise<void>;
     fetchAll: () => Promise<void>;
+    removeVyklyuchennya: (id: number) => Promise<void>;
+    clearAllVyklyuchennya: () => Promise<void>;
 };
 
-export const useVyklyuchennyaStore = create<VyklyuchennyaStore>((set) => ({
+export const useVyklyuchennyaStore = create<VyklyuchennyaStore>((set, get) => ({
     list: [],
 
     addVyklyuchennya: async (entry) => {
         await window.electronAPI.directives.add({
             ...entry,
             type: 'exclude',
+            period: {
+                from: entry.periodFrom,
+                to: entry.periodFrom,
+            },
         });
-        // We skip `id` here because it's generated on backend
-        set((state) => ({
-            list: [...state.list, { ...entry, id: Date.now() }], // temporary id for UI only
-        }));
+
+        // Refresh list after adding
+        await get().fetchAll();
     },
 
     fetchAll: async () => {
-        const raw: any[] = await window.electronAPI.directives.getAllByType('exclude');
+        const raw = await window.electronAPI.directives.getAllByType('exclude');
 
-        const parsed: VyklyuchennyaEntry[] = raw.map((entry, idx) => ({
-            id: entry.id ?? idx, // fallback if id is missing
+        const parsed: VyklyuchennyaEntry[] = raw.map((entry) => ({
+            id: entry.id,
             userId: entry.userId,
             title: entry.title,
             description: entry.description ?? '',
-            periodFrom: entry.period?.from ?? '', // extract from `period` object
+            periodFrom: entry.period?.from ?? '',
             file: entry.file,
             date: entry.date,
         }));
 
         set({ list: parsed });
+    },
+
+    removeVyklyuchennya: async (id) => {
+        await window.electronAPI.directives.deleteById(id);
+        set((state) => ({
+            list: state.list.filter((entry) => entry.id !== id),
+        }));
+    },
+
+    clearAllVyklyuchennya: async () => {
+        await window.electronAPI.directives.clearByType('exclude');
+        set({ list: [] });
     },
 }));

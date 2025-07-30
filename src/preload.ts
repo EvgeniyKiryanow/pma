@@ -27,6 +27,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
         getAllByType: (type: 'order' | 'exclude' | 'restore') =>
             ipcRenderer.invoke('directives:getAllByType', type),
+
+        deleteById: (id: number) => ipcRenderer.invoke('directives:deleteById', id),
+
+        delete: (params: { userId: number; date: string }) =>
+            ipcRenderer.invoke('directives:delete', params),
+
+        clearByType: (type: 'order' | 'exclude' | 'restore') =>
+            ipcRenderer.invoke('directives:clearByType', type),
     },
 
     // User CRUD
