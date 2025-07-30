@@ -1,6 +1,7 @@
-import { ipcMain, dialog, app } from 'electron';
+import { ipcMain, dialog, app, ipcRenderer } from 'electron';
 import fs from 'fs';
 import { getDbPath, getDb } from '../database/db';
+
 import path from 'path';
 
 export function registerDirectivesHandler() {
@@ -22,9 +23,33 @@ export function registerDirectivesHandler() {
             ],
         );
     });
-    ipcMain.handle('directives:deleteById', async (_e, id: string) => {
+    ipcMain.handle('directives:deleteById', async (_e, id: number) => {
         const db = await getDb();
+
+        // 1. Отримуємо запис перед видаленням
+        const row = await db.get(`SELECT * FROM user_directives WHERE id = ?`, [id]);
+        if (!row) {
+            console.warn(`[Directives] ⚠️ deleteById: запис з id=${id} не знайдено`);
+            return;
+        }
+
+        // 2. Видаляємо
         await db.run(`DELETE FROM user_directives WHERE id = ?`, [id]);
+
+        // 3. Логуємо зміну
+        try {
+            await db.run(
+                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+             VALUES (?, ?, ?, ?, ?)`,
+                'user_directives',
+                row.id,
+                'delete',
+                JSON.stringify(row),
+                'local', // або clientId, якщо буде
+            );
+        } catch (err) {
+            console.warn(`[ChangeHistory] ❌ Помилка при логуванні delete id=${id}`, err);
+        }
     });
 
     ipcMain.handle('directives:delete', async (_e, { userId, date }) => {

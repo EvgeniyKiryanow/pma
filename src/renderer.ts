@@ -127,6 +127,18 @@ declare global {
                 delete: (params: { userId: number; date: string }) => Promise<void>;
                 clearByType: (type: 'order' | 'exclude' | 'restore') => Promise<void>;
             };
+            // LOGS
+            exportChangeLogs: () => Promise<void>;
+            importChangeLogs: () => Promise<void>;
+            changeHistory: {
+                log: (change: {
+                    table: string;
+                    recordId: number;
+                    operation: string;
+                    data?: any;
+                    sourceId?: string;
+                }) => Promise<void>;
+            };
         };
     }
 }

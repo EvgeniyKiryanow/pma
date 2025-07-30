@@ -155,6 +155,17 @@ export async function initializeDb() {
     date TEXT NOT NULL
   );
 `);
+    await db.exec(`
+  CREATE TABLE IF NOT EXISTS change_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    table_name TEXT NOT NULL,
+    record_id INTEGER NOT NULL,
+    operation TEXT NOT NULL,
+    data TEXT,
+    source_id TEXT,
+    timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+`);
 
     // ✅ Upgrade missing user columns
     const userColumns = await db.all(`PRAGMA table_info(users);`);

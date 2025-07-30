@@ -4,6 +4,7 @@ import { authUserHandlers } from './userAuth';
 import { registerTodoHandlers } from './todoHandler';
 import { registerReportsHandlers } from './reportsHandler';
 import { registerDirectivesHandler } from './directivesHandler';
+import { registerChangeHistoryHandler } from './changeHistoryHandler';
 
 export function registerDbHandlers() {
     authUserHandlers();
@@ -12,4 +13,5 @@ export function registerDbHandlers() {
     registerTodoHandlers();
     registerReportsHandlers();
     registerDirectivesHandler();
+    registerChangeHistoryHandler();
 }

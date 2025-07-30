@@ -3,7 +3,7 @@ import BackupControls from '../components/BackupControls';
 import { useI18nStore } from '../stores/i18nStore';
 
 export default function BackupPanel() {
-    const [activeTab, setActiveTab] = useState<'settings' | 'actions'>('actions');
+    const [activeTab, setActiveTab] = useState<'settings' | 'actions' | 'changeLogs'>('actions');
     const { t } = useI18nStore();
 
     return (
@@ -28,6 +28,14 @@ export default function BackupPanel() {
                     }`}
                 >
                     {t('backupPanel.settings')}
+                </button>
+                <button
+                    onClick={() => setActiveTab('changeLogs')}
+                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-200 ${
+                        activeTab === 'changeLogs' ? 'bg-gray-200 font-medium' : ''
+                    }`}
+                >
+                    {t('backupPanel.changeLogs')}
                 </button>
             </div>
 
@@ -82,6 +90,44 @@ export default function BackupPanel() {
                             {t('backupPanel.settings')}
                         </h2>
                         <BackupControls />
+                    </div>
+                )}
+
+                {activeTab === 'changeLogs' && (
+                    <div className="max-w-xl mx-auto space-y-6">
+                        <h2 className="text-2xl font-bold text-gray-800">
+                            {t('backupPanel.changeLogs')}
+                        </h2>
+
+                        <div className="flex justify-center gap-4">
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        await window.electronAPI.exportChangeLogs();
+                                        alert(t('backupPanel.exportSuccess'));
+                                    } catch {
+                                        alert(t('backupPanel.exportFail'));
+                                    }
+                                }}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow"
+                            >
+                                {t('backupPanel.exportChangeLogs')}
+                            </button>
+
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        await window.electronAPI.importChangeLogs();
+                                        alert(t('backupPanel.importSuccess'));
+                                    } catch {
+                                        alert(t('backupPanel.importFail'));
+                                    }
+                                }}
+                                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded shadow"
+                            >
+                                {t('backupPanel.importChangeLogs')}
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
