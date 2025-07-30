@@ -189,20 +189,20 @@ export class UnitStatsCalculator {
             .replace(/\s+/g, ' '); // collapse multiple spaces
     }
 
-    static filterUsersByUnit(users: any, unitName: string) {
-        const normalizedTarget = this.normalizeUnitName(unitName);
+    static filterUsersByUnit(users: any, unitName: any) {
+        const normalizedTarget = this.normalizeUnitName(unitName); // e.g., "управління роти"
+        const targetWords = normalizedTarget.split(' '); // ['управління', 'роти']
 
         return users.filter((u: any) => {
             if (!u.unitMain) return false;
 
-            // Split on common delimiters like newlines, commas, or semicolons
-            const rawUnits = u.unitMain.split(/\r?\n|,|;/g);
-
-            // Normalize each part individually
+            const rawUnits = (u.unitMain || u.unit || '').split(/\r?\n|,|;/g);
             const normalizedParts = rawUnits.map((part: string) => this.normalizeUnitName(part));
 
-            // ✅ Match if any of the parts starts with the target
-            return normalizedParts.some((part: any) => part.startsWith(normalizedTarget));
+            // Join all normalized parts into one string for broader matching
+            const fullNormalizedUnit = normalizedParts.join(' '); // e.g., "управління 2 взвод"
+            // Check if all words in the target exist somewhere in the full unit
+            return targetWords.every((word) => fullNormalizedUnit.includes(word));
         });
     }
 
@@ -341,7 +341,7 @@ export class UnitStatsCalculator {
                     plannedOfficer: plannedSum.officer,
                     plannedSoldier: plannedSum.soldier,
                     ...actualGlobal,
-                    ...additionalGlobal, // ✅ Глобальна статистика
+                    ...additionalGlobal,
                 };
             } else {
                 // === Обробка для кожного підрозділу
@@ -356,7 +356,7 @@ export class UnitStatsCalculator {
                     plannedOfficer: planned.officer,
                     plannedSoldier: planned.soldier,
                     ...actual,
-                    ...additional, // ✅ Додаткові метрики по підрозділу
+                    ...additional,
                 };
             }
         }
