@@ -4,6 +4,10 @@ import path from 'path';
 import fs from 'fs/promises';
 
 contextBridge.exposeInMainWorld('electronAPI', {
+    loadHistoryFile: (userId: number, entryId: number, filename: string) =>
+        ipcRenderer.invoke('history:load-file', userId, entryId, filename),
+    fetchUsersMetadata: () => ipcRenderer.invoke('fetch-users-metadata'),
+
     // DB
     downloadDb: () => ipcRenderer.invoke('download-db'),
     replaceDb: () => ipcRenderer.invoke('replace-db'),
@@ -126,5 +130,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
             data?: any;
             sourceId?: string;
         }) => ipcRenderer.invoke('change-history:log', change),
+    },
+    users: {
+        getOne: (id: number) => ipcRenderer.invoke('users:get-one', id),
     },
 });

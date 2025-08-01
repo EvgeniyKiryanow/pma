@@ -52,27 +52,38 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     useEffect(() => {
         const loadUsers = async () => {
             const allUsers: User[] = await window.electronAPI.fetchUsers();
-            const map = Object.fromEntries(allUsers.map((u) => [u.id, u]));
+
+            // 🧹 Strip history to reduce memory footprint
+            const map = Object.fromEntries(
+                allUsers.map((u) => [
+                    u.id,
+                    { ...u, history: [] }, // or []
+                ]),
+            );
             setUsersById(map);
         };
         loadUsers();
     }, []);
+
     useEffect(() => {
         const checkIncompleteHistories = async () => {
             const allUsers: User[] = await window.electronAPI.fetchUsers();
-            useIncompleteHistoryStore.getState().clearAll(); // 🔄 clear previous entries
+
+            // 🧹 Skip base64 to keep loop fast
+            useIncompleteHistoryStore.getState().clearAll();
 
             for (const user of allUsers.filter(
                 (u) => u.shpkNumber !== 'excluded' && !String(u.shpkNumber).includes('order'),
             )) {
                 if (!user.history) continue;
 
-                user.history.forEach((entry) => {
-                    const isStatusChange = entry.type === 'statusChange';
+                for (const entry of user.history) {
+                    if (entry.type !== 'statusChange') continue;
+
                     const hasNoFiles = !entry.files || entry.files.length === 0;
                     const hasNoPeriod = !entry.period;
 
-                    if (isStatusChange && (hasNoFiles || hasNoPeriod)) {
+                    if (hasNoFiles || hasNoPeriod) {
                         useIncompleteHistoryStore
                             .getState()
                             .addIncomplete(
@@ -85,7 +96,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                                       : 'missing_period',
                             );
                     }
-                });
+                }
             }
         };
 

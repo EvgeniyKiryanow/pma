@@ -114,7 +114,13 @@ export default function LeftBar({ users }: Props) {
                                 return (
                                     <li
                                         key={user.id}
-                                        onClick={() => setSelectedUser(isSelected ? null : user)}
+                                        onClick={async () => {
+                                            if (isSelected) {
+                                                setSelectedUser(null);
+                                            } else {
+                                                await setSelectedUser(user); // Will auto-fetch full data
+                                            }
+                                        }}
                                         className={`flex flex-col gap-3 rounded-xl border p-4 transition-all cursor-pointer
                                                 ${
                                                     isSelected

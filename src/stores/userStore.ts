@@ -26,6 +26,7 @@ type UserStore = {
 
     headerCollapsed: boolean;
     setHeaderCollapsed: (value: boolean) => void;
+    getUserById: (id: number) => Promise<User | null>;
 };
 
 export const useUserStore = create<UserStore>((set, get) => ({
@@ -47,50 +48,61 @@ export const useUserStore = create<UserStore>((set, get) => ({
             editingUser: null,
             isUserFormOpen: false,
         }),
+    getUserById: async (id: number): Promise<User | null> => {
+        const user: User | null = await window.electronAPI.users.getOne(id);
+        return user;
+    },
 
     openUserFormForAdd: () => set({ editingUser: null, isUserFormOpen: true }),
     openUserFormForEdit: (user) => set({ editingUser: user, isUserFormOpen: true }),
     closeUserForm: () => set({ editingUser: null, isUserFormOpen: false }),
 
     refreshUsersFromDb: async () => {
-        const users = await window.electronAPI.fetchUsers();
+        const users = await window.electronAPI.fetchUsersMetadata(); // ✅ metadata only
         set({ users });
     },
 
     fetchUsers: async () => {
-        const users: User[] = await window.electronAPI.fetchUsers();
+        const users: User[] = await window.electronAPI.fetchUsersMetadata(); // ✅ metadata only
         set({ users });
     },
 
     addUser: async (user) => {
-        const newUser: User = await window.electronAPI.addUser(user);
-        set((state) => ({ users: [...state.users, newUser] }));
-        const users = await window.electronAPI.fetchUsers();
+        await window.electronAPI.addUser(user);
+        const users = await window.electronAPI.fetchUsersMetadata(); // ✅ refresh
         set({ users });
     },
 
     updateUser: async (user) => {
         const updatedUser: User = await window.electronAPI.updateUser(user);
-        set((state) => ({
-            users: state.users.map((u) => (u.id === updatedUser.id ? updatedUser : u)),
+        const users = await window.electronAPI.fetchUsersMetadata(); // ✅ refresh after update
+        set({
+            users,
             selectedUser:
                 get().selectedUser?.id === updatedUser.id ? updatedUser : get().selectedUser,
-        }));
-        const users = await window.electronAPI.fetchUsers();
-        set({ users });
+        });
     },
 
     deleteUser: async (userId) => {
         const success: boolean = await window.electronAPI.deleteUser(userId);
         if (success) {
-            set((state) => ({
-                users: state.users.filter((u) => u.id !== userId),
+            const users = await window.electronAPI.fetchUsersMetadata(); // ✅ refresh after delete
+            set({
+                users,
                 selectedUser: get().selectedUser?.id === userId ? null : get().selectedUser,
-            }));
+            });
         }
-        const users = await window.electronAPI.fetchUsers();
-        set({ users });
     },
 
-    setSelectedUser: (user: User | null) => set({ selectedUser: user }),
+    setSelectedUser: async (user: User | null) => {
+        if (!user) return set({ selectedUser: null });
+
+        const current = get().selectedUser;
+        if (current?.id === user.id && current.history && current.comments) return;
+
+        const fullUser = await window.electronAPI.users.getOne(user.id);
+        if (fullUser) {
+            set({ selectedUser: fullUser });
+        }
+    },
 }));

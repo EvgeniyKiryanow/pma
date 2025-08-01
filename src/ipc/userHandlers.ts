@@ -1,6 +1,11 @@
 import { app, ipcMain, BrowserWindow } from 'electron';
 import { getDb } from '../database/db';
 import { CommentOrHistoryEntry } from 'src/types/user';
+import path from 'path';
+import fs from 'fs/promises';
+import saveHistoryFiles from '../helpers/saveHistoryFiles';
+const base = path.join(app.getPath('userData'), 'user_files');
+import mime from 'mime-types';
 
 export function registerUserHandlers() {
     ipcMain.handle('fetch-users', async () => {
@@ -337,55 +342,158 @@ export function registerUserHandlers() {
 
         const existingHistory = user?.history ? JSON.parse(user.history) : [];
 
-        existingHistory.push(newEntry);
+        const entryId = newEntry.id;
+        const rawFiles = newEntry.files || [];
+
+        // ✅ Save files to disk
+        await saveHistoryFiles(userId, entryId, rawFiles);
+
+        // ✅ Only store metadata
+        const cleanedFiles = rawFiles.map((f: any) => ({
+            name: f.name,
+            type: f.type,
+            size: f.size,
+        }));
+
+        const cleanEntry = {
+            ...newEntry,
+            files: cleanedFiles,
+        };
+
+        existingHistory.push(cleanEntry);
 
         await db.run(
             `UPDATE users SET history = ? WHERE id = ?`,
             JSON.stringify(existingHistory),
             userId,
         );
+
         return { success: true };
     });
+
+    ipcMain.handle('users:get-one', async (_event, userId) => {
+        const db = await getDb();
+        const user = await db.get('SELECT * FROM users WHERE id = ?', userId);
+        if (!user) return null;
+
+        const safeParse = (jsonStr: string, fallback: any) => {
+            try {
+                return JSON.parse(jsonStr);
+            } catch {
+                return fallback;
+            }
+        };
+
+        return {
+            ...user,
+            relatives: safeParse(user.relatives, []),
+            comments: safeParse(user.comments, []),
+            history: safeParse(user.history, []),
+        };
+    });
+
+    ipcMain.handle('fetch-users-metadata', async () => {
+        const db = await getDb();
+        const rows = await db.all('SELECT * FROM users');
+
+        const safeParse = (jsonStr: string, fallback: any) => {
+            try {
+                return JSON.parse(jsonStr);
+            } catch {
+                return fallback;
+            }
+        };
+
+        return rows.map((row: any) => {
+            const { history, comments, relatives, ...rest } = row;
+            return {
+                ...rest,
+                relatives: safeParse(relatives, []), // we keep relatives
+            };
+        });
+    });
+
+    ipcMain.handle('history:load-file', async (_event, userId, entryId, filename) => {
+        const fullPath = path.join(
+            app.getPath('userData'),
+            'user_files',
+            userId.toString(),
+            entryId.toString(),
+            filename,
+        );
+
+        const buffer = await fs.readFile(fullPath);
+        const mimeType = mime.lookup(filename) || 'application/octet-stream';
+
+        return {
+            dataUrl: `data:${mimeType};base64,${buffer.toString('base64')}`,
+        };
+    });
+
     ipcMain.handle(
         'history:edit-entry',
         async (_event, userId: number, updatedEntry: CommentOrHistoryEntry) => {
             const db = await getDb();
-
             const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
             if (!user) return { success: false, message: 'User not found' };
 
             const history: CommentOrHistoryEntry[] = user?.history ? JSON.parse(user.history) : [];
-
             const idx = history.findIndex((h) => h.id === updatedEntry.id);
             if (idx === -1) return { success: false, message: 'History entry not found' };
 
-            // ✅ Replace old entry with updated one
-            history[idx] = { ...history[idx], ...updatedEntry };
+            // ✅ Save updated files to disk
+            const entryId = updatedEntry.id;
+            const rawFiles = updatedEntry.files || [];
+            await saveHistoryFiles(userId, entryId, rawFiles);
+
+            // ✅ Store only metadata
+            const cleanedFiles = rawFiles.map((f: any) => ({
+                name: f.name,
+                type: f.type,
+                size: f.size,
+            }));
+            history[idx] = { ...updatedEntry, files: cleanedFiles };
 
             await db.run(
-                `UPDATE users SET history = ? WHERE id = ?`,
+                'UPDATE users SET history = ? WHERE id = ?',
                 JSON.stringify(history),
                 userId,
             );
-
             return { success: true };
         },
     );
 
-    ipcMain.handle('deleteUserHistory', async (_, id: number) => {
+    ipcMain.handle('deleteUserHistory', async (_event, historyId: number) => {
         const db = await getDb();
         const users = await db.all('SELECT id, history FROM users');
+
         for (const user of users) {
-            const history = JSON.parse(user.history || '[]');
-            const updated = history.filter((item: any) => item.id !== id);
-            if (updated.length !== history.length) {
-                await db.run(
-                    'UPDATE users SET history = ? WHERE id = ?',
-                    JSON.stringify(updated),
-                    user.id,
-                );
+            const history: CommentOrHistoryEntry[] = JSON.parse(user.history || '[]');
+            const match = history.find((h) => h.id === historyId);
+            if (!match) continue;
+
+            // ✅ Remove entry from history array
+            const updated = history.filter((item) => item.id !== historyId);
+            await db.run(
+                'UPDATE users SET history = ? WHERE id = ?',
+                JSON.stringify(updated),
+                user.id,
+            );
+
+            // ✅ Delete corresponding files on disk
+            const dirPath = path.join(
+                app.getPath('userData'),
+                'user_files',
+                String(user.id),
+                String(historyId),
+            );
+            try {
+                await fs.rm(dirPath, { recursive: true, force: true });
+            } catch (err) {
+                console.warn(`⚠️ Failed to delete files for history entry ${historyId}`, err);
             }
         }
+
         return true;
     });
     ipcMain.handle('comments:get-user-comments', async (_event, userId: number) => {

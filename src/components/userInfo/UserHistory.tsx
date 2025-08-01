@@ -5,9 +5,10 @@ import AddHistoryModal from './AddHistoryModal';
 import { useI18nStore } from '../../stores/i18nStore';
 import { HistoryHeader } from '../HistoryHeader';
 import { StatusExcel } from '../../utils/excelUserStatuses';
-import { useIncompleteHistoryStore } from '../../stores/useIncompleteHistoryStore';
 import { useUserStore } from '../../stores/userStore';
+import { FixedSizeList as List } from 'react-window';
 
+// Type for preview file UI
 type FileWithDataUrl = { name: string; type: string; dataUrl: string };
 
 type UserHistoryProps = {
@@ -88,12 +89,24 @@ export default function UserHistory({
         maybeNewStatus?: StatusExcel,
         period?: { from: string; to: string },
     ) => {
+        const filesForBackend = attachedFiles
+            .filter((f) => !!f.dataUrl)
+            .map((file) => ({
+                name: file.name,
+                type: file.type,
+                size: file.dataUrl.length,
+                dataUrl: file.dataUrl,
+            }));
+
+        if (filesForBackend.length !== attachedFiles.length) {
+            console.warn('⚠️ Some files were missing dataUrl and skipped.');
+        }
+
         if (editingEntry) {
-            // ✅ Edit existing
             const updated: CommentOrHistoryEntry = {
                 ...editingEntry,
                 description: desc.trim(),
-                files: attachedFiles,
+                files: filesForBackend,
                 type: maybeNewStatus ? 'statusChange' : editingEntry.type,
                 period: period || undefined,
             };
@@ -101,7 +114,6 @@ export default function UserHistory({
             await window.electronAPI.editUserHistory(userId, updated);
             if (refreshHistory) refreshHistory();
         } else {
-            // ✅ Add new
             const prevStatus = currentStatus || '—';
             const statusInfo =
                 maybeNewStatus && maybeNewStatus !== prevStatus
@@ -116,14 +128,13 @@ export default function UserHistory({
                 author: 'You',
                 description: combinedDescription,
                 content: '',
-                files: attachedFiles,
+                files: filesForBackend,
                 period: period || undefined,
             };
 
             onAddHistory(newEntry, maybeNewStatus);
         }
 
-        // ✅ reset
         setIsModalOpen(false);
         setEditingEntry(null);
         setDescription('');
@@ -152,16 +163,24 @@ export default function UserHistory({
             {filteredHistory.length === 0 ? (
                 <p className="text-gray-500 italic">{t('history.noRecords')}</p>
             ) : (
-                <ul className="space-y-4">
-                    {filteredHistory.map((entry) => (
-                        <HistoryItem
-                            key={entry.id}
-                            entry={entry}
-                            onDelete={onDeleteHistory}
-                            onEdit={openEditModal}
-                        />
-                    ))}
-                </ul>
+                <List
+                    height={600}
+                    width={'100%'}
+                    itemCount={filteredHistory.length}
+                    itemSize={300} // can adjust based on average item height
+                >
+                    {({ index, style }) => (
+                        <div style={style}>
+                            <HistoryItem
+                                key={filteredHistory[index].id}
+                                entry={filteredHistory[index]}
+                                userId={user!.id}
+                                onDelete={onDeleteHistory}
+                                onEdit={openEditModal}
+                            />
+                        </div>
+                    )}
+                </List>
             )}
 
             <AddHistoryModal

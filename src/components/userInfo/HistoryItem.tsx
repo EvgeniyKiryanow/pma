@@ -13,15 +13,46 @@ import { useState } from 'react';
 import FilePreviewModal, { FileWithDataUrl } from '../../components/FilePreviewModal';
 
 type Props = {
+    userId: any;
     entry: CommentOrHistoryEntry;
     onDelete: (id: number) => void;
     onEdit: (entry: CommentOrHistoryEntry) => void; // ✅ new
 };
 
-export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
+export default function HistoryItem({ entry, onDelete, onEdit, userId }: Props) {
     const { t } = useI18nStore();
     const [showFullDesc, setShowFullDesc] = useState(false);
     const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
+    const handlePreviewFile = async (file: { name: string; type: string; dataUrl?: string }) => {
+        if (file.dataUrl) {
+            setPreviewFile(file);
+            return;
+        }
+
+        const { dataUrl } = await window.electronAPI.loadHistoryFile(userId, entry.id, file.name);
+        setPreviewFile({
+            ...file,
+            dataUrl,
+        });
+    };
+    const handleDownload = async (file: { name: string; dataUrl?: string }) => {
+        if (!file.dataUrl) {
+            const { dataUrl } = await window.electronAPI.loadHistoryFile(
+                userId,
+                entry.id,
+                file.name,
+            );
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = file.name;
+            a.click();
+        } else {
+            const a = document.createElement('a');
+            a.href = file.dataUrl;
+            a.download = file.name;
+            a.click();
+        }
+    };
 
     const isStatusChange = entry.type === 'statusChange';
     const dateFormatted = new Date(entry.date).toLocaleString();
@@ -307,7 +338,7 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
                             {file.dataUrl ? (
                                 <button
                                     onClick={() =>
-                                        setPreviewFile({
+                                        handlePreviewFile({
                                             name: file.name,
                                             type: file.type,
                                             dataUrl: file.dataUrl,
@@ -333,13 +364,12 @@ export default function HistoryItem({ entry, onDelete, onEdit }: Props) {
 
                             {/* === Download Button === */}
                             {file.dataUrl && (
-                                <a
-                                    href={file.dataUrl}
-                                    download={file.name}
+                                <button
+                                    onClick={() => handleDownload(file)}
                                     className="text-center text-sm text-blue-500 hover:underline p-2 border-t border-gray-200"
                                 >
                                     ⬇️ Завантажити
-                                </a>
+                                </button>
                             )}
                         </div>
                     ))}

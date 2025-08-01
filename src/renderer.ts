@@ -8,6 +8,15 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
     interface Window {
         electronAPI: {
+            users: {
+                getOne: (id: number) => Promise<any>;
+            };
+            loadHistoryFile: (
+                userId: number,
+                entryId: number,
+                filename: string,
+            ) => Promise<{ dataUrl: string }>;
+            fetchUsersMetadata: () => Promise<any>;
             //close
             closeApp: () => Promise<any>;
             // --- Auth ---
