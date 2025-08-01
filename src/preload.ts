@@ -11,8 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // DB
     downloadDb: () => ipcRenderer.invoke('download-db'),
     replaceDb: () => ipcRenderer.invoke('replace-db'),
-    downloadDbSafe: (p:any)=> ipcRenderer.invoke('download-db-safe'),
-    restoreDbSafe: (p:any)=> ipcRenderer.invoke('restore-db-safe'),
+    downloadDbSafe: (password: any) => ipcRenderer.invoke('download-db-safe', password),
+    restoreDbSafe: (password: any) => ipcRenderer.invoke('restore-db-safe', password),
     restoreDb: () => ipcRenderer.invoke('restore-db'),
     resetDb: () => ipcRenderer.invoke('reset-db'),
     setBackupIntervalInDays: (days: number) => ipcRenderer.invoke('backup:set-interval', days),

@@ -15,19 +15,18 @@ import {
     startScheduledBackup,
 } from '../backupScheduler';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
-function encryptWithPassword(json: any, password: string): Buffer {
+function encryptWithPassword(data: Buffer, password: string): Buffer {
     const iv = randomBytes(12);
     const key = Buffer.from(password.padEnd(32, ' '), 'utf8');
     const cipher = createCipheriv('aes-256-gcm', key, iv);
 
-    const plaintext = Buffer.from(JSON.stringify(json), 'utf8');
-    const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+    const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
     const authTag = cipher.getAuthTag();
 
     return Buffer.concat([iv, authTag, encrypted]);
 }
 
-function decryptWithPassword(buffer: Buffer, password: string): any {
+function decryptWithPassword(buffer: Buffer, password: string): Buffer {
     const iv = buffer.slice(0, 12);
     const tag = buffer.slice(12, 28);
     const encrypted = buffer.slice(28);
@@ -36,8 +35,7 @@ function decryptWithPassword(buffer: Buffer, password: string): any {
     const decipher = createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(tag);
 
-    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-    return JSON.parse(decrypted.toString('utf8'));
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]);
 }
 
 export function registerBackupHandlers() {

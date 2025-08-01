@@ -5,7 +5,7 @@ import { useI18nStore } from '../stores/i18nStore';
 export default function BackupPanel() {
     const [activeTab, setActiveTab] = useState<'settings' | 'actions' | 'changeLogs'>('actions');
     const [showPasswordModalType, setShowPasswordModalType] = useState<
-        null | 'export' | 'import' | 'export-db' | 'import-db'
+        null | 'export' | 'import' | 'download-db-safe' | 'restore-db-safe'
     >(null);
     const [passwordInput, setPasswordInput] = useState('');
 
@@ -33,13 +33,13 @@ export default function BackupPanel() {
                     return;
                 }
                 alert(t('backupPanel.importSuccess'));
-            } else if (type === 'export-db') {
-                const success = await window.electronAPI.downloadDbSafe(password);
-                alert(success ? 'Бекап успішно збережено' : 'Помилка при збереженні бекапу');
-            } else if (type === 'import-db') {
-                const success = await window.electronAPI.restoreDbSafe(password);
-                alert(success ? 'Бекап успішно відновлено' : 'Помилка при відновленні бекапу');
-                if (success) window.location.reload();
+            } else if (type === 'download-db-safe') {
+                await window.electronAPI.downloadDbSafe(password);
+                alert('Зашифрований бекап збережено');
+            } else if (type === 'restore-db-safe') {
+                await window.electronAPI.restoreDbSafe(password);
+                alert('Бекап успішно відновлено');
+                window.location.reload();
             }
         } catch {
             alert('Щось пішло не так. Спробуйте ще раз.');
@@ -147,13 +147,13 @@ export default function BackupPanel() {
                                 </p>
                                 <div className="flex justify-center gap-4">
                                     <button
-                                        onClick={() => setShowPasswordModalType('export-db')}
+                                        onClick={() => setShowPasswordModalType('download-db-safe')}
                                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow"
                                     >
                                         🔐 Експортувати
                                     </button>
                                     <button
-                                        onClick={() => setShowPasswordModalType('import-db')}
+                                        onClick={() => setShowPasswordModalType('restore-db-safe')}
                                         className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow"
                                     >
                                         🔑 Імпортувати
