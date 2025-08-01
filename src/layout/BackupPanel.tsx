@@ -3,7 +3,8 @@ import BackupControls from '../components/BackupControls';
 import { useI18nStore } from '../stores/i18nStore';
 
 export default function BackupPanel() {
-    const [activeTab, setActiveTab] = useState<'settings' | 'actions' | 'changeLogs'>('actions');
+    //  const [activeTab, setActiveTab] = useState<'settings' | 'actions' | 'changeLogs'>('actions');
+    const [activeTab, setActiveTab] = useState<'actions' | 'changeLogs'>('actions');
     const [showPasswordModalType, setShowPasswordModalType] = useState<
         null | 'export' | 'import' | 'download-db-safe' | 'restore-db-safe'
     >(null);
@@ -61,14 +62,14 @@ export default function BackupPanel() {
                 >
                     {t('backupPanel.actions')}
                 </button>
-                <button
+                {/* <button
                     onClick={() => setActiveTab('settings')}
                     className={`w-full text-left px-3 py-2 rounded hover:bg-gray-200 ${
                         activeTab === 'settings' ? 'bg-gray-200 font-medium' : ''
                     }`}
                 >
                     {t('backupPanel.settings')}
-                </button>
+                </button> */}
                 <button
                     onClick={() => setActiveTab('changeLogs')}
                     className={`w-full text-left px-3 py-2 rounded hover:bg-gray-200 ${
@@ -164,14 +165,14 @@ export default function BackupPanel() {
                     </div>
                 )}
 
-                {activeTab === 'settings' && (
+                {/* {activeTab === 'settings' && (
                     <div className="max-w-xl mx-auto">
                         <h2 className="text-2xl font-bold text-gray-800 mb-4">
                             {t('backupPanel.settings')}
                         </h2>
                         <BackupControls />
                     </div>
-                )}
+                )} */}
 
                 {activeTab === 'changeLogs' && (
                     <div className="max-w-xl mx-auto space-y-6">

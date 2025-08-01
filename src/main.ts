@@ -180,7 +180,7 @@ app.whenReady().then(async () => {
     await initializeDb();
     await upgradeDbSchema();
     copyAllTemplates();
-    setupAutoUpdater();
+    // setupAutoUpdater();
     createWindow();
 });
 

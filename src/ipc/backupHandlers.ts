@@ -66,6 +66,11 @@ export function registerBackupHandlers() {
                 return false;
             }
 
+            // VACUUM to shrink database before export
+            const tempDb = await open({ filename: dbPath, driver: sqlite3.Database });
+            await tempDb.exec('VACUUM;');
+            await tempDb.close();
+
             const { canceled, filePath } = await dialog.showSaveDialog({
                 title: 'Save Database Backup',
                 defaultPath: 'backup.sqlite',
@@ -137,8 +142,13 @@ export function registerBackupHandlers() {
                 return { success: false, error: 'short-password' };
             }
 
+            // VACUUM before encryption
+            const tempDb = await open({ filename: dbPath, driver: sqlite3.Database });
+            await tempDb.exec('VACUUM;');
+            await tempDb.close();
+
             const dbBuffer = await fs.readFile(dbPath);
-            const encrypted = encryptWithPassword(dbBuffer, password); // 🔐 assumes returns a Buffer or string
+            const encrypted = encryptWithPassword(dbBuffer, password);
 
             const { canceled, filePath } = await dialog.showSaveDialog({
                 title: 'Export Encrypted Backup',
