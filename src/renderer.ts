@@ -33,6 +33,8 @@ declare global {
             getBackupPath: () => Promise<string>;
 
             // --- DB Management ---
+            downloadDbSafe: (p: any) => Promise<boolean>;
+            restoreDbSafe: (p: any) => Promise<boolean>;
             downloadDb: () => Promise<boolean>;
             replaceDb: () => Promise<boolean>;
             restoreDb: () => Promise<boolean>;
