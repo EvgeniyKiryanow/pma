@@ -49,7 +49,7 @@ export default function SavedReportsTab() {
 
     useEffect(() => {
         const loadUsers = async () => {
-            const data = await window.electronAPI.fetchUsers();
+            const data = await window.electronAPI.fetchUsersMetadata();
             setUsers(data);
         };
         loadUsers();

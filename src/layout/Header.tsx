@@ -51,7 +51,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     const [hasShtatni, setHasShtatni] = useState(false);
     useEffect(() => {
         const loadUsers = async () => {
-            const allUsers: User[] = await window.electronAPI.fetchUsers();
+            const allUsers: User[] = await window.electronAPI.fetchUsersMetadata();
 
             // 🧹 Strip history to reduce memory footprint
             const map = Object.fromEntries(
@@ -67,7 +67,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
 
     useEffect(() => {
         const checkIncompleteHistories = async () => {
-            const allUsers: User[] = await window.electronAPI.fetchUsers();
+            const allUsers: User[] = await window.electronAPI.fetchUsersMetadata();
 
             // 🧹 Skip base64 to keep loop fast
             useIncompleteHistoryStore.getState().clearAll();

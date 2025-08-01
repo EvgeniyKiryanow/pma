@@ -90,7 +90,7 @@ export const useReportsStore = create<ReportsState>((set) => ({
         })),
 
     loadUsers: async () => {
-        const data = await window.electronAPI.fetchUsers();
+        const data = await window.electronAPI.fetchUsersMetadata();
         set({ users: data });
     },
 

@@ -97,7 +97,7 @@ export default function ShtatniPosadyTab() {
             await window.electronAPI.bulkUpdateUsers(usersToFix);
 
             // ✅ Refresh all users once after merge
-            const fresh = await window.electronAPI.fetchUsers();
+            const fresh = await window.electronAPI.fetchUsersMetadata();
             useUserStore.setState({ users: fresh });
         }
     };

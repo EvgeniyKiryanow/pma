@@ -87,7 +87,7 @@ export const useCombinedStore = create<CombinedState>((set, get) => ({
         set({ loading: true });
         try {
             const [users, shtatni] = await Promise.all([
-                window.electronAPI.fetchUsers(),
+                window.electronAPI.fetchUsersMetadata(),
                 window.electronAPI.shtatni.fetchAll(),
             ]);
 

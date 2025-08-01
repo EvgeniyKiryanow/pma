@@ -146,7 +146,7 @@ export default function EventsModalLauncher() {
             const today = new Date();
             const year = today.getFullYear();
             const [users, orderEntries] = await Promise.all([
-                window.electronAPI.fetchUsers(),
+                window.electronAPI.fetchUsersMetadata(),
                 fetchOrderEntriesFromDb(),
             ]);
             setEntries(orderEntries);

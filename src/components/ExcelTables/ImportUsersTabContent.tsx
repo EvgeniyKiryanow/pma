@@ -19,7 +19,7 @@ export default function ImportUsersTabContent() {
 
     useEffect(() => {
         window.electronAPI.getDbColums().then((cols: string[]) => setDbColumns(cols));
-        window.electronAPI.fetchUsers().then((users: any[]) => setExistingUsers(users));
+        window.electronAPI.fetchUsersMetadata().then((users: any[]) => setExistingUsers(users));
     }, []);
 
     const findBestDbColumn = (excelHeader: string, dbCols: string[]): string => {
