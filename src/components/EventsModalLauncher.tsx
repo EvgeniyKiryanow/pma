@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Gift } from 'lucide-react';
 import { StatusExcel } from '../utils/excelUserStatuses';
 import { User } from '../types/user';
+import pLimit from 'p-limit';
 
 function EventsModal({
     tabs,
@@ -162,7 +163,9 @@ export default function EventsModalLauncher() {
                 StatusExcel.ABSENT_WOUNDED,
             ];
 
-            const usersWithRelevantStatus = users.filter((user) =>
+            const limit = pLimit(5); // limit to 5 parallel calls
+
+            const usersWithRelevantStatus = users.filter((user: any) =>
                 relevantStatuses.includes(user.soldierStatus?.trim() as StatusExcel),
             );
 
@@ -174,49 +177,57 @@ export default function EventsModalLauncher() {
                 soldierStatus?: string;
             }[] = [];
 
-            for (const user of usersWithRelevantStatus) {
-                const history: any[] = await window.electronAPI.getUserHistory(user.id, 'all');
+            await Promise.all(
+                usersWithRelevantStatus.map((user: any) =>
+                    limit(async () => {
+                        const history: any[] = await window.electronAPI.getUserHistory(
+                            user.id,
+                            'all',
+                        );
 
-                const matching = history
-                    .filter(
-                        (h) =>
-                            h.type === 'statusChange' &&
-                            h.description?.includes(`→ "${user.soldierStatus}"`),
-                    )
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                        const matching = history
+                            .filter(
+                                (h) =>
+                                    h.type === 'statusChange' &&
+                                    h.description?.includes(`→ "${user.soldierStatus}"`),
+                            )
+                            .sort(
+                                (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+                            );
 
-                if (matching.length === 0) continue;
+                        if (matching.length === 0) return;
 
-                const latest = matching[0];
+                        const latest = matching[0];
 
-                const toDate = new Date(latest.period?.to);
-                const diffDays = Math.floor(
-                    (toDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-                );
+                        const toDate = new Date(latest.period?.to);
+                        const diffDays = Math.floor(
+                            (toDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+                        );
 
-                // Allow between -3 (ended 3 days ago) and 7 (upcoming)
-                if (diffDays < -3 || diffDays > 7) continue;
+                        if (diffDays < -3 || diffDays > 7) return;
 
-                endingStatus.push({
-                    id: user.id,
-                    name: user.fullName,
-                    dateLabel: toDate.toLocaleDateString('uk-UA'),
-                    daysLeft: diffDays,
-                    soldierStatus: user.soldierStatus,
-                });
-            }
+                        endingStatus.push({
+                            id: user.id,
+                            name: user.fullName,
+                            dateLabel: toDate.toLocaleDateString('uk-UA'),
+                            daysLeft: diffDays,
+                            soldierStatus: user.soldierStatus,
+                        });
+                    }),
+                ),
+            );
 
             setEndingStatusItems(endingStatus);
 
             // 🎂 Birthdays
             const birthdayList = users
                 .filter(
-                    (user) =>
+                    (user: any) =>
                         user.dateOfBirth &&
                         user.shpkNumber !== 'excluded' &&
                         !String(user.shpkNumber).includes('order'),
                 )
-                .map((user) => {
+                .map((user: any) => {
                     const dob = new Date(user.dateOfBirth!);
                     const next = new Date(year, dob.getMonth(), dob.getDate());
                     if (next < today) next.setFullYear(year + 1);
@@ -237,8 +248,8 @@ export default function EventsModalLauncher() {
                             .padStart(2, '0')}`,
                     };
                 })
-                .filter((u) => u.diffDays >= 0 && u.diffDays <= 7)
-                .map((entry) => ({
+                .filter((u: any) => u.diffDays >= 0 && u.diffDays <= 7)
+                .map((entry: any) => ({
                     id: entry.user.id,
                     name: entry.user.fullName,
                     dateLabel: entry.dateLabel,
@@ -252,7 +263,7 @@ export default function EventsModalLauncher() {
 
             const orderList = orderEntries
                 .map((entry) => {
-                    const user = users.find((u) => u.id === entry.userId);
+                    const user = users.find((u: any) => u.id === entry.userId);
                     if (!user || !entry.period?.to) return null;
 
                     const endDate = new Date(entry.period.to);
