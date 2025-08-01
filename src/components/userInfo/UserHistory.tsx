@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import type { CommentOrHistoryEntry } from '../../types/user';
 import HistoryItem from './HistoryItem';
 import AddHistoryModal from './AddHistoryModal';
@@ -6,7 +6,8 @@ import { useI18nStore } from '../../stores/i18nStore';
 import { HistoryHeader } from '../HistoryHeader';
 import { StatusExcel } from '../../utils/excelUserStatuses';
 import { useUserStore } from '../../stores/userStore';
-import { FixedSizeList as List } from 'react-window';
+import { VariableSizeList as List } from 'react-window';
+import FilePreviewModal from '../../components/FilePreviewModal';
 
 // Type for preview file UI
 type FileWithDataUrl = { name: string; type: string; dataUrl: string };
@@ -36,6 +37,7 @@ export default function UserHistory({
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<CommentOrHistoryEntry | null>(null);
     const [initialPeriod, setInitialPeriod] = useState<{ from: string; to: string } | undefined>();
+    const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
 
     const user = useUserStore((s) => s.users.find((u) => u.id === userId));
     const isExcluded = user?.shpkNumber === 'excluded';
@@ -89,24 +91,45 @@ export default function UserHistory({
         maybeNewStatus?: StatusExcel,
         period?: { from: string; to: string },
     ) => {
-        const filesForBackend = attachedFiles
-            .filter((f) => !!f.dataUrl)
-            .map((file) => ({
-                name: file.name,
-                type: file.type,
-                size: file.dataUrl.length,
-                dataUrl: file.dataUrl,
-            }));
+        const newFiles = attachedFiles.filter((f) => !!f.dataUrl);
 
-        if (filesForBackend.length !== attachedFiles.length) {
+        if (newFiles.length !== attachedFiles.length) {
             console.warn('⚠️ Some files were missing dataUrl and skipped.');
         }
 
         if (editingEntry) {
+            const existingFiles = editingEntry.files || [];
+
+            // ✅ Only retain files that still exist in modal's `attachedFiles`
+            const retainedMeta = existingFiles.filter((oldFile) =>
+                attachedFiles.some((f) => f.name === oldFile.name && !f.dataUrl),
+            );
+
+            const retained: FileWithDataUrl[] = await Promise.all(
+                retainedMeta.map(async (f) => {
+                    try {
+                        const loaded = await window.electronAPI.loadHistoryFile(
+                            userId,
+                            editingEntry.id,
+                            f.name,
+                        );
+                        return {
+                            ...f,
+                            dataUrl: loaded.dataUrl,
+                        };
+                    } catch (err) {
+                        console.warn(`❌ Failed to reload file "${f.name}"`, err);
+                        return null;
+                    }
+                }),
+            ).then((results) => results.filter(Boolean) as FileWithDataUrl[]);
+
+            const mergedFiles = [...retained, ...newFiles];
+
             const updated: CommentOrHistoryEntry = {
                 ...editingEntry,
                 description: desc.trim(),
-                files: filesForBackend,
+                files: mergedFiles,
                 type: maybeNewStatus ? 'statusChange' : editingEntry.type,
                 period: period || undefined,
             };
@@ -128,7 +151,7 @@ export default function UserHistory({
                 author: 'You',
                 description: combinedDescription,
                 content: '',
-                files: filesForBackend,
+                files: newFiles,
                 period: period || undefined,
             };
 
@@ -139,6 +162,17 @@ export default function UserHistory({
         setEditingEntry(null);
         setDescription('');
         setFiles([]);
+    };
+
+    // 🧠 Dynamic size logic
+    const listRef = useRef<any>(null);
+    const sizeMap = useRef<{ [index: number]: number }>({});
+    const getItemSize = (index: number) => sizeMap.current[index] || 300;
+    const setSize = (index: number, size: number) => {
+        if (sizeMap.current[index] !== size) {
+            sizeMap.current = { ...sizeMap.current, [index]: size };
+            listRef.current?.resetAfterIndex(index);
+        }
     };
 
     return (
@@ -159,27 +193,42 @@ export default function UserHistory({
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
+            {previewFile && (
+                <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
+            )}
 
             {filteredHistory.length === 0 ? (
                 <p className="text-gray-500 italic">{t('history.noRecords')}</p>
             ) : (
                 <List
+                    ref={listRef}
                     height={600}
-                    width={'100%'}
+                    width="100%"
                     itemCount={filteredHistory.length}
-                    itemSize={300} // can adjust based on average item height
+                    itemSize={getItemSize}
                 >
-                    {({ index, style }) => (
-                        <div style={style}>
-                            <HistoryItem
-                                key={filteredHistory[index].id}
-                                entry={filteredHistory[index]}
-                                userId={user!.id}
-                                onDelete={onDeleteHistory}
-                                onEdit={openEditModal}
-                            />
-                        </div>
-                    )}
+                    {({ index, style }) => {
+                        const item = filteredHistory[index];
+                        const refCallback = (el: HTMLDivElement | null) => {
+                            if (el) {
+                                const height = el.getBoundingClientRect().height;
+                                setSize(index, height);
+                            }
+                        };
+
+                        return (
+                            <div style={style} ref={refCallback}>
+                                <HistoryItem
+                                    key={item.id}
+                                    entry={item}
+                                    userId={user!.id}
+                                    onDelete={onDeleteHistory}
+                                    onEdit={openEditModal}
+                                    onPreviewFile={(file) => setPreviewFile(file)}
+                                />
+                            </div>
+                        );
+                    }}
                 </List>
             )}
 

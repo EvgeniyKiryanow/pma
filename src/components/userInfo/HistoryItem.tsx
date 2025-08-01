@@ -10,31 +10,32 @@ import {
 } from 'lucide-react';
 import { useI18nStore } from '../../stores/i18nStore';
 import { useState } from 'react';
-import FilePreviewModal, { FileWithDataUrl } from '../../components/FilePreviewModal';
 
 type Props = {
     userId: any;
     entry: CommentOrHistoryEntry;
     onDelete: (id: number) => void;
-    onEdit: (entry: CommentOrHistoryEntry) => void; // ✅ new
+    onEdit: (entry: CommentOrHistoryEntry) => void;
+    onPreviewFile: (file: FileWithDataUrl) => void; // ✅ NEW
 };
 
-export default function HistoryItem({ entry, onDelete, onEdit, userId }: Props) {
+export default function HistoryItem({ entry, onDelete, onEdit, userId, onPreviewFile }: Props) {
     const { t } = useI18nStore();
     const [showFullDesc, setShowFullDesc] = useState(false);
-    const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
+
     const handlePreviewFile = async (file: { name: string; type: string; dataUrl?: string }) => {
         if (file.dataUrl) {
-            setPreviewFile(file);
+            onPreviewFile(file);
             return;
         }
 
         const { dataUrl } = await window.electronAPI.loadHistoryFile(userId, entry.id, file.name);
-        setPreviewFile({
+        onPreviewFile({
             ...file,
             dataUrl,
         });
     };
+
     const handleDownload = async (file: { name: string; dataUrl?: string }) => {
         if (!file.dataUrl) {
             const { dataUrl } = await window.electronAPI.loadHistoryFile(
@@ -334,19 +335,16 @@ export default function HistoryItem({ entry, onDelete, onEdit, userId }: Props) 
                             key={i}
                             className="relative border rounded-lg overflow-hidden bg-gray-50 shadow-sm hover:shadow-md transition flex flex-col"
                         >
-                            {/* === Preview Button === */}
-                            {file.dataUrl ? (
+                            <div
+                                key={i}
+                                className="relative border rounded-lg overflow-hidden bg-gray-50 shadow-sm hover:shadow-md transition flex flex-col"
+                            >
+                                {/* === Preview Button === */}
                                 <button
-                                    onClick={() =>
-                                        handlePreviewFile({
-                                            name: file.name,
-                                            type: file.type,
-                                            dataUrl: file.dataUrl,
-                                        })
-                                    }
+                                    onClick={() => handlePreviewFile(file)}
                                     className="flex-1 w-full text-left"
                                 >
-                                    {file.type.startsWith('image/') ? (
+                                    {file.dataUrl && file.type.startsWith('image/') ? (
                                         <img
                                             src={file.dataUrl}
                                             alt={file.name}
@@ -358,19 +356,15 @@ export default function HistoryItem({ entry, onDelete, onEdit, userId }: Props) 
                                         </div>
                                     )}
                                 </button>
-                            ) : (
-                                <span className="p-3 text-xs">{file.name}</span>
-                            )}
 
-                            {/* === Download Button === */}
-                            {file.dataUrl && (
+                                {/* === Download Button (always visible) === */}
                                 <button
                                     onClick={() => handleDownload(file)}
                                     className="text-center text-sm text-blue-500 hover:underline p-2 border-t border-gray-200"
                                 >
                                     ⬇️ Завантажити
                                 </button>
-                            )}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -387,10 +381,6 @@ export default function HistoryItem({ entry, onDelete, onEdit, userId }: Props) 
                         {new Date(entry.period.to).toLocaleDateString()}
                     </div>
                 </div>
-            )}
-
-            {previewFile && (
-                <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
             )}
         </li>
     );

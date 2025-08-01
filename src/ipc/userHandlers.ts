@@ -416,18 +416,22 @@ export function registerUserHandlers() {
     ipcMain.handle('history:load-file', async (_event, userId, entryId, filename) => {
         const fullPath = path.join(
             app.getPath('userData'),
-            'user_files',
+            'history_files', // FIXED here
             userId.toString(),
             entryId.toString(),
             filename,
         );
 
-        const buffer = await fs.readFile(fullPath);
-        const mimeType = mime.lookup(filename) || 'application/octet-stream';
-
-        return {
-            dataUrl: `data:${mimeType};base64,${buffer.toString('base64')}`,
-        };
+        try {
+            const buffer = await fs.readFile(fullPath);
+            const mimeType = mime.lookup(filename) || 'application/octet-stream';
+            return {
+                dataUrl: `data:${mimeType};base64,${buffer.toString('base64')}`,
+            };
+        } catch (err) {
+            console.warn(`❌ Failed to read file ${filename}:`, err);
+            throw new Error(`Файл не знайдено: ${filename}`);
+        }
     });
 
     ipcMain.handle(
@@ -441,24 +445,51 @@ export function registerUserHandlers() {
             const idx = history.findIndex((h) => h.id === updatedEntry.id);
             if (idx === -1) return { success: false, message: 'History entry not found' };
 
-            // ✅ Save updated files to disk
             const entryId = updatedEntry.id;
-            const rawFiles = updatedEntry.files || [];
-            await saveHistoryFiles(userId, entryId, rawFiles);
+            const newFiles = updatedEntry.files || [];
 
-            // ✅ Store only metadata
-            const cleanedFiles = rawFiles.map((f: any) => ({
+            // ✅ Delete any files that existed before but are not in updated list
+            const oldFiles = history[idx].files || [];
+            const oldNames = oldFiles.map((f) => f.name);
+            const newNames = newFiles.map((f) => f.name);
+            const removedFiles = oldNames.filter((name) => !newNames.includes(name));
+
+            const entryDir = path.join(
+                app.getPath('userData'),
+                'history_files',
+                `${userId}`,
+                `${entryId}`,
+            );
+            for (const name of removedFiles) {
+                try {
+                    const fullPath = path.join(entryDir, name);
+                    await fs.rm(fullPath, { force: true });
+                } catch (err) {
+                    console.warn(`⚠️ Failed to delete removed file "${name}"`, err);
+                }
+            }
+
+            // ✅ Save new/updated files to disk
+            await saveHistoryFiles(userId, entryId, newFiles);
+
+            // ✅ Store only metadata (skip dataUrl)
+            const cleanedFiles = newFiles.map((f) => ({
                 name: f.name,
                 type: f.type,
                 size: f.size,
             }));
-            history[idx] = { ...updatedEntry, files: cleanedFiles };
+
+            history[idx] = {
+                ...updatedEntry,
+                files: cleanedFiles,
+            };
 
             await db.run(
                 'UPDATE users SET history = ? WHERE id = ?',
                 JSON.stringify(history),
                 userId,
             );
+
             return { success: true };
         },
     );
@@ -472,29 +503,33 @@ export function registerUserHandlers() {
             const match = history.find((h) => h.id === historyId);
             if (!match) continue;
 
-            // ✅ Remove entry from history array
-            const updated = history.filter((item) => item.id !== historyId);
+            // ✅ Remove entry
+            const updatedHistory = history.filter((item) => item.id !== historyId);
             await db.run(
                 'UPDATE users SET history = ? WHERE id = ?',
-                JSON.stringify(updated),
+                JSON.stringify(updatedHistory),
                 user.id,
             );
 
-            // ✅ Delete corresponding files on disk
+            // ✅ Delete associated files (FIXED path from "user_files" to "history_files")
             const dirPath = path.join(
                 app.getPath('userData'),
-                'user_files',
+                'history_files',
                 String(user.id),
                 String(historyId),
             );
+
             try {
                 await fs.rm(dirPath, { recursive: true, force: true });
+                console.log(`🗑️ Deleted files for history ${historyId} of user ${user.id}`);
             } catch (err) {
-                console.warn(`⚠️ Failed to delete files for history entry ${historyId}`, err);
+                console.warn(`⚠️ Failed to delete files for history ${historyId}:`, err);
             }
+
+            return { success: true, deletedFromUserId: user.id };
         }
 
-        return true;
+        return { success: false, message: 'History entry not found in any user' };
     });
     ipcMain.handle('comments:get-user-comments', async (_event, userId: number) => {
         const db = await getDb();
