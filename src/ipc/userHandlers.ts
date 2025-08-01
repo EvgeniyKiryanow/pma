@@ -433,6 +433,28 @@ export function registerUserHandlers() {
             throw new Error(`Файл не знайдено: ${filename}`);
         }
     });
+    ipcMain.handle(
+        'history:getByUserAndRange',
+        async (_event, userId: number, range: '1d' | '7d' | '30d' | 'all') => {
+            const db = await getDb();
+            const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
+            if (!user?.history) return [];
+
+            const allHistory: CommentOrHistoryEntry[] = JSON.parse(user.history);
+            const now = new Date();
+            const threshold = new Date(now);
+
+            if (range !== 'all') {
+                const days = range === '1d' ? 1 : range === '7d' ? 7 : 30;
+                threshold.setDate(now.getDate() - days);
+            }
+
+            return allHistory.filter((entry) => {
+                if (range === 'all') return true;
+                return new Date(entry.date) >= threshold;
+            });
+        },
+    );
 
     ipcMain.handle(
         'history:edit-entry',

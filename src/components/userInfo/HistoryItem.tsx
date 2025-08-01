@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useI18nStore } from '../../stores/i18nStore';
 import { useState } from 'react';
+import { FileWithDataUrl } from '../FilePreviewModal';
 
 type Props = {
     userId: any;
@@ -22,8 +23,8 @@ type Props = {
 export default function HistoryItem({ entry, onDelete, onEdit, userId, onPreviewFile }: Props) {
     const { t } = useI18nStore();
     const [showFullDesc, setShowFullDesc] = useState(false);
-
-    const handlePreviewFile = async (file: { name: string; type: string; dataUrl?: string }) => {
+    // { name: string; type: string; dataUrl?: string }
+    const handlePreviewFile = async (file: any) => {
         if (file.dataUrl) {
             onPreviewFile(file);
             return;

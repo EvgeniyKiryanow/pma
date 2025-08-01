@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import type { CommentOrHistoryEntry } from '../../types/user';
 import HistoryItem from './HistoryItem';
 import AddHistoryModal from './AddHistoryModal';
@@ -6,31 +6,26 @@ import { useI18nStore } from '../../stores/i18nStore';
 import { HistoryHeader } from '../HistoryHeader';
 import { StatusExcel } from '../../utils/excelUserStatuses';
 import { useUserStore } from '../../stores/userStore';
-import { VariableSizeList as List } from 'react-window';
 import FilePreviewModal from '../../components/FilePreviewModal';
 
-// Type for preview file UI
 type FileWithDataUrl = { name: string; type: string; dataUrl: string };
 
 type UserHistoryProps = {
-    history: CommentOrHistoryEntry[];
     userId: number;
     onAddHistory: (entry: CommentOrHistoryEntry, maybeNewStatus?: StatusExcel) => void;
     onDeleteHistory: (id: number) => void;
     onStatusChange: (status: StatusExcel) => void;
     currentStatus?: string;
-    refreshHistory: () => void;
 };
 
 export default function UserHistory({
-    history,
     userId,
     onAddHistory,
     onDeleteHistory,
     onStatusChange,
     currentStatus,
-    refreshHistory,
 }: UserHistoryProps) {
+    const [history, setHistory] = useState<CommentOrHistoryEntry[]>([]);
     const [description, setDescription] = useState('');
     const [files, setFiles] = useState<FileWithDataUrl[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -38,35 +33,25 @@ export default function UserHistory({
     const [editingEntry, setEditingEntry] = useState<CommentOrHistoryEntry | null>(null);
     const [initialPeriod, setInitialPeriod] = useState<{ from: string; to: string } | undefined>();
     const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
-    const [dateRange, setDateRange] = useState<'1d' | '7d' | '30d' | 'all'>('all');
+    const [dateRange, setDateRange] = useState<'1d' | '7d' | '30d' | 'all'>('1d');
 
     const user = useUserStore((s) => s.users.find((u) => u.id === userId));
     const isExcluded = user?.shpkNumber === 'excluded';
-
     const { t } = useI18nStore();
+
+    const refreshHistory = async () => {
+        const result = await window.electronAPI.getUserHistoryByRange(userId, dateRange);
+        setHistory(result);
+    };
+
+    useEffect(() => {
+        refreshHistory();
+    }, [userId, dateRange]);
 
     const filteredHistory = useMemo(() => {
         const term = searchTerm.trim().toLowerCase();
-        const now = new Date();
-
-        const dateThreshold = (() => {
-            if (dateRange === '1d') {
-                return new Date(now.setDate(now.getDate() - 1));
-            } else if (dateRange === '7d') {
-                return new Date(now.setDate(now.getDate() - 7));
-            } else if (dateRange === '30d') {
-                return new Date(now.setDate(now.getDate() - 30));
-            }
-            return null; // 'all' case
-        })();
-
         return [...history]
             .filter((entry) => {
-                const entryDate = new Date(entry.date);
-                if (dateThreshold && entryDate < dateThreshold) return false;
-
-                if (!term) return true;
-
                 const matchesText =
                     [entry.description, entry.author].some((f) =>
                         f?.toLowerCase().includes(term),
@@ -81,10 +66,10 @@ export default function UserHistory({
                 const matchesHint =
                     isIncomplete && ['відсутній', 'файл', 'період'].some((w) => w.startsWith(term));
 
-                return matchesText || matchesHint;
+                return !term || matchesText || matchesHint;
             })
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [history, searchTerm, dateRange]);
+    }, [history, searchTerm]);
 
     const openAddModal = () => {
         setEditingEntry(null);
@@ -116,8 +101,6 @@ export default function UserHistory({
 
         if (editingEntry) {
             const existingFiles = editingEntry.files || [];
-
-            // ✅ Only retain files that still exist in modal's `attachedFiles`
             const retainedMeta = existingFiles.filter((oldFile) =>
                 attachedFiles.some((f) => f.name === oldFile.name && !f.dataUrl),
             );
@@ -130,43 +113,35 @@ export default function UserHistory({
                             editingEntry.id,
                             f.name,
                         );
-                        return {
-                            ...f,
-                            dataUrl: loaded.dataUrl,
-                        };
-                    } catch (err) {
-                        console.warn(`❌ Failed to reload file "${f.name}"`, err);
+                        return { ...f, dataUrl: loaded.dataUrl };
+                    } catch {
                         return null;
                     }
                 }),
-            ).then((results) => results.filter(Boolean) as FileWithDataUrl[]);
-
-            const mergedFiles = [...retained, ...newFiles];
+            ).then((r) => r.filter(Boolean) as FileWithDataUrl[]);
 
             const updated: CommentOrHistoryEntry = {
                 ...editingEntry,
                 description: desc.trim(),
-                files: mergedFiles,
+                files: [...retained, ...newFiles],
                 type: maybeNewStatus ? 'statusChange' : editingEntry.type,
                 period: period || undefined,
             };
 
             await window.electronAPI.editUserHistory(userId, updated);
-            if (refreshHistory) refreshHistory();
+            await refreshHistory();
         } else {
             const prevStatus = currentStatus || '—';
             const statusInfo =
                 maybeNewStatus && maybeNewStatus !== prevStatus
                     ? `✅ Статус змінено з "${prevStatus}" → "${maybeNewStatus}"`
                     : '';
-            const combinedDescription = [statusInfo, desc.trim()].filter(Boolean).join('\n');
-
             const newEntry: CommentOrHistoryEntry = {
                 id: Date.now(),
                 date: new Date().toISOString(),
                 type: maybeNewStatus ? 'statusChange' : 'history',
                 author: 'You',
-                description: combinedDescription,
+                description: [statusInfo, desc.trim()].filter(Boolean).join('\n'),
                 content: '',
                 files: newFiles,
                 period: period || undefined,
@@ -181,17 +156,6 @@ export default function UserHistory({
         setFiles([]);
     };
 
-    // 🧠 Dynamic size logic
-    const listRef = useRef<any>(null);
-    const sizeMap = useRef<{ [index: number]: number }>({});
-    const getItemSize = (index: number) => sizeMap.current[index] || 300;
-    const setSize = (index: number, size: number) => {
-        if (sizeMap.current[index] !== size) {
-            sizeMap.current = { ...sizeMap.current, [index]: size };
-            listRef.current?.resetAfterIndex(index);
-        }
-    };
-
     return (
         <div className="relative">
             <HistoryHeader
@@ -202,7 +166,6 @@ export default function UserHistory({
             />
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 px-4">
-                {/* Search input */}
                 <div className="flex-1 relative max-w-md">
                     <input
                         type="text"
@@ -221,12 +184,11 @@ export default function UserHistory({
                         <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18.5a7.5 7.5 0 006.15-3.85z"
+                            d="M21 21l-4.35-4.35M17 17A7.5 7.5 0 1010 17a7.5 7.5 0 007-7z"
                         />
                     </svg>
                 </div>
 
-                {/* Time filter buttons */}
                 <div className="flex flex-wrap gap-2">
                     {[
                         { label: '1 день', value: '1d' },
@@ -272,48 +234,6 @@ export default function UserHistory({
                         </div>
                     ))}
                 </div>
-
-                // <List
-                //     ref={listRef}
-                //     height={window.innerHeight * 0.8}
-                //     width="100%"
-                //     itemCount={filteredHistory.length}
-                //     itemSize={getItemSize}
-                //     className="overflow-x-hidden"
-                // >
-                //     {({ index, style }) => {
-                //         const item = filteredHistory[index];
-                //         const refCallback = (el: HTMLDivElement | null) => {
-                //             if (el) {
-                //                 const height = el.getBoundingClientRect().height;
-                //                 setSize(index, height);
-                //             }
-                //         };
-
-                //         return (
-                //             <div
-                //                 style={{
-                //                     ...style,
-                //                     top: `${parseFloat(style.top as string) + 16}px`, // vertical spacing between items
-                //                     paddingLeft: '16px',
-                //                     paddingRight: '16px',
-                //                 }}
-                //                 ref={refCallback}
-                //             >
-                //                 <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
-                //                     <HistoryItem
-                //                         key={item.id}
-                //                         entry={item}
-                //                         userId={user!.id}
-                //                         onDelete={onDeleteHistory}
-                //                         onEdit={openEditModal}
-                //                         onPreviewFile={(file) => setPreviewFile(file)}
-                //                     />
-                //                 </div>
-                //             </div>
-                //         );
-                //     }}
-                // </List>
             )}
 
             <AddHistoryModal

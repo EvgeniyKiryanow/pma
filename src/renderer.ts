@@ -90,6 +90,10 @@ declare global {
                 delete: (shtat_number: string) => Promise<{ success: boolean }>;
                 deleteAll: () => Promise<{ success: boolean }>;
             };
+            getUserHistoryByRange: (
+                userId: number,
+                range: '1d' | '7d' | '30d' | 'all',
+            ) => Promise<CommentOrHistoryEntry[]>;
 
             // SQLite-backed template storage
             saveReportFileToDisk: (buffer: ArrayBuffer, name: string) => Promise<string>;
