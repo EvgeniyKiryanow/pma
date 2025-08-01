@@ -6,6 +6,7 @@ import { getStatusBadge } from '../../utils/statusBadgeUtils';
 import { useI18nStore } from '../../stores/i18nStore';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getCategoryBadge, getShpkBadge } from '../../utils/posadyBadgeHelper';
+import pLimit from 'p-limit';
 
 type Props = {
     users: User[];
@@ -13,6 +14,8 @@ type Props = {
 
 export default function LeftBar({ users }: Props) {
     const [filter, setFilter] = useState('');
+    const [loadingUserId, setLoadingUserId] = useState<number | null>(null);
+
     const selectedUser = useUserStore((s) => s.selectedUser);
     const setSelectedUser = useUserStore((s) => s.setSelectedUser);
     const { t } = useI18nStore();
@@ -48,6 +51,16 @@ export default function LeftBar({ users }: Props) {
         );
     });
 
+    const handleUserClick = async (user: User) => {
+        setLoadingUserId(user.id);
+        try {
+            const fullUser = await window.electronAPI.users.getOne(user.id);
+            setSelectedUser(fullUser);
+        } finally {
+            setLoadingUserId(null);
+        }
+    };
+
     return (
         <div
             className={`relative transition-all duration-300 ${
@@ -57,56 +70,45 @@ export default function LeftBar({ users }: Props) {
                 if (collapsed) setCollapsed(false);
             }}
         >
-            {/* ✅ Modern slim toggle handle with arrow */}
             <div
                 onClick={(e) => {
-                    e.stopPropagation(); // prevent accidental expand when clicking
+                    e.stopPropagation();
                     setCollapsed(!collapsed);
                 }}
-                className={`
-                    absolute top-1/2 -right-3 -translate-y-1/2 
-                    w-6 h-14 rounded-full cursor-pointer flex items-center justify-center
-                    bg-gradient-to-b from-blue-500 to-blue-600 
-                    shadow-lg opacity-80 hover:opacity-100 transition-all
-                `}
+                className="absolute top-1/2 -right-3 -translate-y-1/2 w-6 h-14 rounded-full cursor-pointer flex items-center justify-center bg-gradient-to-b from-blue-500 to-blue-600 shadow-lg opacity-80 hover:opacity-100 transition-all"
                 title={collapsed ? 'Відкрити меню' : 'Згорнути меню'}
             >
-                {/* ✅ Animated arrow flips direction */}
                 {collapsed ? (
-                    <ChevronRight className="w-4 h-4 text-white transition-transform duration-200" />
+                    <ChevronRight className="w-4 h-4 text-white" />
                 ) : (
-                    <ChevronLeft className="w-4 h-4 text-white transition-transform duration-200" />
+                    <ChevronLeft className="w-4 h-4 text-white" />
                 )}
             </div>
 
             {!collapsed ? (
                 <>
-                    {/* Header */}
-                    <div className="p-5 border-b border-gray-200 flex-shrink-0">
+                    <div className="p-5 border-b border-gray-200">
                         <h2 className="text-xl font-semibold">{t('leftBar.title')}</h2>
                         <p className="text-sm text-gray-500">
                             {t('leftBar.total')}: {filteredUsers.length}
                         </p>
                     </div>
 
-                    {/* Search */}
-                    <div className="p-2 border-b border-gray-200 flex-shrink-0">
+                    <div className="p-2 border-b border-gray-200">
                         <input
                             type="text"
                             placeholder={t('leftBar.searchPlaceholder')}
-                            className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-300"
+                            className="w-full p-2 border border-gray-300 rounded"
                             value={filter}
                             onChange={(e) => setFilter(e.target.value)}
                         />
                     </div>
 
-                    {/* Scrollable User List */}
                     <ul className="flex-1 overflow-y-auto space-y-3 p-3">
                         {filteredUsers.length > 0 ? (
                             filteredUsers.map((user, index) => {
                                 const isSelected = selectedUser?.id === user.id;
 
-                                // ✅ Get badge style & icon from helper
                                 const { icon: badgeIcon, badgeStyle } = getStatusBadge(
                                     user.soldierStatus,
                                 );
@@ -114,27 +116,37 @@ export default function LeftBar({ users }: Props) {
                                 return (
                                     <li
                                         key={user.id}
-                                        onClick={async () => {
-                                            if (isSelected) {
+                                        onClick={() => {
+                                            if (selectedUser?.id === user.id) {
                                                 setSelectedUser(null);
                                             } else {
-                                                await setSelectedUser(user); // Will auto-fetch full data
+                                                handleUserClick(user);
                                             }
                                         }}
-                                        className={`flex flex-col gap-3 rounded-xl border p-4 transition-all cursor-pointer
-                                                ${
-                                                    isSelected
-                                                        ? 'bg-blue-50 border-blue-400 shadow-md ring-1 ring-blue-200'
-                                                        : 'bg-white border-gray-200 hover:shadow-md hover:border-blue-300 hover:bg-blue-50/40'
-                                                }`}
+                                        className={`relative flex flex-col gap-3 rounded-xl border p-4 transition-all cursor-pointer
+                                            ${
+                                                isSelected
+                                                    ? 'bg-blue-50 border-blue-400 shadow-md ring-1 ring-blue-200'
+                                                    : 'bg-white border-gray-200 hover:shadow-md hover:border-blue-300 hover:bg-blue-50/40'
+                                            }
+                                            ${
+                                                loadingUserId === user.id
+                                                    ? 'opacity-50 pointer-events-none'
+                                                    : ''
+                                            }`}
                                     >
+                                        {loadingUserId === user.id && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-white/70 z-10 rounded-xl">
+                                                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-blue-500" />
+                                            </div>
+                                        )}
+
                                         <div className="flex items-center">
                                             <div className="w-6 text-xs text-gray-400">
                                                 {index + 1}.
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-4">
-                                                    {/* Name + Rank */}
                                                     <div className="flex flex-col min-w-0">
                                                         <span className="font-semibold text-gray-800 text-[15px] break-words">
                                                             {user.fullName}
@@ -151,31 +163,21 @@ export default function LeftBar({ users }: Props) {
                                                                     {user.rank}
                                                                 </span>
                                                             )}
-
-                                                            {/* 
-                                                            {!user.shpkCode && !user.category && (
-                                                                <span className="text-xs text-gray-500">
-                                                                    {user.rank || '—'}
-                                                                </span>
-                                                            )} */}
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                {/* ✅ Soldier Status Badge */}
                                                 {user.soldierStatus && (
                                                     <div className="flex flex-wrap">
                                                         <span
-                                                            className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border font-medium shadow-sm break-words ${badgeStyle}`}
-                                                            title={user.soldierStatus}
+                                                            className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border font-medium shadow-sm ${badgeStyle}`}
                                                         >
-                                                            {badgeIcon}{' '}
+                                                            {badgeIcon}
                                                             <span>{user.soldierStatus}</span>
                                                         </span>
                                                     </div>
                                                 )}
 
-                                                {/* Phone */}
                                                 {user.phoneNumber && (
                                                     <div className="flex items-center gap-2 text-xs text-gray-600 break-words">
                                                         📞 <span>{user.phoneNumber}</span>
@@ -194,7 +196,6 @@ export default function LeftBar({ users }: Props) {
                     </ul>
                 </>
             ) : (
-                // ✅ Minimal view when collapsed
                 <div className="flex-1 flex flex-col items-center justify-center text-xs text-gray-400 group-hover:text-blue-700">
                     <span className="rotate-90 tracking-wide font-medium">Меню</span>
                 </div>
