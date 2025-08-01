@@ -44,6 +44,57 @@ export default function BackupPanel() {
 
             {/* Main Content */}
             <div className="flex-1 p-8 overflow-y-auto">
+                {activeTab === 'actions' && (
+                    <div className="max-w-xl mx-auto space-y-6">
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-800">
+                                {t('backupPanel.actions')}
+                            </h2>
+                            <p className="text-sm text-gray-600 mt-2">
+                                {t('backupPanel.instructions')}
+                            </p>
+                        </div>
+
+                        <div className="flex justify-center gap-4">
+                            <button
+                                onClick={async () => {
+                                    const success = await window.electronAPI.downloadDb();
+                                    alert(
+                                        success
+                                            ? t('backupPanel.backupSuccess')
+                                            : t('backupPanel.backupFail'),
+                                    );
+                                }}
+                                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded shadow"
+                            >
+                                {t('backupPanel.download')}
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const success = await window.electronAPI.restoreDb();
+                                    alert(
+                                        success
+                                            ? t('backupPanel.restoreSuccess')
+                                            : t('backupPanel.restoreFail'),
+                                    );
+                                    if (success) window.location.reload();
+                                }}
+                                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded shadow"
+                            >
+                                {t('backupPanel.restore')}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'settings' && (
+                    <div className="max-w-xl mx-auto">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                            {t('backupPanel.settings')}
+                        </h2>
+                        <BackupControls />
+                    </div>
+                )}
                 {activeTab === 'changeLogs' && (
                     <div className="max-w-xl mx-auto space-y-6">
                         <div className="mb-6">
