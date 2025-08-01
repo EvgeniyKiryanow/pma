@@ -38,6 +38,7 @@ export default function UserHistory({
     const [editingEntry, setEditingEntry] = useState<CommentOrHistoryEntry | null>(null);
     const [initialPeriod, setInitialPeriod] = useState<{ from: string; to: string } | undefined>();
     const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
+    const [dateRange, setDateRange] = useState<'1d' | '7d' | '30d' | 'all'>('all');
 
     const user = useUserStore((s) => s.users.find((u) => u.id === userId));
     const isExcluded = user?.shpkNumber === 'excluded';
@@ -45,29 +46,45 @@ export default function UserHistory({
     const { t } = useI18nStore();
 
     const filteredHistory = useMemo(() => {
-        const sorted = [...history].sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-        );
-        if (!searchTerm.trim()) return sorted;
+        const term = searchTerm.trim().toLowerCase();
+        const now = new Date();
 
-        const term = searchTerm.toLowerCase();
+        const dateThreshold = (() => {
+            if (dateRange === '1d') {
+                return new Date(now.setDate(now.getDate() - 1));
+            } else if (dateRange === '7d') {
+                return new Date(now.setDate(now.getDate() - 7));
+            } else if (dateRange === '30d') {
+                return new Date(now.setDate(now.getDate() - 30));
+            }
+            return null; // 'all' case
+        })();
 
-        return sorted.filter((entry) => {
-            const matchesBasicFields =
-                [entry.description, entry.author, new Date(entry.date).toLocaleDateString()].some(
-                    (f) => f?.toLowerCase().includes(term),
-                ) || entry.files?.some((file) => file.name.toLowerCase().includes(term));
+        return [...history]
+            .filter((entry) => {
+                const entryDate = new Date(entry.date);
+                if (dateThreshold && entryDate < dateThreshold) return false;
 
-            const isIncomplete =
-                entry.type === 'statusChange' &&
-                (!entry.period || !entry.files || entry.files.length === 0);
+                if (!term) return true;
 
-            const matchesMissingHint =
-                isIncomplete && ['відсутній', 'файл', 'період'].some((w) => w.startsWith(term));
+                const matchesText =
+                    [entry.description, entry.author].some((f) =>
+                        f?.toLowerCase().includes(term),
+                    ) ||
+                    new Date(entry.date).toLocaleDateString('uk-UA').toLowerCase().includes(term) ||
+                    entry.files?.some((file) => file.name.toLowerCase().includes(term));
 
-            return matchesBasicFields || matchesMissingHint;
-        });
-    }, [history, searchTerm]);
+                const isIncomplete =
+                    entry.type === 'statusChange' &&
+                    (!entry.period || !entry.files || entry.files.length === 0);
+
+                const matchesHint =
+                    isIncomplete && ['відсутній', 'файл', 'період'].some((w) => w.startsWith(term));
+
+                return matchesText || matchesHint;
+            })
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [history, searchTerm, dateRange]);
 
     const openAddModal = () => {
         setEditingEntry(null);
@@ -184,15 +201,54 @@ export default function UserHistory({
                 isExcluded={isExcluded}
             />
 
-            <div className="flex justify-end mb-4">
-                <input
-                    type="text"
-                    placeholder={t('history.searchPlaceholder')}
-                    className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-blue-500"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 px-4">
+                {/* Search input */}
+                <div className="flex-1 relative max-w-md">
+                    <input
+                        type="text"
+                        placeholder={t('history.searchPlaceholder')}
+                        className="w-full pl-10 pr-4 py-2 text-sm rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:outline-none"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <svg
+                        className="absolute left-3 top-2.5 w-4 h-4 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18.5a7.5 7.5 0 006.15-3.85z"
+                        />
+                    </svg>
+                </div>
+
+                {/* Time filter buttons */}
+                <div className="flex flex-wrap gap-2">
+                    {[
+                        { label: '1 день', value: '1d' },
+                        { label: '7 днів', value: '7d' },
+                        { label: 'Місяць', value: '30d' },
+                        { label: 'Увесь час', value: 'all' },
+                    ].map(({ label, value }) => (
+                        <button
+                            key={value}
+                            onClick={() => setDateRange(value)}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition ${
+                                dateRange === value
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                            }`}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
             </div>
+
             {previewFile && (
                 <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
             )}
@@ -200,7 +256,7 @@ export default function UserHistory({
             {filteredHistory.length === 0 ? (
                 <p className="text-gray-500 italic">{t('history.noRecords')}</p>
             ) : (
-                <div className="space-y-6 px-4 pb-8">
+                <div className="h-[80vh] overflow-y-auto px-4 pb-4 space-y-6 rounded-xl border border-gray-100 bg-gray-50 shadow-inner">
                     {filteredHistory.map((item) => (
                         <div
                             key={item.id}
