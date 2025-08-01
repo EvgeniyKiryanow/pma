@@ -200,36 +200,64 @@ export default function UserHistory({
             {filteredHistory.length === 0 ? (
                 <p className="text-gray-500 italic">{t('history.noRecords')}</p>
             ) : (
-                <List
-                    ref={listRef}
-                    height={600}
-                    width="100%"
-                    itemCount={filteredHistory.length}
-                    itemSize={getItemSize}
-                >
-                    {({ index, style }) => {
-                        const item = filteredHistory[index];
-                        const refCallback = (el: HTMLDivElement | null) => {
-                            if (el) {
-                                const height = el.getBoundingClientRect().height;
-                                setSize(index, height);
-                            }
-                        };
+                <div className="space-y-6 px-4 pb-8">
+                    {filteredHistory.map((item) => (
+                        <div
+                            key={item.id}
+                            className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4"
+                        >
+                            <HistoryItem
+                                entry={item}
+                                userId={user!.id}
+                                onDelete={onDeleteHistory}
+                                onEdit={openEditModal}
+                                onPreviewFile={(file) => setPreviewFile(file)}
+                            />
+                        </div>
+                    ))}
+                </div>
 
-                        return (
-                            <div style={style} ref={refCallback}>
-                                <HistoryItem
-                                    key={item.id}
-                                    entry={item}
-                                    userId={user!.id}
-                                    onDelete={onDeleteHistory}
-                                    onEdit={openEditModal}
-                                    onPreviewFile={(file) => setPreviewFile(file)}
-                                />
-                            </div>
-                        );
-                    }}
-                </List>
+                // <List
+                //     ref={listRef}
+                //     height={window.innerHeight * 0.8}
+                //     width="100%"
+                //     itemCount={filteredHistory.length}
+                //     itemSize={getItemSize}
+                //     className="overflow-x-hidden"
+                // >
+                //     {({ index, style }) => {
+                //         const item = filteredHistory[index];
+                //         const refCallback = (el: HTMLDivElement | null) => {
+                //             if (el) {
+                //                 const height = el.getBoundingClientRect().height;
+                //                 setSize(index, height);
+                //             }
+                //         };
+
+                //         return (
+                //             <div
+                //                 style={{
+                //                     ...style,
+                //                     top: `${parseFloat(style.top as string) + 16}px`, // vertical spacing between items
+                //                     paddingLeft: '16px',
+                //                     paddingRight: '16px',
+                //                 }}
+                //                 ref={refCallback}
+                //             >
+                //                 <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
+                //                     <HistoryItem
+                //                         key={item.id}
+                //                         entry={item}
+                //                         userId={user!.id}
+                //                         onDelete={onDeleteHistory}
+                //                         onEdit={openEditModal}
+                //                         onPreviewFile={(file) => setPreviewFile(file)}
+                //                     />
+                //                 </div>
+                //             </div>
+                //         );
+                //     }}
+                // </List>
             )}
 
             <AddHistoryModal
