@@ -84,39 +84,53 @@ export default function YourSavedReportsTab() {
                 {filteredFiles.length === 0 ? (
                     <p className="text-gray-400">{t('reports.yourSavedReportsEmpty')}</p>
                 ) : (
-                    <div>
-                        <h3 className="font-bold pb-[15px] text-2xl">Список збережених звітів</h3>
-                        <ul className="space-y-2">
-                            {filteredFiles.map((file) => (
-                                <li
-                                    key={file.id}
-                                    className="border p-3 rounded shadow-sm bg-gray-50 hover:bg-gray-100 flex items-center justify-between"
-                                >
-                                    <div>
-                                        <div className="font-medium">📁 {file.name}</div>
-                                        <div className="text-xs text-gray-500">
-                                            {new Date(file.createdAt).toLocaleString()}
+                    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                            📑 Список збережених звітів
+                        </h3>
+
+                        <div className="max-h-[400px] overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                            {filteredFiles.length === 0 ? (
+                                <p className="text-gray-500 italic text-sm">
+                                    Немає збережених звітів.
+                                </p>
+                            ) : (
+                                filteredFiles.map((file) => (
+                                    <div
+                                        key={file.id}
+                                        className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-300 transition"
+                                    >
+                                        <div>
+                                            <div className="text-base font-medium text-gray-800 flex items-center gap-1">
+                                                📁 {file.name}
+                                            </div>
+                                            <div className="text-xs text-gray-500 mt-1">
+                                                {new Date(file.createdAt).toLocaleString()}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            <button
+                                                onClick={() =>
+                                                    handleDownload(file.filePath, file.name)
+                                                }
+                                                className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1 transition"
+                                            >
+                                                <Download className="w-4 h-4" />
+                                                {t('reports.download')}
+                                            </button>
+                                            <button
+                                                onClick={() => removeFileById(file.id)}
+                                                className="text-red-500 hover:text-red-700 transition"
+                                                title="Видалити файл"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </div>
-                                    <div className="flex gap-3 items-center">
-                                        <button
-                                            onClick={() => handleDownload(file.filePath, file.name)}
-                                            className="text-blue-600 text-sm flex items-center gap-1 hover:underline"
-                                        >
-                                            <Download className="w-4 h-4" />
-                                            {t('reports.download')}
-                                        </button>
-                                        <button
-                                            onClick={() => removeFileById(file.id)}
-                                            className="text-red-500 hover:text-red-700"
-                                            title="Remove file"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
+                                ))
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
