@@ -284,9 +284,35 @@ export function registerUserHandlers() {
 
     ipcMain.handle('delete-user', async (_event, userId: number) => {
         const db = await getDb();
+
+        // 1. Отримати користувача перед видаленням
+        const user = await db.get(`SELECT * FROM users WHERE id = ?`, userId);
+        if (!user) {
+            console.warn(`[Users] ⚠️ delete-user: користувача з id=${userId} не знайдено`);
+            return false;
+        }
+
+        // 2. Видалити користувача
         await db.run('DELETE FROM users WHERE id = ?', userId);
+
+        // 3. Логування видалення
+        try {
+            await db.run(
+                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+             VALUES (?, ?, ?, ?, ?)`,
+                'users',
+                userId,
+                'delete',
+                JSON.stringify(user),
+                'local',
+            );
+        } catch (err) {
+            console.warn(`[ChangeHistory] ❌ Помилка при логуванні delete user id=${userId}`, err);
+        }
+
         return true;
     });
+
     // main.ts or preload.ts
     ipcMain.handle('bulkUpdateUsers', async (_event, updatedUsers: any) => {
         const db = await getDb();
