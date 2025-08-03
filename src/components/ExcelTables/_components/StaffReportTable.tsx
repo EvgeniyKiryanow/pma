@@ -18,24 +18,6 @@ const STAFF_COLUMNS = [
     { key: 'statusNote', label: 'помилка статусів', background: '#f7c7c7' },
 ];
 
-// ✅ Extracts latest period from status history
-function extractStatusPeriod(history: CommentOrHistoryEntry[]): {
-    dateFrom?: string;
-    dateTo?: string;
-} {
-    const sorted = [...history]
-        .filter((h) => h.type === 'status' && h.period?.from && h.period?.to)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    if (sorted.length === 0) return {};
-    const latest = sorted[0];
-
-    return {
-        dateFrom: latest.period?.from || '',
-        dateTo: latest.period?.to || '',
-    };
-}
-
 export function StaffReportTable() {
     const { shtatniPosady, fetchAll, updatePosada } = useShtatniStore();
     const { users, fetchUsers } = useUserStore();
