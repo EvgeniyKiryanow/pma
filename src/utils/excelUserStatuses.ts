@@ -3,7 +3,7 @@ export enum StatusExcel {
     NO_STATUS = 'Без статусу',
 
     // === З НИХ ===
-    POSITIONS_ON = 'На позиції',
+    // POSITIONS_ON = 'На позиції',
     POSITIONS_BRONEGROUP = 'Бронєгрупа',
     POSITIONS_INFANTRY = 'Позиція піхоти',
     POSITIONS_CREW = 'Позиція екіпажу',

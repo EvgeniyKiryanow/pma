@@ -6,7 +6,7 @@ export default function classifyStatusForReport(status?: string) {
     // ✅ IN-AREA (combat / rotation / supply / mgmt)
     const inAreaStatuses = [
         // Combat positions
-        StatusExcel.POSITIONS_ON,
+        // StatusExcel.POSITIONS_ON,
         StatusExcel.POSITIONS_BRONEGROUP,
         StatusExcel.POSITIONS_INFANTRY,
         StatusExcel.POSITIONS_CREW,

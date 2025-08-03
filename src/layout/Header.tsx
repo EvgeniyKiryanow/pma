@@ -68,15 +68,14 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     useEffect(() => {
         const checkIncompleteHistories = async () => {
             const allUsers: User[] = await window.electronAPI.fetchUsersMetadata();
-
-            // 🧹 Skip base64 to keep loop fast
+            console.log(allUsers, 'allUsers');
+            // TODO update history checking
             useIncompleteHistoryStore.getState().clearAll();
 
             for (const user of allUsers.filter(
                 (u) => u.shpkNumber !== 'excluded' && !String(u.shpkNumber).includes('order'),
             )) {
                 if (!user.history) continue;
-
                 for (const entry of user.history) {
                     if (entry.type !== 'statusChange') continue;
 
@@ -99,7 +98,6 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                 }
             }
         };
-
         checkIncompleteHistories();
     }, []);
 

@@ -12,7 +12,7 @@ export class UnitStatsCalculator {
             StatusExcel.POSITIONS_BRONEGROUP,
             StatusExcel.POSITIONS_RESERVE_INFANTRY,
         ],
-        onPosition: [StatusExcel.POSITIONS_ON],
+        // onPosition: [StatusExcel.POSITIONS_ON],
         positionsInfantry: [StatusExcel.POSITIONS_INFANTRY],
         positionsCrew: [StatusExcel.POSITIONS_CREW],
         positionsCalc: [StatusExcel.POSITIONS_CALCULATION],
@@ -24,7 +24,7 @@ export class UnitStatsCalculator {
         supplyGeneral: [StatusExcel.SUPPLY_GENERAL],
         management: [StatusExcel.MANAGEMENT],
         inCombatNow: [
-            StatusExcel.POSITIONS_ON,
+            // StatusExcel.POSITIONS_ON,
             StatusExcel.POSITIONS_BRONEGROUP,
             StatusExcel.POSITIONS_INFANTRY,
             StatusExcel.POSITIONS_CREW,
@@ -35,6 +35,11 @@ export class UnitStatsCalculator {
             StatusExcel.SUPPLY_COMBAT,
             StatusExcel.SUPPLY_GENERAL,
             StatusExcel.NON_COMBAT_NEWCOMERS,
+            StatusExcel.NON_COMBAT_LIMITED_FITNESS,
+            StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT,
+            StatusExcel.NON_COMBAT_REFUSERS,
+            StatusExcel.ABSENT_REHABED_ON,
+            StatusExcel.HAVE_OFFER_TO_HOS,
         ],
         nonCombatAll: [
             StatusExcel.NON_COMBAT_NEWCOMERS,
@@ -42,6 +47,7 @@ export class UnitStatsCalculator {
             StatusExcel.NON_COMBAT_REFUSERS,
         ],
         nonOnBG: [
+            StatusExcel.NON_COMBAT_NEWCOMERS,
             StatusExcel.NON_COMBAT_LIMITED_FITNESS,
             StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT,
             StatusExcel.NON_COMBAT_REFUSERS,
@@ -233,13 +239,14 @@ export class UnitStatsCalculator {
 
         // ------------------ ПОЧАТОК АЛЬТЕРНАТИВОНОГО БЧС ------------------
         // З НИХ ------------------------------------
-        const oNPostition = this.sumStatuses(counts, this.STATUS_GROUPS.onPosition); //на позиції
+        //     positionsBronegroup: [StatusExcel.POSITIONS_BRONEGROUP],
+        // positionsReserveInfantry: //на позиції
         const positionsBronegroup = this.sumStatuses(
             counts,
             this.STATUS_GROUPS.positionsBronegroup,
         ); //бронегруппа
         const positionsInfantry = this.sumStatuses(counts, this.STATUS_GROUPS.positionsInfantry); // позиції піхоти
-
+        const oNPostition = positionsInfantry + positionsBronegroup;
         const positionsCalc = this.sumStatuses(counts, this.STATUS_GROUPS.positionsCalc); //позиція розрахунку
         const positionsUav = this.sumStatuses(counts, this.STATUS_GROUPS.positionsUav); // позиція БПЛА
         const positionsReserveInfantry = this.sumStatuses(
