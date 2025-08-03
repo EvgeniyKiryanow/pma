@@ -27,12 +27,17 @@ export class UnitStatsCalculator {
         management: [StatusExcel.MANAGEMENT],
 
         inCombatNow: [
+            StatusExcel.POSITIONS_ON,
             StatusExcel.POSITIONS_BRONEGROUP,
+            StatusExcel.POSITIONS_INFANTRY,
+            StatusExcel.POSITIONS_CREW,
+            StatusExcel.POSITIONS_CALCULATION,
+            StatusExcel.POSITIONS_UAV,
             StatusExcel.POSITIONS_RESERVE_INFANTRY,
-
             StatusExcel.MANAGEMENT,
             StatusExcel.SUPPLY_COMBAT,
             StatusExcel.SUPPLY_GENERAL,
+            StatusExcel.NON_COMBAT_NEWCOMERS,
         ],
         nonCombatAll: [
             StatusExcel.NON_COMBAT_NEWCOMERS,
@@ -74,6 +79,7 @@ export class UnitStatsCalculator {
         ],
         absentAllAlternative: [
             StatusExcel.ABSENT_VLK,
+            StatusExcel.ABSENT_HOSPITALIZED,
             StatusExcel.ABSENT_MEDICAL_COMPANY,
             StatusExcel.ABSENT_REHAB_LEAVE,
             StatusExcel.ABSENT_REHAB,
@@ -387,7 +393,17 @@ export class UnitStatsCalculator {
                     planned.total > 0
                         ? ((actual.inCombatNow / planned.total) * 100).toFixed(0) + '%'
                         : '0%';
-
+                console.log(
+                    (result[unitName] = {
+                        unit: unitName,
+                        plannedTotal: planned.total,
+                        plannedOfficer: planned.officer,
+                        plannedSoldier: planned.soldier,
+                        percentNowCurrent,
+                        ...actual,
+                        ...additional,
+                    }),
+                );
                 result[unitName] = {
                     unit: unitName,
                     plannedTotal: planned.total,
