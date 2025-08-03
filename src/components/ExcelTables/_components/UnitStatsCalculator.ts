@@ -393,17 +393,17 @@ export class UnitStatsCalculator {
                     planned.total > 0
                         ? ((actual.inCombatNow / planned.total) * 100).toFixed(0) + '%'
                         : '0%';
-                console.log(
-                    (result[unitName] = {
-                        unit: unitName,
-                        plannedTotal: planned.total,
-                        plannedOfficer: planned.officer,
-                        plannedSoldier: planned.soldier,
-                        percentNowCurrent,
-                        ...actual,
-                        ...additional,
-                    }),
-                );
+                // console.log(
+                //     (result[unitName] = {
+                //         unit: unitName,
+                //         plannedTotal: planned.total,
+                //         plannedOfficer: planned.officer,
+                //         plannedSoldier: planned.soldier,
+                //         percentNowCurrent,
+                //         ...actual,
+                //         ...additional,
+                //     }),
+                // );
                 result[unitName] = {
                     unit: unitName,
                     plannedTotal: planned.total,
