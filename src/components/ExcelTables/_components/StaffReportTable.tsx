@@ -78,8 +78,8 @@ export function StaffReportTable() {
             const history = assignedUser?.id ? userHistories[assignedUser.id] || [] : [];
             const latestStatus = [...history]
                 .reverse()
-                .find((h) => (h.type === 'statusChange' && h.period?.from) || h.period?.to);
-
+                .find((h) => h.type === 'statusChange' && h.period?.from);
+            console.log(latestStatus, 'latestStatus');
             const dateFrom = latestStatus?.period?.from || extra.dateFrom || '';
             const dateTo = latestStatus?.period?.to || extra.dateTo || '';
             const classified = classifyStatusForReport(soldierStatus);
