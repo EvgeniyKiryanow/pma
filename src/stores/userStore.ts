@@ -34,13 +34,17 @@ export const useUserStore = create<UserStore>((set, get) => ({
     selectedUser: null,
     editingUser: null,
     isUserFormOpen: false,
-    currentTab: 'manager',
+    currentTab: (localStorage.getItem('lastTab') as any) || 'manager',
+    setCurrentTab: (tab: any) => {
+        localStorage.setItem('lastTab', tab);
+        set({ currentTab: tab });
+    },
 
     sidebarCollapsed: false,
     setSidebarCollapsed: (val) => set({ sidebarCollapsed: val }),
     headerCollapsed: false,
     setHeaderCollapsed: (value) => set({ headerCollapsed: value }),
-    setCurrentTab: (tab: any) => set({ currentTab: tab }),
+    // setCurrentTab: (tab: any) => set({ currentTab: tab }),
     clearUser: () =>
         set({
             users: [],

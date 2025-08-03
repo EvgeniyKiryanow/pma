@@ -26,7 +26,6 @@ export default function App() {
         fetchUsers();
     }, []);
 
-    // Deselect user if it was removed
     useEffect(() => {
         if (selectedUser && !users.find((u) => u.id === selectedUser.id)) {
             setSelectedUser(null);
