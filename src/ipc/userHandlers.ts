@@ -30,7 +30,6 @@ export function registerUserHandlers() {
 
     ipcMain.handle('add-user', async (_event, user) => {
         const db = await getDb();
-
         const stmt = await db.prepare(`
       INSERT INTO users (
         fullName, photo, phoneNumber, email, dateOfBirth,
@@ -150,7 +149,27 @@ export function registerUserHandlers() {
             user.soldierStatus,
         );
 
-        const inserted = await db.get('SELECT * FROM users WHERE id = ?', result.lastID);
+        const insertedId = result.lastID;
+
+        const inserted = await db.get('SELECT * FROM users WHERE id = ?', insertedId);
+
+        // ✅ Логування зміни
+        try {
+            await db.run(
+                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+             VALUES (?, ?, ?, ?, ?)`,
+                'users',
+                insertedId,
+                'insert',
+                JSON.stringify(inserted),
+                'local',
+            );
+        } catch (err) {
+            console.warn(
+                `[ChangeHistory] ❌ Помилка при логуванні insert для user id=${insertedId}`,
+                err,
+            );
+        }
 
         return {
             ...inserted,
@@ -162,7 +181,12 @@ export function registerUserHandlers() {
 
     ipcMain.handle('update-user', async (_event, user) => {
         const db = await getDb();
-
+        // 1. Отримуємо старий запис (для перевірки існування та можливих diff-логів у майбутньому)
+        const existing = await db.get('SELECT * FROM users WHERE id = ?', user.id);
+        if (!existing) {
+            console.warn(`[Users] ⚠️ update-user: користувача з id=${user.id} не знайдено`);
+            return { success: false, message: 'User not found' };
+        }
         await db.run(
             `
         UPDATE users SET
@@ -279,6 +303,26 @@ export function registerUserHandlers() {
             ],
         );
 
+        // 3. Логування зміни
+        try {
+            const updated = await db.get('SELECT * FROM users WHERE id = ?', user.id);
+
+            await db.run(
+                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+             VALUES (?, ?, ?, ?, ?)`,
+                'users',
+                user.id,
+                'update',
+                JSON.stringify(updated),
+                'local',
+            );
+        } catch (err) {
+            console.warn(
+                `[ChangeHistory] ❌ Помилка при логуванні update для user id=${user.id}`,
+                err,
+            );
+        }
+
         return user;
     });
 
@@ -389,21 +433,6 @@ export function registerUserHandlers() {
         }
 
         return true;
-    });
-
-    ipcMain.on('app:close', () => {
-        if (process.platform === 'darwin') {
-            app.exit(0);
-        } else {
-            app.quit();
-        }
-    });
-
-    ipcMain.on('app:toggle-fullscreen', () => {
-        const win = BrowserWindow.getFocusedWindow();
-        if (win) {
-            win.setFullScreen(!win.isFullScreen());
-        }
     });
 }
 

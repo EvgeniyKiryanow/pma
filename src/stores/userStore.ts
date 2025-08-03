@@ -69,7 +69,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
     addUser: async (user) => {
         await window.electronAPI.addUser(user);
-        const users = await window.electronAPI.fetchUsersMetadata(); // ✅ refresh
+        const users = await window.electronAPI.fetchUsersMetadata();
         set({ users });
     },
 
