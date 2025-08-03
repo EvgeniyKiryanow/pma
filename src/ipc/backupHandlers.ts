@@ -128,6 +128,7 @@ export function registerBackupHandlers() {
             return false;
         }
     });
+
     ipcMain.handle('download-db-safe', async (_event, password: string) => {
         try {
             const dbPath = await getDbPath();

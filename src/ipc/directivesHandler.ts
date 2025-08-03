@@ -67,11 +67,101 @@ export function registerDirectivesHandler() {
 
     ipcMain.handle('directives:delete', async (_e, { userId, date }) => {
         const db = await getDb();
+
+        // 1. Отримуємо всі записи перед видаленням
+        const rows = await db.all(`SELECT * FROM user_directives WHERE userId = ? AND date = ?`, [
+            userId,
+            date,
+        ]);
+
+        if (!rows || rows.length === 0) {
+            console.warn(`[Directives] ⚠️ delete: немає записів для userId=${userId} date=${date}`);
+            return;
+        }
+
+        // 🔐 2. Обробляємо поля перед логуванням
+        const toLog = rows.map((row: any) => {
+            if (row.file && typeof row.file === 'object') {
+                try {
+                    row.file = JSON.stringify(row.file);
+                } catch (err) {
+                    console.warn(
+                        `[Directives] ⚠️ Неможливо серіалізувати file для id=${row.id}`,
+                        err,
+                    );
+                    row.file = null;
+                }
+            }
+            return row;
+        });
+
+        // 3. Видаляємо всі записи
         await db.run(`DELETE FROM user_directives WHERE userId = ? AND date = ?`, [userId, date]);
+
+        // 4. Логуємо кожне видалення
+        for (const row of toLog) {
+            try {
+                await db.run(
+                    `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+                 VALUES (?, ?, ?, ?, ?)`,
+                    'user_directives',
+                    row.id,
+                    'delete',
+                    JSON.stringify(row),
+                    'local',
+                );
+            } catch (err) {
+                console.warn(`[ChangeHistory] ❌ Помилка при логуванні delete id=${row.id}`, err);
+            }
+        }
     });
+
     ipcMain.handle('directives:clearByType', async (_e, type: string) => {
         const db = await getDb();
+
+        // 1. Отримуємо всі записи перед видаленням
+        const rows = await db.all(`SELECT * FROM user_directives WHERE type = ?`, [type]);
+
+        if (!rows || rows.length === 0) {
+            console.warn(`[Directives] ⚠️ clearByType: немає записів для type=${type}`);
+            return;
+        }
+
+        // 🔐 2. Обробляємо поля перед логуванням
+        const toLog = rows.map((row: any) => {
+            if (row.file && typeof row.file === 'object') {
+                try {
+                    row.file = JSON.stringify(row.file);
+                } catch (err) {
+                    console.warn(
+                        `[Directives] ⚠️ Неможливо серіалізувати file для id=${row.id}`,
+                        err,
+                    );
+                    row.file = null;
+                }
+            }
+            return row;
+        });
+
+        // 3. Видаляємо записи
         await db.run(`DELETE FROM user_directives WHERE type = ?`, [type]);
+
+        // 4. Логуємо кожне видалення
+        for (const row of toLog) {
+            try {
+                await db.run(
+                    `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+                 VALUES (?, ?, ?, ?, ?)`,
+                    'user_directives',
+                    row.id,
+                    'delete',
+                    JSON.stringify(row),
+                    'local',
+                );
+            } catch (err) {
+                console.warn(`[ChangeHistory] ❌ Помилка при логуванні delete id=${row.id}`, err);
+            }
+        }
     });
 
     ipcMain.handle('directives:getAllByType', async (_e, type: string) => {
