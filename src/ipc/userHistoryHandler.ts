@@ -20,39 +20,25 @@ export function registertUserHistoryHandlers() {
         return history.filter((entry) => new Date(entry.date) >= fromDate);
     });
 
-    ipcMain.handle('history:add-entry', async (_event, userId: number, newEntry: any) => {
+    ipcMain.handle('fetch-users-metadata', async () => {
         const db = await getDb();
-        const user = await db.get(`SELECT history FROM users WHERE id = ?`, userId);
+        const rows = await db.all('SELECT * FROM users');
 
-        const existingHistory = user?.history ? JSON.parse(user.history) : [];
-
-        const entryId = newEntry.id;
-        const rawFiles = newEntry.files || [];
-
-        // ✅ Save files to disk
-        await saveHistoryFiles(userId, entryId, rawFiles);
-
-        // ✅ Only store metadata
-        const cleanedFiles = rawFiles.map((f: any) => ({
-            name: f.name,
-            type: f.type,
-            size: f.size,
-        }));
-
-        const cleanEntry = {
-            ...newEntry,
-            files: cleanedFiles,
+        const safeParse = (jsonStr: string, fallback: any) => {
+            try {
+                return JSON.parse(jsonStr);
+            } catch {
+                return fallback;
+            }
         };
 
-        existingHistory.push(cleanEntry);
-
-        await db.run(
-            `UPDATE users SET history = ? WHERE id = ?`,
-            JSON.stringify(existingHistory),
-            userId,
-        );
-
-        return { success: true };
+        return rows.map((row: any) => {
+            const { history, comments, relatives, ...rest } = row;
+            return {
+                ...rest,
+                relatives: safeParse(relatives, []), // we keep relatives
+            };
+        });
     });
 
     ipcMain.handle('users:get-one', async (_event, userId) => {
@@ -74,27 +60,6 @@ export function registertUserHistoryHandlers() {
             comments: safeParse(user.comments, []),
             history: safeParse(user.history, []),
         };
-    });
-
-    ipcMain.handle('fetch-users-metadata', async () => {
-        const db = await getDb();
-        const rows = await db.all('SELECT * FROM users');
-
-        const safeParse = (jsonStr: string, fallback: any) => {
-            try {
-                return JSON.parse(jsonStr);
-            } catch {
-                return fallback;
-            }
-        };
-
-        return rows.map((row: any) => {
-            const { history, comments, relatives, ...rest } = row;
-            return {
-                ...rest,
-                relatives: safeParse(relatives, []), // we keep relatives
-            };
-        });
     });
 
     ipcMain.handle('history:load-file', async (_event, userId, entryId, filename) => {
@@ -141,21 +106,83 @@ export function registertUserHistoryHandlers() {
         },
     );
 
+    ipcMain.handle('history:add-entry', async (_event, userId: number, newEntry: any) => {
+        const db = await getDb();
+        const user = await db.get(`SELECT * FROM users WHERE id = ?`, userId);
+
+        if (!user) {
+            console.warn(`[History] ⚠️ add-entry: користувача з id=${userId} не знайдено`);
+            return { success: false, message: 'User not found' };
+        }
+
+        const existingHistory = user.history ? JSON.parse(user.history) : [];
+
+        const entryId = newEntry.id;
+        const rawFiles = newEntry.files || [];
+
+        // ✅ Збереження файлів на диск
+        await saveHistoryFiles(userId, entryId, rawFiles);
+
+        // ✅ Зберігаємо тільки метадані
+        const cleanedFiles = rawFiles.map((f: any) => ({
+            name: f.name,
+            type: f.type,
+            size: f.size,
+        }));
+
+        const cleanEntry = {
+            ...newEntry,
+            files: cleanedFiles,
+        };
+
+        existingHistory.push(cleanEntry);
+
+        // ✅ Оновлюємо історію в БД
+        await db.run(
+            `UPDATE users SET history = ? WHERE id = ?`,
+            JSON.stringify(existingHistory),
+            userId,
+        );
+
+        // ✅ Отримуємо оновлений запис користувача для логування
+        const updatedUser = await db.get(`SELECT * FROM users WHERE id = ?`, userId);
+
+        // ✅ Логування
+        try {
+            await db.run(
+                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+             VALUES (?, ?, ?, ?, ?)`,
+                'users',
+                userId,
+                'update',
+                JSON.stringify(updatedUser),
+                'local',
+            );
+        } catch (err) {
+            console.warn(
+                `[ChangeHistory] ❌ Помилка при логуванні history:add-entry для user id=${userId}`,
+                err,
+            );
+        }
+
+        return { success: true };
+    });
+
     ipcMain.handle(
         'history:edit-entry',
         async (_event, userId: number, updatedEntry: CommentOrHistoryEntry) => {
             const db = await getDb();
-            const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
+            const user = await db.get('SELECT * FROM users WHERE id = ?', userId);
             if (!user) return { success: false, message: 'User not found' };
 
-            const history: CommentOrHistoryEntry[] = user?.history ? JSON.parse(user.history) : [];
+            const history: CommentOrHistoryEntry[] = user.history ? JSON.parse(user.history) : [];
             const idx = history.findIndex((h) => h.id === updatedEntry.id);
             if (idx === -1) return { success: false, message: 'History entry not found' };
 
             const entryId = updatedEntry.id;
             const newFiles = updatedEntry.files || [];
 
-            // ✅ Delete any files that existed before but are not in updated list
+            // ✅ Видалення старих файлів, які відсутні в оновленій версії
             const oldFiles = history[idx].files || [];
             const oldNames = oldFiles.map((f) => f.name);
             const newNames = newFiles.map((f) => f.name);
@@ -176,10 +203,10 @@ export function registertUserHistoryHandlers() {
                 }
             }
 
-            // ✅ Save new/updated files to disk
+            // ✅ Зберігаємо нові/оновлені файли
             await saveHistoryFiles(userId, entryId, newFiles);
 
-            // ✅ Store only metadata (skip dataUrl)
+            // ✅ Зберігаємо лише метадані файлів
             const cleanedFiles = newFiles.map((f) => ({
                 name: f.name,
                 type: f.type,
@@ -191,11 +218,32 @@ export function registertUserHistoryHandlers() {
                 files: cleanedFiles,
             };
 
+            // ✅ Оновлюємо базу
             await db.run(
                 'UPDATE users SET history = ? WHERE id = ?',
                 JSON.stringify(history),
                 userId,
             );
+
+            // ✅ Логування зміни
+            try {
+                const updatedUser = await db.get('SELECT * FROM users WHERE id = ?', userId);
+
+                await db.run(
+                    `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+                 VALUES (?, ?, ?, ?, ?)`,
+                    'users',
+                    userId,
+                    'update',
+                    JSON.stringify(updatedUser),
+                    'local',
+                );
+            } catch (err) {
+                console.warn(
+                    `[ChangeHistory] ❌ Помилка при логуванні history:edit-entry userId=${userId}`,
+                    err,
+                );
+            }
 
             return { success: true };
         },
@@ -210,7 +258,7 @@ export function registertUserHistoryHandlers() {
             const match = history.find((h) => h.id === historyId);
             if (!match) continue;
 
-            // ✅ Remove entry
+            // ✅ Видаляємо запис із історії
             const updatedHistory = history.filter((item) => item.id !== historyId);
             await db.run(
                 'UPDATE users SET history = ? WHERE id = ?',
@@ -218,7 +266,7 @@ export function registertUserHistoryHandlers() {
                 user.id,
             );
 
-            // ✅ Delete associated files (FIXED path from "user_files" to "history_files")
+            // ✅ Видаляємо файли, прив'язані до цього запису
             const dirPath = path.join(
                 app.getPath('userData'),
                 'history_files',
@@ -231,6 +279,26 @@ export function registertUserHistoryHandlers() {
                 console.log(`🗑️ Deleted files for history ${historyId} of user ${user.id}`);
             } catch (err) {
                 console.warn(`⚠️ Failed to delete files for history ${historyId}:`, err);
+            }
+
+            // ✅ Логування оновлення користувача
+            try {
+                const updatedUser = await db.get('SELECT * FROM users WHERE id = ?', user.id);
+
+                await db.run(
+                    `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+                 VALUES (?, ?, ?, ?, ?)`,
+                    'users',
+                    user.id,
+                    'update',
+                    JSON.stringify(updatedUser),
+                    'local',
+                );
+            } catch (err) {
+                console.warn(
+                    `[ChangeHistory] ❌ Помилка при логуванні видалення history id=${historyId}`,
+                    err,
+                );
             }
 
             return { success: true, deletedFromUserId: user.id };

@@ -270,15 +270,69 @@ export function registerReportsHandlers() {
         });
     });
 
-    ipcMain.handle('add-report-template', async (_, name: string, filePath: string) => {
+    ipcMain.handle('add-report-template', async (_event, name: string, filePath: string) => {
         const db = await getDb();
-        await db.run('INSERT INTO report_templates (name, filePath) VALUES (?, ?)', name, filePath);
+
+        // 1. Вставка шаблону
+        const res = await db.run(
+            'INSERT INTO report_templates (name, filePath) VALUES (?, ?)',
+            name,
+            filePath,
+        );
+
+        // 2. Логування зміни
+        try {
+            const inserted = {
+                id: res.lastID,
+                name,
+                filePath,
+            };
+
+            await db.run(
+                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+             VALUES (?, ?, ?, ?, ?)`,
+                'report_templates',
+                inserted.id,
+                'insert',
+                JSON.stringify(inserted),
+                'local',
+            );
+        } catch (err) {
+            console.warn(`[ChangeHistory] ❌ Помилка при логуванні insert шаблону ${name}`, err);
+        }
+
         return { success: true };
     });
 
-    ipcMain.handle('delete-report-template', async (_, id: number) => {
+    ipcMain.handle('delete-report-template', async (_event, id: number) => {
         const db = await getDb();
+
+        // 1. Отримуємо шаблон перед видаленням
+        const row = await db.get('SELECT * FROM report_templates WHERE id = ?', id);
+
+        if (!row) {
+            console.warn(`[ReportTemplates] ⚠️ delete: шаблон з id=${id} не знайдено`);
+            return { success: false };
+        }
+
+        // 2. Видаляємо
         await db.run('DELETE FROM report_templates WHERE id = ?', id);
+
+        // 3. Логуємо видалення
+        try {
+            await db.run(
+                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+             VALUES (?, ?, ?, ?, ?)`,
+                'report_templates',
+                row.id,
+                'delete',
+                JSON.stringify(row),
+                'local',
+            );
+        } catch (err) {
+            console.warn(`[ChangeHistory] ❌ Помилка при логуванні delete шаблону id=${id}`, err);
+        }
+
         return { success: true };
     });
 
