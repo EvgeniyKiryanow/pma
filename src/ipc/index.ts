@@ -7,6 +7,7 @@ import { registerDirectivesHandler } from './directivesHandler';
 import { registerChangeHistoryHandler } from './changeHistoryHandler';
 import { registertUserHistoryHandlers } from './userHistoryHandler';
 import { registerAppHandlers } from './appManipulationHandler';
+import { registerCommentsHandlers } from './commentsUserHandler';
 
 export function registerDbHandlers() {
     authUserHandlers();
@@ -18,4 +19,5 @@ export function registerDbHandlers() {
     registerChangeHistoryHandler();
     registertUserHistoryHandlers();
     registerAppHandlers();
+    registerCommentsHandlers();
 }

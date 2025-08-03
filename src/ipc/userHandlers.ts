@@ -358,11 +358,21 @@ export function registerUserHandlers() {
     });
 
     // main.ts or preload.ts
-    ipcMain.handle('bulkUpdateUsers', async (_event, updatedUsers: any) => {
+    ipcMain.handle('bulkUpdateUsers', async (_event, updatedUsers: any[]) => {
         const db = await getDb();
 
         try {
             for (const user of updatedUsers) {
+                // 1. Отримати поточний запис (опціонально — для майбутнього diff, зараз просто перевірка існування)
+                const existing = await db.get(`SELECT * FROM users WHERE id = ?`, user.id);
+                if (!existing) {
+                    console.warn(
+                        `[Users] ⚠️ bulkUpdateUsers: користувача з id=${user.id} не знайдено`,
+                    );
+                    continue;
+                }
+
+                // 2. Оновлення полів
                 await db.run(
                     `UPDATE users SET 
                     position = ?, 
@@ -380,12 +390,32 @@ export function registerUserHandlers() {
                         user.id,
                     ],
                 );
+
+                // 3. Логування змін
+                try {
+                    const updated = await db.get('SELECT * FROM users WHERE id = ?', user.id);
+
+                    await db.run(
+                        `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+                     VALUES (?, ?, ?, ?, ?)`,
+                        'users',
+                        user.id,
+                        'update',
+                        JSON.stringify(updated),
+                        'local',
+                    );
+                } catch (logErr) {
+                    console.warn(
+                        `[ChangeHistory] ❌ Помилка при логуванні bulk update user id=${user.id}`,
+                        logErr,
+                    );
+                }
             }
 
             return { success: true };
         } catch (err) {
             console.error('❌ Error in bulkUpdateUsers:', err);
-            throw err;
+            return { success: false, error: err.message };
         }
     });
 
@@ -393,46 +423,6 @@ export function registerUserHandlers() {
         const db = await getDb();
         const columns = await db.all(`PRAGMA table_info(users);`);
         return columns.map((c: any) => c.name);
-    });
-
-    ipcMain.handle('comments:get-user-comments', async (_event, userId: number) => {
-        const db = await getDb();
-        const user = await db.get('SELECT comments FROM users WHERE id = ?', userId);
-        if (!user || !user.comments) return [];
-        return JSON.parse(user.comments);
-    });
-
-    ipcMain.handle('comments:add-user-comment', async (_event, userId: number, newComment: any) => {
-        const db = await getDb();
-        const user = await db.get('SELECT comments FROM users WHERE id = ?', userId);
-        const comments = user?.comments ? JSON.parse(user.comments) : [];
-        comments.push(newComment);
-        await db.run(
-            'UPDATE users SET comments = ? WHERE id = ?',
-            JSON.stringify(comments),
-            userId,
-        );
-        return { success: true };
-    });
-
-    ipcMain.handle('comments:delete-user-comment', async (_event, id: number) => {
-        const db = await getDb();
-        const users = await db.all('SELECT id, comments FROM users');
-
-        for (const user of users) {
-            const comments = JSON.parse(user.comments || '[]');
-            const updated = comments.filter((entry: any) => entry.id !== id);
-
-            if (updated.length !== comments.length) {
-                await db.run(
-                    'UPDATE users SET comments = ? WHERE id = ?',
-                    JSON.stringify(updated),
-                    user.id,
-                );
-            }
-        }
-
-        return true;
     });
 }
 
