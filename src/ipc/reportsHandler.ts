@@ -16,8 +16,36 @@ export function registerReportsHandlers() {
 
     ipcMain.handle('delete-all-shtatni-posady', async () => {
         const db = await getDb();
+
+        // 1. Отримуємо всі записи перед видаленням
+        const rows = await db.all('SELECT * FROM shtatni_posady');
+
+        if (!rows || rows.length === 0) {
+            console.warn('[ShtatniPosady] ⚠️ Немає записів для видалення');
+            return { success: true, deleted: 0 };
+        }
+
+        // 2. Видаляємо всі записи
         await db.run('DELETE FROM shtatni_posady');
-        return { success: true };
+
+        // 3. Логуємо кожен запис
+        for (const row of rows) {
+            try {
+                await db.run(
+                    `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+                 VALUES (?, ?, ?, ?, ?)`,
+                    'shtatni_posady',
+                    row.id,
+                    'delete',
+                    JSON.stringify(row),
+                    'local',
+                );
+            } catch (err) {
+                console.warn(`[ChangeHistory] ❌ Помилка при логуванні delete id=${row.id}`, err);
+            }
+        }
+
+        return { success: true, deleted: rows.length };
     });
 
     ipcMain.handle('fetch-shtatni-posady', async () => {
@@ -56,10 +84,10 @@ export function registerReportsHandlers() {
                 continue;
             }
 
-            await db.run(
+            const res = await db.run(
                 `INSERT INTO shtatni_posady 
-                (shtat_number, unit_name, position_name, category, shpk_code, extra_data)
-                VALUES (?, ?, ?, ?, ?, ?)`,
+             (shtat_number, unit_name, position_name, category, shpk_code, extra_data)
+             VALUES (?, ?, ?, ?, ?, ?)`,
                 [
                     pos.shtat_number,
                     pos.unit_name ?? '',
@@ -70,6 +98,34 @@ export function registerReportsHandlers() {
                 ],
             );
             addedCount++;
+
+            // 🔐 Логування доданого запису
+            try {
+                const inserted = {
+                    id: res.lastID,
+                    shtat_number: pos.shtat_number,
+                    unit_name: pos.unit_name ?? '',
+                    position_name: pos.position_name ?? '',
+                    category: pos.category ?? '',
+                    shpk_code: pos.shpk_code ?? '',
+                    extra_data: pos.extra_data ?? {},
+                };
+
+                await db.run(
+                    `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+                 VALUES (?, ?, ?, ?, ?)`,
+                    'shtatni_posady',
+                    inserted.id,
+                    'insert',
+                    JSON.stringify(inserted),
+                    'local',
+                );
+            } catch (err) {
+                console.warn(
+                    `[ChangeHistory] ❌ Помилка при логуванні insert shtat_number=${pos.shtat_number}`,
+                    err,
+                );
+            }
         }
 
         return { success: true, added: addedCount, skipped: skippedCount, total: positions.length };
@@ -79,7 +135,7 @@ export function registerReportsHandlers() {
         const db = await getDb();
 
         const existing = await db.get(
-            `SELECT shtat_number FROM shtatni_posady WHERE shtat_number = ?`,
+            `SELECT * FROM shtatni_posady WHERE shtat_number = ?`,
             pos.shtat_number,
         );
 
@@ -87,10 +143,11 @@ export function registerReportsHandlers() {
             return { success: false, message: 'Position not found' };
         }
 
+        // 1. Оновлення
         await db.run(
             `UPDATE shtatni_posady 
-            SET unit_name = ?, position_name = ?, category = ?, shpk_code = ?, extra_data = ?
-            WHERE shtat_number = ?`,
+         SET unit_name = ?, position_name = ?, category = ?, shpk_code = ?, extra_data = ?
+         WHERE shtat_number = ?`,
             [
                 pos.unit_name ?? '',
                 pos.position_name ?? '',
@@ -101,12 +158,70 @@ export function registerReportsHandlers() {
             ],
         );
 
+        // 2. Отримати оновлений запис
+        const updated = await db.get(
+            `SELECT * FROM shtatni_posady WHERE shtat_number = ?`,
+            pos.shtat_number,
+        );
+
+        // 3. Логування зміни
+        try {
+            await db.run(
+                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+             VALUES (?, ?, ?, ?, ?)`,
+                'shtatni_posady',
+                updated.id,
+                'update',
+                JSON.stringify(updated),
+                'local',
+            );
+        } catch (err) {
+            console.warn(
+                `[ChangeHistory] ❌ Помилка при логуванні update shtat_number=${pos.shtat_number}`,
+                err,
+            );
+        }
+
         return { success: true };
     });
 
     ipcMain.handle('delete-shtatni-posada', async (_event, shtat_number: string) => {
         const db = await getDb();
+
+        // 1. Отримуємо запис перед видаленням
+        const row = await db.get(
+            `SELECT * FROM shtatni_posady WHERE shtat_number = ?`,
+            shtat_number,
+        );
+
+        if (!row) {
+            console.warn(
+                `[ShtatniPosady] ⚠️ delete: запис з shtat_number=${shtat_number} не знайдено`,
+            );
+            return { success: false };
+        }
+
+        // 2. Видаляємо
         const res = await db.run(`DELETE FROM shtatni_posady WHERE shtat_number = ?`, shtat_number);
+
+        // 3. Логуємо
+        try {
+            await db.run(
+                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+             VALUES (?, ?, ?, ?, ?)`,
+                'shtatni_posady',
+                row.id,
+                'delete',
+                JSON.stringify(row),
+                'local',
+            );
+        } catch (err) {
+            console.warn(
+                `[ChangeHistory] ❌ Помилка при логуванні delete shtat_number=${shtat_number}`,
+                err,
+            );
+        }
+
         return { success: res.changes > 0 };
     });
 
