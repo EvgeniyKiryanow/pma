@@ -7,10 +7,12 @@ import path from 'path';
 export function registerDirectivesHandler() {
     ipcMain.handle('directives:add', async (_e, entry) => {
         const db = await getDb();
-        await db.run(
+
+        // 1. Вставка запису
+        const res = await db.run(
             `INSERT INTO user_directives 
-             (userId, type, title, description, file, period_from, period_to, date)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         (userId, type, title, description, file, period_from, period_to, date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 entry.userId,
                 entry.type,
@@ -22,7 +24,36 @@ export function registerDirectivesHandler() {
                 entry.date,
             ],
         );
+
+        // 2. Логування зміни
+        try {
+            const insertedId = res.lastID;
+            const fullEntry = {
+                id: insertedId,
+                userId: entry.userId,
+                type: entry.type,
+                title: entry.title,
+                description: entry.description || '',
+                file: entry.file,
+                period_from: entry.period?.from || '',
+                period_to: entry.period?.to || '',
+                date: entry.date,
+            };
+
+            await db.run(
+                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+             VALUES (?, ?, ?, ?, ?)`,
+                'user_directives',
+                insertedId,
+                'insert',
+                JSON.stringify(fullEntry),
+                'local',
+            );
+        } catch (err) {
+            console.warn('[ChangeHistory] ❌ Помилка при логуванні insert', err);
+        }
     });
+
     ipcMain.handle('directives:deleteById', async (_e, id: number) => {
         const db = await getDb();
 
