@@ -175,31 +175,92 @@ export default function BackupPanel() {
                 )} */}
 
                 {activeTab === 'changeLogs' && (
-                    <div className="max-w-xl mx-auto space-y-6">
-                        <div className="mb-6">
-                            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                    <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-md border border-gray-200 space-y-10">
+                        <div className="text-center space-y-2">
+                            <h2 className="text-4xl font-bold text-gray-900 tracking-tight">
                                 {t('backupPanel.changeLogs')}
                             </h2>
-                            <p className="text-gray-700 text-sm leading-relaxed">
-                                Тут ви можете <strong>експортувати</strong> або{' '}
-                                <strong>імпортувати</strong> зашифровані журнали змін...
+                            <p className="text-gray-600 text-base max-w-2xl mx-auto">
+                                Журнали змін зберігають усі дії над даними (додавання, редагування,
+                                видалення). Ви можете безпечно <strong>експортувати</strong> або{' '}
+                                <strong>імпортувати</strong> ці журнали з шифруванням.
                             </p>
                         </div>
 
-                        <div className="flex justify-center gap-4">
-                            <button
-                                onClick={() => setShowPasswordModalType('export')}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow"
-                            >
-                                {t('backupPanel.exportChangeLogs')}
-                            </button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Export Card */}
+                            <div className="p-6 border rounded-xl shadow hover:shadow-lg transition group bg-blue-50">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="p-2 bg-blue-600 text-white rounded-full">
+                                        <svg
+                                            className="w-5 h-5"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                d="M12 4v16m0 0l-6-6m6 6l6-6"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-blue-800">
+                                        {t('backupPanel.exportChangeLogs')}
+                                    </h3>
+                                </div>
+                                <p className="text-sm text-gray-700 mb-4">
+                                    Створює зашифрований файл журналу змін. Після експорту локальні
+                                    зміни(логування) будуть видалені. Тобто зміни, які були додані
+                                    можно експортувати 1 раз.
+                                </p>
+                                <button
+                                    onClick={() => setShowPasswordModalType('export')}
+                                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition"
+                                >
+                                    {t('backupPanel.exportChangeLogs')}
+                                </button>
+                            </div>
 
-                            <button
-                                onClick={() => setShowPasswordModalType('import')}
-                                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded shadow"
-                            >
-                                {t('backupPanel.importChangeLogs')}
-                            </button>
+                            {/* Import Card */}
+                            <div className="p-6 border rounded-xl shadow hover:shadow-lg transition group bg-purple-50">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="p-2 bg-purple-600 text-white rounded-full">
+                                        <svg
+                                            className="w-5 h-5"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                d="M12 20V4m0 0l6 6m-6-6L6 10"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-purple-800">
+                                        {t('backupPanel.importChangeLogs')}
+                                    </h3>
+                                </div>
+                                <p className="text-sm text-gray-700 mb-4">
+                                    Імпортує зашифровані зміни з файлу. Якщо пароль правильний,
+                                    зміни будуть застосовані без дублювань.
+                                </p>
+                                <button
+                                    onClick={() => setShowPasswordModalType('import')}
+                                    className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md font-medium transition"
+                                >
+                                    {t('backupPanel.importChangeLogs')}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="text-center text-sm text-gray-500 italic pt-2">
+                            Синхронізація змін між автономними пристроями — безпечно, точно та
+                            просто.
                         </div>
                     </div>
                 )}

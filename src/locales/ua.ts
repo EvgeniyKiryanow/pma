@@ -76,7 +76,7 @@ export const ua = {
     },
     backupPanel: {
         title: 'Резервні копії',
-        actions: 'Операції',
+        actions: 'Копія БД',
         settings: 'Налаштування',
         changeLogs: 'Логи змін',
         instructions: 'Завантаження та відновлення бази даних.',
