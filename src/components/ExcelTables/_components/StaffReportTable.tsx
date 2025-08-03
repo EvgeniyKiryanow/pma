@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useShtatniStore, ShtatnaPosada } from '../../../stores/useShtatniStore';
 import { useUserStore } from '../../../stores/userStore';
 import classifyStatusForReport from '../../../helpers/classifyStatusForReport';
+import { CommentOrHistoryEntry } from '../../../types/user';
 const STAFF_COLUMNS = [
     { key: 'shtatNumber', label: '№ посади' },
     { key: 'unit', label: 'Підрозділ' },
@@ -9,8 +10,6 @@ const STAFF_COLUMNS = [
     { key: 'rank', label: 'В/звання' },
     { key: 'fullName', label: 'ПІБ' },
     { key: 'taxId', label: 'ІПН' },
-
-    // ✅ Excel-style colors
     { key: 'statusInArea', label: 'статус в районі', background: '#fde9a9' },
     { key: 'distanceFromLVZ', label: 'Відстань від ЛВЗ (менше):', background: '#fde9a9' },
     { key: 'absenceReason', label: 'причина відсутності в районі', background: '#f8ccb0' },
@@ -19,19 +18,67 @@ const STAFF_COLUMNS = [
     { key: 'statusNote', label: 'помилка статусів', background: '#f7c7c7' },
 ];
 
+// ✅ Extracts latest period from status history
+function extractStatusPeriod(history: CommentOrHistoryEntry[]): {
+    dateFrom?: string;
+    dateTo?: string;
+} {
+    const sorted = [...history]
+        .filter((h) => h.type === 'status' && h.period?.from && h.period?.to)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    if (sorted.length === 0) return {};
+    const latest = sorted[0];
+
+    return {
+        dateFrom: latest.period?.from || '',
+        dateTo: latest.period?.to || '',
+    };
+}
+
 export function StaffReportTable() {
     const { shtatniPosady, fetchAll, updatePosada } = useShtatniStore();
     const { users, fetchUsers } = useUserStore();
 
     const [editingData, setEditingData] = useState<Record<string, any>>({});
     const [searchTerm, setSearchTerm] = useState('');
+    const [userHistories, setUserHistories] = useState<Record<number, CommentOrHistoryEntry[]>>({});
 
     useEffect(() => {
         if (shtatniPosady.length === 0) fetchAll();
         if (users.length === 0) fetchUsers();
     }, []);
+    useEffect(() => {
+        if (shtatniPosady.length === 0) fetchAll();
+        if (users.length === 0) {
+            fetchUsers();
+        } else {
+            const assignedUserIds = new Set(
+                shtatniPosady
+                    .map((pos) => {
+                        const user = users.find((u) => u.shpkNumber == pos.shtat_number);
+                        return user?.id;
+                    })
+                    .filter(Boolean),
+            );
 
-    // ✅ Sort by shtat_number numeric
+            const loadHistories = async () => {
+                const result: Record<number, CommentOrHistoryEntry[]> = {};
+                for (const userId of assignedUserIds) {
+                    try {
+                        const history = await window.electronAPI.getUserHistory(userId, 'all');
+                        result[userId] = history;
+                    } catch (err) {
+                        console.warn(`❌ Failed to load history for user ${userId}`, err);
+                    }
+                }
+                setUserHistories(result);
+            };
+
+            loadHistories();
+        }
+    }, [users, shtatniPosady]);
+
     const sorted = useMemo(() => {
         return [...shtatniPosady].sort((a, b) => {
             const nA = parseInt(a.shtat_number.replace(/\D/g, ''), 10) || 0;
@@ -40,15 +87,21 @@ export function StaffReportTable() {
         });
     }, [shtatniPosady]);
 
-    // ✅ Merge with users & extra_data
     const allRows = useMemo(() => {
         return sorted.map((pos) => {
             const assignedUser = users.find((u) => u.shpkNumber == pos.shtat_number);
             const extra = pos.extra_data || {};
             const soldierStatus = assignedUser?.soldierStatus;
 
-            // ✅ Classify soldierStatus → either in-area OR absenceReason
+            const history = assignedUser?.id ? userHistories[assignedUser.id] || [] : [];
+            const latestStatus = [...history]
+                .reverse()
+                .find((h) => h.type === 'statusChange' && h.period?.from && h.period?.to);
+
+            const dateFrom = latestStatus?.period?.from || extra.dateFrom || '';
+            const dateTo = latestStatus?.period?.to || extra.dateTo || '';
             const classified = classifyStatusForReport(soldierStatus);
+
             return {
                 shtatNumber: pos.shtat_number,
                 unit: pos.unit_name || '',
@@ -57,28 +110,24 @@ export function StaffReportTable() {
                 rank: assignedUser?.rank || '',
                 taxId: assignedUser?.taxId || '',
 
-                // ✅ Prefer DB extra_data → fallback to soldierStatus auto classification
                 statusInArea: extra.statusInArea || classified.statusInArea,
                 distanceFromLVZ: extra.distanceFromLVZ || '',
                 absenceReason: extra.absenceReason || classified.absenceReason,
-                dateFrom: extra.dateFrom || '',
-                dateTo: extra.dateTo || '',
+                dateFrom,
+                dateTo,
                 statusNote: extra.statusNote || '',
             };
         });
-    }, [sorted, users]);
+    }, [sorted, users, userHistories]);
 
-    // ✅ Filter by search
     const reportRows = useMemo(() => {
         if (!searchTerm.trim()) return allRows;
         const lower = searchTerm.toLowerCase();
-
         return allRows.filter((row) =>
             Object.values(row).some((val) => String(val).toLowerCase().includes(lower)),
         );
     }, [allRows, searchTerm]);
 
-    // ✅ Handle edits
     const handleEditChange = (shtatNumber: string, field: string, value: string) => {
         setEditingData((prev) => ({
             ...prev,
@@ -89,7 +138,6 @@ export function StaffReportTable() {
         }));
     };
 
-    // ✅ Persist to DB
     const saveRowChanges = async (shtatNumber: string) => {
         const changes = editingData[shtatNumber];
         if (!changes) return;
@@ -116,7 +164,6 @@ export function StaffReportTable() {
             });
         }
     };
-
     return (
         <div className="flex flex-col space-y-6">
             {/* ✅ Page Header */}

@@ -68,8 +68,6 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     useEffect(() => {
         const checkIncompleteHistories = async () => {
             const allUsers: User[] = await window.electronAPI.fetchUsersMetadata();
-            console.log(allUsers, 'allUsers');
-            // TODO update history checking
             useIncompleteHistoryStore.getState().clearAll();
 
             for (const user of allUsers.filter(
