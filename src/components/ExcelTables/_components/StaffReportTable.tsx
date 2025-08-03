@@ -43,10 +43,7 @@ export function StaffReportTable() {
     // ✅ Merge with users & extra_data
     const allRows = useMemo(() => {
         return sorted.map((pos) => {
-            const assignedUser = users.find(
-                (u) => u.position === pos.position_name && u.unitMain === pos.unit_name,
-            );
-
+            const assignedUser = users.find((u) => u.shpkNumber == pos.shtat_number);
             const extra = pos.extra_data || {};
             const soldierStatus = assignedUser?.soldierStatus;
 
