@@ -19,13 +19,10 @@ export class UnitStatsCalculator {
         positionsUav: [StatusExcel.POSITIONS_UAV],
         positionsBronegroup: [StatusExcel.POSITIONS_BRONEGROUP],
         positionsReserveInfantry: [StatusExcel.POSITIONS_RESERVE_INFANTRY],
-
         supplyAll: [StatusExcel.SUPPLY_COMBAT, StatusExcel.SUPPLY_GENERAL],
-
         supplyCombat: [StatusExcel.SUPPLY_COMBAT],
         supplyGeneral: [StatusExcel.SUPPLY_GENERAL],
         management: [StatusExcel.MANAGEMENT],
-
         inCombatNow: [
             StatusExcel.POSITIONS_ON,
             StatusExcel.POSITIONS_BRONEGROUP,
@@ -41,9 +38,7 @@ export class UnitStatsCalculator {
         ],
         nonCombatAll: [
             StatusExcel.NON_COMBAT_NEWCOMERS,
-
             StatusExcel.NON_COMBAT_LIMITED_FITNESS,
-
             StatusExcel.NON_COMBAT_REFUSERS,
         ],
         nonOnBG: [
@@ -53,23 +48,17 @@ export class UnitStatsCalculator {
             StatusExcel.ABSENT_REHABED_ON,
             StatusExcel.HAVE_OFFER_TO_HOS,
         ],
-
         nonCombatNewcomers: [StatusExcel.NON_COMBAT_NEWCOMERS],
-
         nonCombatLimited: [StatusExcel.NON_COMBAT_LIMITED_FITNESS],
         nonCombatLimitedInCombat: [StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT],
-
         nonCombatRefusers: [StatusExcel.NON_COMBAT_REFUSERS],
         haveOfferToJost: [StatusExcel.HAVE_OFFER_TO_HOS],
         absentRehab: [StatusExcel.ABSENT_REHAB],
         absentRehabedOn: [StatusExcel.ABSENT_REHABED_ON],
         absentAll: [
             StatusExcel.ABSENT_BUSINESS_TRIP,
-
             StatusExcel.ABSENT_SZO,
-
             StatusExcel.ABSENT_VLK,
-
             StatusExcel.ABSENT_HOSPITALIZED,
             StatusExcel.ABSENT_MEDICAL_COMPANY,
             StatusExcel.ABSENT_REHAB_LEAVE,
@@ -86,16 +75,12 @@ export class UnitStatsCalculator {
             StatusExcel.ABSENT_BUSINESS_TRIP,
             StatusExcel.ABSENT_SZO,
             StatusExcel.ABSENT_WOUNDED,
-
             StatusExcel.ABSENT_MIA,
         ],
-
         absentBusinessTrip: [StatusExcel.ABSENT_BUSINESS_TRIP],
-
         absentSZO: [StatusExcel.ABSENT_SZO],
         absentHospital: [StatusExcel.ABSENT_HOSPITALIZED],
         absentVLK: [StatusExcel.ABSENT_VLK],
-
         absent200: [StatusExcel.ABSENT_KIA],
         absentRehabLeave: [StatusExcel.ABSENT_REHAB_LEAVE],
         absentMedCompany: [StatusExcel.ABSENT_MEDICAL_COMPANY],
