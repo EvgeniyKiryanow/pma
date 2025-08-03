@@ -186,14 +186,14 @@ export function registerReportsHandlers() {
             throw err;
         }
     });
-}
 
-ipcMain.handle('read-report-file-buffer', async (_event, filePath: string) => {
-    try {
-        const buffer = await readFile(filePath);
-        return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-    } catch (error) {
-        console.error(`Failed to read file at ${filePath}:`, error);
-        throw error;
-    }
-});
+    ipcMain.handle('read-report-file-buffer', async (_event, filePath: string) => {
+        try {
+            const buffer = await readFile(filePath);
+            return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        } catch (error) {
+            console.error(`Failed to read file at ${filePath}:`, error);
+            throw error;
+        }
+    });
+}

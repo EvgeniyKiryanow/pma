@@ -336,6 +336,7 @@ export function registerUserHandlers() {
         const fromDate = getFilterDate(filter);
         return history.filter((entry) => new Date(entry.date) >= fromDate);
     });
+
     ipcMain.handle('history:add-entry', async (_event, userId: number, newEntry: any) => {
         const db = await getDb();
         const user = await db.get(`SELECT history FROM users WHERE id = ?`, userId);
@@ -433,6 +434,7 @@ export function registerUserHandlers() {
             throw new Error(`Файл не знайдено: ${filename}`);
         }
     });
+
     ipcMain.handle(
         'history:getByUserAndRange',
         async (_event, userId: number, range: '1d' | '7d' | '30d' | 'all') => {
@@ -553,6 +555,7 @@ export function registerUserHandlers() {
 
         return { success: false, message: 'History entry not found in any user' };
     });
+
     ipcMain.handle('comments:get-user-comments', async (_event, userId: number) => {
         const db = await getDb();
         const user = await db.get('SELECT comments FROM users WHERE id = ?', userId);
@@ -592,6 +595,7 @@ export function registerUserHandlers() {
 
         return true;
     });
+
     ipcMain.on('app:close', () => {
         if (process.platform === 'darwin') {
             app.exit(0);
@@ -599,6 +603,7 @@ export function registerUserHandlers() {
             app.quit();
         }
     });
+
     ipcMain.on('app:toggle-fullscreen', () => {
         const win = BrowserWindow.getFocusedWindow();
         if (win) {
@@ -606,6 +611,7 @@ export function registerUserHandlers() {
         }
     });
 }
+
 export function getFilterDate(filter: string): Date {
     const now = new Date();
     const map: Record<string, number> = {
