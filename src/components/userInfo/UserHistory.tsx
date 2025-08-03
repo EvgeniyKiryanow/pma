@@ -122,7 +122,14 @@ export default function UserHistory({
 
             const updated: CommentOrHistoryEntry = {
                 ...editingEntry,
-                description: desc.trim(),
+                description: [
+                    maybeNewStatus && maybeNewStatus !== currentStatus
+                        ? `✅ Статус змінено з "${currentStatus}" → "${maybeNewStatus}"`
+                        : '',
+                    desc.trim(),
+                ]
+                    .filter(Boolean)
+                    .join('\n'),
                 files: [...retained, ...newFiles],
                 type: maybeNewStatus ? 'statusChange' : editingEntry.type,
                 period: period || undefined,
@@ -136,6 +143,7 @@ export default function UserHistory({
                 maybeNewStatus && maybeNewStatus !== prevStatus
                     ? `✅ Статус змінено з "${prevStatus}" → "${maybeNewStatus}"`
                     : '';
+
             const newEntry: CommentOrHistoryEntry = {
                 id: Date.now(),
                 date: new Date().toISOString(),

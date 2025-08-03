@@ -157,10 +157,16 @@ export default function HistoryItem({ entry, onDelete, onEdit, userId, onPreview
                         </h3>
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-3 leading-snug">
+                    <p className="text-sm text-gray-600 mb-2 leading-snug">
                         {t('historyItem.statusChangeDescription') ||
                             'Статус особового складу був оновлений. Нижче показані старий та новий статус.'}
                     </p>
+
+                    {description && (
+                        <p className="text-sm text-gray-800 mb-3 whitespace-pre-line">
+                            {description}
+                        </p>
+                    )}
 
                     <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 border border-gray-300 shadow-sm">

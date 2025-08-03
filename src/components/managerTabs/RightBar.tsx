@@ -57,6 +57,7 @@ export default function RightBar() {
         };
 
         await updateUser(updatedUser);
+        window.location.reload();
     };
 
     const handleAddHistory = (newEntry: CommentOrHistoryEntry, maybeNewStatus?: StatusExcel) => {
@@ -72,6 +73,7 @@ export default function RightBar() {
         };
 
         updateUser(updatedUser);
+        window.location.reload();
     };
 
     const handleDeleteHistory = (id: number) => {
@@ -81,6 +83,7 @@ export default function RightBar() {
             history: (user.history || []).filter((h) => h.id !== id),
         };
         updateUser(updatedUser);
+        window.location.reload();
     };
 
     const handleShowComments = async () => {
