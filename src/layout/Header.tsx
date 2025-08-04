@@ -105,6 +105,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
 
     const handleLogout = () => {
         localStorage.removeItem('authToken');
+        sessionStorage.removeItem('role');
         window.location.reload();
     };
 

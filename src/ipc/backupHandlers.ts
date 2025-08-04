@@ -15,6 +15,7 @@ import {
     startScheduledBackup,
 } from '../backupScheduler';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import { ensureDefaultAdmin } from './auth/ensureDefaultAdmin';
 function encryptWithPassword(data: Buffer, password: string): Buffer {
     const iv = randomBytes(12);
     const key = Buffer.from(password.padEnd(32, ' '), 'utf8');
@@ -225,7 +226,9 @@ export function registerBackupHandlers() {
             await db.exec('DELETE FROM shtatni_posady;');
             await db.exec('DELETE FROM user_directives;');
             await db.exec('DELETE FROM change_history;');
-            //change_history
+            await db.exec('DELETE FROM default_admin;');
+
+            await ensureDefaultAdmin();
 
             // Delete all report files from disk
             const reportsDir = path.join(app.getPath('userData'), 'reports');
