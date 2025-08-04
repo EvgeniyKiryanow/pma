@@ -146,150 +146,106 @@ export function StaffReportTable() {
         }
     };
     return (
-        <div className="flex flex-col space-y-6">
-            {/* ✅ Page Header */}
-            <div className="flex flex-col gap-3">
-                <h1 className="text-2xl font-bold text-gray-800">📊 Звіт по особовому складу</h1>
-                <p className="text-gray-700 text-sm max-w-5xl leading-relaxed">
-                    Тут відображено <b>усі штатні посади</b> та призначених на них
-                    військовослужбовців. Ви можете <b>шукати</b> по будь-якому полю та{' '}
-                    <b>редагувати дані</b> прямо в таблиці: статус у районі, відстань, причину
-                    відсутності, дати та примітки.
-                </p>
+        <div className="relative border-4 border-black rounded-lg shadow bg-white overflow-auto max-w-full max-h-[80vh]">
+            <table className="min-w-[2000px] text-[12px] border-collapse table-fixed">
+                <thead className="sticky top-0 z-10 bg-gray-100">
+                    <tr>
+                        {STAFF_COLUMNS.map((col) => (
+                            <th
+                                key={col.key}
+                                style={{
+                                    backgroundColor: col.background || '#f0f0f0',
+                                    color: '#000',
+                                    border: '1px solid black',
+                                    textAlign: 'center',
+                                    fontWeight: 'bold',
+                                    padding: '10px 6px',
+                                    whiteSpace: 'nowrap',
+                                    fontSize: '13px',
+                                }}
+                            >
+                                {col.label}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
 
-                {/* ✅ Search bar */}
-                <div className="flex items-center gap-3">
-                    <input
-                        type="text"
-                        placeholder="🔍 Пошук по будь-якому полю..."
-                        className="w-[400px] px-4 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    {searchTerm && (
-                        <button
-                            onClick={() => setSearchTerm('')}
-                            className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
-                        >
-                            ❌ Очистити
-                        </button>
-                    )}
-                </div>
-            </div>
+                <tbody>
+                    {reportRows.map((row, idx) => {
+                        const edit = editingData[row.shtatNumber] || {};
+                        const isEven = idx % 2 === 0;
 
-            {/* ✅ Table container */}
-            <div className="overflow-x-auto border-4 border-black rounded-lg shadow bg-white">
-                <table className="min-w-[2200px] text-[13px] border-collapse">
-                    {/* === HEADER === */}
-                    <thead>
-                        <tr>
-                            {STAFF_COLUMNS.map((col) => (
-                                <th
-                                    key={col.key}
-                                    style={{
-                                        backgroundColor: col.background || '#fff',
-                                        color: '#000',
-                                        border: '2px solid black',
-                                        textAlign: 'center',
-                                        fontWeight: 'bold',
-                                        padding: '14px 10px',
-                                        whiteSpace: 'nowrap',
-                                        fontSize: '14px',
-                                    }}
-                                >
-                                    {col.label}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
+                        return (
+                            <tr
+                                key={row.shtatNumber}
+                                className={isEven ? 'bg-white' : 'bg-gray-50'}
+                            >
+                                {STAFF_COLUMNS.map((col) => {
+                                    const value = edit[col.key] ?? (row as any)[col.key];
 
-                    {/* === BODY === */}
-                    <tbody>
-                        {reportRows.map((row, idx) => {
-                            const edit = editingData[row.shtatNumber] || {};
-                            const isEven = idx % 2 === 0;
+                                    const editable = [
+                                        'statusInArea',
+                                        'distanceFromLVZ',
+                                        'absenceReason',
+                                        'dateFrom',
+                                        'dateTo',
+                                        'statusNote',
+                                    ].includes(col.key);
 
-                            return (
-                                <tr
-                                    key={row.shtatNumber}
-                                    style={{
-                                        backgroundColor: isEven ? '#ffffff' : '#f7f7f7',
-                                    }}
-                                >
-                                    {STAFF_COLUMNS.map((col) => {
-                                        const value = edit[col.key] ?? (row as any)[col.key];
-
-                                        // ✅ Only these fields are editable
-                                        const editable = [
-                                            'statusInArea',
-                                            'distanceFromLVZ',
-                                            'absenceReason',
-                                            'dateFrom',
-                                            'dateTo',
-                                            'statusNote',
-                                        ].includes(col.key);
-
-                                        return (
-                                            <td
-                                                key={col.key}
-                                                style={{
-                                                    backgroundColor:
-                                                        col.background || 'transparent',
-                                                    border: '1px solid black',
-                                                    padding: '10px 8px',
-                                                    textAlign: col.center ? 'center' : 'left',
-                                                }}
-                                            >
-                                                {editable ? (
-                                                    <input
-                                                        type="text"
-                                                        className="w-full rounded-md border-gray-400 focus:border-blue-500 focus:ring focus:ring-blue-200 px-2 py-1"
-                                                        value={value}
-                                                        onChange={(e) =>
-                                                            handleEditChange(
-                                                                row.shtatNumber,
-                                                                col.key,
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        onBlur={() =>
-                                                            saveRowChanges(row.shtatNumber)
-                                                        }
-                                                    />
-                                                ) : (
-                                                    <span
-                                                        style={{
-                                                            fontWeight: col.bold
-                                                                ? 'bold'
-                                                                : 'normal',
-                                                        }}
-                                                    >
-                                                        {value || ''}
-                                                    </span>
-                                                )}
-                                            </td>
-                                        );
-                                    })}
-                                </tr>
-                            );
-                        })}
-
-                        {reportRows.length === 0 && (
-                            <tr>
-                                <td
-                                    colSpan={STAFF_COLUMNS.length}
-                                    className="p-8 text-center text-gray-500 italic"
-                                    style={{
-                                        border: '1px solid black',
-                                    }}
-                                >
-                                    ⏳ Даних немає або пошук не знайшов збігів
-                                </td>
+                                    return (
+                                        <td
+                                            key={col.key}
+                                            style={{
+                                                backgroundColor: col.background || 'transparent',
+                                                border: '1px solid black',
+                                                padding: '6px 4px',
+                                                textAlign: col.center ? 'center' : 'left',
+                                                verticalAlign: 'top',
+                                            }}
+                                        >
+                                            {editable ? (
+                                                <input
+                                                    type="text"
+                                                    className="w-full text-[12px] rounded border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-300 px-1 py-[3px]"
+                                                    value={value}
+                                                    onChange={(e) =>
+                                                        handleEditChange(
+                                                            row.shtatNumber,
+                                                            col.key,
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    onBlur={() => saveRowChanges(row.shtatNumber)}
+                                                />
+                                            ) : (
+                                                <span
+                                                    style={{
+                                                        fontWeight: col.bold ? 'bold' : 'normal',
+                                                    }}
+                                                >
+                                                    {value || ''}
+                                                </span>
+                                            )}
+                                        </td>
+                                    );
+                                })}
                             </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                        );
+                    })}
+
+                    {reportRows.length === 0 && (
+                        <tr>
+                            <td
+                                colSpan={STAFF_COLUMNS.length}
+                                className="p-6 text-center text-gray-500 italic"
+                                style={{ border: '1px solid black' }}
+                            >
+                                ⏳ Даних немає або пошук не знайшов збігів
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
         </div>
     );
 }
