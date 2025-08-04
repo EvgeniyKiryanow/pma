@@ -105,7 +105,8 @@ export const en = {
         updateError: 'Error checking for updates',
         updateStarted: 'Update check started. If a new version is found, it will be downloaded.',
         restoreNoUser: 'You must have a registered user to restore a backup.',
-        restoreFail: 'Restore failed. Try again.',
+        restoreFail: '✅ Restored! Please restart.',
+        restoreSuccess: 'Restore failed. Try again.',
         resetConfirm:
             'Are you sure you want to reset the app?\nThis will delete all users and data!',
         resetSuccess: 'App has been reset. Restarting...',

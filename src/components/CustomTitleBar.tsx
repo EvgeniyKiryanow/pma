@@ -38,13 +38,14 @@ export default function CustomTitleBar() {
     };
 
     const handleRestore = async () => {
-        if (!hasUser) {
-            alert(t('titleBar.restoreNoUser'));
-            return;
-        }
+        // if (!hasUser) {
+        //     alert(t('titleBar.restoreNoUser'));
+        //     return;
+        // }
 
         const success = await window.electronAPI.restoreDb();
         if (success) {
+            alert(t('titleBar.restoreSuccess'));
             window.location.reload();
         } else {
             alert(t('titleBar.restoreFail'));
@@ -110,15 +111,15 @@ export default function CustomTitleBar() {
                     <Download className="w-4 h-4" />
                 </button>
 
-                {hasUser && (
-                    <button
-                        className={`p-1 rounded ${hasUser ? 'hover:bg-green-600' : 'opacity-50 cursor-not-allowed'}`}
-                        title={t('titleBar.restore')}
-                        onClick={handleRestore}
-                    >
-                        <Upload className="w-4 h-4" />
-                    </button>
-                )}
+                {/* {hasUser && ( */}
+                <button
+                    className={`p-1 rounded 'hover:bg-green-600' `}
+                    title={t('titleBar.restore')}
+                    onClick={handleRestore}
+                >
+                    <Upload className="w-4 h-4" />
+                </button>
+                {/* )} */}
 
                 <button
                     className="p-1 hover:bg-yellow-600 rounded"
