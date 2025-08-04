@@ -1,6 +1,11 @@
 import { useState } from 'react';
 
-export default function RegisterPage({ onRegisterSuccess }: { onRegisterSuccess: () => void }) {
+type RegisterPageProps = {
+    onRegisterSuccess: () => void;
+    onSwitchToLogin: () => void;
+};
+
+export default function RegisterPage({ onRegisterSuccess, onSwitchToLogin }: RegisterPageProps) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [recoveryHint, setRecoveryHint] = useState('');
@@ -59,6 +64,17 @@ export default function RegisterPage({ onRegisterSuccess }: { onRegisterSuccess:
                 >
                     Register
                 </button>
+
+                <p className="text-sm text-gray-500 mt-3 text-center">
+                    Already have an account?{' '}
+                    <button
+                        type="button"
+                        className="text-blue-600 hover:underline"
+                        onClick={onSwitchToLogin}
+                    >
+                        Log in
+                    </button>
+                </p>
             </form>
         </div>
     );

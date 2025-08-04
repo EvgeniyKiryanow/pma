@@ -1,65 +1,50 @@
-import { useEffect, useState } from 'react';
-import { Lock, UserCircle2, Info, HelpCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Lock, UserCircle2, HelpCircle } from 'lucide-react';
 
 type LoginPageProps = {
     onLoginSuccess: () => void;
     onForgotPassword: () => void;
+    onSwitchToRegister: () => void;
 };
 
-export default function LoginPage({ onLoginSuccess, onForgotPassword }: LoginPageProps) {
+export default function LoginPage({
+    onLoginSuccess,
+    onForgotPassword,
+    onSwitchToRegister,
+}: LoginPageProps) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [hint, setHint] = useState('');
     const [error, setError] = useState('');
-    const [isRegisterMode, setIsRegisterMode] = useState(false);
-    const [checking, setChecking] = useState(true);
-
-    useEffect(() => {
-        const checkIfUserExists = async () => {
-            try {
-                const exists = await window.electronAPI.hasUser();
-                setIsRegisterMode(!exists);
-            } catch (err) {
-                console.error('Error checking user existence:', err);
-                setError('Failed to connect to database');
-            } finally {
-                setChecking(false);
-            }
-        };
-        checkIfUserExists();
-    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(''); // clear previous error
+
         try {
-            if (isRegisterMode) {
-                await window.electronAPI.register(username, password, hint);
+            if (username.trim().toLowerCase() === 'superuser') {
+                const key = await window.electronAPI.superuserLogin(username, password);
+                if (key) {
+                    localStorage.setItem('authToken', key); // optionally tag with role: 'superuser'
+                    onLoginSuccess();
+                } else {
+                    setError('Invalid superuser credentials');
+                }
+                return;
+            }
+
+            const success = await window.electronAPI.login(username, password);
+            if (success) {
                 const token = crypto.randomUUID();
                 localStorage.setItem('authToken', token);
                 onLoginSuccess();
             } else {
-                const success = await window.electronAPI.login(username, password);
-                if (success) {
-                    const token = crypto.randomUUID();
-                    localStorage.setItem('authToken', token);
-                    onLoginSuccess();
-                } else {
-                    setError('Invalid username or password');
-                }
+                setError('Invalid username or password');
             }
         } catch (err) {
-            console.error(err);
+            console.error('Login error:', err);
             setError('Something went wrong. Please try again.');
         }
     };
-
-    if (checking) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-100">
-                <p className="text-gray-500 text-sm">Checking user status...</p>
-            </div>
-        );
-    }
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 to-blue-100 px-4">
@@ -69,14 +54,8 @@ export default function LoginPage({ onLoginSuccess, onForgotPassword }: LoginPag
             >
                 <div className="text-center mb-6">
                     <UserCircle2 className="w-12 h-12 mx-auto text-blue-600" />
-                    <h2 className="text-xl font-bold text-gray-800 mt-2">
-                        {isRegisterMode ? 'Register Admin' : 'Welcome Back'}
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                        {isRegisterMode
-                            ? 'Create the first administrator account'
-                            : 'Please log in to continue'}
-                    </p>
+                    <h2 className="text-xl font-bold text-gray-800 mt-2">Welcome Back</h2>
+                    <p className="text-sm text-gray-500">Please log in to continue</p>
                 </div>
 
                 {error && (
@@ -108,34 +87,16 @@ export default function LoginPage({ onLoginSuccess, onForgotPassword }: LoginPag
                     />
                 </div>
 
-                {isRegisterMode && (
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex gap-1 items-center">
-                            <Info className="w-4 h-4 text-blue-500" />
-                            Recovery Hint
-                        </label>
-                        <input
-                            type="text"
-                            value={hint}
-                            onChange={(e) => setHint(e.target.value)}
-                            placeholder="E.g. Your pet's name"
-                            className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
-                        />
-                    </div>
-                )}
-
-                {!isRegisterMode && (
-                    <div className="text-right text-xs text-blue-600 hover:underline mb-4">
-                        <button
-                            type="button"
-                            onClick={onForgotPassword}
-                            className="flex items-center gap-1"
-                        >
-                            <HelpCircle className="w-4 h-4" />
-                            Forgot password?
-                        </button>
-                    </div>
-                )}
+                <div className="text-right text-xs text-blue-600 hover:underline mb-4">
+                    <button
+                        type="button"
+                        onClick={onForgotPassword}
+                        className="flex items-center gap-1"
+                    >
+                        <HelpCircle className="w-4 h-4" />
+                        Forgot password?
+                    </button>
+                </div>
 
                 <button
                     type="submit"
@@ -143,9 +104,20 @@ export default function LoginPage({ onLoginSuccess, onForgotPassword }: LoginPag
                 >
                     <div className="flex items-center justify-center gap-2">
                         <Lock className="w-4 h-4" />
-                        <span>{isRegisterMode ? 'Register' : 'Log In'}</span>
+                        <span>Log In</span>
                     </div>
                 </button>
+
+                <p className="text-sm text-gray-500 mt-3 text-center">
+                    Don&apos;t have an account?{' '}
+                    <button
+                        type="button"
+                        className="text-blue-600 hover:underline"
+                        onClick={onSwitchToRegister}
+                    >
+                        Register here
+                    </button>
+                </p>
             </form>
         </div>
     );

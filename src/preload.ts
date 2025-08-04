@@ -69,6 +69,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getRecoveryHint: (u: string) => ipcRenderer.invoke('auth:get-recovery-hint', u),
     resetPassword: (u: string, h: string, np: string) =>
         ipcRenderer.invoke('auth:reset-password', u, h, np),
+    superuserLogin: (username: string, password: string): Promise<string | false> =>
+        ipcRenderer.invoke('auth:superuser-login', username, password),
 
     // Comments
     getUserComments: (userId: number) => ipcRenderer.invoke('comments:get-user-comments', userId),

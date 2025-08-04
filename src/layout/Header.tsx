@@ -54,12 +54,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
             const allUsers: User[] = await window.electronAPI.fetchUsersMetadata();
 
             // 🧹 Strip history to reduce memory footprint
-            const map = Object.fromEntries(
-                allUsers.map((u) => [
-                    u.id,
-                    { ...u, history: [] }, // or []
-                ]),
-            );
+            const map = Object.fromEntries(allUsers.map((u) => [u.id, { ...u, history: [] }]));
             setUsersById(map);
         };
         loadUsers();

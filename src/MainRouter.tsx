@@ -8,56 +8,42 @@ import { useI18nStore } from './stores/i18nStore';
 
 export function Main() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [hasUser, setHasUser] = useState<boolean | null>(null);
-    const [showForgot, setShowForgot] = useState(false);
+    const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
     const { t } = useI18nStore();
 
     useEffect(() => {
-        const restoredToken = sessionStorage.getItem('restoredAuthToken');
-        if (restoredToken) {
-            localStorage.setItem('authToken', restoredToken);
+        const token =
+            localStorage.getItem('authToken') || sessionStorage.getItem('restoredAuthToken');
+        if (token) {
+            localStorage.setItem('authToken', token);
             sessionStorage.removeItem('restoredAuthToken');
             setIsLoggedIn(true);
-        } else {
-            const token = localStorage.getItem('authToken');
-            if (token) setIsLoggedIn(true);
         }
-
-        window.electronAPI.hasUser().then(setHasUser);
 
         window.electronAPI.onClearToken(() => {
             localStorage.removeItem('authToken');
+            setIsLoggedIn(false);
+            setMode('login');
         });
     }, []);
-
-    if (hasUser === null) {
-        return (
-            <>
-                <CustomTitleBar />
-                <div className="flex items-center justify-center min-h-screen bg-gray-100">
-                    <p className="text-sm text-gray-500">{t('main.loading')}</p>
-                </div>
-                {/* <Footer /> */}
-            </>
-        );
-    }
 
     return (
         <>
             <CustomTitleBar />
             {!isLoggedIn ? (
-                showForgot ? (
+                mode === 'forgot' ? (
                     <ForgotPasswordPage
-                        onReset={() => setShowForgot(false)}
-                        onBackToLogin={() => setShowForgot(false)}
+                        onReset={() => setMode('login')}
+                        onBackToLogin={() => setMode('login')}
                     />
-                ) : hasUser ? (
+                ) : mode === 'login' ? (
                     <LoginPage
                         onLoginSuccess={() => {
                             localStorage.setItem('authToken', crypto.randomUUID());
                             setIsLoggedIn(true);
                         }}
-                        onForgotPassword={() => setShowForgot(true)}
+                        onForgotPassword={() => setMode('forgot')}
+                        onSwitchToRegister={() => setMode('register')}
                     />
                 ) : (
                     <RegisterPage
@@ -65,12 +51,12 @@ export function Main() {
                             localStorage.setItem('authToken', crypto.randomUUID());
                             setIsLoggedIn(true);
                         }}
+                        onSwitchToLogin={() => setMode('login')}
                     />
                 )
             ) : (
                 <App />
             )}
-            {/* <Footer /> */}
         </>
     );
 }

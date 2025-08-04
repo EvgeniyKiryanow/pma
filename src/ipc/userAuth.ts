@@ -46,4 +46,13 @@ export function authUserHandlers() {
         await db.run('UPDATE auth_user SET password = ? WHERE username = ?', hashed, username);
         return true;
     });
+
+    ipcMain.handle('auth:superuser-login', async (_event, username: string, password: string) => {
+        const db = await getDb();
+        const row = await db.get('SELECT * FROM superuser WHERE username = ?', username);
+        if (!row) return false;
+
+        const match = await bcrypt.compare(password, row.password);
+        return match ? row.key : false;
+    });
 }

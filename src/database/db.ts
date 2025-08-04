@@ -39,14 +39,41 @@ export async function initializeDb() {
   );
 `);
 
-    // Create auth table
     await db.exec(`
-        CREATE TABLE IF NOT EXISTS auth_user (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL
-        );
-    `);
+    CREATE TABLE IF NOT EXISTS superuser (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL,
+        key TEXT NOT NULL
+    );
+`);
+
+    await db.exec(`
+    CREATE TABLE IF NOT EXISTS auth_user (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL
+    );
+`);
+
+    // Safe migration (ignore if already exists)
+    try {
+        await db.exec(`ALTER TABLE auth_user ADD COLUMN recovery_hint TEXT`);
+    } catch (err) {
+        if (!String(err).includes('duplicate column name')) throw err;
+    }
+
+    try {
+        await db.exec(`ALTER TABLE auth_user ADD COLUMN role TEXT DEFAULT 'admin'`);
+    } catch (err) {
+        if (!String(err).includes('duplicate column name')) throw err;
+    }
+
+    try {
+        await db.exec(`ALTER TABLE auth_user ADD COLUMN key TEXT`);
+    } catch (err) {
+        if (!String(err).includes('duplicate column name')) throw err;
+    }
 
     const authColumns = await db.all(`PRAGMA table_info(auth_user);`);
     const hasRecoveryHint = authColumns.some((col: any) => col.name === 'recovery_hint');

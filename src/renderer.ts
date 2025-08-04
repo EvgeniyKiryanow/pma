@@ -31,6 +31,7 @@ declare global {
             ) => Promise<boolean>;
             getUserDataPath: () => Promise<string>;
             getBackupPath: () => Promise<string>;
+            superuserLogin: (username: string, password: string) => Promise<string | false>;
 
             // --- DB Management ---
             downloadDbSafe: (password: any) => Promise<boolean>;
