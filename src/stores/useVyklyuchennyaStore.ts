@@ -56,17 +56,17 @@ export const useVyklyuchennyaStore = create<VyklyuchennyaStore>((set, get) => ({
     removeVyklyuchennya: async (id) => {
         const entry = get().list.find((e) => e.id === id);
         if (entry) {
-            // Restore shpkNumber from file meta
+            // Delete the user via userStore
             const user = useUserStore.getState().users.find((u) => u.id === entry.userId);
 
             if (user) {
-                useUserStore.getState().updateUser({
-                    ...user,
-                    shpkNumber: null, // ✅ restore it
-                });
+                await useUserStore.getState().deleteUser(user.id);
             }
 
+            // Delete directive
             await window.electronAPI.directives.deleteById(id);
+
+            // Refresh local list
             await get().fetchAll();
         }
     },

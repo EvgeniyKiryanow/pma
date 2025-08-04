@@ -93,7 +93,7 @@ export default function HistoryItem({ entry, onDelete, onEdit, userId, onPreview
     }
     const isIncompleteStatusChange =
         isStatusChange && (!entry.period.from || !entry.files || entry.files.length === 0);
-    console.log(entry, 'entry');
+
     return (
         <li
             className={`group relative rounded-xl border p-5 shadow-sm hover:shadow-md transition-all ${

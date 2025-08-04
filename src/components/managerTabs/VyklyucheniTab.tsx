@@ -10,6 +10,7 @@ export default function VyklyucheniTab() {
     const { list, fetchAll, removeVyklyuchennya, clearAllVyklyuchennya } = useVyklyuchennyaStore();
     const users = useUserStore((s) => s.users);
     const excludedUsers = users.filter((u) => u.shpkNumber === 'excluded');
+    console.log(excludedUsers, 'excludedUsers');
     const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
     const [activeView, setActiveView] = useState<'table' | 'bars'>('table');
 
