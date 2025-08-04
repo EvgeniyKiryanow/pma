@@ -14,6 +14,13 @@ export default function UserManagementTab() {
     const [users, setUsers] = useState<FullUser[]>([]);
     const [message, setMessage] = useState<string | null>(null);
 
+    const [newUser, setNewUser] = useState({
+        username: '',
+        password: '',
+        recovery_hint: '',
+        role: 'user',
+    });
+
     const fetchAllUsers = async () => {
         const authUsers = await window.electronAPI.getAuthUsers();
         const defaultAdmin = await window.electronAPI.getDefaultAdmin();
@@ -21,7 +28,7 @@ export default function UserManagementTab() {
         const formattedAuthUsers: FullUser[] = authUsers.map((u) => ({
             id: u.id,
             username: u.username,
-            password: '', // empty to prevent re-submitting hash
+            password: '',
             recovery_hint: u.recovery_hint || null,
             key: u.key || '',
             role: u.role === 'admin' ? 'admin' : 'user',
@@ -66,20 +73,102 @@ export default function UserManagementTab() {
         fetchAllUsers();
     };
 
+    const handleCreateUser = async () => {
+        if (!newUser.username || !newUser.password) {
+            setMessage('❗ Введіть логін і пароль');
+            return;
+        }
+
+        await window.electronAPI.register(
+            newUser.username.trim().toLowerCase(),
+            newUser.password,
+            newUser.recovery_hint || '',
+        );
+
+        setMessage('✅ Користувача створено');
+        setNewUser({ username: '', password: '', recovery_hint: '', role: 'user' });
+        fetchAllUsers();
+    };
+
     useEffect(() => {
         fetchAllUsers();
     }, []);
+
+    useEffect(() => {
+        if (message) {
+            const timeout = setTimeout(() => setMessage(null), 3000);
+            return () => clearTimeout(timeout);
+        }
+    }, [message]);
 
     return (
         <div className="space-y-6">
             <h2 className="text-3xl font-bold text-gray-800">Управління користувачами</h2>
 
             {message && (
-                <div className="p-3 bg-green-100 border border-green-300 text-green-800 rounded shadow-sm">
-                    ✅ {message}
+                <div className="p-3 bg-green-100 border border-green-300 text-green-800 rounded shadow-sm transition">
+                    {message}
                 </div>
             )}
 
+            {/* Create User Card */}
+            <div className="rounded-xl border-2 border-dashed bg-white shadow-sm p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-1">
+                            Username
+                        </label>
+                        <input
+                            className="w-full border border-gray-300 rounded px-3 py-1 text-sm"
+                            value={newUser.username}
+                            onChange={(e) =>
+                                setNewUser((prev) => ({ ...prev, username: e.target.value }))
+                            }
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-1">
+                            Password
+                        </label>
+                        <input
+                            type="password"
+                            className="w-full border border-gray-300 rounded px-3 py-1 text-sm"
+                            value={newUser.password}
+                            onChange={(e) =>
+                                setNewUser((prev) => ({ ...prev, password: e.target.value }))
+                            }
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-1">
+                            Recovery Hint
+                        </label>
+                        <input
+                            className="w-full border border-gray-300 rounded px-3 py-1 text-sm"
+                            value={newUser.recovery_hint}
+                            onChange={(e) =>
+                                setNewUser((prev) => ({
+                                    ...prev,
+                                    recovery_hint: e.target.value,
+                                }))
+                            }
+                        />
+                    </div>
+                </div>
+
+                <div className="flex justify-end">
+                    <button
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded shadow-sm transition"
+                        onClick={handleCreateUser}
+                    >
+                        ➕ Створити користувача
+                    </button>
+                </div>
+            </div>
+
+            {/* Existing Users */}
             <div className="space-y-6">
                 {users.map((user, idx) => (
                     <div
