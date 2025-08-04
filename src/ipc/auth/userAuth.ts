@@ -66,4 +66,114 @@ export function authUserHandlers() {
             return match ? row.key : false;
         },
     );
+
+    ipcMain.handle('auth:get-auth-users', async () => {
+        const db = await getDb();
+        const users = await db.all(
+            `SELECT id, username, password, recovery_hint, role, key FROM auth_user`,
+        );
+        return users;
+    });
+
+    ipcMain.handle(
+        'auth:update-auth-user',
+        async (
+            _event,
+            userId: number,
+            updates: Partial<{
+                username: string;
+                password: string;
+                recovery_hint: string;
+                role: string;
+            }>,
+        ) => {
+            const db = await getDb();
+
+            const fields: string[] = [];
+            const values: any[] = [];
+
+            if (updates.username) {
+                fields.push('username = ?');
+                values.push(updates.username);
+            }
+
+            if (updates.password) {
+                const looksHashed =
+                    updates.password.startsWith('$2a$') || updates.password.startsWith('$2b$');
+                const hashed = looksHashed
+                    ? updates.password
+                    : await bcrypt.hash(updates.password, 10);
+                fields.push('password = ?');
+                values.push(hashed);
+            }
+
+            if (updates.recovery_hint !== undefined) {
+                fields.push('recovery_hint = ?');
+                values.push(updates.recovery_hint);
+            }
+
+            if (updates.role !== undefined) {
+                fields.push('role = ?');
+                values.push(updates.role);
+            }
+
+            if (fields.length === 0) return false;
+
+            values.push(userId);
+            await db.run(`UPDATE auth_user SET ${fields.join(', ')} WHERE id = ?`, values);
+            return true;
+        },
+    );
+
+    ipcMain.handle('auth:get-default-admin', async () => {
+        const db = await getDb();
+        const admin = await db.get(`
+        SELECT id, username, password, recovery_hint, key, app_key 
+        FROM default_admin 
+        LIMIT 1
+    `);
+        return admin || null;
+    });
+
+    ipcMain.handle(
+        'auth:update-default-admin',
+        async (
+            _event,
+            updates: Partial<{ username: string; password: string; recovery_hint: string }>,
+        ) => {
+            const db = await getDb();
+
+            const fields: string[] = [];
+            const values: any[] = [];
+
+            if (updates.username) {
+                fields.push('username = ?');
+                values.push(updates.username);
+            }
+
+            if (updates.password) {
+                const looksHashed =
+                    updates.password.startsWith('$2a$') || updates.password.startsWith('$2b$');
+                const hashed = looksHashed
+                    ? updates.password
+                    : await bcrypt.hash(updates.password, 10);
+                fields.push('password = ?');
+                values.push(hashed);
+            }
+
+            if (updates.recovery_hint !== undefined) {
+                fields.push('recovery_hint = ?');
+                values.push(updates.recovery_hint);
+            }
+
+            if (fields.length === 0) return false;
+
+            const existing = await db.get('SELECT id FROM default_admin');
+            if (!existing) return false;
+
+            values.push(existing.id);
+            await db.run(`UPDATE default_admin SET ${fields.join(', ')} WHERE id = ?`, values);
+            return true;
+        },
+    );
 }

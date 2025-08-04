@@ -15,7 +15,10 @@ export default function CustomTitleBar() {
     const isOnAdminPanel = location.pathname === '/default-admin';
 
     useEffect(() => {
-        setIsDefaultAdmin(sessionStorage.getItem('role') === 'admin');
+        setIsDefaultAdmin(
+            sessionStorage.getItem('role') === 'admin' ||
+                sessionStorage.getItem('role') === 'default_admin',
+        );
     }, []);
 
     useEffect(() => {

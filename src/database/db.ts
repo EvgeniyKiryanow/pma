@@ -64,7 +64,7 @@ export async function initializeDb() {
     }
 
     try {
-        await db.exec(`ALTER TABLE auth_user ADD COLUMN role TEXT DEFAULT 'admin'`);
+        await db.exec(`ALTER TABLE auth_user ADD COLUMN role TEXT DEFAULT 'user'`);
     } catch (err) {
         if (!String(err).includes('duplicate column name')) throw err;
     }

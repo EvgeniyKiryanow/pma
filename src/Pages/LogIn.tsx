@@ -25,30 +25,30 @@ export default function LoginPage({
         try {
             const uname = username.trim().toLowerCase();
 
-            if (uname === 'superuser') {
-                const key = await window.electronAPI.superuserLogin(username, password);
+            try {
+                // 1. Try default admin login first
+                const key = await window.electronAPI.defaultAdminLogin(uname, password);
                 if (key) {
                     localStorage.setItem('authToken', key);
-                    sessionStorage.setItem('role', 'superuser');
+                    sessionStorage.setItem('role', 'default_admin');
                     onLoginSuccess();
                     return;
-                } else {
-                    setError('Invalid superuser credentials');
-                    return;
                 }
-            }
 
-            if (uname === 'admin') {
-                const key = await window.electronAPI.defaultAdminLogin(username, password);
-                if (key) {
-                    localStorage.setItem('authToken', key);
-                    sessionStorage.setItem('role', 'admin');
+                // 2. Try regular auth_user login if admin failed
+                const success = await window.electronAPI.login(uname, password);
+                if (success) {
+                    localStorage.setItem('authToken', 'regular');
+                    sessionStorage.setItem('role', 'user'); // or 'admin' if you check user.role later
                     onLoginSuccess();
                     return;
-                } else {
-                    setError('Invalid admin credentials');
-                    return;
                 }
+
+                // ❌ Both failed
+                setError('Невірне імʼя користувача або пароль');
+            } catch (err) {
+                console.error('Login error:', err);
+                setError('Помилка при вході');
             }
 
             const success = await window.electronAPI.login(username, password);

@@ -1,3 +1,4 @@
+import UserManagementTab from '../components/defaultAdmin/UserManagementTab';
 export default function DefaultAdminPanel() {
     return (
         <div className="pt-[5vh]">
@@ -5,6 +6,7 @@ export default function DefaultAdminPanel() {
             <p className="text-gray-700">
                 This will contain tools for managing app-level settings, users, backups, etc.
             </p>
+            <UserManagementTab />
         </div>
     );
 }

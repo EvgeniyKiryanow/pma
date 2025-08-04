@@ -73,6 +73,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('auth:superuser-login', username, password),
     defaultAdminLogin: (username: string, password: string): Promise<string | false> =>
         ipcRenderer.invoke('auth:default-admin-login', username, password),
+    // Auth Management
+    getAuthUsers: () => ipcRenderer.invoke('auth:get-auth-users'),
+    updateAuthUser: (
+        userId: number,
+        updates: Partial<{
+            username: string;
+            password: string;
+            recovery_hint: string;
+            role: string;
+        }>,
+    ) => ipcRenderer.invoke('auth:update-auth-user', userId, updates),
+
+    getDefaultAdmin: () => ipcRenderer.invoke('auth:get-default-admin'),
+    updateDefaultAdmin: (
+        updates: Partial<{
+            username: string;
+            password: string;
+            recovery_hint: string;
+        }>,
+    ) => ipcRenderer.invoke('auth:update-default-admin', updates),
 
     // APPKEY
     appKey: () => ipcRenderer.invoke('app:get-key'),

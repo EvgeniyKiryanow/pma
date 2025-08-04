@@ -33,6 +33,41 @@ declare global {
             getBackupPath: () => Promise<string>;
             superuserLogin: (username: string, password: string) => Promise<string | false>;
             defaultAdminLogin: (username: string, password: string) => Promise<string | false>;
+            getAuthUsers: () => Promise<
+                {
+                    id: number;
+                    username: string;
+                    recovery_hint: string;
+                    role?: string;
+                    key?: string;
+                }[]
+            >;
+            updateAuthUser: (
+                userId: number,
+                updates: Partial<{
+                    username: string;
+                    password: string;
+                    recovery_hint: string;
+                    role: string;
+                }>,
+            ) => Promise<boolean>;
+
+            getDefaultAdmin: () => Promise<{
+                id: number;
+                username: string;
+                password: string;
+                recovery_hint: string | null;
+                key: string;
+                app_key?: string;
+            } | null>;
+
+            updateDefaultAdmin: (
+                updates: Partial<{
+                    username: string;
+                    password: string;
+                    recovery_hint: string;
+                }>,
+            ) => Promise<boolean>;
 
             // --- DB Management ---
             downloadDbSafe: (password: any) => Promise<boolean>;
