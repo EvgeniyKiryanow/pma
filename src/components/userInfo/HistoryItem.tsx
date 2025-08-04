@@ -92,7 +92,8 @@ export default function HistoryItem({ entry, onDelete, onEdit, userId, onPreview
         newPosada = description.replace('Призначено на посаду', '').trim();
     }
     const isIncompleteStatusChange =
-        isStatusChange && (!entry.period || !entry.files || entry.files.length === 0);
+        isStatusChange && (!entry.period.from || !entry.files || entry.files.length === 0);
+    console.log(entry, 'entry');
     return (
         <li
             className={`group relative rounded-xl border p-5 shadow-sm hover:shadow-md transition-all ${
@@ -384,8 +385,15 @@ export default function HistoryItem({ entry, onDelete, onEdit, userId, onPreview
                         <span className="text-md font-bold text-blue-800">Період:</span>
                     </div>
                     <div className="text-md font-semibold text-gray-800 bg-white px-4 py-2 rounded-lg border border-gray-300 shadow-inner">
-                        {new Date(entry.period.from).toLocaleDateString()} —{' '}
-                        {new Date(entry.period.to).toLocaleDateString()}
+                        {entry.period.from && (
+                            <span>{new Date(entry.period.from).toLocaleDateString()}</span>
+                        )}
+
+                        {entry.period.to && entry.period.from && ' — '}
+
+                        {entry.period.to && (
+                            <span>{new Date(entry.period.to).toLocaleDateString()}</span>
+                        )}
                     </div>
                 </div>
             )}
