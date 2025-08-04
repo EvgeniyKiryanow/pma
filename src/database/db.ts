@@ -40,6 +40,22 @@ export async function initializeDb() {
 `);
 
     await db.exec(`
+  CREATE TABLE IF NOT EXISTS default_admin (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    recovery_hint TEXT,
+    key TEXT NOT NULL
+  );
+`);
+
+    const defaultAdminColumns = await db.all(`PRAGMA table_info(default_admin)`);
+    const hasAppKey = defaultAdminColumns.some((c: any) => c.name === 'app_key');
+    if (!hasAppKey) {
+        await db.exec(`ALTER TABLE default_admin ADD COLUMN app_key TEXT`);
+    }
+
+    await db.exec(`
     CREATE TABLE IF NOT EXISTS superuser (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,

@@ -3,7 +3,7 @@ import path from 'path';
 import started from 'electron-squirrel-startup';
 import { registerDbHandlers } from './ipc';
 import log from 'electron-log';
-import { initializeDb } from './database/db';
+import { getDb, initializeDb } from './database/db';
 import { upgradeDbSchema } from './database/migrations';
 import fs from 'fs';
 import { exec, execFile } from 'child_process';
@@ -88,6 +88,24 @@ export function convertDocxToPdf(inputPath: string, outputDir: string): Promise<
             }
         });
     });
+}
+async function migrateAuthUserTable() {
+    const db = await getDb();
+
+    const columns = await db.all(`PRAGMA table_info(auth_user)`);
+    const colNames = columns.map((c: any) => c.name);
+
+    const required: [string, string][] = [
+        ['recovery_hint', 'TEXT'],
+        ['role', 'TEXT DEFAULT "user"'],
+        ['key', 'TEXT'],
+    ];
+
+    for (const [name, type] of required) {
+        if (!colNames.includes(name)) {
+            await db.exec(`ALTER TABLE auth_user ADD COLUMN ${name} ${type}`);
+        }
+    }
 }
 
 let globalPythonPath: string | null = null;
@@ -182,7 +200,7 @@ app.whenReady().then(async () => {
     registerDbHandlers();
     await initializeDb();
     await upgradeDbSchema();
-
+    await migrateAuthUserTable();
     await ensureAppIdentity();
     await ensureSuperuser();
     await ensureDefaultAdmin();
