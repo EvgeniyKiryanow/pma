@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { ipcMain } from 'electron';
-import { getDb } from '../database/db';
+import { getDb } from '../../database/db';
 
 export function authUserHandlers() {
     ipcMain.handle('auth:has-user', async () => {
@@ -55,4 +55,15 @@ export function authUserHandlers() {
         const match = await bcrypt.compare(password, row.password);
         return match ? row.key : false;
     });
+    ipcMain.handle(
+        'auth:default-admin-login',
+        async (_event, username: string, password: string) => {
+            const db = await getDb();
+            const row = await db.get('SELECT * FROM default_admin WHERE username = ?', username);
+            if (!row) return false;
+
+            const match = await bcrypt.compare(password, row.password);
+            return match ? row.key : false;
+        },
+    );
 }

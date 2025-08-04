@@ -1,4 +1,4 @@
-import { getDb } from '../database/db';
+import { getDb } from '../../database/db';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 

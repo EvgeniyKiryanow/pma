@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+
 import LoginPage from './Pages/LogIn';
 import RegisterPage from './Pages/RegisterPage';
 import ForgotPasswordPage from './Pages/ForgotPasswordPage';
 import App from './App';
 import CustomTitleBar from './components/CustomTitleBar';
+import DefaultAdminPanel from './Pages/DefaultAdminPanel';
 import { useI18nStore } from './stores/i18nStore';
 
 export function Main() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
     const { t } = useI18nStore();
+    const location = useLocation();
 
     useEffect(() => {
         const token =
@@ -30,52 +34,53 @@ export function Main() {
     return (
         <>
             <CustomTitleBar />
-            {!isLoggedIn ? (
-                mode === 'forgot' ? (
-                    <ForgotPasswordPage
-                        onReset={() => setMode('login')}
-                        onBackToLogin={() => setMode('login')}
-                    />
-                ) : mode === 'login' ? (
-                    <LoginPage
-                        onLoginSuccess={() => {
-                            localStorage.setItem('authToken', crypto.randomUUID());
-                            setIsLoggedIn(true);
-                        }}
-                        onForgotPassword={() => setMode('forgot')}
-                        onSwitchToRegister={() => setMode('register')}
-                    />
+
+            <Routes>
+                {!isLoggedIn ? (
+                    <>
+                        <Route
+                            path="/login"
+                            element={
+                                <LoginPage
+                                    onLoginSuccess={() => {
+                                        localStorage.setItem('authToken', crypto.randomUUID());
+                                        setIsLoggedIn(true);
+                                    }}
+                                    onForgotPassword={() => setMode('forgot')}
+                                    onSwitchToRegister={() => setMode('register')}
+                                />
+                            }
+                        />
+                        <Route
+                            path="/register"
+                            element={
+                                <RegisterPage
+                                    onRegisterSuccess={() => {
+                                        localStorage.setItem('authToken', crypto.randomUUID());
+                                        setIsLoggedIn(true);
+                                    }}
+                                    onSwitchToLogin={() => setMode('login')}
+                                />
+                            }
+                        />
+                        <Route
+                            path="/forgot"
+                            element={
+                                <ForgotPasswordPage
+                                    onReset={() => setMode('login')}
+                                    onBackToLogin={() => setMode('login')}
+                                />
+                            }
+                        />
+                        <Route path="*" element={<Navigate to="/login" />} />
+                    </>
                 ) : (
-                    <RegisterPage
-                        onRegisterSuccess={() => {
-                            localStorage.setItem('authToken', crypto.randomUUID());
-                            setIsLoggedIn(true);
-                        }}
-                        onSwitchToLogin={() => setMode('login')}
-                    />
-                )
-            ) : (
-                <App />
-            )}
+                    <>
+                        <Route path="/default-admin" element={<DefaultAdminPanel />} />
+                        <Route path="/*" element={<App />} />
+                    </>
+                )}
+            </Routes>
         </>
-    );
-}
-
-function Footer() {
-    const { t } = useI18nStore();
-
-    return (
-        <footer className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white text-center py-2 text-sm shadow-md">
-            {t('main.madeBy')}{' '}
-            <a
-                href="https://www.linkedin.com/in/yevhenii-kirianov-54b8081ba/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-blue-300"
-            >
-                Evgeniy Kiriyanov
-            </a>
-            . {t('main.improvements')}
-        </footer>
     );
 }

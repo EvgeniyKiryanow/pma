@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Lock, UserCircle2, HelpCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 type LoginPageProps = {
     onLoginSuccess: () => void;
@@ -15,27 +16,46 @@ export default function LoginPage({
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(''); // clear previous error
 
         try {
-            if (username.trim().toLowerCase() === 'superuser') {
+            const uname = username.trim().toLowerCase();
+
+            if (uname === 'superuser') {
                 const key = await window.electronAPI.superuserLogin(username, password);
                 if (key) {
-                    localStorage.setItem('authToken', key); // optionally tag with role: 'superuser'
+                    localStorage.setItem('authToken', key);
+                    sessionStorage.setItem('role', 'superuser');
                     onLoginSuccess();
+                    return;
                 } else {
                     setError('Invalid superuser credentials');
+                    return;
                 }
-                return;
+            }
+
+            if (uname === 'admin') {
+                const key = await window.electronAPI.defaultAdminLogin(username, password);
+                if (key) {
+                    localStorage.setItem('authToken', key);
+                    sessionStorage.setItem('role', 'admin');
+                    onLoginSuccess();
+                    return;
+                } else {
+                    setError('Invalid admin credentials');
+                    return;
+                }
             }
 
             const success = await window.electronAPI.login(username, password);
             if (success) {
                 const token = crypto.randomUUID();
                 localStorage.setItem('authToken', token);
+                sessionStorage.setItem('role', 'user');
                 onLoginSuccess();
             } else {
                 setError('Invalid username or password');
@@ -90,7 +110,7 @@ export default function LoginPage({
                 <div className="text-right text-xs text-blue-600 hover:underline mb-4">
                     <button
                         type="button"
-                        onClick={onForgotPassword}
+                        onClick={() => navigate('/forgot')}
                         className="flex items-center gap-1"
                     >
                         <HelpCircle className="w-4 h-4" />
@@ -113,7 +133,7 @@ export default function LoginPage({
                     <button
                         type="button"
                         className="text-blue-600 hover:underline"
-                        onClick={onSwitchToRegister}
+                        onClick={() => navigate('/register')}
                     >
                         Register here
                     </button>

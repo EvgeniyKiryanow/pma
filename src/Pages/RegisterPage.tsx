@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 type RegisterPageProps = {
     onRegisterSuccess: () => void;
@@ -10,6 +11,7 @@ export default function RegisterPage({ onRegisterSuccess, onSwitchToLogin }: Reg
     const [password, setPassword] = useState('');
     const [recoveryHint, setRecoveryHint] = useState('');
     const [error, setError] = useState('');
+    const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -70,7 +72,7 @@ export default function RegisterPage({ onRegisterSuccess, onSwitchToLogin }: Reg
                     <button
                         type="button"
                         className="text-blue-600 hover:underline"
-                        onClick={onSwitchToLogin}
+                        onClick={() => navigate('/login')}
                     >
                         Log in
                     </button>

@@ -71,6 +71,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('auth:reset-password', u, h, np),
     superuserLogin: (username: string, password: string): Promise<string | false> =>
         ipcRenderer.invoke('auth:superuser-login', username, password),
+    defaultAdminLogin: (username: string, password: string): Promise<string | false> =>
+        ipcRenderer.invoke('auth:default-admin-login', username, password),
+
+    // APPKEY
+    appKey: () => ipcRenderer.invoke('app:get-key'),
 
     // Comments
     getUserComments: (userId: number) => ipcRenderer.invoke('comments:get-user-comments', userId),

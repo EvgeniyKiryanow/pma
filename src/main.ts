@@ -9,7 +9,9 @@ import fs from 'fs';
 import { exec, execFile } from 'child_process';
 import { ipcMain } from 'electron';
 import { initPythonEnvSimplified } from './helpers/pythonInstallerHelper';
-import { ensureSuperuser } from './ipc/ensureSuperuserHandler';
+import { ensureSuperuser } from './ipc/auth/ensureSuperuserHandler';
+import { ensureDefaultAdmin } from './ipc/auth/ensureDefaultAdmin';
+import { ensureAppIdentity } from './ipc/app/initAppIdentity';
 
 // ✅ Import our updater functions
 import { setupAutoUpdater, autoCheckOnStartup } from './autoUpdaterHandler';
@@ -181,8 +183,9 @@ app.whenReady().then(async () => {
     await initializeDb();
     await upgradeDbSchema();
 
-    await ensureSuperuser(); // ✅ Create superuser + migrate safely
-
+    await ensureAppIdentity();
+    await ensureSuperuser();
+    await ensureDefaultAdmin();
     copyAllTemplates();
     // setupAutoUpdater();
     createWindow();

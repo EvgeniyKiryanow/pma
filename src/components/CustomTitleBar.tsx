@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X, RotateCcw, Upload, Trash2, Download, Minus, Maximize2 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import { useI18nStore } from '../stores/i18nStore';
 
@@ -8,6 +9,14 @@ export default function CustomTitleBar() {
     const [checking, setChecking] = useState(false);
     const [hasUser, setHasUser] = useState<boolean | null>(null);
     const { t } = useI18nStore();
+    const [isDefaultAdmin, setIsDefaultAdmin] = useState(false);
+    const navigate = useNavigate();
+    const location = useLocation();
+    const isOnAdminPanel = location.pathname === '/default-admin';
+
+    useEffect(() => {
+        setIsDefaultAdmin(sessionStorage.getItem('role') === 'admin');
+    }, []);
 
     useEffect(() => {
         window.electronAPI.getAppVersion().then(setVersion);
@@ -70,6 +79,26 @@ export default function CustomTitleBar() {
                 style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
                 {/* Uncomment if you want update button */}
+                {isOnAdminPanel ? (
+                    <button
+                        className="p-1 hover:bg-indigo-600 rounded"
+                        title={t('titleBar.returnToApp')}
+                        onClick={() => navigate('/')}
+                    >
+                        ⬅️
+                    </button>
+                ) : (
+                    isDefaultAdmin && (
+                        <button
+                            className="p-1 hover:bg-indigo-600 rounded"
+                            title={t('titleBar.adminPanel')}
+                            onClick={() => navigate('/default-admin')}
+                        >
+                            🛠️
+                        </button>
+                    )
+                )}
+
                 <button
                     className="p-1 hover:bg-blue-600 rounded"
                     title={t('titleBar.updateCheck')}
