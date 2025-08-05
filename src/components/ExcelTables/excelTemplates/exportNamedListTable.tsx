@@ -2,6 +2,8 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { useNamedListStore } from '../../../stores/useNamedListStore';
 import { useVyklyuchennyaStore } from '../../../stores/useVyklyuchennyaStore';
+import { useRozporyadzhennyaStore } from '../../../stores/useRozporyadzhennyaStore';
+
 import { useUserStore } from '../../../stores/userStore';
 export async function exportNamedListTable() {
     const { activeKey, tables } = useNamedListStore.getState();
@@ -10,6 +12,8 @@ export async function exportNamedListTable() {
         return;
     }
     const { list: vyklyuchennyaList } = useVyklyuchennyaStore.getState();
+    const { entries: rozporyadzhennyaList } = useRozporyadzhennyaStore.getState();
+
     const users = useUserStore.getState().users;
     const tableData = tables[activeKey];
     const [year, monthStr] = activeKey.split('-');
@@ -226,33 +230,55 @@ export async function exportNamedListTable() {
     while (chunkIndex < tableData.length) {
         const chunk = tableData.slice(chunkIndex, chunkIndex + chunkSize).map((row: any) => {
             const matchedUser = users.find(
-                (u) =>
-                    u.fullName === row.fullName ||
-                    (u.shpkNumber && u.shpkNumber === row.shpkNumber),
+                (u) => u.fullName === row.fullName && u.rank && u.rank === row.rank,
             );
-
             if (!matchedUser) return row;
 
+            // First, check vyklyuchennya (regular)
             const exclusion = vyklyuchennyaList.find((v) => v.userId === matchedUser.id);
-            if (!exclusion) return row;
+            if (exclusion) {
+                const exclusionDate = new Date(exclusion.periodFrom);
+                const exclusionStartIndex = Array.from({ length: dayCount }, (_, i) => {
+                    const d = new Date(Number(year), month - 1, i + 1);
+                    return d >= exclusionDate;
+                }).findIndex(Boolean);
 
-            const exclusionDate = new Date(exclusion.periodFrom);
-            const exclusionStartIndex = Array.from({ length: dayCount }, (_, i) => i).find((i) => {
-                const d = new Date(Number(year), month - 1, i + 1);
-                return d >= exclusionDate;
-            });
+                if (exclusionStartIndex !== -1) {
+                    return {
+                        ...row,
+                        exclusion: {
+                            description: exclusion.description,
+                            periodFrom: exclusion.periodFrom,
+                            startIndex: exclusionStartIndex,
+                        },
+                    };
+                }
+            }
 
-            return {
-                ...row,
-                exclusion:
-                    exclusionStartIndex != null
-                        ? {
-                              description: exclusion.description,
-                              periodFrom: exclusion.periodFrom,
-                              startIndex: exclusionStartIndex,
-                          }
-                        : undefined,
-            };
+            // Then check RozporyadzhennyaStore
+            const orderExclusion = rozporyadzhennyaList.find(
+                (o: any) => o.userId === matchedUser.id,
+            );
+            if (orderExclusion) {
+                const orderStart = new Date(orderExclusion.period.from);
+                const exclusionStartIndex = Array.from({ length: dayCount }, (_, i) => {
+                    const d = new Date(Number(year), month - 1, i + 1);
+                    return d >= orderStart;
+                }).findIndex(Boolean);
+
+                if (exclusionStartIndex !== -1) {
+                    return {
+                        ...row,
+                        exclusion: {
+                            description: orderExclusion.description,
+                            periodFrom: orderExclusion.period.from,
+                            startIndex: exclusionStartIndex,
+                        },
+                    };
+                }
+            }
+
+            return row;
         });
 
         if (chunkIndex !== 0) {

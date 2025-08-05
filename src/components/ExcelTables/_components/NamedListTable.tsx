@@ -529,9 +529,9 @@ export function NamedListTable() {
                                                     const cells: JSX.Element[] = [];
                                                     const matchedUser = users.find(
                                                         (u) =>
-                                                            u.fullName === row.fullName ||
-                                                            (!!u.shpkNumber &&
-                                                                u.shpkNumber === row.shpkNumber),
+                                                            u.fullName === row.fullName &&
+                                                            !!u.rank &&
+                                                            u.rank === row.rank,
                                                     );
 
                                                     let exclusion:
@@ -618,9 +618,8 @@ export function NamedListTable() {
                                                                     colSpan={colSpan}
                                                                     className="border p-1 text-[11px] text-left align-top whitespace-pre-line"
                                                                 >
-                                                                    {exclusion.description}
-                                                                    <br />
-                                                                    Наказ {exclusion.periodFrom}
+                                                                    {exclusion.description}{' '}
+                                                                    {exclusion.periodFrom}
                                                                 </td>,
                                                             );
                                                             break; // stop loop after merged cell
