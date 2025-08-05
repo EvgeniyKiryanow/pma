@@ -5,6 +5,7 @@ export type AttendanceRow = {
     rank: string;
     fullName: string;
     attendance: string[];
+    shpkNumber: string;
 };
 
 type NamedListStore = {

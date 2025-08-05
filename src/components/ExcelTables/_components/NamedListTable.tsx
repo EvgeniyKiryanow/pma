@@ -65,18 +65,56 @@ export function NamedListTable() {
         }
         return [selYear, selMonth];
     }, [activeKey, selYear, selMonth]);
-
     useEffect(() => {
+        const store = useNamedListStore.getState();
+        let applied = false;
+
         const load = async () => {
-            const store = useNamedListStore.getState();
-            if (store.loadedOnce) return;
-            await store.loadAllTables();
-            const keys = Object.keys(store.tables);
-            if (keys.length > 0 && !store.activeKey) {
-                store.setActiveKey(keys[0]);
+            if (!store.loadedOnce) {
+                await store.loadAllTables();
+
+                const keys = Object.keys(store.tables);
+                if (keys.length > 0 && !store.activeKey) {
+                    store.setActiveKey(keys[0]);
+                }
             }
         };
+
+        const checkAndApplyStatuses = async () => {
+            const now = new Date();
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+
+            if (applied || hour < 10) return;
+
+            const todayKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+            const store = useNamedListStore.getState();
+            const currentRows = store.tables[todayKey];
+            let { activeKey } = store;
+
+            // ✅ Ensure activeKey is set to todayKey if not set
+            if (!activeKey && currentRows) {
+                useNamedListStore.getState().setActiveKey(todayKey);
+                activeKey = todayKey;
+            }
+
+            if (
+                activeKey === todayKey &&
+                currentRows &&
+                currentRows.some((r) => r.attendance[now.getDate() - 1] === '')
+            ) {
+                console.log('⏰ Auto applying statuses after 13:45...');
+                console.debug('[Auto Apply Check]', { hour, minute, applied, activeKey, todayKey });
+
+                await applyTodayStatuses();
+                applied = true;
+            }
+        };
+
         load();
+
+        const interval = setInterval(checkAndApplyStatuses, 30_000); // check every 30 sec
+        return () => clearInterval(interval);
     }, []);
 
     const daysInActiveMonth = useMemo(() => {
@@ -100,6 +138,7 @@ export function NamedListTable() {
         const base = filteredUsers.map((u, i) => ({
             id: i + 1,
             rank: u.rank || '',
+            shpkNumber: u.shpkNumber ?? '',
             fullName: u.fullName || '',
             attendance: Array(daysInActiveMonth).fill(''),
         }));
@@ -126,6 +165,7 @@ export function NamedListTable() {
         while (base.length % ROWS_PER_TABLE !== 0) {
             base.push({
                 id: base.length + 1,
+                shpkNumber: '', // ✅ added
                 rank: '',
                 fullName: '',
                 attendance: Array(daysInActiveMonth).fill(''),
@@ -152,15 +192,13 @@ export function NamedListTable() {
         const dayIndex = today.getDate() - 1;
         const currentRows = useNamedListStore.getState().tables[activeKey];
         if (!currentRows) return;
-
         for (const user of users) {
             const short = statusToShort[user.soldierStatus as StatusExcel];
-            if (!short) continue;
+            if (!short || !user.shpkNumber) continue;
 
-            const row = currentRows.find((r) => r.fullName === user.fullName);
+            const row = currentRows.find((r) => r.shpkNumber === user.shpkNumber); // ✅ match by shpkNumber
             if (!row) continue;
 
-            // ✅ Only update if the current cell is empty
             if (!row.attendance[dayIndex]) {
                 await updateCell(activeKey, row.id, dayIndex, short);
             }
