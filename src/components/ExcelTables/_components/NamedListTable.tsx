@@ -66,10 +66,11 @@ export function NamedListTable() {
         return [selYear, selMonth];
     }, [activeKey, selYear, selMonth]);
     useEffect(() => {
-        const store = useNamedListStore.getState();
         let applied = false;
 
         const load = async () => {
+            const store = useNamedListStore.getState();
+
             if (!store.loadedOnce) {
                 await store.loadAllTables();
 
@@ -83,29 +84,27 @@ export function NamedListTable() {
         const checkAndApplyStatuses = async () => {
             const now = new Date();
             const hour = now.getHours();
-            const minute = now.getMinutes();
 
             if (applied || hour < 10) return;
 
-            const todayKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+            const todayKey = `${now.getFullYear()}-${(now.getMonth() + 1)
+                .toString()
+                .padStart(2, '0')}`;
             const store = useNamedListStore.getState();
             const currentRows = store.tables[todayKey];
-            let { activeKey } = store;
 
-            // ✅ Ensure activeKey is set to todayKey if not set
-            if (!activeKey && currentRows) {
-                useNamedListStore.getState().setActiveKey(todayKey);
-                activeKey = todayKey;
+            // ✅ Fix: Ensure activeKey is set to todayKey if not already
+            if (!store.activeKey && currentRows) {
+                store.setActiveKey(todayKey);
             }
 
+            const updatedStore = useNamedListStore.getState();
+
             if (
-                activeKey === todayKey &&
+                updatedStore.activeKey === todayKey &&
                 currentRows &&
                 currentRows.some((r) => r.attendance[now.getDate() - 1] === '')
             ) {
-                console.log('⏰ Auto applying statuses after 13:45...');
-                console.debug('[Auto Apply Check]', { hour, minute, applied, activeKey, todayKey });
-
                 await applyTodayStatuses();
                 applied = true;
             }
@@ -113,7 +112,7 @@ export function NamedListTable() {
 
         load();
 
-        const interval = setInterval(checkAndApplyStatuses, 30_000); // check every 30 sec
+        const interval = setInterval(checkAndApplyStatuses, 10_000);
         return () => clearInterval(interval);
     }, []);
 
@@ -190,37 +189,100 @@ export function NamedListTable() {
         createTable(key, base);
         setActiveKey(key);
     };
-
     const applyTodayStatuses = async () => {
-        if (!activeKey) return;
-
         const today = new Date();
         const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1)
             .toString()
             .padStart(2, '0')}`;
 
+        let { activeKey } = useNamedListStore.getState();
+        const { setActiveKey } = useNamedListStore.getState();
+        const { tables } = useNamedListStore.getState();
+
+        if (!activeKey && tables[todayKey]) {
+            setActiveKey(todayKey);
+            activeKey = todayKey;
+        }
+
+        if (!activeKey) {
+            console.warn('🚫 applyTodayStatuses: No activeKey');
+            return;
+        }
+
         if (activeKey !== todayKey) {
-            alert('❌ Поточна таблиця не відповідає сьогоднішньому місяцю.');
+            console.warn("🚫 applyTodayStatuses: Active key is not today's table");
             return;
         }
 
         const dayIndex = today.getDate() - 1;
         const currentRows = useNamedListStore.getState().tables[activeKey];
-        if (!currentRows) return;
+        if (!currentRows) {
+            console.warn('🚫 applyTodayStatuses: No current rows for today');
+            return;
+        }
+
+        const users = useUserStore.getState().users; // ✅ Fetch fresh users from store
+        let appliedCount = 0;
+
         for (const user of users) {
             const short = statusToShort[user.soldierStatus as StatusExcel];
             if (!short || !user.shpkNumber) continue;
 
-            const row = currentRows.find((r) => r.shpkNumber === user.shpkNumber); // ✅ match by shpkNumber
-            if (!row) continue;
+            const row = currentRows.find((r) => r.shpkNumber === user.shpkNumber);
+            if (!row) {
+                console.debug('🔍 User not found in table:', user.shpkNumber, user.fullName);
+                continue;
+            }
 
             if (!row.attendance[dayIndex]) {
+                console.debug('✅ Applying status:', {
+                    name: user.fullName,
+                    shpkNumber: user.shpkNumber,
+                    short,
+                    dayIndex,
+                });
                 await updateCell(activeKey, row.id, dayIndex, short);
+                appliedCount++;
             }
         }
 
-        alert('✅ Статуси підставлено лише в порожні клітинки');
+        if (appliedCount > 0) {
+            alert(`✅ Статуси підставлено в ІМЕННОМУ СПИСОКУ: ${appliedCount}`);
+        } else {
+            console.log('ℹ️ applyTodayStatuses: No statuses applied, possibly already filled.');
+        }
     };
+
+    // const applyTodayStatuses = async () => {
+    //     if (!activeKey) return;
+
+    //     const today = new Date();
+    //     const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1)
+    //         .toString()
+    //         .padStart(2, '0')}`;
+
+    //     if (activeKey !== todayKey) {
+    //         alert('❌ Поточна таблиця не відповідає сьогоднішньому місяцю.');
+    //         return;
+    //     }
+
+    //     const dayIndex = today.getDate() - 1;
+    //     const currentRows = useNamedListStore.getState().tables[activeKey];
+    //     if (!currentRows) return;
+    //     for (const user of users) {
+    //         const short = statusToShort[user.soldierStatus as StatusExcel];
+    //         if (!short || !user.shpkNumber) continue;
+
+    //         const row = currentRows.find((r) => r.shpkNumber === user.shpkNumber); // ✅ match by shpkNumber
+    //         if (!row) continue;
+
+    //         if (!row.attendance[dayIndex]) {
+    //             await updateCell(activeKey, row.id, dayIndex, short);
+    //         }
+    //     }
+
+    //     alert('✅ Статуси підставлено лише в порожні клітинки');
+    // };
 
     const currentRows = useMemo(() => {
         return activeKey && tables[activeKey] ? tables[activeKey] : [];
