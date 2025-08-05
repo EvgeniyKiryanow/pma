@@ -165,4 +165,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     users: {
         getOne: (id: number) => ipcRenderer.invoke('users:get-one', id),
     },
+
+    // Named List Tables
+    namedList: {
+        create: (key: string, data: any) => ipcRenderer.invoke('named-list:create', key, data),
+        updateCell: (key: string, rowId: number, dayIndex: number, value: string) =>
+            ipcRenderer.invoke('named-list:update-cell', key, rowId, dayIndex, value),
+        getAll: () => ipcRenderer.invoke('named-list:get-all'),
+        delete: (key: string) => ipcRenderer.invoke('named-list:delete', key),
+    },
 });

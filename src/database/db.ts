@@ -40,6 +40,14 @@ export async function initializeDb() {
 `);
 
     await db.exec(`
+CREATE TABLE IF NOT EXISTS named_list_tables (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT NOT NULL UNIQUE,             -- e.g. "2025-08"
+    data TEXT NOT NULL                    -- JSON.stringify of the full table
+);
+`);
+
+    await db.exec(`
   CREATE TABLE IF NOT EXISTS default_admin (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,

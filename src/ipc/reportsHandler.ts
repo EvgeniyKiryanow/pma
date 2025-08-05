@@ -365,4 +365,125 @@ export function registerReportsHandlers() {
             throw error;
         }
     });
+
+    // іменний список
+    ipcMain.handle('named-list:create', async (_event, key: string, data: any) => {
+        const db = await getDb();
+
+        const exists = await db.get(`SELECT 1 FROM named_list_tables WHERE key = ?`, key);
+        if (exists) {
+            console.warn(`[NamedList] ⚠️ Table with key=${key} already exists`);
+            return { success: false, message: 'Table already exists' };
+        }
+
+        await db.run(
+            `INSERT INTO named_list_tables (key, data) VALUES (?, ?)`,
+            key,
+            JSON.stringify(data),
+        );
+
+        try {
+            const fullEntry = {
+                key,
+                data,
+            };
+
+            await db.run(
+                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+             VALUES (?, ?, ?, ?, ?)`,
+                'named_list_tables',
+                key,
+                'insert',
+                JSON.stringify(fullEntry),
+                'local',
+            );
+        } catch (err) {
+            console.warn(`[NamedList] ❌ Logging insert failed for key=${key}`, err);
+        }
+
+        return { success: true };
+    });
+
+    ipcMain.handle(
+        'named-list:update-cell',
+        async (_event, key: string, rowId: number, dayIndex: number, value: string) => {
+            const db = await getDb();
+            const row = await db.get(`SELECT data FROM named_list_tables WHERE key = ?`, key);
+            if (!row) return { success: false, message: 'Table not found' };
+
+            const data = JSON.parse(row.data);
+            const rowToUpdate = data.find((r: any) => r.id === rowId);
+            if (!rowToUpdate) return { success: false, message: 'Row not found' };
+
+            rowToUpdate.attendance[dayIndex] = value;
+
+            await db.run(
+                `UPDATE named_list_tables SET data = ? WHERE key = ?`,
+                JSON.stringify(data),
+                key,
+            );
+
+            try {
+                const fullEntry = {
+                    key,
+                    updatedRowId: rowId,
+                    updatedDayIndex: dayIndex,
+                    newValue: value,
+                    fullData: data,
+                };
+
+                await db.run(
+                    `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+                 VALUES (?, ?, ?, ?, ?)`,
+                    'named_list_tables',
+                    key,
+                    'update',
+                    JSON.stringify(fullEntry),
+                    'local',
+                );
+            } catch (err) {
+                console.warn(`[NamedList] ❌ Logging update failed for key=${key}`, err);
+            }
+
+            return { success: true };
+        },
+    );
+    ipcMain.handle('named-list:delete', async (_event, key: string) => {
+        const db = await getDb();
+
+        const row = await db.get(`SELECT data FROM named_list_tables WHERE key = ?`, key);
+        if (!row) {
+            console.warn(`[NamedList] ⚠️ delete: no data for key=${key}`);
+            return { success: false };
+        }
+
+        await db.run(`DELETE FROM named_list_tables WHERE key = ?`, key);
+
+        try {
+            const fullEntry = {
+                key,
+                data: JSON.parse(row.data),
+            };
+
+            await db.run(
+                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
+             VALUES (?, ?, ?, ?, ?)`,
+                'named_list_tables',
+                key,
+                'delete',
+                JSON.stringify(fullEntry),
+                'local',
+            );
+        } catch (err) {
+            console.warn(`[NamedList] ❌ Logging delete failed for key=${key}`, err);
+        }
+
+        return { success: true };
+    });
+
+    ipcMain.handle('named-list:get-all', async () => {
+        const db = await getDb();
+        const rows = await db.all(`SELECT * FROM named_list_tables`);
+        return rows.map((r: any) => ({ key: r.key, data: JSON.parse(r.data) }));
+    });
 }

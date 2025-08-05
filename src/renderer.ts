@@ -8,6 +8,18 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
     interface Window {
         electronAPI: {
+            // ... inside electronAPI
+            namedList: {
+                create: (key: string, data: any) => Promise<void>;
+                updateCell: (
+                    key: string,
+                    rowId: number,
+                    dayIndex: number,
+                    value: string,
+                ) => Promise<void>;
+                getAll: () => Promise<Record<string, any[]>>;
+                delete: (key: string) => Promise<void>;
+            };
             users: {
                 getOne: (id: number) => Promise<any>;
             };

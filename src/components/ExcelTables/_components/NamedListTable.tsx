@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useUserStore } from '../../../stores/userStore';
 import { useNamedListStore } from '../../../stores/useNamedListStore';
 
@@ -22,7 +22,8 @@ type MonthKey = `${number}-${number}`; // e.g. "2025-08"
 
 export function NamedListTable() {
     const users = useUserStore((s) => s.users);
-    const { tables, activeKey, setActiveKey, createTable, updateCell } = useNamedListStore();
+    const { tables, activeKey, setActiveKey, createTable, updateCell, loadAllTables } =
+        useNamedListStore();
 
     // Controls for creating
     const [selMonth, setSelMonth] = useState<number>(new Date().getMonth());
@@ -36,6 +37,15 @@ export function NamedListTable() {
         }
         return [selYear, selMonth];
     }, [activeKey, selYear, selMonth]);
+    useEffect(() => {
+        (async () => {
+            await loadAllTables();
+            const keys = Object.keys(useNamedListStore.getState().tables);
+            if (keys.length > 0 && !useNamedListStore.getState().activeKey) {
+                useNamedListStore.getState().setActiveKey(keys[0]);
+            }
+        })();
+    }, []);
 
     // Real number of days in the active month
     const daysInActiveMonth = useMemo(() => {
