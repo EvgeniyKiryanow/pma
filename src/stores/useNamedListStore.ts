@@ -6,6 +6,11 @@ export type AttendanceRow = {
     fullName: string;
     attendance: string[];
     shpkNumber: string;
+    exclusion?: {
+        description: string;
+        periodFrom: string;
+        startIndex: number;
+    };
 };
 
 type NamedListStore = {

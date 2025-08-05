@@ -1,14 +1,16 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { useNamedListStore } from '../../../stores/useNamedListStore';
-
+import { useVyklyuchennyaStore } from '../../../stores/useVyklyuchennyaStore';
+import { useUserStore } from '../../../stores/userStore';
 export async function exportNamedListTable() {
     const { activeKey, tables } = useNamedListStore.getState();
     if (!activeKey || !tables[activeKey]) {
         alert('⚠️ Немає активної таблиці для експорту.');
         return;
     }
-
+    const { list: vyklyuchennyaList } = useVyklyuchennyaStore.getState();
+    const users = useUserStore.getState().users;
     const tableData = tables[activeKey];
     const [year, monthStr] = activeKey.split('-');
     const month = parseInt(monthStr, 10);
@@ -33,7 +35,7 @@ export async function exportNamedListTable() {
     const sheet = workbook.addWorksheet('Іменний список');
 
     // Styling helpers
-    const center = { vertical: 'middle', horizontal: 'center' };
+    const center = { vertical: 'middle' as const, horizontal: 'center' as const };
     const boldCenter = { ...center, wrapText: true };
 
     const addTitle = () => {
@@ -124,20 +126,82 @@ export async function exportNamedListTable() {
 
     const addChunkRows = (rows: any[]) => {
         for (const row of rows) {
+            const baseValues = [row.id, row.rank, row.fullName];
+
+            // 🛑 Handle exclusion logic
+            if (row.exclusion && typeof row.exclusion.startIndex === 'number') {
+                const startIndex = row.exclusion.startIndex;
+                const attendanceValues = [];
+
+                for (let i = 0; i < dayCount; i++) {
+                    if (i === startIndex) {
+                        attendanceValues.push(
+                            `${row.exclusion.description}${row.exclusion.periodFrom}`,
+                        );
+                    } else if (i > startIndex) {
+                        attendanceValues.push(null);
+                    } else {
+                        attendanceValues.push(row.attendance[i]?.toUpperCase() || '');
+                    }
+                }
+
+                const values = [...baseValues, ...attendanceValues];
+                const newRow = sheet.addRow(values);
+                newRow.height = 36;
+
+                for (let i = 1; i <= values.length; i++) {
+                    const cell = newRow.getCell(i);
+
+                    if (i === 4 + startIndex) {
+                        // 📌 Exclusion cell
+                        cell.alignment = {
+                            vertical: 'top',
+                            horizontal: 'left',
+                            wrapText: true,
+                            indent: 1,
+                        };
+                        cell.font = { size: 10, italic: true };
+                    } else {
+                        cell.alignment = {
+                            vertical: 'middle',
+                            horizontal: 'center',
+                            wrapText: true,
+                        };
+                        cell.font = { size: 10 };
+                    }
+
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' },
+                    };
+                }
+
+                // 📌 Merge exclusion cell across remaining columns
+                const startCol = 4 + startIndex;
+                const endCol = 3 + dayCount;
+                sheet.mergeCells(
+                    newRow.getCell(startCol).address + ':' + newRow.getCell(endCol).address,
+                );
+
+                continue; // done with this row
+            }
+
+            // ✅ Normal (non-excluded) row
             const values = [
                 row.id,
                 row.rank,
                 row.fullName,
-                ...row.attendance.slice(0, dayCount).map((v) => v.toUpperCase()),
+                ...row.attendance.slice(0, dayCount).map((v: any) => v.toUpperCase()),
             ];
             const newRow = sheet.addRow(values);
-            newRow.height = 22; // 🔼 slightly taller for visibility
+            newRow.height = 22;
 
             for (let i = 1; i <= values.length; i++) {
                 const cell = newRow.getCell(i);
                 cell.alignment = { vertical: 'middle', horizontal: 'center' };
 
-                // Only make attendance values bold (after 3rd col)
                 if (i > 3 && values[i - 1]) {
                     cell.font = { size: 10, bold: true };
                 } else {
@@ -160,7 +224,36 @@ export async function exportNamedListTable() {
     addTitle();
 
     while (chunkIndex < tableData.length) {
-        const chunk = tableData.slice(chunkIndex, chunkIndex + chunkSize);
+        const chunk = tableData.slice(chunkIndex, chunkIndex + chunkSize).map((row: any) => {
+            const matchedUser = users.find(
+                (u) =>
+                    u.fullName === row.fullName ||
+                    (u.shpkNumber && u.shpkNumber === row.shpkNumber),
+            );
+
+            if (!matchedUser) return row;
+
+            const exclusion = vyklyuchennyaList.find((v) => v.userId === matchedUser.id);
+            if (!exclusion) return row;
+
+            const exclusionDate = new Date(exclusion.periodFrom);
+            const exclusionStartIndex = Array.from({ length: dayCount }, (_, i) => i).find((i) => {
+                const d = new Date(Number(year), month - 1, i + 1);
+                return d >= exclusionDate;
+            });
+
+            return {
+                ...row,
+                exclusion:
+                    exclusionStartIndex != null
+                        ? {
+                              description: exclusion.description,
+                              periodFrom: exclusion.periodFrom,
+                              startIndex: exclusionStartIndex,
+                          }
+                        : undefined,
+            };
+        });
 
         if (chunkIndex !== 0) {
             const contRow = sheet.addRow(['Продовження Додатка 4']);

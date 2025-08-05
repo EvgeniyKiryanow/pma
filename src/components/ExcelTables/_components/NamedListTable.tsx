@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, JSX } from 'react';
 import { useUserStore } from '../../../stores/userStore';
-import { useNamedListStore } from '../../../stores/useNamedListStore';
+import { AttendanceRow, useNamedListStore } from '../../../stores/useNamedListStore';
 import { StatusExcel } from '../../../utils/excelUserStatuses';
 import { useVyklyuchennyaStore } from '../../../stores/useVyklyuchennyaStore';
 
@@ -226,13 +226,23 @@ export function NamedListTable() {
 
         const base = filteredUsers.map((u, i) => {
             const old = existingRows.find((r) => r.fullName === u.fullName);
-
             const attendance = old ? [...old.attendance] : Array(daysInActiveMonth).fill('');
 
-            if (isSameDay && !attendance[todayIndex]) {
-                const short = statusToShort[u.soldierStatus as StatusExcel];
-                if (short) {
-                    attendance[todayIndex] = short;
+            let exclusionData: AttendanceRow['exclusion'] | undefined = undefined;
+
+            const matchedExclusion = vyklyuchennyaList.find((v) => v.userId === u.id);
+            if (matchedExclusion) {
+                const exclusionDate = new Date(matchedExclusion.periodFrom);
+                for (let i = 0; i < daysInActiveMonth; i++) {
+                    const dayDate = new Date(selYear, selMonth, i + 1);
+                    if (dayDate >= exclusionDate) {
+                        exclusionData = {
+                            description: matchedExclusion.description,
+                            periodFrom: matchedExclusion.periodFrom,
+                            startIndex: i,
+                        };
+                        break;
+                    }
                 }
             }
 
@@ -242,6 +252,7 @@ export function NamedListTable() {
                 shpkNumber: u.shpkNumber ?? '',
                 fullName: u.fullName || '',
                 attendance,
+                exclusion: exclusionData,
             };
         });
 
@@ -252,6 +263,7 @@ export function NamedListTable() {
                 shpkNumber: '',
                 fullName: '',
                 attendance: Array(daysInActiveMonth).fill(''),
+                exclusion: undefined,
             });
         }
 
@@ -486,24 +498,6 @@ export function NamedListTable() {
                                 </thead>
                                 <tbody>
                                     {group.map((row) => {
-                                        const matchedUser = users.find(
-                                            (u) =>
-                                                u.fullName === row.fullName ||
-                                                (!!u.shpkNumber && u.shpkNumber === row.shpkNumber),
-                                        );
-
-                                        const exclusion =
-                                            matchedUser &&
-                                            vyklyuchennyaList.find(
-                                                (v) => v.userId === matchedUser.id,
-                                            );
-
-                                        if (matchedUser && exclusion) {
-                                            console.warn(
-                                                `🛑 [Виключення] ${matchedUser.fullName} — ${exclusion.description} (з ${exclusion.periodFrom})`,
-                                            );
-                                        }
-
                                         return (
                                             <tr key={row.id} className="hover:bg-gray-50">
                                                 <td className="border p-1">{row.id}</td>
