@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useUserStore } from '../../../stores/userStore';
 import { useNamedListStore } from '../../../stores/useNamedListStore';
+import { StatusExcel } from '../../../utils/excelUserStatuses';
 
 const ROWS_PER_TABLE = 14;
 const months = [
@@ -17,6 +18,34 @@ const months = [
     'Листопад',
     'Грудень',
 ];
+const statusToShort: Record<StatusExcel, string> = {
+    [StatusExcel.ABSENT_REHAB]: 'вп',
+    [StatusExcel.ABSENT_REHAB_LEAVE]: 'вп',
+    [StatusExcel.ABSENT_BUSINESS_TRIP]: 'вд',
+    [StatusExcel.ABSENT_HOSPITALIZED]: 'гп',
+    [StatusExcel.ABSENT_MEDICAL_COMPANY]: 'гп',
+    [StatusExcel.ABSENT_WOUNDED]: 'гп',
+    [StatusExcel.ABSENT_SZO]: 'сзч',
+    [StatusExcel.NON_COMBAT_REFUSERS]: 'сзч',
+    [StatusExcel.ABSENT_KIA]: 'заг',
+    [StatusExcel.ABSENT_MIA]: 'збв',
+    [StatusExcel.ABSENT_VLK]: 'влк',
+    [StatusExcel.MANAGEMENT]: '',
+    [StatusExcel.SUPPLY_GENERAL]: '',
+    [StatusExcel.SUPPLY_COMBAT]: '',
+    [StatusExcel.NON_COMBAT_NEWCOMERS]: '',
+    [StatusExcel.NON_COMBAT_LIMITED_FITNESS]: '',
+    [StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT]: '',
+    [StatusExcel.HAVE_OFFER_TO_HOS]: '',
+    [StatusExcel.ABSENT_REHABED_ON]: 'зв',
+    [StatusExcel.POSITIONS_INFANTRY]: '',
+    [StatusExcel.POSITIONS_UAV]: '',
+    [StatusExcel.POSITIONS_BRONEGROUP]: 'бч',
+    [StatusExcel.POSITIONS_CREW]: '',
+    [StatusExcel.POSITIONS_CALCULATION]: '',
+    [StatusExcel.POSITIONS_RESERVE_INFANTRY]: '',
+    [StatusExcel.NO_STATUS]: '',
+};
 
 type MonthKey = `${number}-${number}`; // e.g. "2025-08"
 
@@ -24,7 +53,7 @@ export function NamedListTable() {
     const users = useUserStore((s) => s.users);
     const { tables, activeKey, setActiveKey, createTable, updateCell, loadAllTables, deleteTable } =
         useNamedListStore();
-
+    console.log(users, 'users');
     // Controls for creating
     const [selMonth, setSelMonth] = useState<number>(new Date().getMonth());
     const [selYear, setSelYear] = useState<number>(new Date().getFullYear());
@@ -53,7 +82,9 @@ export function NamedListTable() {
     }, [activeYear, activeMonthIndex]);
 
     // Helper to build a MonthKey
-    const mk = (mo: number, yr: number): MonthKey => `${yr}-${mo + 1}` as MonthKey;
+    // Build "YYYY-MM" key always with padded month
+    const mk = (mo: number, yr: number): MonthKey =>
+        `${yr}-${(mo + 1).toString().padStart(2, '0')}` as MonthKey;
 
     // Create or switch to a table
     const handleCreate = () => {
@@ -62,14 +93,30 @@ export function NamedListTable() {
             return setActiveKey(key);
         }
 
-        // Build base rows with correct length attendance
         const base = users.map((u, i) => ({
             id: i + 1,
             rank: u.rank || '',
             fullName: u.fullName || '',
             attendance: Array(daysInActiveMonth).fill(''),
         }));
-        // pad to multiple of 14
+
+        const today = new Date();
+        const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+        const isSameDay = key === todayKey;
+
+        if (isSameDay) {
+            const todayIndex = today.getDate() - 1;
+            for (const row of base) {
+                const user = users.find((u) => u.fullName === row.fullName);
+                if (!user) continue;
+
+                const short = statusToShort[user.soldierStatus as StatusExcel];
+                if (short) {
+                    row.attendance[todayIndex] = short;
+                }
+            }
+        }
+
         while (base.length % ROWS_PER_TABLE !== 0) {
             base.push({
                 id: base.length + 1,
@@ -81,6 +128,33 @@ export function NamedListTable() {
 
         createTable(key, base);
         setActiveKey(key);
+    };
+
+    const applyTodayStatuses = async () => {
+        if (!activeKey) return;
+
+        const today = new Date();
+        const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+        if (activeKey !== todayKey) {
+            alert('❌ Поточна таблиця не відповідає сьогоднішньому місяцю.');
+            return;
+        }
+
+        const dayIndex = today.getDate() - 1;
+        const currentRows = useNamedListStore.getState().tables[activeKey];
+        if (!currentRows) return;
+
+        for (const user of users) {
+            const short = statusToShort[user.soldierStatus as StatusExcel];
+            if (!short) continue;
+
+            const row = currentRows.find((r) => r.fullName === user.fullName);
+            if (!row) continue;
+
+            await updateCell(activeKey, row.id, dayIndex, short);
+        }
+
+        alert('✅ Статуси підставлено на сьогодні');
     };
 
     // Rows for the active table
@@ -166,6 +240,12 @@ export function NamedListTable() {
                     </div>
                 )}
             </div>
+            <button
+                onClick={applyTodayStatuses}
+                className="px-3 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
+            >
+                📌 Підставити статуси на сьогодні
+            </button>
 
             {!activeKey && (
                 <div className="text-center text-gray-500 italic">Створіть або оберіть таблицю</div>
