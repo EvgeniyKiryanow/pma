@@ -25,18 +25,18 @@ const statusToShort: Record<StatusExcel, string> = {
     [StatusExcel.ABSENT_BUSINESS_TRIP]: 'вд',
     [StatusExcel.ABSENT_HOSPITALIZED]: 'гп',
     [StatusExcel.ABSENT_MEDICAL_COMPANY]: 'гп',
-    [StatusExcel.ABSENT_WOUNDED]: 'гп',
+    [StatusExcel.ABSENT_WOUNDED]: '300',
     [StatusExcel.ABSENT_SZO]: 'сзч',
-    [StatusExcel.ABSENT_KIA]: 'заг',
-    [StatusExcel.ABSENT_MIA]: 'збв',
+    [StatusExcel.ABSENT_KIA]: '200',
+    [StatusExcel.ABSENT_MIA]: '500',
     [StatusExcel.ABSENT_VLK]: 'влк',
     [StatusExcel.MANAGEMENT]: 'воп',
     [StatusExcel.SUPPLY_COMBAT]: 'воп',
     [StatusExcel.SUPPLY_GENERAL]: 'воп',
-    [StatusExcel.NON_COMBAT_NEWCOMERS]: '',
-    [StatusExcel.NON_COMBAT_LIMITED_FITNESS]: '',
-    [StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT]: '',
-    [StatusExcel.HAVE_OFFER_TO_HOS]: '',
+    [StatusExcel.NON_COMBAT_NEWCOMERS]: '+',
+    [StatusExcel.NON_COMBAT_LIMITED_FITNESS]: '+',
+    [StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT]: '+',
+    [StatusExcel.HAVE_OFFER_TO_HOS]: '+',
     [StatusExcel.ABSENT_REHABED_ON]: 'зв',
     [StatusExcel.POSITIONS_INFANTRY]: 'воп',
     [StatusExcel.POSITIONS_UAV]: 'воп',
@@ -130,43 +130,58 @@ export function NamedListTable() {
             return setActiveKey(key);
         }
 
+        const today = new Date();
+        const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+        const isSameDay = key === todayKey;
+        const todayIndex = today.getDate() - 1;
+
+        const existingRows = tables[todayKey] || [];
+
         const filteredUsers = users.filter((u) => {
             const raw = u.shpkNumber?.toString().trim() || '';
-            return /^[0-9]+$/.test(raw);
+            const isValid = /^[0-9]+$/.test(raw);
+
+            // ✅ Preserve users without shpkNumber only if they had values before today
+            if (!isValid) {
+                const old = existingRows.find((r) => r.fullName === u.fullName);
+                if (!old) return false;
+
+                const hasAny = old.attendance
+                    .slice(0, todayIndex)
+                    .some((val) => val && val.trim() !== '');
+                return hasAny;
+            }
+
+            return true;
         });
 
-        const base = filteredUsers.map((u, i) => ({
-            id: i + 1,
-            rank: u.rank || '',
-            shpkNumber: u.shpkNumber ?? '',
-            fullName: u.fullName || '',
-            attendance: Array(daysInActiveMonth).fill(''),
-        }));
+        const base = filteredUsers.map((u, i) => {
+            const old = existingRows.find((r) => r.fullName === u.fullName);
 
-        const today = new Date();
-        const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1)
-            .toString()
-            .padStart(2, '0')}`;
-        const isSameDay = key === todayKey;
+            const attendance = old ? [...old.attendance] : Array(daysInActiveMonth).fill('');
 
-        if (isSameDay) {
-            const todayIndex = today.getDate() - 1;
-            for (const row of base) {
-                const user = users.find((u) => u.fullName === row.fullName);
-                if (!user) continue;
-
-                const short = statusToShort[user.soldierStatus as StatusExcel];
+            // ✅ Only apply today's status if day matches and cell is empty
+            if (isSameDay && !attendance[todayIndex]) {
+                const short = statusToShort[u.soldierStatus as StatusExcel];
                 if (short) {
-                    row.attendance[todayIndex] = short;
+                    attendance[todayIndex] = short;
                 }
             }
-        }
+
+            return {
+                id: i + 1,
+                rank: u.rank || '',
+                shpkNumber: u.shpkNumber ?? '',
+                fullName: u.fullName || '',
+                attendance,
+            };
+        });
 
         while (base.length % ROWS_PER_TABLE !== 0) {
             base.push({
                 id: base.length + 1,
-                shpkNumber: '', // ✅ added
                 rank: '',
+                shpkNumber: '',
                 fullName: '',
                 attendance: Array(daysInActiveMonth).fill(''),
             });
