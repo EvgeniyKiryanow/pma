@@ -132,9 +132,7 @@ export default function RozporyadzhennyaModal({ onClose }: { onClose: () => void
                             />
                         </div>
                         <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700">
-                                до <span className="text-red-500">*</span>
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700">до</label>
                             <input
                                 type="date"
                                 value={period.to}

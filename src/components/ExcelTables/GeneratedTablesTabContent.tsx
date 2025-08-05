@@ -154,12 +154,6 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                         Оновлено: {new Date().toLocaleDateString()}
                                     </span>
                                 </div>
-
-                                {/* Main Table View */}
-                                <div className="overflow-x-auto">
-                                    <NamedListTable />
-                                </div>
-
                                 {/* 🔽 Export Button */}
                                 <div className="p-4 border-t flex justify-end">
                                     <button
@@ -168,6 +162,11 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                     >
                                         📤 Експорт Іменного списку (.xlsx)
                                     </button>
+                                </div>
+
+                                {/* Main Table View */}
+                                <div className="overflow-x-auto">
+                                    <NamedListTable />
                                 </div>
                             </div>
                         )}

@@ -1,7 +1,8 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, JSX } from 'react';
 import { useUserStore } from '../../../stores/userStore';
 import { useNamedListStore } from '../../../stores/useNamedListStore';
 import { StatusExcel } from '../../../utils/excelUserStatuses';
+import { useVyklyuchennyaStore } from '../../../stores/useVyklyuchennyaStore';
 
 const ROWS_PER_TABLE = 14;
 const months = [
@@ -118,6 +119,8 @@ export function NamedListTable() {
     const [selMonth, setSelMonth] = useState<number>(new Date().getMonth());
     const [selYear, setSelYear] = useState<number>(new Date().getFullYear());
 
+    const vyklyuchennyaList = useVyklyuchennyaStore((s) => s.list);
+
     const [activeYear, activeMonthIndex] = useMemo((): [number, number] => {
         if (activeKey) {
             const [y, m] = activeKey.split('-').map(Number);
@@ -179,6 +182,9 @@ export function NamedListTable() {
 
         const interval = setInterval(checkAndApplyStatuses, 10_000);
         return () => clearInterval(interval);
+    }, []);
+    useEffect(() => {
+        useVyklyuchennyaStore.getState().fetchAll();
     }, []);
 
     const daysInActiveMonth = useMemo(() => {
@@ -423,6 +429,7 @@ export function NamedListTable() {
             )}
 
             {/* Render all chunks */}
+            {/* Render all chunks */}
             {activeKey &&
                 tableChunks.map((group, gi) => (
                     <div key={gi} className="space-y-4">
@@ -478,33 +485,120 @@ export function NamedListTable() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {group.map((row) => (
-                                        <tr key={row.id} className="hover:bg-gray-50">
-                                            <td className="border p-1">{row.id}</td>
-                                            <td className="border p-1">{row.rank}</td>
-                                            <td className="border p-1 text-left">{row.fullName}</td>
-                                            {row.attendance
-                                                .slice(0, daysInActiveMonth)
-                                                .map((val, di) => (
-                                                    <td key={di} className="border p-0.5">
-                                                        <input
-                                                            type="text"
-                                                            maxLength={3}
-                                                            value={val}
-                                                            onChange={(e) =>
-                                                                updateCell(
-                                                                    activeKey!,
-                                                                    row.id,
-                                                                    di,
-                                                                    e.target.value,
-                                                                )
+                                    {group.map((row) => {
+                                        const matchedUser = users.find(
+                                            (u) =>
+                                                u.fullName === row.fullName ||
+                                                (!!u.shpkNumber && u.shpkNumber === row.shpkNumber),
+                                        );
+
+                                        const exclusion =
+                                            matchedUser &&
+                                            vyklyuchennyaList.find(
+                                                (v) => v.userId === matchedUser.id,
+                                            );
+
+                                        if (matchedUser && exclusion) {
+                                            console.warn(
+                                                `🛑 [Виключення] ${matchedUser.fullName} — ${exclusion.description} (з ${exclusion.periodFrom})`,
+                                            );
+                                        }
+
+                                        return (
+                                            <tr key={row.id} className="hover:bg-gray-50">
+                                                <td className="border p-1">{row.id}</td>
+                                                <td className="border p-1">{row.rank}</td>
+                                                <td className="border p-1 text-left">
+                                                    {row.fullName}
+                                                </td>
+                                                {(() => {
+                                                    const cells: JSX.Element[] = [];
+                                                    const matchedUser = users.find(
+                                                        (u) =>
+                                                            u.fullName === row.fullName ||
+                                                            (!!u.shpkNumber &&
+                                                                u.shpkNumber === row.shpkNumber),
+                                                    );
+
+                                                    const exclusion =
+                                                        matchedUser &&
+                                                        vyklyuchennyaList.find(
+                                                            (v) => v.userId === matchedUser.id,
+                                                        );
+
+                                                    let exclusionStartIndex = -1;
+
+                                                    if (exclusion) {
+                                                        const exclusionDate = new Date(
+                                                            exclusion.periodFrom,
+                                                        );
+                                                        for (
+                                                            let i = 0;
+                                                            i < daysInActiveMonth;
+                                                            i++
+                                                        ) {
+                                                            const dayDate = new Date(
+                                                                activeYear,
+                                                                activeMonthIndex,
+                                                                i + 1,
+                                                            );
+                                                            if (dayDate >= exclusionDate) {
+                                                                exclusionStartIndex = i;
+                                                                break;
                                                             }
-                                                            className="w-full text-center text-xs bg-transparent outline-none border-none"
-                                                        />
-                                                    </td>
-                                                ))}
-                                        </tr>
-                                    ))}
+                                                        }
+                                                    }
+
+                                                    for (let di = 0; di < daysInActiveMonth; di++) {
+                                                        if (
+                                                            exclusion &&
+                                                            di === exclusionStartIndex
+                                                        ) {
+                                                            const colSpan = daysInActiveMonth - di;
+
+                                                            cells.push(
+                                                                <td
+                                                                    key={`excl-${di}`}
+                                                                    colSpan={colSpan}
+                                                                    className="border p-1 text-[11px] text-left align-top whitespace-pre-line"
+                                                                >
+                                                                    {exclusion.description}
+                                                                    <br />
+                                                                    Наказ {exclusion.periodFrom}
+                                                                </td>,
+                                                            );
+                                                            break; // merged cell rendered, stop loop
+                                                        }
+
+                                                        if (exclusion && di > exclusionStartIndex) {
+                                                            continue; // already merged, skip
+                                                        }
+
+                                                        cells.push(
+                                                            <td key={di} className="border p-0.5">
+                                                                <input
+                                                                    type="text"
+                                                                    maxLength={3}
+                                                                    value={row.attendance[di]}
+                                                                    onChange={(e) =>
+                                                                        updateCell(
+                                                                            activeKey!,
+                                                                            row.id,
+                                                                            di,
+                                                                            e.target.value,
+                                                                        )
+                                                                    }
+                                                                    className="w-full text-center text-xs bg-transparent outline-none border-none"
+                                                                />
+                                                            </td>,
+                                                        );
+                                                    }
+
+                                                    return cells;
+                                                })()}
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
