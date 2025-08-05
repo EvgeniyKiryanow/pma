@@ -10,6 +10,7 @@ import { generateAlternateCombatReportExcelTemplate } from './excelTemplates/gen
 import { useUserStore } from '../../stores/userStore';
 import { UnitStatsCalculator } from './_components/UnitStatsCalculator';
 import { NamedListTable } from './_components/NamedListTable';
+import { exportNamedListTable } from './excelTemplates/exportNamedListTable';
 
 type Props = {
     onRequestImportTab?: () => void; // ✅ new optional callback
@@ -153,11 +154,24 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                         Оновлено: {new Date().toLocaleDateString()}
                                     </span>
                                 </div>
+
+                                {/* Main Table View */}
                                 <div className="overflow-x-auto">
                                     <NamedListTable />
                                 </div>
+
+                                {/* 🔽 Export Button */}
+                                <div className="p-4 border-t flex justify-end">
+                                    <button
+                                        onClick={exportNamedListTable}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                                    >
+                                        📤 Експорт Іменного списку (.xlsx)
+                                    </button>
+                                </div>
                             </div>
                         )}
+
                         {activeTable === 'alternate' && (
                             <div className="bg-white rounded-xl shadow-lg border border-gray-200">
                                 <div className="px-6 py-4 border-b bg-gray-50 rounded-t-xl flex justify-between items-center">
