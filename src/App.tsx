@@ -1,5 +1,5 @@
 import './index.css';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Header from './layout/Header';
 import UserFormModalUpdate from './components/userFormModal';
 import { useUserStore } from './stores/userStore';
@@ -10,6 +10,8 @@ import InstructionsTab from './layout/InstrtuctionsTab';
 import ImportUsersTab from './layout/ImportUsersTab';
 import ShtatniPosadyTab from './layout/ShtatniPosadyTab';
 import ManagerTab from './layout/ManagerTab';
+import { startNamedListAutoApply } from './autoApplyNamedListStatuses';
+import { useNamedListStore } from './stores/useNamedListStore';
 
 export default function App() {
     const currentTab = useUserStore((s) => s.currentTab);
@@ -21,10 +23,25 @@ export default function App() {
     const isUserFormOpen = useUserStore((s) => s.isUserFormOpen);
     const editingUser = useUserStore((s) => s.editingUser);
     const closeUserForm = useUserStore((s) => s.closeUserForm);
-
+    const loadAllTables = useNamedListStore((s) => s.loadAllTables);
+    const loadedOnce = useNamedListStore((s) => s.loadedOnce);
+    const autoApplyStarted = useRef(false);
     useEffect(() => {
         fetchUsers();
+        loadAllTables();
     }, []);
+
+    useEffect(() => {
+        if (!autoApplyStarted.current && users.length > 0 && loadedOnce) {
+            const stop = startNamedListAutoApply();
+            autoApplyStarted.current = true;
+
+            return () => {
+                stop();
+                autoApplyStarted.current = false;
+            };
+        }
+    }, [users.length, loadedOnce]);
 
     useEffect(() => {
         if (selectedUser && !users.find((u) => u.id === selectedUser.id)) {

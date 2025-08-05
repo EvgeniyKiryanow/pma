@@ -52,7 +52,7 @@ type MonthKey = `${number}-${number}`; // e.g. "2025-08"
 
 export function NamedListTable() {
     const users = useUserStore((s) => s.users);
-    const { tables, activeKey, setActiveKey, createTable, updateCell, loadAllTables, deleteTable } =
+    const { tables, activeKey, setActiveKey, createTable, updateCell, deleteTable } =
         useNamedListStore();
 
     const [selMonth, setSelMonth] = useState<number>(new Date().getMonth());
@@ -67,17 +67,21 @@ export function NamedListTable() {
     }, [activeKey, selYear, selMonth]);
     useEffect(() => {
         let applied = false;
-
         const load = async () => {
             const store = useNamedListStore.getState();
 
             if (!store.loadedOnce) {
                 await store.loadAllTables();
+            }
 
-                const keys = Object.keys(store.tables);
-                if (keys.length > 0 && !store.activeKey) {
-                    store.setActiveKey(keys[0]);
-                }
+            const today = new Date();
+            const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+
+            const currentTables = useNamedListStore.getState().tables;
+            const hasTodayTable = currentTables[todayKey];
+
+            if (!useNamedListStore.getState().activeKey && hasTodayTable) {
+                useNamedListStore.getState().setActiveKey(todayKey);
             }
         };
 
@@ -93,7 +97,6 @@ export function NamedListTable() {
             const store = useNamedListStore.getState();
             const currentRows = store.tables[todayKey];
 
-            // ✅ Fix: Ensure activeKey is set to todayKey if not already
             if (!store.activeKey && currentRows) {
                 store.setActiveKey(todayKey);
             }

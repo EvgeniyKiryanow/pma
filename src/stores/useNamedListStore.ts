@@ -35,6 +35,7 @@ export const useNamedListStore = create<NamedListStore>((set, get) => ({
                 ...state.tables,
                 [key]: rows,
             },
+            activeKey: key, // ✅ Automatically activate new table
         }));
 
         await window.electronAPI.namedList.create(key, rows);
@@ -43,7 +44,8 @@ export const useNamedListStore = create<NamedListStore>((set, get) => ({
     getTable: (key) => get().tables[key],
 
     loadAllTables: async () => {
-        if (get().loadedOnce) return; // 🛑 skip if already loaded
+        if (get().loadedOnce) return;
+
         const dbTables = await window.electronAPI.namedList.getAll();
 
         const tablesArray: any = Array.isArray(dbTables) ? dbTables : [];
@@ -52,7 +54,14 @@ export const useNamedListStore = create<NamedListStore>((set, get) => ({
             return acc;
         }, {});
 
-        set({ tables: mapped, loadedOnce: true });
+        const now = new Date();
+        const currentKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+
+        set({
+            tables: mapped,
+            loadedOnce: true,
+            activeKey: mapped[currentKey] ? currentKey : (Object.keys(mapped)[0] ?? null), // ✅ Set activeKey
+        });
     },
 
     updateCell: async (key, rowId, dayIndex, value) => {
