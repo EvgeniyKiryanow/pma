@@ -10,7 +10,7 @@ import InstructionsTab from './layout/InstrtuctionsTab';
 import ImportUsersTab from './layout/ImportUsersTab';
 import ShtatniPosadyTab from './layout/ShtatniPosadyTab';
 import ManagerTab from './layout/ManagerTab';
-import { startNamedListAutoApply } from './autoApplyNamedListStatuses';
+import { startNamedListAutoApply } from './components/ExcelTables/_components/NamedListTable';
 import { useNamedListStore } from './stores/useNamedListStore';
 
 export default function App() {
