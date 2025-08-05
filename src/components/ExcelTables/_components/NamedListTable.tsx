@@ -22,7 +22,7 @@ type MonthKey = `${number}-${number}`; // e.g. "2025-08"
 
 export function NamedListTable() {
     const users = useUserStore((s) => s.users);
-    const { tables, activeKey, setActiveKey, createTable, updateCell, loadAllTables } =
+    const { tables, activeKey, setActiveKey, createTable, updateCell, loadAllTables, deleteTable } =
         useNamedListStore();
 
     // Controls for creating
@@ -146,6 +146,23 @@ export function NamedListTable() {
                                 );
                             })}
                         </select>
+
+                        {/* ✅ Delete button */}
+                        {activeKey && (
+                            <button
+                                onClick={async () => {
+                                    const confirm = window.confirm(
+                                        `Ви впевнені, що хочете видалити таблицю: ${activeKey}?`,
+                                    );
+                                    if (!confirm) return;
+                                    await deleteTable(activeKey);
+                                    setActiveKey(null);
+                                }}
+                                className="px-3 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700"
+                            >
+                                🗑 Видалити
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
