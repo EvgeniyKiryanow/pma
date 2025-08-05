@@ -93,7 +93,12 @@ export function NamedListTable() {
             return setActiveKey(key);
         }
 
-        const base = users.map((u, i) => ({
+        const filteredUsers = users.filter((u) => {
+            const raw = u.shpkNumber?.toString().trim() || '';
+            return /^[0-9]+$/.test(raw); // тільки якщо це ЧИСЛО
+        });
+
+        const base = filteredUsers.map((u, i) => ({
             id: i + 1,
             rank: u.rank || '',
             fullName: u.fullName || '',
@@ -171,42 +176,55 @@ export function NamedListTable() {
 
     return (
         <div className="space-y-8">
-            {/* Selector */}
-            <div className="bg-white border rounded-lg p-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-700">🗓 Таблиця:</span>
-                    <select
-                        value={selMonth}
-                        onChange={(e) => setSelMonth(Number(e.target.value))}
-                        className="px-3 py-2 border rounded-md text-sm"
-                    >
-                        {months.map((m, i) => (
-                            <option key={i} value={i}>
-                                {m}
-                            </option>
-                        ))}
-                    </select>
-                    <input
-                        type="number"
-                        value={selYear}
-                        onChange={(e) => setSelYear(Number(e.target.value))}
-                        className="w-24 px-3 py-2 border rounded-md text-sm"
-                    />
+            {/* Header */}
+            <div className="bg-white border rounded-xl p-6 shadow-md space-y-6 md:space-y-0 md:flex md:items-center md:justify-between">
+                {/* Left block: Create table */}
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-gray-700 font-semibold text-sm flex items-center gap-1">
+                            📅 <span>Місяць</span>
+                        </span>
+                        <select
+                            value={selMonth}
+                            onChange={(e) => setSelMonth(Number(e.target.value))}
+                            className="px-3 py-2 border rounded-md text-sm w-[140px] bg-gray-50 hover:bg-gray-100 transition"
+                        >
+                            {months.map((m, i) => (
+                                <option key={i} value={i}>
+                                    {m}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-gray-700 font-semibold text-sm flex items-center gap-1">
+                            🗓 <span>Рік</span>
+                        </span>
+                        <input
+                            type="number"
+                            value={selYear}
+                            onChange={(e) => setSelYear(Number(e.target.value))}
+                            className="w-[100px] px-3 py-2 border rounded-md text-sm bg-gray-50 hover:bg-gray-100 transition"
+                        />
+                    </div>
                     <button
                         onClick={handleCreate}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition"
                     >
-                        ➕ Створити/Перейти
+                        ➕ Створити / Перейти
                     </button>
                 </div>
 
-                {Object.keys(tables).length > 0 && (
+                {/* Right block: Existing tables + actions */}
+                <div className="flex flex-wrap items-center gap-4 justify-end">
                     <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-700">📂 Обрати:</span>
+                        <span className="text-gray-700 font-semibold text-sm flex items-center gap-1">
+                            📂 <span>Таблиця</span>
+                        </span>
                         <select
                             value={activeKey || ''}
                             onChange={(e) => setActiveKey(e.target.value as MonthKey)}
-                            className="px-3 py-2 border rounded-md text-sm"
+                            className="px-3 py-2 border rounded-md text-sm w-[160px] bg-gray-50 hover:bg-gray-100 transition"
                         >
                             <option disabled value="">
                                 — виберіть —
@@ -220,32 +238,32 @@ export function NamedListTable() {
                                 );
                             })}
                         </select>
-
-                        {/* ✅ Delete button */}
-                        {activeKey && (
-                            <button
-                                onClick={async () => {
-                                    const confirm = window.confirm(
-                                        `Ви впевнені, що хочете видалити таблицю: ${activeKey}?`,
-                                    );
-                                    if (!confirm) return;
-                                    await deleteTable(activeKey);
-                                    setActiveKey(null);
-                                }}
-                                className="px-3 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700"
-                            >
-                                🗑 Видалити
-                            </button>
-                        )}
                     </div>
-                )}
+
+                    {activeKey && (
+                        <button
+                            onClick={async () => {
+                                const confirm = window.confirm(
+                                    `Ви впевнені, що хочете видалити таблицю: ${activeKey}?`,
+                                );
+                                if (!confirm) return;
+                                await deleteTable(activeKey);
+                                setActiveKey(null);
+                            }}
+                            className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition"
+                        >
+                            🗑 Видалити
+                        </button>
+                    )}
+
+                    <button
+                        onClick={applyTodayStatuses}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition"
+                    >
+                        📌 Підставити статуси
+                    </button>
+                </div>
             </div>
-            <button
-                onClick={applyTodayStatuses}
-                className="px-3 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
-            >
-                📌 Підставити статуси на сьогодні
-            </button>
 
             {!activeKey && (
                 <div className="text-center text-gray-500 italic">Створіть або оберіть таблицю</div>
