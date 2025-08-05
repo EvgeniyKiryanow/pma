@@ -213,18 +213,26 @@ export function NamedListTable() {
         const filteredUsers = users.filter((u) => {
             const raw = u.shpkNumber?.toString().trim() || '';
             const isValid = /^[0-9]+$/.test(raw);
-
-            if (!isValid) {
-                const old = existingRows.find((r) => r.fullName === u.fullName);
-                if (!old) return false;
-
-                const hasAny = old.attendance
-                    .slice(0, todayIndex)
-                    .some((val) => val && val.trim() !== '');
-                return hasAny;
-            }
-
-            return true;
+            if (!isValid) return false;
+            const alreadyExcluded =
+                // check Vyklyuchennya list
+                vyklyuchennyaList.some(
+                    (entry) =>
+                        entry.userId === u.id &&
+                        new Date(entry.periodFrom).getFullYear() === selYear &&
+                        new Date(entry.periodFrom).getMonth() === selMonth,
+                ) ||
+                // check Rozporyadzhennya list
+                ordersList.some(
+                    (entry) =>
+                        entry.userId === u.id &&
+                        new Date(entry.period.from).getFullYear() === selYear &&
+                        new Date(entry.period.from).getMonth() === selMonth,
+                ) ||
+                // check shpkNumber pattern
+                (typeof u.shpkNumber === 'string' &&
+                    (u.shpkNumber.includes('_order') || u.shpkNumber.includes('order_')));
+            return !alreadyExcluded;
         });
 
         const base = filteredUsers.map((u, i) => {
