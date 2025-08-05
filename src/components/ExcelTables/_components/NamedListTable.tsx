@@ -18,6 +18,7 @@ const months = [
     'Листопад',
     'Грудень',
 ];
+
 const statusToShort: Record<StatusExcel, string> = {
     [StatusExcel.ABSENT_REHAB]: 'вп',
     [StatusExcel.ABSENT_REHAB_LEAVE]: 'вп',
@@ -26,25 +27,25 @@ const statusToShort: Record<StatusExcel, string> = {
     [StatusExcel.ABSENT_MEDICAL_COMPANY]: 'гп',
     [StatusExcel.ABSENT_WOUNDED]: 'гп',
     [StatusExcel.ABSENT_SZO]: 'сзч',
-    [StatusExcel.NON_COMBAT_REFUSERS]: 'сзч',
     [StatusExcel.ABSENT_KIA]: 'заг',
     [StatusExcel.ABSENT_MIA]: 'збв',
     [StatusExcel.ABSENT_VLK]: 'влк',
-    [StatusExcel.MANAGEMENT]: '',
-    [StatusExcel.SUPPLY_GENERAL]: '',
-    [StatusExcel.SUPPLY_COMBAT]: '',
+    [StatusExcel.MANAGEMENT]: 'воп',
+    [StatusExcel.SUPPLY_COMBAT]: 'воп',
+    [StatusExcel.SUPPLY_GENERAL]: 'воп',
     [StatusExcel.NON_COMBAT_NEWCOMERS]: '',
     [StatusExcel.NON_COMBAT_LIMITED_FITNESS]: '',
     [StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT]: '',
     [StatusExcel.HAVE_OFFER_TO_HOS]: '',
     [StatusExcel.ABSENT_REHABED_ON]: 'зв',
-    [StatusExcel.POSITIONS_INFANTRY]: '',
-    [StatusExcel.POSITIONS_UAV]: '',
+    [StatusExcel.POSITIONS_INFANTRY]: 'воп',
+    [StatusExcel.POSITIONS_UAV]: 'воп',
     [StatusExcel.POSITIONS_BRONEGROUP]: 'бч',
-    [StatusExcel.POSITIONS_CREW]: '',
-    [StatusExcel.POSITIONS_CALCULATION]: '',
-    [StatusExcel.POSITIONS_RESERVE_INFANTRY]: '',
+    [StatusExcel.POSITIONS_CREW]: 'воп',
+    [StatusExcel.POSITIONS_CALCULATION]: 'воп',
+    [StatusExcel.POSITIONS_RESERVE_INFANTRY]: 'воп',
     [StatusExcel.NO_STATUS]: '',
+    [StatusExcel.NON_COMBAT_REFUSERS]: '',
 };
 
 type MonthKey = `${number}-${number}`; // e.g. "2025-08"
@@ -53,12 +54,10 @@ export function NamedListTable() {
     const users = useUserStore((s) => s.users);
     const { tables, activeKey, setActiveKey, createTable, updateCell, loadAllTables, deleteTable } =
         useNamedListStore();
-    console.log(users, 'users');
-    // Controls for creating
+
     const [selMonth, setSelMonth] = useState<number>(new Date().getMonth());
     const [selYear, setSelYear] = useState<number>(new Date().getFullYear());
 
-    // Extract year & month from activeKey, or fallback to selected for header
     const [activeYear, activeMonthIndex] = useMemo((): [number, number] => {
         if (activeKey) {
             const [y, m] = activeKey.split('-').map(Number);
@@ -66,27 +65,27 @@ export function NamedListTable() {
         }
         return [selYear, selMonth];
     }, [activeKey, selYear, selMonth]);
+
     useEffect(() => {
-        (async () => {
-            await loadAllTables();
-            const keys = Object.keys(useNamedListStore.getState().tables);
-            if (keys.length > 0 && !useNamedListStore.getState().activeKey) {
-                useNamedListStore.getState().setActiveKey(keys[0]);
+        const load = async () => {
+            const store = useNamedListStore.getState();
+            if (store.loadedOnce) return;
+            await store.loadAllTables();
+            const keys = Object.keys(store.tables);
+            if (keys.length > 0 && !store.activeKey) {
+                store.setActiveKey(keys[0]);
             }
-        })();
+        };
+        load();
     }, []);
 
-    // Real number of days in the active month
     const daysInActiveMonth = useMemo(() => {
         return new Date(activeYear, activeMonthIndex + 1, 0).getDate();
     }, [activeYear, activeMonthIndex]);
 
-    // Helper to build a MonthKey
-    // Build "YYYY-MM" key always with padded month
     const mk = (mo: number, yr: number): MonthKey =>
         `${yr}-${(mo + 1).toString().padStart(2, '0')}` as MonthKey;
 
-    // Create or switch to a table
     const handleCreate = () => {
         const key = mk(selMonth, selYear);
         if (tables[key]) {
@@ -95,7 +94,7 @@ export function NamedListTable() {
 
         const filteredUsers = users.filter((u) => {
             const raw = u.shpkNumber?.toString().trim() || '';
-            return /^[0-9]+$/.test(raw); // тільки якщо це ЧИСЛО
+            return /^[0-9]+$/.test(raw);
         });
 
         const base = filteredUsers.map((u, i) => ({
@@ -106,7 +105,9 @@ export function NamedListTable() {
         }));
 
         const today = new Date();
-        const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+        const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1)
+            .toString()
+            .padStart(2, '0')}`;
         const isSameDay = key === todayKey;
 
         if (isSameDay) {
@@ -139,7 +140,10 @@ export function NamedListTable() {
         if (!activeKey) return;
 
         const today = new Date();
-        const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+        const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1)
+            .toString()
+            .padStart(2, '0')}`;
+
         if (activeKey !== todayKey) {
             alert('❌ Поточна таблиця не відповідає сьогоднішньому місяцю.');
             return;
@@ -156,18 +160,19 @@ export function NamedListTable() {
             const row = currentRows.find((r) => r.fullName === user.fullName);
             if (!row) continue;
 
-            await updateCell(activeKey, row.id, dayIndex, short);
+            // ✅ Only update if the current cell is empty
+            if (!row.attendance[dayIndex]) {
+                await updateCell(activeKey, row.id, dayIndex, short);
+            }
         }
 
-        alert('✅ Статуси підставлено на сьогодні');
+        alert('✅ Статуси підставлено лише в порожні клітинки');
     };
 
-    // Rows for the active table
     const currentRows = useMemo(() => {
         return activeKey && tables[activeKey] ? tables[activeKey] : [];
     }, [tables, activeKey]);
 
-    // Chunk into 14-row tables
     const tableChunks = useMemo(() => {
         return Array.from({ length: Math.ceil(currentRows.length / ROWS_PER_TABLE) }, (_, pi) =>
             currentRows.slice(pi * ROWS_PER_TABLE, (pi + 1) * ROWS_PER_TABLE),

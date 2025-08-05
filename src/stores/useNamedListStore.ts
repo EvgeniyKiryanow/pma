@@ -10,6 +10,7 @@ export type AttendanceRow = {
 type NamedListStore = {
     tables: Record<string, AttendanceRow[]>;
     activeKey: string | null;
+    loadedOnce: boolean;
 
     createTable: (key: string, rows: AttendanceRow[]) => Promise<void>;
     getTable: (key: string) => AttendanceRow[] | undefined;
@@ -22,10 +23,11 @@ type NamedListStore = {
 export const useNamedListStore = create<NamedListStore>((set, get) => ({
     tables: {},
     activeKey: null,
+    loadedOnce: false,
 
     createTable: async (key, rows) => {
         const existing = get().tables[key];
-        if (existing) return; // ✅ already exists, don't create again
+        if (existing) return;
 
         set((state) => ({
             tables: {
@@ -37,21 +39,19 @@ export const useNamedListStore = create<NamedListStore>((set, get) => ({
         await window.electronAPI.namedList.create(key, rows);
     },
 
-    getTable: (key) => {
-        return get().tables[key];
-    },
-    loadAllTables: async () => {
-        const dbTables = await window.electronAPI.namedList.getAll();
-        const tablesArray: any = Array.isArray(dbTables) ? dbTables : [];
-        const mapped = tablesArray.reduce(
-            (acc: any, { key, data }) => {
-                acc[key] = data;
-                return acc;
-            },
-            {} as Record<string, AttendanceRow[]>,
-        );
+    getTable: (key) => get().tables[key],
 
-        set({ tables: mapped });
+    loadAllTables: async () => {
+        if (get().loadedOnce) return; // 🛑 skip if already loaded
+        const dbTables = await window.electronAPI.namedList.getAll();
+
+        const tablesArray: any = Array.isArray(dbTables) ? dbTables : [];
+        const mapped = tablesArray.reduce((acc: Record<string, AttendanceRow[]>, { key, data }) => {
+            acc[key] = data;
+            return acc;
+        }, {});
+
+        set({ tables: mapped, loadedOnce: true });
     },
 
     updateCell: async (key, rowId, dayIndex, value) => {
@@ -67,7 +67,6 @@ export const useNamedListStore = create<NamedListStore>((set, get) => ({
                 : row,
         );
 
-        // Update state first
         set((state) => ({
             tables: {
                 ...state.tables,
@@ -75,23 +74,18 @@ export const useNamedListStore = create<NamedListStore>((set, get) => ({
             },
         }));
 
-        // Sync to DB with change log
         await window.electronAPI.namedList.updateCell(key, rowId, dayIndex, value);
     },
 
     deleteTable: async (key) => {
-        // Remove from state first
         set((state) => {
             const newTables = { ...state.tables };
             delete newTables[key];
             return { tables: newTables };
         });
 
-        // Delete from DB and log
         await window.electronAPI.namedList.delete(key);
     },
 
-    setActiveKey: (key) => {
-        set({ activeKey: key });
-    },
+    setActiveKey: (key) => set({ activeKey: key }),
 }));
