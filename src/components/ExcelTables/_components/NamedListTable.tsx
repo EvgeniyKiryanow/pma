@@ -67,22 +67,15 @@ export function startNamedListAutoApply() {
 
         if (!rows || rows.every((r) => r.attendance[dayIndex] !== '')) return;
 
-        console.log('⏰ [Auto Apply] Starting...');
-
-        const { setActiveKey, updateCell } = useNamedListStore.getState();
-        let { activeKey } = useNamedListStore.getState();
-
-        // 🔁 Make sure activeKey is set
-        if (!activeKey) {
-            setActiveKey(todayKey);
-            activeKey = todayKey;
-        }
-
+        const activeKey = store.activeKey;
         if (activeKey !== todayKey) {
-            console.warn('🚫 [Auto Apply] Active key does not match today’s table');
+            console.warn('🚫 [Auto Apply] Skipped because activeKey is not for today:', activeKey);
             return;
         }
 
+        console.log('⏰ [Auto Apply] Starting...');
+
+        const { updateCell } = store;
         let appliedCount = 0;
 
         for (const user of users) {
@@ -170,11 +163,13 @@ export function NamedListTable() {
 
             const updatedStore = useNamedListStore.getState();
 
-            if (
-                updatedStore.activeKey === todayKey &&
-                currentRows &&
-                currentRows.some((r) => r.attendance[now.getDate() - 1] === '')
-            ) {
+            if (!updatedStore.activeKey || updatedStore.activeKey !== todayKey) {
+                console.warn('⛔ Auto-apply skipped: active table is not for today');
+                return;
+            }
+
+            if (currentRows && currentRows.some((r) => r.attendance[now.getDate() - 1] === '')) {
+                console.log('⏰ Auto-apply starting...');
                 await applyTodayStatuses();
                 applied = true;
             }
@@ -204,13 +199,12 @@ export function NamedListTable() {
         const isSameDay = key === todayKey;
         const todayIndex = today.getDate() - 1;
 
-        const existingRows = tables[todayKey] || [];
+        const existingRows = tables[key] || []; // ✅ <-- FIXED
 
         const filteredUsers = users.filter((u) => {
             const raw = u.shpkNumber?.toString().trim() || '';
             const isValid = /^[0-9]+$/.test(raw);
 
-            // ✅ Preserve users without shpkNumber only if they had values before today
             if (!isValid) {
                 const old = existingRows.find((r) => r.fullName === u.fullName);
                 if (!old) return false;
@@ -229,7 +223,6 @@ export function NamedListTable() {
 
             const attendance = old ? [...old.attendance] : Array(daysInActiveMonth).fill('');
 
-            // ✅ Only apply today's status if day matches and cell is empty
             if (isSameDay && !attendance[todayIndex]) {
                 const short = statusToShort[u.soldierStatus as StatusExcel];
                 if (short) {
@@ -259,6 +252,7 @@ export function NamedListTable() {
         createTable(key, base);
         setActiveKey(key);
     };
+
     const applyTodayStatuses = async () => {
         const today = new Date();
         const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1)
