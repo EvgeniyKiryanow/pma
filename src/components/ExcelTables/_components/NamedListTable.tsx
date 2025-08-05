@@ -3,6 +3,7 @@ import { useUserStore } from '../../../stores/userStore';
 import { AttendanceRow, useNamedListStore } from '../../../stores/useNamedListStore';
 import { StatusExcel } from '../../../utils/excelUserStatuses';
 import { useVyklyuchennyaStore } from '../../../stores/useVyklyuchennyaStore';
+import { useRozporyadzhennyaStore } from '../../../stores/useRozporyadzhennyaStore';
 
 const ROWS_PER_TABLE = 14;
 const months = [
@@ -115,6 +116,7 @@ export function NamedListTable() {
     const users = useUserStore((s) => s.users);
     const { tables, activeKey, setActiveKey, createTable, updateCell, deleteTable } =
         useNamedListStore();
+    const ordersList = useRozporyadzhennyaStore((s) => s.entries);
 
     const [selMonth, setSelMonth] = useState<number>(new Date().getMonth());
     const [selYear, setSelYear] = useState<number>(new Date().getFullYear());
@@ -185,6 +187,7 @@ export function NamedListTable() {
     }, []);
     useEffect(() => {
         useVyklyuchennyaStore.getState().fetchAll();
+        useRozporyadzhennyaStore.getState().fetchAll();
     }, []);
 
     const daysInActiveMonth = useMemo(() => {
@@ -242,6 +245,23 @@ export function NamedListTable() {
                             startIndex: i,
                         };
                         break;
+                    }
+                }
+            }
+            if (!exclusionData) {
+                const matchedOrder = ordersList.find((entry) => entry.userId === u.id);
+                if (matchedOrder) {
+                    const exclusionDate = new Date(matchedOrder.period.from);
+                    for (let i = 0; i < daysInActiveMonth; i++) {
+                        const dayDate = new Date(selYear, selMonth, i + 1);
+                        if (dayDate >= exclusionDate) {
+                            exclusionData = {
+                                description: matchedOrder.description ?? matchedOrder.title,
+                                periodFrom: matchedOrder.period.from,
+                                startIndex: i,
+                            };
+                            break;
+                        }
                     }
                 }
             }
@@ -514,31 +534,73 @@ export function NamedListTable() {
                                                                 u.shpkNumber === row.shpkNumber),
                                                     );
 
-                                                    const exclusion =
-                                                        matchedUser &&
-                                                        vyklyuchennyaList.find(
+                                                    let exclusion:
+                                                        | AttendanceRow['exclusion']
+                                                        | undefined = undefined;
+
+                                                    // 🔍 Exclusion from vyklyuchennyaList
+                                                    if (matchedUser) {
+                                                        const vEntry = vyklyuchennyaList.find(
                                                             (v) => v.userId === matchedUser.id,
                                                         );
-
-                                                    let exclusionStartIndex = -1;
-
-                                                    if (exclusion) {
-                                                        const exclusionDate = new Date(
-                                                            exclusion.periodFrom,
-                                                        );
-                                                        for (
-                                                            let i = 0;
-                                                            i < daysInActiveMonth;
-                                                            i++
-                                                        ) {
-                                                            const dayDate = new Date(
-                                                                activeYear,
-                                                                activeMonthIndex,
-                                                                i + 1,
+                                                        if (vEntry) {
+                                                            const exclusionDate = new Date(
+                                                                vEntry.periodFrom,
                                                             );
-                                                            if (dayDate >= exclusionDate) {
-                                                                exclusionStartIndex = i;
-                                                                break;
+                                                            for (
+                                                                let i = 0;
+                                                                i < daysInActiveMonth;
+                                                                i++
+                                                            ) {
+                                                                const dayDate = new Date(
+                                                                    activeYear,
+                                                                    activeMonthIndex,
+                                                                    i + 1,
+                                                                );
+                                                                if (dayDate >= exclusionDate) {
+                                                                    exclusion = {
+                                                                        description:
+                                                                            vEntry.description,
+                                                                        periodFrom:
+                                                                            vEntry.periodFrom,
+                                                                        startIndex: i,
+                                                                    };
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // ➕ Separate exclusion from RozporyadzhennyaStore
+                                                    if (!exclusion && matchedUser) {
+                                                        const oEntry = ordersList.find(
+                                                            (v) => v.userId === matchedUser.id,
+                                                        );
+                                                        if (oEntry) {
+                                                            const exclusionDate = new Date(
+                                                                oEntry.period.from,
+                                                            );
+                                                            for (
+                                                                let i = 0;
+                                                                i < daysInActiveMonth;
+                                                                i++
+                                                            ) {
+                                                                const dayDate = new Date(
+                                                                    activeYear,
+                                                                    activeMonthIndex,
+                                                                    i + 1,
+                                                                );
+                                                                if (dayDate >= exclusionDate) {
+                                                                    exclusion = {
+                                                                        description:
+                                                                            oEntry.description ??
+                                                                            oEntry.title,
+                                                                        periodFrom:
+                                                                            oEntry.period.from,
+                                                                        startIndex: i,
+                                                                    };
+                                                                    break;
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -546,7 +608,7 @@ export function NamedListTable() {
                                                     for (let di = 0; di < daysInActiveMonth; di++) {
                                                         if (
                                                             exclusion &&
-                                                            di === exclusionStartIndex
+                                                            di === exclusion.startIndex
                                                         ) {
                                                             const colSpan = daysInActiveMonth - di;
 
@@ -561,11 +623,14 @@ export function NamedListTable() {
                                                                     Наказ {exclusion.periodFrom}
                                                                 </td>,
                                                             );
-                                                            break; // merged cell rendered, stop loop
+                                                            break; // stop loop after merged cell
                                                         }
 
-                                                        if (exclusion && di > exclusionStartIndex) {
-                                                            continue; // already merged, skip
+                                                        if (
+                                                            exclusion &&
+                                                            di > exclusion.startIndex
+                                                        ) {
+                                                            continue; // skip merged cells
                                                         }
 
                                                         cells.push(
