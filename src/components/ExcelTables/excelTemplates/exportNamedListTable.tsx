@@ -181,9 +181,24 @@ export async function exportNamedListTable() {
         chunkIndex += chunkSize;
     }
 
-    sheet.addRow([]);
-    const signRow = sheet.addRow(['', '', 'Підпис відповідального:']);
-    signRow.getCell(3).font = { italic: true };
+    const width = 3 + dayCount;
+    const footerRow = sheet.addRow(['Підпис особи, яка проводила перевірку']);
+
+    const mergeEnd = Math.min(3, width);
+    sheet.mergeCells(`A${footerRow.number}:${sheet.getColumn(mergeEnd).letter}${footerRow.number}`);
+
+    footerRow.height = 40; // 🔥 taller row like in real form
+
+    const cell = footerRow.getCell(1);
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.font = { size: 11 };
+
+    cell.border = {
+        top: { style: 'thin' },
+        bottom: { style: 'thin' },
+        left: { style: 'thin' },
+        right: { style: 'thin' },
+    };
 
     // Set column widths
     sheet.columns = [
