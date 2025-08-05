@@ -9,13 +9,16 @@ import { AlternateCombatReportTable } from './_components/AlternateCombatReportT
 import { generateAlternateCombatReportExcelTemplate } from './excelTemplates/generateAlternateCombatReportExcelTemplate';
 import { useUserStore } from '../../stores/userStore';
 import { UnitStatsCalculator } from './_components/UnitStatsCalculator';
+import { NamedListTable } from './_components/NamedListTable';
 
 type Props = {
     onRequestImportTab?: () => void; // ✅ new optional callback
 };
 
 export default function GeneratedTablesTabContent({ onRequestImportTab }: Props) {
-    const [activeTable, setActiveTable] = useState<'combat' | 'staff' | 'alternate'>('combat');
+    const [activeTable, setActiveTable] = useState<'combat' | 'staff' | 'alternate' | 'named'>(
+        'named',
+    );
     const { shtatniPosady } = useShtatniStore();
     const hasShtatni = shtatniPosady.length > 0;
     const { fetchAll } = useShtatniStore();
@@ -33,6 +36,7 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
         // { id: 'combat', title: '📄 ДОНЕСЕННЯ (Combat Report)' },
         { id: 'alternate', title: '📄 Альтернативний звіт (Alternate Report)' },
         { id: 'staff', title: '📄 Штатний звіт (Staff Report)' },
+        { id: 'named', title: '📄 Іменний список (Named List)' },
     ];
 
     return (
@@ -53,7 +57,13 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                 <button
                                     onClick={() => {
                                         if (!disabled)
-                                            setActiveTable(section.id as 'combat' | 'staff');
+                                            setActiveTable(
+                                                section.id as
+                                                    | 'combat'
+                                                    | 'staff'
+                                                    | 'alternate'
+                                                    | 'named',
+                                            );
                                     }}
                                     className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                                         disabled
@@ -133,7 +143,21 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                 </div>
                             </div>
                         )} */}
-
+                        {activeTable === 'named' && (
+                            <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                                <div className="px-6 py-4 border-b bg-gray-50 rounded-t-xl flex justify-between items-center">
+                                    <h2 className="text-lg font-semibold text-gray-700">
+                                        📄 ІМЕННИЙ СПИСОК
+                                    </h2>
+                                    <span className="text-xs text-gray-500">
+                                        Оновлено: {new Date().toLocaleDateString()}
+                                    </span>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <NamedListTable />
+                                </div>
+                            </div>
+                        )}
                         {activeTable === 'alternate' && (
                             <div className="bg-white rounded-xl shadow-lg border border-gray-200">
                                 <div className="px-6 py-4 border-b bg-gray-50 rounded-t-xl flex justify-between items-center">
