@@ -1,9 +1,10 @@
-import { getDb } from '../../database/db';
 import { randomUUID } from 'crypto';
-import path from 'path';
 import { app } from 'electron';
-import fs from 'fs/promises';
 import { existsSync } from 'fs';
+import fs from 'fs/promises';
+import path from 'path';
+
+import { getDb } from '../../database/db';
 
 const keyFilePath = path.join(app.getPath('userData'), 'app_id');
 

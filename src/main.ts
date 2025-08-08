@@ -1,20 +1,18 @@
-import { app, BrowserWindow, screen } from 'electron';
-import path from 'path';
-import started from 'electron-squirrel-startup';
-import { registerDbHandlers } from './ipc';
-import log from 'electron-log';
-import { getDb, initializeDb } from './database/db';
-import { upgradeDbSchema } from './database/migrations';
-import fs from 'fs';
 import { exec, execFile } from 'child_process';
+import { app, BrowserWindow, screen } from 'electron';
 import { ipcMain } from 'electron';
-import { initPythonEnvSimplified } from './helpers/pythonInstallerHelper';
-import { ensureSuperuser } from './ipc/auth/ensureSuperuserHandler';
-import { ensureDefaultAdmin } from './ipc/auth/ensureDefaultAdmin';
-import { ensureAppIdentity } from './ipc/app/initAppIdentity';
+import started from 'electron-squirrel-startup';
+import fs from 'fs';
+import path from 'path';
 
 // ✅ Import our updater functions
-import { setupAutoUpdater, autoCheckOnStartup } from './autoUpdaterHandler';
+import { getDb, initializeDb } from './database/db';
+import { upgradeDbSchema } from './database/migrations';
+import { initPythonEnvSimplified } from './helpers/pythonInstallerHelper';
+import { registerDbHandlers } from './ipc';
+import { ensureAppIdentity } from './ipc/app/initAppIdentity';
+import { ensureDefaultAdmin } from './ipc/auth/ensureDefaultAdmin';
+import { ensureSuperuser } from './ipc/auth/ensureSuperuserHandler';
 
 export function copyAllTemplates() {
     const sourceDir = path.join(__dirname, 'assets/templates');
