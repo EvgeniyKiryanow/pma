@@ -78,7 +78,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('auth:superuser-login', username, password),
     defaultAdminLogin: (username: string, password: string): Promise<string | false> =>
         ipcRenderer.invoke('auth:default-admin-login', username, password),
-
+loginAny: (u: string, p: string) => ipcRenderer.invoke('auth:login-any', u, p),
     // ========= Auth Management (admin panel) =========
     // важливо: без паролів у Renderer
     getAuthUsers: () => ipcRenderer.invoke('auth:get-auth-users'),

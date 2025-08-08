@@ -1,5 +1,6 @@
 // src/types/global.d.ts
 import './index';
+
 import { ShtatnaPosada } from './types/shtatnaPosada';
 import type { CommentOrHistoryEntry, User } from './types/user';
 
@@ -176,6 +177,16 @@ declare global {
 
             // ========= Morphology =========
             morphy: { analyzeWords: (words: string[]) => Promise<any> };
+            loginAny: (
+                u: string,
+                p: string,
+            ) => Promise<{
+                ok: boolean;
+                role?: 'default_admin' | 'admin' | 'user';
+                key?: string | null;
+                app_key?: string | null;
+                user?: { id: number; username: string };
+            }>;
 
             // ========= Change History =========
             exportChangeLogs: (password: string) => Promise<void>;

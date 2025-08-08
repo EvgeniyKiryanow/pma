@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { ipcMain } from 'electron';
+
 import { getDb } from '../../database/db';
 
 function normUsername(u: string) {
@@ -147,6 +148,45 @@ export function authUserHandlers() {
             }
         },
     );
+
+    ipcMain.handle('auth:login-any', async (_event, username: string, password: string) => {
+        const db = await getDb();
+        const u = normUsername(username);
+
+        // 1) default_admin має пріоритет (по збігу username)
+        const da = await db.get(
+            'SELECT id, username, password, key, app_key FROM default_admin ORDER BY id ASC LIMIT 1',
+        );
+        if (da && normUsername(da.username) === u) {
+            const ok = await bcrypt.compare(password, da.password);
+            return ok
+                ? {
+                      ok: true,
+                      role: 'default_admin',
+                      key: da.key ?? null,
+                      app_key: da.app_key ?? null,
+                      user: { id: da.id, username: da.username },
+                  }
+                : { ok: false };
+        }
+
+        // 2) звичайні користувачі
+        const au = await db.get(
+            'SELECT id, username, password, role, key FROM auth_user WHERE username = ?',
+            u,
+        );
+        if (!au) return { ok: false };
+
+        const ok = await bcrypt.compare(password, au.password);
+        if (!ok) return { ok: false };
+
+        return {
+            ok: true,
+            role: au.role ?? 'user',
+            key: au.key ?? null,
+            user: { id: au.id, username: au.username },
+        };
+    });
 
     ipcMain.handle('auth:get-default-admin', async () => {
         const db = await getDb();

@@ -1,5 +1,5 @@
+import { HelpCircle, Lock, UserCircle2 } from 'lucide-react';
 import { useState } from 'react';
-import { Lock, UserCircle2, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 type LoginPageProps = {
@@ -20,49 +20,41 @@ export default function LoginPage({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError(''); // clear previous error
+        setError('');
 
         try {
             const uname = username.trim().toLowerCase();
+            const res = await window.electronAPI.loginAny(uname, password);
 
-            try {
-                // 1. Try default admin login first
-                const key = await window.electronAPI.defaultAdminLogin(uname, password);
-                if (key) {
-                    localStorage.setItem('authToken', key);
-                    sessionStorage.setItem('role', 'default_admin');
-                    onLoginSuccess();
-                    return;
-                }
-
-                // 2. Try regular auth_user login if admin failed
-                const success = await window.electronAPI.login(uname, password);
-                if (success) {
-                    localStorage.setItem('authToken', 'regular');
-                    sessionStorage.setItem('role', 'user'); // or 'admin' if you check user.role later
-                    onLoginSuccess();
-                    return;
-                }
-
-                // ❌ Both failed
+            if (!res?.ok) {
                 setError('Невірне імʼя користувача або пароль');
-            } catch (err) {
-                console.error('Login error:', err);
-                setError('Помилка при вході');
+                return;
             }
 
-            const success = await window.electronAPI.login(username, password);
-            if (success) {
-                const token = crypto.randomUUID();
-                localStorage.setItem('authToken', token);
-                sessionStorage.setItem('role', 'user');
-                onLoginSuccess();
+            // токен: використовуй key як маркер сесії (або створюй свою сесію у main)
+            if (res.key) localStorage.setItem('authToken', res.key);
+            else localStorage.removeItem('authToken');
+
+            sessionStorage.setItem('role', res.role || 'user');
+
+            // для default_admin можна ще зберегти app_key, якщо треба для налаштувань
+            if (res.role === 'default_admin' && res.app_key) {
+                localStorage.setItem('appKey', res.app_key);
             } else {
-                setError('Invalid username or password');
+                localStorage.removeItem('appKey');
             }
+
+            // опціонально: зберегти імʼя користувача
+            if (res.user?.username) {
+                sessionStorage.setItem('username', res.user.username);
+            } else {
+                sessionStorage.removeItem('username');
+            }
+
+            onLoginSuccess();
         } catch (err) {
             console.error('Login error:', err);
-            setError('Something went wrong. Please try again.');
+            setError('Помилка при вході. Спробуйте ще раз.');
         }
     };
 
