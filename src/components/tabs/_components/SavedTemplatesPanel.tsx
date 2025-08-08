@@ -1,9 +1,8 @@
-import SavedTemplatesList from './SavedTemplatesList';
-import { useI18nStore } from '../../../stores/i18nStore';
-import { useReportsStore } from '../../../stores/reportsStore';
 import { useState } from 'react';
+
+import { useI18nStore } from '../../../stores/i18nStore';
 import AdditionalInfoModal from './AdditionalInfoModal';
-import UserDataPreviewModal from './UserDataPreviewModal';
+import SavedTemplatesList from './SavedTemplatesList';
 type Props = {
     savedTemplates: any[];
     selectedTemplateId: string | number;
@@ -44,7 +43,7 @@ export default function SavedTemplatesPanel({
             <h2 className="text-2xl font-bold mb-4 text-gray-800">{t('reports.savedTemplates')}</h2>
             <AdditionalInfoModal open={showDialog} onClose={() => setShowDialog(false)} />
             <div className="mt-6 flex flex-wrap gap-3 pb-[15px] items-center">
-                <button
+                {/* <button
                     onClick={() => setShowAdvanced(!showAdvanced)}
                     disabled={!selectedUser && !selectedUser2}
                     className={`px-4 py-2 rounded-md border font-medium text-sm transition 
@@ -55,14 +54,14 @@ export default function SavedTemplatesPanel({
                         }`}
                 >
                     {showAdvanced ? '⬆️ Приховати поля' : '⚙️ Розширені налаштування'}
-                </button>
+                </button> */}
 
-                <button
+                {/* <button
                     onClick={() => setShowDialog(true)}
                     className="px-4 py-2 rounded-md border text-sm font-medium border-gray-300 hover:bg-gray-100 text-gray-700"
                 >
                     ➕ Додати уточнюючі дані
-                </button>
+                </button> */}
 
                 <button
                     onClick={handleGenerate}

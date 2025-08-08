@@ -61,7 +61,7 @@ export default function UserList({
             </div>
 
             {/* Second User */}
-            <div className="border rounded-lg p-3 bg-white shadow-sm">
+            {/* <div className="border rounded-lg p-3 bg-white shadow-sm">
                 <h3 className="text-md font-semibold mb-3 text-gray-800 border-b pb-2">
                     Обрати другого користувача
                 </h3>
@@ -93,7 +93,7 @@ export default function UserList({
                             </li>
                         ))}
                 </ul>
-            </div>
+            </div> */}
         </div>
     );
 }
