@@ -1,9 +1,10 @@
-import React, { useMemo, useState, useEffect, JSX } from 'react';
-import { useUserStore } from '../../../stores/userStore';
+import React, { JSX, useEffect, useMemo, useRef, useState } from 'react';
+
 import { AttendanceRow, useNamedListStore } from '../../../stores/useNamedListStore';
-import { StatusExcel } from '../../../utils/excelUserStatuses';
-import { useVyklyuchennyaStore } from '../../../stores/useVyklyuchennyaStore';
 import { useRozporyadzhennyaStore } from '../../../stores/useRozporyadzhennyaStore';
+import { useUserStore } from '../../../stores/userStore';
+import { useVyklyuchennyaStore } from '../../../stores/useVyklyuchennyaStore';
+import { StatusExcel } from '../../../utils/excelUserStatuses';
 
 const ROWS_PER_TABLE = 14;
 const months = [
@@ -20,6 +21,12 @@ const months = [
     'Листопад',
     'Грудень',
 ];
+function normStr(s: string) {
+    return (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+function keyByNameRank(fullName?: string, rank?: string) {
+    return `${normStr(fullName || '')}|${normStr(rank || '')}`;
+}
 
 const statusToShort: Record<StatusExcel, string> = {
     [StatusExcel.ABSENT_REHAB]: 'вп',
@@ -50,228 +57,297 @@ const statusToShort: Record<StatusExcel, string> = {
     [StatusExcel.NON_COMBAT_REFUSERS]: '',
 };
 
-type MonthKey = `${number}-${number}`; // e.g. "2025-08"
+type MonthKey = `${number}-${number}`; // "2025-08"
+
+function mkMonthKey(monthIndex: number, year: number): MonthKey {
+    return `${year}-${(monthIndex + 1).toString().padStart(2, '0')}` as MonthKey;
+}
+function todayKey(): MonthKey {
+    const now = new Date();
+    return mkMonthKey(now.getMonth(), now.getFullYear());
+}
+function daysInMonth(y: number, mIndex: number) {
+    return new Date(y, mIndex + 1, 0).getDate();
+}
+function normToken(v: string) {
+    return v.replace(/\s+/g, '').slice(0, 3); // без пробілів, максимум 3 символи
+}
+
+/** Легкий дебаунс для onChange клітинок */
+function useDebouncedCallback<T extends any[]>(
+    cb: (...args: T) => void | Promise<void>,
+    delay = 180,
+) {
+    const tRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    return (...args: T) => {
+        if (tRef.current) clearTimeout(tRef.current);
+        tRef.current = setTimeout(() => cb(...args), delay);
+    };
+}
 
 export function startNamedListAutoApply() {
     let applied = false;
 
-    const interval = setInterval(async () => {
-        const now = new Date();
-        const hour = now.getHours();
-        if (applied || hour < 10) return;
+    const tick = async () => {
+        if (document.hidden) return; // не дратуємо, якщо вкладка не активна
 
-        const todayKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+        const now = new Date();
+        if (applied || now.getHours() < 10) return;
+
+        const key = todayKey();
         const dayIndex = now.getDate() - 1;
 
-        const store = useNamedListStore.getState();
-        const users = useUserStore.getState().users;
-        const rows = store.tables[todayKey];
+        const nl = useNamedListStore.getState();
+        const rows = nl.tables[key];
+        if (!rows) return;
 
-        if (!rows || rows.every((r) => r.attendance[dayIndex] !== '')) return;
+        // якщо сьогоднішня колонка вже заповнена — не чіпаємо
+        if (rows.every((r) => r.attendance[dayIndex] !== '')) return;
 
-        const activeKey = store.activeKey;
-        if (activeKey !== todayKey) {
-            console.warn('🚫 [Auto Apply] Skipped because activeKey is not for today:', activeKey);
+        if (nl.activeKey !== key) {
+            console.warn('🚫 [Auto Apply] Пропущено: activeKey ≠ today', nl.activeKey, key);
             return;
         }
 
-        console.log('⏰ [Auto Apply] Starting...');
+        console.log('⏰ [Auto Apply] Старт…');
 
-        const { updateCell } = store;
+        const users = useUserStore.getState().users;
+        const byShpk = new Map<string, (typeof users)[number]>();
+        for (const u of users) {
+            const num = (u.shpkNumber ?? '').toString().trim();
+            if (num) byShpk.set(num, u);
+        }
+
         let appliedCount = 0;
+        for (const row of rows) {
+            if (!row.shpkNumber) continue;
+            const u = byShpk.get(String(row.shpkNumber));
+            if (!u) continue;
 
-        for (const user of users) {
-            const short = statusToShort[user.soldierStatus as StatusExcel];
-            if (!short || !user.shpkNumber) continue;
-
-            const row = rows.find((r) => r.shpkNumber === user.shpkNumber);
-            if (!row) continue;
+            const short = statusToShort[u.soldierStatus as StatusExcel] ?? '';
+            if (!short) continue;
 
             if (!row.attendance[dayIndex]) {
-                console.debug('✅ [Auto Apply] Applying:', {
-                    name: user.fullName,
-                    shpkNumber: user.shpkNumber,
-                    short,
-                    dayIndex,
-                });
-
-                await updateCell(todayKey, row.id, dayIndex, short);
+                await nl.updateCell(key, row.id, dayIndex, short);
                 appliedCount++;
             }
         }
 
-        if (appliedCount > 0) {
-            console.log(`✅ [Auto Apply] Applied ${appliedCount} statuses`);
-        } else {
-            console.log('ℹ️ [Auto Apply] No statuses applied – already filled');
-        }
+        console.log(
+            appliedCount > 0
+                ? `✅ [Auto Apply] Підставлено: ${appliedCount}`
+                : 'ℹ️ [Auto Apply] Нічого не підставлено — вже заповнено',
+        );
 
         applied = true;
-    }, 10_000);
+    };
 
-    return () => clearInterval(interval);
+    const interval = setInterval(tick, 10_000);
+    const vis = () => !document.hidden && tick();
+    document.addEventListener('visibilitychange', vis);
+
+    return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', vis);
+    };
 }
 
 export function NamedListTable() {
     const users = useUserStore((s) => s.users);
-    const { tables, activeKey, setActiveKey, createTable, updateCell, deleteTable } =
-        useNamedListStore();
+    const {
+        tables,
+        activeKey,
+        setActiveKey,
+        createTable,
+        updateCell,
+        deleteTable,
+        loadAllTables,
+        loadedOnce,
+    } = useNamedListStore();
+
     const ordersList = useRozporyadzhennyaStore((s) => s.entries);
-
-    const [selMonth, setSelMonth] = useState<number>(new Date().getMonth());
-    const [selYear, setSelYear] = useState<number>(new Date().getFullYear());
-
     const vyklyuchennyaList = useVyklyuchennyaStore((s) => s.list);
 
-    const [activeYear, activeMonthIndex] = useMemo((): [number, number] => {
-        if (activeKey) {
-            const [y, m] = activeKey.split('-').map(Number);
-            return [y, m - 1];
+    // обраний місяць/рік у контролах
+    const [selMonth, setSelMonth] = useState<number>(new Date().getMonth());
+    const [selYear, setSelYear] = useState<number>(new Date().getFullYear());
+    const usersByNameRank = useMemo(() => {
+        const m = new Map<string, (typeof users)[number]>();
+        for (const u of users) {
+            m.set(keyByNameRank(u.fullName, u.rank), u);
         }
-        return [selYear, selMonth];
-    }, [activeKey, selYear, selMonth]);
+        return m;
+    }, [users]);
+
+    // 1) Початкове завантаження та автопризначення активної таблиці
     useEffect(() => {
-        let applied = false;
-        const load = async () => {
-            const store = useNamedListStore.getState();
-
-            if (!store.loadedOnce) {
-                await store.loadAllTables();
+        (async () => {
+            if (!loadedOnce) {
+                await loadAllTables();
             }
-
-            const today = new Date();
-            const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
-
-            const currentTables = useNamedListStore.getState().tables;
-            const hasTodayTable = currentTables[todayKey];
-
-            if (!useNamedListStore.getState().activeKey && hasTodayTable) {
-                useNamedListStore.getState().setActiveKey(todayKey);
+            const tKey = todayKey();
+            if (
+                !useNamedListStore.getState().activeKey &&
+                useNamedListStore.getState().tables[tKey]
+            ) {
+                setActiveKey(tKey);
             }
-        };
+        })();
+    }, [loadedOnce, loadAllTables, setActiveKey]);
 
-        const checkAndApplyStatuses = async () => {
-            const now = new Date();
-            const hour = now.getHours();
-
-            if (applied || hour < 10) return;
-
-            const todayKey = `${now.getFullYear()}-${(now.getMonth() + 1)
-                .toString()
-                .padStart(2, '0')}`;
-            const store = useNamedListStore.getState();
-            const currentRows = store.tables[todayKey];
-
-            if (!store.activeKey && currentRows) {
-                store.setActiveKey(todayKey);
-            }
-
-            const updatedStore = useNamedListStore.getState();
-
-            if (!updatedStore.activeKey || updatedStore.activeKey !== todayKey) {
-                console.warn('⛔ Auto-apply skipped: active table is not for today');
-                return;
-            }
-
-            if (currentRows && currentRows.some((r) => r.attendance[now.getDate() - 1] === '')) {
-                console.log('⏰ Auto-apply starting...');
-                await applyTodayStatuses();
-                applied = true;
-            }
-        };
-
-        load();
-
-        const interval = setInterval(checkAndApplyStatuses, 10_000);
-        return () => clearInterval(interval);
-    }, []);
+    // 2) Синхронне оновлення списків виключень/розпоряджень
     useEffect(() => {
         useVyklyuchennyaStore.getState().fetchAll();
         useRozporyadzhennyaStore.getState().fetchAll();
     }, []);
 
-    const daysInActiveMonth = useMemo(() => {
-        return new Date(activeYear, activeMonthIndex + 1, 0).getDate();
-    }, [activeYear, activeMonthIndex]);
+    // 3) Авто-підстановка (зовнішній керований цикл)
+    useEffect(() => {
+        const stop = startNamedListAutoApply();
+        return stop;
+    }, []);
 
-    const mk = (mo: number, yr: number): MonthKey =>
-        `${yr}-${(mo + 1).toString().padStart(2, '0')}` as MonthKey;
+    // Активні рік/місяць із activeKey або з контролів
+    const [activeYear, activeMonthIndex] = useMemo<[number, number]>(() => {
+        if (activeKey) {
+            const [y, m] = activeKey.split('-').map(Number);
+            return [y, (m || 1) - 1];
+        }
+        return [selYear, selMonth];
+    }, [activeKey, selMonth, selYear]);
+
+    const daysInActiveMonth = useMemo(
+        () => daysInMonth(activeYear, activeMonthIndex),
+        [activeYear, activeMonthIndex],
+    );
+
+    // Кеші мапи для швидкого доступу
+    const usersByShpk = useMemo(() => {
+        const m = new Map<string, (typeof users)[number]>();
+        for (const u of users) {
+            const num = (u.shpkNumber ?? '').toString().trim();
+            if (num) m.set(num, u);
+        }
+        return m;
+    }, [users]);
+
+    // Об’єднана мапа виключень (vyklyuchennya/rozporyadzhennya) -> перший день застосування в активному місяці
+    const exclusionsByUserId = useMemo(() => {
+        const m = new Map<
+            number,
+            { description: string; periodFrom: string; startIndex: number }
+        >();
+
+        const calcStartIndex = (from: string) => {
+            for (let i = 0; i < daysInActiveMonth; i++) {
+                const dayDate = new Date(activeYear, activeMonthIndex, i + 1);
+                if (dayDate >= new Date(from)) return i;
+            }
+            return -1;
+        };
+
+        for (const v of vyklyuchennyaList) {
+            const start = calcStartIndex(v.periodFrom);
+            if (start >= 0) {
+                m.set(v.userId, {
+                    description: v.description ?? '',
+                    periodFrom: v.periodFrom,
+                    startIndex: start,
+                });
+            }
+        }
+        for (const o of ordersList) {
+            if (!o.period?.from) continue;
+            // не перетираємо вже існуюче виключення з vyklyuchennya
+            if (m.has(o.userId)) continue;
+            const start = calcStartIndex(o.period.from);
+            if (start >= 0) {
+                m.set(o.userId, {
+                    description: o.description ?? o.title ?? '',
+                    periodFrom: o.period.from,
+                    startIndex: start,
+                });
+            }
+        }
+        return m;
+    }, [ordersList, vyklyuchennyaList, activeYear, activeMonthIndex, daysInActiveMonth]);
+
+    const currentRows = useMemo<AttendanceRow[]>(() => {
+        return activeKey && tables[activeKey] ? tables[activeKey] : [];
+    }, [tables, activeKey]);
+
+    const tableChunks = useMemo(() => {
+        const n = Math.ceil(currentRows.length / ROWS_PER_TABLE);
+        return Array.from({ length: n }, (_, pi) =>
+            currentRows.slice(pi * ROWS_PER_TABLE, (pi + 1) * ROWS_PER_TABLE),
+        );
+    }, [currentRows]);
 
     const handleCreate = () => {
-        const key = mk(selMonth, selYear);
+        const key = mkMonthKey(selMonth, selYear);
         if (tables[key]) {
-            return setActiveKey(key);
+            setActiveKey(key);
+            return;
         }
 
-        const today = new Date();
-        const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
-        const isSameDay = key === todayKey;
-        const todayIndex = today.getDate() - 1;
+        const tKey = todayKey();
+        const isSameMonth = key === tKey;
+        const todayIndex = new Date().getDate() - 1;
 
-        const existingRows = tables[key] || []; // ✅ <-- FIXED
+        const existingRows = tables[key] || [];
 
+        // відбираємо тільки валідні шткп і не виключених
         const filteredUsers = users.filter((u) => {
             const raw = u.shpkNumber?.toString().trim() || '';
             const isValid = /^[0-9]+$/.test(raw);
             if (!isValid) return false;
-            const alreadyExcluded =
-                // check Vyklyuchennya list
-                vyklyuchennyaList.some(
-                    (entry) =>
-                        entry.userId === u.id &&
-                        new Date(entry.periodFrom).getFullYear() === selYear &&
-                        new Date(entry.periodFrom).getMonth() === selMonth,
-                ) ||
-                // check Rozporyadzhennya list
-                ordersList.some(
-                    (entry) =>
-                        entry.userId === u.id &&
-                        new Date(entry.period.from).getFullYear() === selYear &&
-                        new Date(entry.period.from).getMonth() === selMonth,
-                ) ||
-                // check shpkNumber pattern
-                (typeof u.shpkNumber === 'string' &&
-                    (u.shpkNumber.includes('_order') || u.shpkNumber.includes('order_')));
-            return !alreadyExcluded;
+
+            const excludedByV = vyklyuchennyaList.some(
+                (entry) =>
+                    entry.userId === u.id &&
+                    new Date(entry.periodFrom).getFullYear() === selYear &&
+                    new Date(entry.periodFrom).getMonth() === selMonth,
+            );
+            if (excludedByV) return false;
+
+            const excludedByO = ordersList.some(
+                (entry) =>
+                    entry.userId === u.id &&
+                    new Date(entry.period.from).getFullYear() === selYear &&
+                    new Date(entry.period.from).getMonth() === selMonth,
+            );
+            if (excludedByO) return false;
+
+            const str = String(u.shpkNumber ?? '');
+            if (str.includes('_order') || str.includes('order_')) return false;
+
+            return true;
         });
 
-        const base = filteredUsers.map((u, i) => {
-            const old = existingRows.find((r) => r.fullName === u.fullName);
+        const base: AttendanceRow[] = filteredUsers.map((u, i) => {
+            const old = existingRows.find(
+                (r) => keyByNameRank(r.fullName, r.rank) === keyByNameRank(u.fullName, u.rank),
+            );
+
             const attendance = old ? [...old.attendance] : Array(daysInActiveMonth).fill('');
 
-            let exclusionData: AttendanceRow['exclusion'] | undefined = undefined;
-
-            const matchedExclusion = vyklyuchennyaList.find((v) => v.userId === u.id);
-            if (matchedExclusion) {
-                const exclusionDate = new Date(matchedExclusion.periodFrom);
-                for (let i = 0; i < daysInActiveMonth; i++) {
-                    const dayDate = new Date(selYear, selMonth, i + 1);
-                    if (dayDate >= exclusionDate) {
-                        exclusionData = {
-                            description: matchedExclusion.description,
-                            periodFrom: matchedExclusion.periodFrom,
-                            startIndex: i,
-                        };
-                        break;
-                    }
+            // якщо створюємо таблицю для поточного дня — НЕ підставляємо тут, це робить авто-логіка
+            if (!old && isSameMonth) {
+                // залишаємо порожнім todayIndex — авто-аплай зробить свою роботу
+                if (todayIndex >= 0 && todayIndex < attendance.length) {
+                    // нічого
                 }
             }
-            if (!exclusionData) {
-                const matchedOrder = ordersList.find((entry) => entry.userId === u.id);
-                if (matchedOrder) {
-                    const exclusionDate = new Date(matchedOrder.period.from);
-                    for (let i = 0; i < daysInActiveMonth; i++) {
-                        const dayDate = new Date(selYear, selMonth, i + 1);
-                        if (dayDate >= exclusionDate) {
-                            exclusionData = {
-                                description: matchedOrder.description ?? matchedOrder.title,
-                                periodFrom: matchedOrder.period.from,
-                                startIndex: i,
-                            };
-                            break;
-                        }
-                    }
-                }
+
+            // попередня підготовка exclusion ( лише стартовий індекс — нам цього досить )
+            let exclusion: AttendanceRow['exclusion'] | undefined;
+            const uExcluded = exclusionsByUserId.get(u.id);
+            if (uExcluded) {
+                exclusion = {
+                    description: uExcluded.description,
+                    periodFrom: uExcluded.periodFrom,
+                    startIndex: uExcluded.startIndex,
+                };
             }
 
             return {
@@ -280,7 +356,7 @@ export function NamedListTable() {
                 shpkNumber: u.shpkNumber ?? '',
                 fullName: u.fullName || '',
                 attendance,
-                exclusion: exclusionData,
+                exclusion,
             };
         });
 
@@ -300,78 +376,55 @@ export function NamedListTable() {
     };
 
     const applyTodayStatuses = async () => {
-        const today = new Date();
-        const todayKey = `${today.getFullYear()}-${(today.getMonth() + 1)
-            .toString()
-            .padStart(2, '0')}`;
+        const key = todayKey();
+        const nl = useNamedListStore.getState();
 
-        let { activeKey } = useNamedListStore.getState();
-        const { setActiveKey } = useNamedListStore.getState();
-        const { tables } = useNamedListStore.getState();
-
-        if (!activeKey && tables[todayKey]) {
-            setActiveKey(todayKey);
-            activeKey = todayKey;
+        if (!nl.activeKey && nl.tables[key]) {
+            setActiveKey(key);
         }
-
-        if (!activeKey) {
-            console.warn('🚫 applyTodayStatuses: No activeKey');
+        const ak = useNamedListStore.getState().activeKey;
+        if (!ak) {
+            console.warn('🚫 applyTodayStatuses: немає activeKey');
+            return;
+        }
+        if (ak !== key) {
+            console.warn(`🚫 applyTodayStatuses: активна таблиця не за сьогодні (${ak} ≠ ${key})`);
             return;
         }
 
-        if (activeKey !== todayKey) {
-            console.warn("🚫 applyTodayStatuses: Active key is not today's table");
+        const dayIndex = new Date().getDate() - 1;
+        const rows = useNamedListStore.getState().tables[ak] || [];
+        if (!rows.length) {
+            console.warn('🚫 applyTodayStatuses: порожні рядки');
             return;
         }
 
-        const dayIndex = today.getDate() - 1;
-        const currentRows = useNamedListStore.getState().tables[activeKey];
-        if (!currentRows) {
-            console.warn('🚫 applyTodayStatuses: No current rows for today');
-            return;
-        }
+        // було: Map по shpkNumber — видаляємо цей шматок
 
-        const users = useUserStore.getState().users; // ✅ Fetch fresh users from store
+        // нове: просто використовуємо ім’я+звання для пошуку
         let appliedCount = 0;
+        for (const row of rows) {
+            const uKey = keyByNameRank(row.fullName, row.rank);
+            const u = useUserStore
+                .getState()
+                .users.find((x) => keyByNameRank(x.fullName, x.rank) === uKey);
+            if (!u) continue;
 
-        for (const user of users) {
-            const short = statusToShort[user.soldierStatus as StatusExcel];
-            if (!short || !user.shpkNumber) continue;
-
-            const row = currentRows.find((r) => r.shpkNumber === user.shpkNumber);
-            if (!row) {
-                console.debug('🔍 User not found in table:', user.shpkNumber, user.fullName);
-                continue;
-            }
+            const short = statusToShort[u.soldierStatus as StatusExcel] ?? '';
+            if (!short) continue;
 
             if (!row.attendance[dayIndex]) {
-                console.debug('✅ Applying status:', {
-                    name: user.fullName,
-                    shpkNumber: user.shpkNumber,
-                    short,
-                    dayIndex,
-                });
-                await updateCell(activeKey, row.id, dayIndex, short);
+                await nl.updateCell(key, row.id, dayIndex, short);
                 appliedCount++;
             }
         }
 
         if (appliedCount > 0) {
-            alert(`✅ Статуси підставлено в ІМЕННОМУ СПИСОКУ: ${appliedCount}`);
+            alert(`✅ Підставлено статусів: ${appliedCount}`);
         } else {
-            console.log('ℹ️ applyTodayStatuses: No statuses applied, possibly already filled.');
+            console.log('ℹ️ applyTodayStatuses: нічого не підставлено — вже заповнено');
         }
     };
-
-    const currentRows = useMemo(() => {
-        return activeKey && tables[activeKey] ? tables[activeKey] : [];
-    }, [tables, activeKey]);
-
-    const tableChunks = useMemo(() => {
-        return Array.from({ length: Math.ceil(currentRows.length / ROWS_PER_TABLE) }, (_, pi) =>
-            currentRows.slice(pi * ROWS_PER_TABLE, (pi + 1) * ROWS_PER_TABLE),
-        );
-    }, [currentRows]);
 
     return (
         <div className="space-y-8">
@@ -432,7 +485,7 @@ export function NamedListTable() {
                                 const [y, m] = key.split('-').map(Number);
                                 return (
                                     <option key={key} value={key}>
-                                        {months[m - 1]} {y}
+                                        {months[(m || 1) - 1]} {y}
                                     </option>
                                 );
                             })}
@@ -442,10 +495,12 @@ export function NamedListTable() {
                     {activeKey && (
                         <button
                             onClick={async () => {
-                                const confirm = window.confirm(
-                                    `Ви впевнені, що хочете видалити таблицю: ${activeKey}?`,
-                                );
-                                if (!confirm) return;
+                                if (
+                                    !window.confirm(
+                                        `Видалити таблицю ${activeKey}? Дію не можна скасувати.`,
+                                    )
+                                )
+                                    return;
                                 await deleteTable(activeKey);
                                 setActiveKey(null);
                             }}
@@ -468,8 +523,7 @@ export function NamedListTable() {
                 <div className="text-center text-gray-500 italic">Створіть або оберіть таблицю</div>
             )}
 
-            {/* Render all chunks */}
-            {/* Render all chunks */}
+            {/* Таблиці по 14 рядків */}
             {activeKey &&
                 tableChunks.map((group, gi) => (
                     <div key={gi} className="space-y-4">
@@ -526,6 +580,47 @@ export function NamedListTable() {
                                 </thead>
                                 <tbody>
                                     {group.map((row) => {
+                                        // знаходимо користувача по shpkNumber (стабільний ключ)
+                                        const matchedUser = usersByNameRank.get(
+                                            keyByNameRank(row.fullName, row.rank),
+                                        );
+
+                                        // готове виключення по userId (якщо є)
+                                        const exclusion = matchedUser
+                                            ? exclusionsByUserId.get(matchedUser.id)
+                                            : undefined;
+
+                                        const cells: JSX.Element[] = [];
+                                        for (let di = 0; di < daysInActiveMonth; di++) {
+                                            if (exclusion && di === exclusion.startIndex) {
+                                                const colSpan = daysInActiveMonth - di;
+                                                cells.push(
+                                                    <td
+                                                        key={`excl-${di}`}
+                                                        colSpan={colSpan}
+                                                        className="border p-1 text-[11px] text-left align-top whitespace-pre-line"
+                                                    >
+                                                        {exclusion.description}{' '}
+                                                        {exclusion.periodFrom}
+                                                    </td>,
+                                                );
+                                                break;
+                                            }
+                                            if (exclusion && di > exclusion.startIndex) {
+                                                continue;
+                                            }
+
+                                            cells.push(
+                                                <AttendanceCell
+                                                    key={di}
+                                                    value={row.attendance[di]}
+                                                    onChange={(val) =>
+                                                        updateCell(activeKey!, row.id, di, val)
+                                                    }
+                                                />,
+                                            );
+                                        }
+
                                         return (
                                             <tr key={row.id} className="hover:bg-gray-50">
                                                 <td className="border p-1">{row.id}</td>
@@ -533,135 +628,7 @@ export function NamedListTable() {
                                                 <td className="border p-1 text-left">
                                                     {row.fullName}
                                                 </td>
-                                                {(() => {
-                                                    const cells: JSX.Element[] = [];
-                                                    const matchedUser = users.find(
-                                                        (u) =>
-                                                            u.fullName === row.fullName &&
-                                                            !!u.rank &&
-                                                            u.rank === row.rank,
-                                                    );
-
-                                                    let exclusion:
-                                                        | AttendanceRow['exclusion']
-                                                        | undefined = undefined;
-
-                                                    // 🔍 Exclusion from vyklyuchennyaList
-                                                    if (matchedUser) {
-                                                        const vEntry = vyklyuchennyaList.find(
-                                                            (v) => v.userId === matchedUser.id,
-                                                        );
-                                                        if (vEntry) {
-                                                            const exclusionDate = new Date(
-                                                                vEntry.periodFrom,
-                                                            );
-                                                            for (
-                                                                let i = 0;
-                                                                i < daysInActiveMonth;
-                                                                i++
-                                                            ) {
-                                                                const dayDate = new Date(
-                                                                    activeYear,
-                                                                    activeMonthIndex,
-                                                                    i + 1,
-                                                                );
-                                                                if (dayDate >= exclusionDate) {
-                                                                    exclusion = {
-                                                                        description:
-                                                                            vEntry.description,
-                                                                        periodFrom:
-                                                                            vEntry.periodFrom,
-                                                                        startIndex: i,
-                                                                    };
-                                                                    break;
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-
-                                                    // ➕ Separate exclusion from RozporyadzhennyaStore
-                                                    if (!exclusion && matchedUser) {
-                                                        const oEntry = ordersList.find(
-                                                            (v) => v.userId === matchedUser.id,
-                                                        );
-                                                        if (oEntry) {
-                                                            const exclusionDate = new Date(
-                                                                oEntry.period.from,
-                                                            );
-                                                            for (
-                                                                let i = 0;
-                                                                i < daysInActiveMonth;
-                                                                i++
-                                                            ) {
-                                                                const dayDate = new Date(
-                                                                    activeYear,
-                                                                    activeMonthIndex,
-                                                                    i + 1,
-                                                                );
-                                                                if (dayDate >= exclusionDate) {
-                                                                    exclusion = {
-                                                                        description:
-                                                                            oEntry.description ??
-                                                                            oEntry.title,
-                                                                        periodFrom:
-                                                                            oEntry.period.from,
-                                                                        startIndex: i,
-                                                                    };
-                                                                    break;
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-
-                                                    for (let di = 0; di < daysInActiveMonth; di++) {
-                                                        if (
-                                                            exclusion &&
-                                                            di === exclusion.startIndex
-                                                        ) {
-                                                            const colSpan = daysInActiveMonth - di;
-
-                                                            cells.push(
-                                                                <td
-                                                                    key={`excl-${di}`}
-                                                                    colSpan={colSpan}
-                                                                    className="border p-1 text-[11px] text-left align-top whitespace-pre-line"
-                                                                >
-                                                                    {exclusion.description}{' '}
-                                                                    {exclusion.periodFrom}
-                                                                </td>,
-                                                            );
-                                                            break; // stop loop after merged cell
-                                                        }
-
-                                                        if (
-                                                            exclusion &&
-                                                            di > exclusion.startIndex
-                                                        ) {
-                                                            continue; // skip merged cells
-                                                        }
-
-                                                        cells.push(
-                                                            <td key={di} className="border p-0.5">
-                                                                <input
-                                                                    type="text"
-                                                                    maxLength={3}
-                                                                    value={row.attendance[di]}
-                                                                    onChange={(e) =>
-                                                                        updateCell(
-                                                                            activeKey!,
-                                                                            row.id,
-                                                                            di,
-                                                                            e.target.value,
-                                                                        )
-                                                                    }
-                                                                    className="w-full text-center text-xs bg-transparent outline-none border-none"
-                                                                />
-                                                            </td>,
-                                                        );
-                                                    }
-
-                                                    return cells;
-                                                })()}
+                                                {cells}
                                             </tr>
                                         );
                                     })}
@@ -671,5 +638,40 @@ export function NamedListTable() {
                     </div>
                 ))}
         </div>
+    );
+}
+
+/** Окрема клітинка з локальним станом і дебаунсом збереження */
+function AttendanceCell({
+    value,
+    onChange,
+}: {
+    value: string;
+    onChange: (val: string) => void | Promise<void>;
+}) {
+    const [local, setLocal] = useState(value ?? '');
+    useEffect(() => {
+        // якщо змінюється значення в сторах (ззовні) — синхронізуємо
+        setLocal(value ?? '');
+    }, [value]);
+
+    const debouncedSave = useDebouncedCallback((v: string) => {
+        onChange(normToken(v));
+    }, 180);
+
+    return (
+        <td className="border p-0.5">
+            <input
+                type="text"
+                maxLength={3}
+                value={local}
+                onChange={(e) => {
+                    const v = normToken(e.target.value);
+                    setLocal(v);
+                    debouncedSave(v);
+                }}
+                className="w-full text-center text-xs bg-transparent outline-none border-none"
+            />
+        </td>
     );
 }
