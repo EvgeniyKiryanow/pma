@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import UserManagementTab from '../components/defaultAdmin/UserManagementTab';
+import AdminManagementTab from '../components/defaultAdmin/AdminManagementTab';
 import ChangeHistoryTab from '../components/defaultAdmin/ChangeHistoryTab';
 
 export default function DefaultAdminPanel() {
@@ -39,7 +39,7 @@ export default function DefaultAdminPanel() {
             </div>
 
             <div className="bg-white rounded shadow p-4">
-                {activeTab === 'users' && <UserManagementTab />}
+                {activeTab === 'users' && <AdminManagementTab />}
                 {/* {activeTab === 'history' && <ChangeHistoryTab />} */}
             </div>
         </div>
