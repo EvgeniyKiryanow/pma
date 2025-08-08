@@ -19,6 +19,24 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': path.resolve(__dirname, 'src'),
+            '@pages': path.resolve(__dirname, 'src/Pages'),
+            '@components': path.resolve(__dirname, 'src/components'),
+            '@shared': path.resolve(__dirname, 'src/shared'),
+            '@stores': path.resolve(__dirname, 'src/stores'),
+            '@features': path.resolve(__dirname, 'src/features'),
+            '@utils': path.resolve(__dirname, 'src/utils'),
+            '@styles': path.resolve(__dirname, 'src/styles'),
+            '@layouts': path.resolve(__dirname, 'src/layout'),
+            '@hooks': path.resolve(__dirname, 'src/hooks'),
+            '@icons': path.resolve(__dirname, 'src/icons'),
+            '@types': path.resolve(__dirname, 'src/types'),
+            '@locales': path.resolve(__dirname, 'src/locales'),
+            '@ipc': path.resolve(__dirname, 'src/ipc'),
+            '@db': path.resolve(__dirname, 'src/database'),
+            '@assets': path.resolve(__dirname, 'assets'), // у тебе assets в корені
+            // опційні корисні шорткати
+            '@excel': path.resolve(__dirname, 'src/components/ExcelTables'),
+            '@defaultAdmin': path.resolve(__dirname, 'src/components/defaultAdmin'),
         },
     },
     build: {

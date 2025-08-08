@@ -13,7 +13,24 @@
     "resolveJsonModule": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@pages/*": ["src/Pages/*"],
+      "@components/*": ["src/components/*"],
+      "@shared/*": ["src/shared/*"],
+      "@stores/*": ["src/stores/*"],
+      "@features/*": ["src/features/*"],
+      "@utils/*": ["src/utils/*"],
+      "@styles/*": ["src/styles/*"],
+      "@layouts/*": ["src/layout/*"],
+      "@hooks/*": ["src/hooks/*"],
+      "@icons/*": ["src/icons/*"],
+      "@types/*": ["src/types/*"],
+      "@locales/*": ["src/locales/*"],
+      "@ipc/*": ["src/ipc/*"],
+      "@db/*": ["src/database/*"],
+      "@assets/*": ["assets/*"],
+      "@excel/*": ["src/components/ExcelTables/*"],
+      "@defaultAdmin/*": ["src/components/defaultAdmin/*"]
     }
   }
 }

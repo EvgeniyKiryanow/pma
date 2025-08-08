@@ -17,7 +17,17 @@ export default defineConfig({
             },
         },
     },
-
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, 'src'),
+            '@ipc': path.resolve(__dirname, 'src/ipc'),
+            '@db': path.resolve(__dirname, 'src/database'),
+            '@shared': path.resolve(__dirname, 'src/shared'),
+            '@utils': path.resolve(__dirname, 'src/utils'),
+            '@types': path.resolve(__dirname, 'src/types'),
+            '@assets': path.resolve(__dirname, 'assets'),
+        },
+    },
     plugins: [
         {
             name: 'copy-templates-on-build',
