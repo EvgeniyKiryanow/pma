@@ -5,7 +5,12 @@
   "description": "PManager for managering",
   "main": ".vite/build/main.js",
   "scripts": {
-    "dev": "electron .",
+    "watch:main": "vite build --watch --config vite.main.ts",
+    "watch:preload": "vite build --watch --config vite.preload.ts",
+    "dev:renderer": "vite --config vite.renderer.ts",
+    "dev:electron": "cross-env NODE_ENV=development electron .",
+    "dev": "concurrently -k \"npm run watch:main\" \"npm run watch:preload\" \"npm run dev:renderer\" \"wait-on http://localhost:5173 && npm run dev:electron\"",
+  
     "build:main": "vite build --config vite.main.ts",
     "build:preload": "vite build --config vite.preload.ts",
     "build:renderer": "vite build --config vite.renderer.ts",
@@ -107,6 +112,8 @@
     "@types/react-window": "^1.8.8",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
+    "concurrently": "^9.2.0",
+    "cross-env": "^10.0.0",
     "electron": "37.2.0",
     "electron-builder": "^26.0.12",
     "eslint": "^8.57.1",
@@ -126,7 +133,8 @@
     "ts-node": "^10.9.2",
     "typescript": "~4.5.4",
     "typescript-eslint": "^7.18.0",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "wait-on": "^8.0.4"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.11",

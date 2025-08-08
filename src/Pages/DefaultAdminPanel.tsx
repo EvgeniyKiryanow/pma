@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import AdminManagementTab from '../components/defaultAdmin/AdminManagementTab';
-import ChangeHistoryTab from '../components/defaultAdmin/ChangeHistoryTab';
+
+import AdminManagementTab from '@/components/defaultAdmin/AdminManagementTab';
+// import ChangeHistoryTab from '../components/defaultAdmin/ChangeHistoryTab';
 
 export default function DefaultAdminPanel() {
     const [activeTab, setActiveTab] = useState<'users' | 'history'>('users');

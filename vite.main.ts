@@ -1,52 +1,53 @@
-import { defineConfig } from 'vite';
+import fs from 'fs';
 import path from 'path';
-import fs from 'fs'
+import { defineConfig } from 'vite';
 
 export default defineConfig({
-  build: {
-    outDir: '.vite/build',
-    emptyOutDir: true,
-    target: 'node16',
-    ssr: true,
-    rollupOptions: {
-      input: path.resolve(__dirname, 'src/main.ts'),
-      external: ['electron', 'sqlite3', 'fs', 'path'],
-      output: {
-        entryFileNames: 'main.js',
-        format: 'cjs',
-      },
+    build: {
+        outDir: '.vite/build',
+        emptyOutDir: true,
+        target: 'node16',
+        ssr: true,
+        rollupOptions: {
+            input: path.resolve(__dirname, 'src/main.ts'),
+            external: ['electron', 'sqlite3', 'fs', 'path'],
+            output: {
+                entryFileNames: 'main.js',
+                format: 'cjs',
+            },
+        },
     },
-  },
-   plugins: [
-    {
-      name: 'copy-templates-on-build',
-      closeBundle() {
-        const srcDir = path.resolve(__dirname, 'src/assets/templates');
-        const destDir = path.resolve(__dirname, '.vite/build/assets/templates');
 
-        fs.mkdirSync(destDir, { recursive: true });
+    plugins: [
+        {
+            name: 'copy-templates-on-build',
+            closeBundle() {
+                const srcDir = path.resolve(__dirname, 'src/assets/templates');
+                const destDir = path.resolve(__dirname, '.vite/build/assets/templates');
 
-        const files = fs.readdirSync(srcDir).filter(f => f.endsWith('.docx'));
+                fs.mkdirSync(destDir, { recursive: true });
 
-        for (const file of files) {
-          const srcFile = path.join(srcDir, file);
-          const destFile = path.join(destDir, file);
+                const files = fs.readdirSync(srcDir).filter((f) => f.endsWith('.docx'));
 
-          fs.copyFileSync(srcFile, destFile);
-          console.log(`✅ Copied ${file}`);
-        }
-      },
-    },
-    {
-  name: 'copy-python-on-build',
-  closeBundle() {
-    const srcPython = path.resolve(__dirname, 'src/assets/python');
-    const destPython = path.resolve(__dirname, '.vite/build/assets/python');
+                for (const file of files) {
+                    const srcFile = path.join(srcDir, file);
+                    const destFile = path.join(destDir, file);
 
-    fs.mkdirSync(destPython, { recursive: true });
+                    fs.copyFileSync(srcFile, destFile);
+                    console.log(`✅ Copied ${file}`);
+                }
+            },
+        },
+        {
+            name: 'copy-python-on-build',
+            closeBundle() {
+                const srcPython = path.resolve(__dirname, 'src/assets/python');
+                const destPython = path.resolve(__dirname, '.vite/build/assets/python');
 
-    fs.cpSync(srcPython, destPython, { recursive: true });
-  }
-},
-  ],
+                fs.mkdirSync(destPython, { recursive: true });
+
+                fs.cpSync(srcPython, destPython, { recursive: true });
+            },
+        },
+    ],
 });

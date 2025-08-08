@@ -1,6 +1,6 @@
+import { Download, Maximize2, Minus, RotateCcw, Trash2, Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { X, RotateCcw, Upload, Trash2, Download, Minus, Maximize2 } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useI18nStore } from '../stores/i18nStore';
 

@@ -1,0 +1,337 @@
+└── .
+│   └── index.html
+│   └── .DS_Store
+│   └── forge.config.ts
+│   └── postcss.config.mjs
+│   └── vite.main.ts
+│   └── forge.env.d.ts
+│   └── auto-backups
+│   │   └── backup-2025-07-21T07-29-38-629Z.sqlite
+│   │   └── backup-2025-08-04T08-09-45-032Z.sqlite
+│   │   └── backup-2025-07-28T08-04-55-797Z.sqlite
+│   └── vite.preload.ts
+│   └── renderer_dist
+│   │   └── index.html
+│   │   └── assets
+│   │   │   └── vendor_misc-BFbN1BX5.js
+│   │   │   └── index-RIZK5J4n.css
+│   │   │   └── index-D2EI-bEu.js
+│   │   │   └── vendor_shevchenko_tf-MKr3qsYo.js
+│   │   │   └── vendor_zustand-DtBHub2h.js
+│   │   │   └── vendor_pizzip-CcJuPEfk.js
+│   │   │   └── vendor_react-B3sR-tuc.js
+│   └── .gitignore
+│   └── package-lock.json
+│   └── package.json
+│   └── src_filelist.txt
+│   └── .github
+│   │   └── workflows
+│   │   │   └── main.yml
+│   └── tsconfig.json
+│   └── vite.renderer.ts
+│   └── eslint.config.js
+│   └── structure.txt
+│   └── assets
+│   │   └── python
+│   │   │   └── packages
+│   │   │   │   └── pymorphy3-2.0.4-py3-none-any.whl
+│   │   │   │   └── pymorphy3_dicts_uk-2.4.1.1.1663094765-py2.py3-none-any.whl
+│   │   │   └── installer
+│   │   │   │   └── python-3.8.8-amd64.exe
+│   │   │   │   └── python-3.13.5-macos11.pkg
+│   │   │   └── morphy.py
+│   │   └── icons
+│   │   │   └── default-avatar.jpg
+│   │   │   └── appIcon.ico
+│   │   │   └── .DS_Store
+│   │   │   └── appIcon.icns
+│   │   │   └── appIcon.png
+│   │   └── templates
+│   │   │   └── Повернення з відпустки .docx
+│   │   │   └── Введення в штат після довготривалого лікування.docx
+│   │   │   └── Посаду здав.docx
+│   │   │   └── Повернення з відпустки за станом здоров'я.docx
+│   │   │   └── Госпіталізація через хворобу.docx
+│   │   │   └── На матеріалку з інваліднісю (соц-побутові).docx
+│   │   │   └── Вибуття на ВЛК.docx
+│   │   │   └── ЗРАЗОК переведення.docx
+│   │   │   └── військове звання .docx
+│   │   │   └── На направлення на лікування.doc
+│   │   │   └── Повернення з ВЛК.docx
+│   │   │   └── Перевод з посади на посаду.docx
+│   │   │   └── На форму 6.docx
+│   │   │   └── У розпорядження СЗЧ.DOCX
+│   │   │   └── Зміни в ЖБД.docx
+│   │   │   └── Безвісті ЗРАЗОК.docx
+│   │   │   └── Посаду здав звільнення.docx
+│   │   │   └── Госпіталізація 300.docx
+│   │   │   └── Відпустка за станом здоров'я.docx
+│   │   │   └── на ДОВІДКу форма 5.docx
+│   │   │   └── Рапорт на відрядження.docx
+│   │   │   └── Повернення з лікування.docx
+│   │   │   └── По СЗЧ.docx
+│   │   │   └── У розпорядження ДОВГОТРИВАЛЕ ЛІКУВАННЯ.docx
+│   │   │   └── На Витяг з ЖБД.docx
+│   │   │   └── На ф12.docx
+│   │   │   └── Повернення з СЗЧ.docx
+│   │   │   └── На оздоровчі.docx
+│   │   │   └── Повернення з відрядження.doc
+│   │   │   └── У розпорядження Безвісті.docx
+│   │   │   └── Посаду прийняв.docx
+│   └── .eslintrc.json
+│   └── .vite
+│   └── src
+│   │   └── index.tsx
+│   │   └── autoUpdaterHandler.ts
+│   │   └── database
+│   │   │   └── seed
+│   │   │   └── migrations.ts
+│   │   │   └── db.ts
+│   │   └── App.tsx
+│   │   └── main.tsx
+│   │   └── types
+│   │   │   └── shtatnaPosada.ts
+│   │   │   └── user.ts
+│   │   └── .DS_Store
+│   │   └── locales
+│   │   │   └── ua.ts
+│   │   │   └── en.ts
+│   │   └── app
+│   │   │   └── providers
+│   │   └── main.ts
+│   │   └── layout
+│   │   │   └── ShtatniPosadyTab.tsx
+│   │   │   └── BackupPanel.tsx
+│   │   │   └── ReportsTab.tsx
+│   │   │   └── ManagerTab.tsx
+│   │   │   └── Header.tsx
+│   │   │   └── InstrtuctionsTab.tsx
+│   │   │   └── ImportUsersTab.tsx
+│   │   └── processes
+│   │   │   └── renderer
+│   │   │   └── main
+│   │   │   └── preload
+│   │   └── backupScheduler.ts
+│   │   └── MainRouter.tsx
+│   │   └── features
+│   │   │   └── directives
+│   │   │   │   └── components
+│   │   │   │   └── pages
+│   │   │   │   └── store
+│   │   │   └── auth
+│   │   │   │   └── {pages}
+│   │   │   └── admin
+│   │   │   │   └── utils
+│   │   │   │   └── components
+│   │   │   │   └── pages
+│   │   │   │   └── services
+│   │   │   └── named-list
+│   │   │   │   └── components
+│   │   │   │   └── store
+│   │   │   └── user
+│   │   │   │   └── components
+│   │   │   │   └── pages
+│   │   │   └── users
+│   │   │   │   └── components
+│   │   │   │   │   └── tabs
+│   │   │   │   │   └── shtatniy
+│   │   │   │   │   └── modals
+│   │   │   │   │   └── userInfo
+│   │   │   │   └── pages
+│   │   │   └── reports
+│   │   │   │   └── utils
+│   │   │   │   └── components
+│   │   │   │   └── pages
+│   │   │   │   └── services
+│   │   └── stores
+│   │   │   └── useRozporyadzhennyaStore.ts
+│   │   │   └── reportsStore.ts
+│   │   │   └── useShtatniStore.ts
+│   │   │   └── combatAlternativeReportStore.ts
+│   │   │   └── useIncompleteHistoryStore.ts
+│   │   │   └── userStore.ts
+│   │   │   └── useVidnovlennyaStore.ts
+│   │   │   └── reportFilesStore.ts
+│   │   │   └── useNamedListStore.ts
+│   │   │   └── i18nStore.ts
+│   │   │   └── useVyklyuchennyaStore.ts
+│   │   │   └── useCombinedStore.ts
+│   │   └── utils
+│   │   │   └── excelUserStatuses.ts
+│   │   │   └── headerMap.ts
+│   │   │   └── posadyBadgeHelper.ts
+│   │   │   └── statusBadgeUtils.ts
+│   │   └── index.css
+│   │   └── shared
+│   │   │   └── types
+│   │   │   └── utils
+│   │   │   └── components
+│   │   │   │   └── ui
+│   │   │   │   └── hooks
+│   │   │   │   │   └── icons
+│   │   │   │   │   │   └── utils
+│   │   │   └── hooks
+│   │   │   └── icons
+│   │   │   └── i18n
+│   │   └── styles
+│   │   └── components
+│   │   │   └── tabs
+│   │   │   │   └── UploadReportsTab.tsx
+│   │   │   │   └── SavedReportsTab.tsx
+│   │   │   │   └── YourSavedReportsTab.tsx
+│   │   │   │   └── _components
+│   │   │   │   │   └── AdditionalInfoModal.tsx
+│   │   │   │   │   └── DocxPreviewModal.tsx
+│   │   │   │   │   └── UserDataPreviewModal.tsx
+│   │   │   │   │   └── UserList.tsx
+│   │   │   │   │   └── SavedTemplatesList.tsx
+│   │   │   │   │   └── UserFieldsModal.tsx
+│   │   │   │   │   └── SavedTemplatesPanel.tsx
+│   │   │   └── userTables
+│   │   │   │   └── TablesTab.tsx
+│   │   │   └── EventsModalLauncher.tsx
+│   │   │   └── FilePreviewModal.tsx
+│   │   │   └── RemindersTab.tsx
+│   │   │   └── defaultAdmin
+│   │   │   │   └── ChangeHistoryTab.tsx
+│   │   │   │   └── AdminManagementTab.tsx
+│   │   │   │   └── components
+│   │   │   │   │   └── UsersToolbar.tsx
+│   │   │   │   │   └── CreateUserForm.tsx
+│   │   │   │   │   └── utils.ts
+│   │   │   │   │   └── api.ts
+│   │   │   │   │   └── types.ts
+│   │   │   │   │   └── UserCard.tsx
+│   │   │   │   │   └── UserList.tsx
+│   │   │   │   │   └── Toast.tsx
+│   │   │   └── shtatniy
+│   │   │   │   └── ShtatniPosadyTable.tsx
+│   │   │   │   └── EditPosadaModal.tsx
+│   │   │   │   └── ShtatniPosadyHeader.tsx
+│   │   │   └── HistoryHeader.tsx
+│   │   │   └── BackupControls.tsx
+│   │   │   └── ExcelTables
+│   │   │   │   └── excelTemplates
+│   │   │   │   │   └── generateAlternateCombatReportExcelTemplate.tsx
+│   │   │   │   │   └── generateCombatReportExcel.tsx
+│   │   │   │   │   └── exportNamedListTable.tsx
+│   │   │   │   │   └── generateStaffReportExcel.tsx
+│   │   │   │   └── GeneratedTablesTabContent.tsx
+│   │   │   │   └── ImportUsersTabContent.tsx
+│   │   │   │   └── _components
+│   │   │   │   │   └── AlternateCombatReportBody.tsx
+│   │   │   │   │   └── AlternateCombatReportHeader.tsx
+│   │   │   │   │   └── UnitStatsCalculator.ts
+│   │   │   │   │   └── CombatReportBody.tsx
+│   │   │   │   │   └── CombatReportTable.tsx
+│   │   │   │   │   └── CombatReportHeader.tsx
+│   │   │   │   │   └── StaffReportTable.tsx
+│   │   │   │   │   └── NamedListTable.tsx
+│   │   │   │   │   └── AlternateCombatReportTable.tsx
+│   │   │   │   │   └── EditableCell.tsx
+│   │   │   └── userInfo
+│   │   │   │   └── UserHistory.tsx
+│   │   │   │   └── UserRelatives.tsx
+│   │   │   │   └── HistoryItem.tsx
+│   │   │   │   └── AddHistoryModal.tsx
+│   │   │   │   └── UserCard.tsx
+│   │   │   │   └── UserInfoDetails.tsx
+│   │   │   │   └── CommentsModal.tsx
+│   │   │   └── userFormModal.tsx
+│   │   │   └── CustomTitleBar.tsx
+│   │   │   └── UserStatisticsDrawer.tsx
+│   │   │   └── managerTabs
+│   │   │   │   └── RozporyadzhennyaTab.tsx
+│   │   │   │   └── LeftBar.tsx
+│   │   │   │   └── VyklyucheniTab.tsx
+│   │   │   │   └── _components
+│   │   │   │   │   └── RozporyadzhennyaModal.tsx
+│   │   │   │   │   └── VyklyuchennyaModal.tsx
+│   │   │   │   │   └── VidnovytyModal.tsx
+│   │   │   │   └── RightBar.tsx
+│   │   └── layouts
+│   │   └── hooks
+│   │   │   └── useDocxGenerator.ts
+│   │   └── icons
+│   │   │   └── LogoSvg.tsx
+│   │   │   └── DefaultAvatar.tsx
+│   │   └── preload.ts
+│   │   └── renderer.ts
+│   │   └── ipc
+│   │   │   └── appIdHandler.ts
+│   │   │   └── userHandlers.ts
+│   │   │   └── app
+│   │   │   │   └── initAppIdentity.ts
+│   │   │   └── auth
+│   │   │   │   └── ensureDefaultAdmin.ts
+│   │   │   │   └── ensureSuperuserHandler.ts
+│   │   │   │   └── userAuth.ts
+│   │   │   └── changeHistoryHandler.ts
+│   │   │   └── commentsUserHandler.ts
+│   │   │   └── userHistoryHandler.ts
+│   │   │   └── appManipulationHandler.ts
+│   │   │   └── todoHandler.ts
+│   │   │   └── directivesHandler.ts
+│   │   │   └── index.ts
+│   │   │   └── backupHandlers.ts
+│   │   │   └── reportsHandler.ts
+│   │   └── assets
+│   │   │   └── .DS_Store
+│   │   │   └── python
+│   │   │   │   └── .DS_Store
+│   │   │   │   └── packages
+│   │   │   │   │   └── pymorphy3-2.0.4-py3-none-any.whl
+│   │   │   │   │   └── pymorphy3_dicts_uk-2.4.1.1.1663094765-py2.py3-none-any.whl
+│   │   │   │   └── installer
+│   │   │   │   │   └── python-3.8.8-amd64.exe
+│   │   │   │   │   └── python-3.13.5-macos11.pkg
+│   │   │   │   └── morphy.py
+│   │   │   └── templates
+│   │   │   │   └── Повернення з відпустки .docx
+│   │   │   │   └── Введення в штат після довготривалого лікування.docx
+│   │   │   │   └── Посаду здав.docx
+│   │   │   │   └── Повернення з відпустки за станом здоров'я.docx
+│   │   │   │   └── Госпіталізація через хворобу.docx
+│   │   │   │   └── На матеріалку з інваліднісю (соц-побутові).docx
+│   │   │   │   └── Вибуття на ВЛК.docx
+│   │   │   │   └── ЗРАЗОК переведення.docx
+│   │   │   │   └── військове звання .docx
+│   │   │   │   └── На направлення на лікування.doc
+│   │   │   │   └── Повернення з ВЛК.docx
+│   │   │   │   └── Перевод з посади на посаду.docx
+│   │   │   │   └── На форму 6.docx
+│   │   │   │   └── У розпорядження СЗЧ.DOCX
+│   │   │   │   └── Зміни в ЖБД.docx
+│   │   │   │   └── Безвісті ЗРАЗОК.docx
+│   │   │   │   └── Посаду здав звільнення.docx
+│   │   │   │   └── Госпіталізація 300.docx
+│   │   │   │   └── Відпустка за станом здоров'я.docx
+│   │   │   │   └── на ДОВІДКу форма 5.docx
+│   │   │   │   └── Рапорт на відрядження.docx
+│   │   │   │   └── Повернення з лікування.docx
+│   │   │   │   └── По СЗЧ.docx
+│   │   │   │   └── У розпорядження ДОВГОТРИВАЛЕ ЛІКУВАННЯ.docx
+│   │   │   │   └── На Витяг з ЖБД.docx
+│   │   │   │   └── На ф12.docx
+│   │   │   │   └── Повернення з СЗЧ.docx
+│   │   │   │   └── На оздоровчі.docx
+│   │   │   │   └── Повернення з відрядження.doc
+│   │   │   │   └── У розпорядження Безвісті.docx
+│   │   │   │   └── Посаду прийняв.docx
+│   │   └── Pages
+│   │   │   └── RegisterPage.tsx
+│   │   │   └── ForgotPasswordPage.tsx
+│   │   │   └── LogIn.tsx
+│   │   │   └── DefaultAdminPanel.tsx
+│   │   └── handlers
+│   │   └── helpers
+│   │   │   └── classifyStatusForReport.tsx
+│   │   │   └── loadersSimple.ts
+│   │   │   └── saveHistoryFiles.ts
+│   │   │   └── csvImports.ts
+│   │   │   └── generateAndFlattenFullNameForms.ts
+│   │   │   └── pythonInstallerHelper.ts
+│   │   │   └── generateAndFlattenTitleForms.ts
+│   │   │   └── imageOptionHelper.ts
+│   │   └── services
+│   │   └── store
