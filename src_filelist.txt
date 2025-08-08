@@ -1,0 +1,170 @@
+src/.DS_Store
+src/App.tsx
+src/assets/.DS_Store
+src/assets/python/.DS_Store
+src/assets/python/installer/python-3.13.5-macos11.pkg
+src/assets/python/installer/python-3.8.8-amd64.exe
+src/assets/python/morphy.py
+src/assets/python/packages/pymorphy3_dicts_uk-2.4.1.1.1663094765-py2.py3-none-any.whl
+src/assets/python/packages/pymorphy3-2.0.4-py3-none-any.whl
+src/assets/templates/Безвісті ЗРАЗОК.docx
+src/assets/templates/Введення в штат після довготривалого лікування.docx
+src/assets/templates/Вибуття на ВЛК.docx
+src/assets/templates/Відпустка за станом здоров'я.docx
+src/assets/templates/військове звання .docx
+src/assets/templates/Госпіталізація 300.docx
+src/assets/templates/Госпіталізація через хворобу.docx
+src/assets/templates/Зміни в ЖБД.docx
+src/assets/templates/ЗРАЗОК переведення.docx
+src/assets/templates/На Витяг з ЖБД.docx
+src/assets/templates/на ДОВІДКу форма 5.docx
+src/assets/templates/На матеріалку з інваліднісю (соц-побутові).docx
+src/assets/templates/На направлення на лікування.doc
+src/assets/templates/На оздоровчі.docx
+src/assets/templates/На ф12.docx
+src/assets/templates/На форму 6.docx
+src/assets/templates/Перевод з посади на посаду.docx
+src/assets/templates/По СЗЧ.docx
+src/assets/templates/Повернення з відпустки .docx
+src/assets/templates/Повернення з відпустки за станом здоров'я.docx
+src/assets/templates/Повернення з відрядження.doc
+src/assets/templates/Повернення з ВЛК.docx
+src/assets/templates/Повернення з лікування.docx
+src/assets/templates/Повернення з СЗЧ.docx
+src/assets/templates/Посаду здав звільнення.docx
+src/assets/templates/Посаду здав.docx
+src/assets/templates/Посаду прийняв.docx
+src/assets/templates/Рапорт на відрядження.docx
+src/assets/templates/У розпорядження Безвісті.docx
+src/assets/templates/У розпорядження ДОВГОТРИВАЛЕ ЛІКУВАННЯ.docx
+src/assets/templates/У розпорядження СЗЧ.DOCX
+src/autoUpdaterHandler.ts
+src/backupScheduler.ts
+src/components/BackupControls.tsx
+src/components/CustomTitleBar.tsx
+src/components/defaultAdmin/AdminManagementTab.tsx
+src/components/defaultAdmin/ChangeHistoryTab.tsx
+src/components/defaultAdmin/components/api.ts
+src/components/defaultAdmin/components/CreateUserForm.tsx
+src/components/defaultAdmin/components/Toast.tsx
+src/components/defaultAdmin/components/types.ts
+src/components/defaultAdmin/components/UserCard.tsx
+src/components/defaultAdmin/components/UserList.tsx
+src/components/defaultAdmin/components/UsersToolbar.tsx
+src/components/defaultAdmin/components/utils.ts
+src/components/EventsModalLauncher.tsx
+src/components/ExcelTables/_components/AlternateCombatReportBody.tsx
+src/components/ExcelTables/_components/AlternateCombatReportHeader.tsx
+src/components/ExcelTables/_components/AlternateCombatReportTable.tsx
+src/components/ExcelTables/_components/CombatReportBody.tsx
+src/components/ExcelTables/_components/CombatReportHeader.tsx
+src/components/ExcelTables/_components/CombatReportTable.tsx
+src/components/ExcelTables/_components/EditableCell.tsx
+src/components/ExcelTables/_components/NamedListTable.tsx
+src/components/ExcelTables/_components/StaffReportTable.tsx
+src/components/ExcelTables/_components/UnitStatsCalculator.ts
+src/components/ExcelTables/excelTemplates/exportNamedListTable.tsx
+src/components/ExcelTables/excelTemplates/generateAlternateCombatReportExcelTemplate.tsx
+src/components/ExcelTables/excelTemplates/generateCombatReportExcel.tsx
+src/components/ExcelTables/excelTemplates/generateStaffReportExcel.tsx
+src/components/ExcelTables/GeneratedTablesTabContent.tsx
+src/components/ExcelTables/ImportUsersTabContent.tsx
+src/components/FilePreviewModal.tsx
+src/components/HistoryHeader.tsx
+src/components/managerTabs/_components/RozporyadzhennyaModal.tsx
+src/components/managerTabs/_components/VidnovytyModal.tsx
+src/components/managerTabs/_components/VyklyuchennyaModal.tsx
+src/components/managerTabs/LeftBar.tsx
+src/components/managerTabs/RightBar.tsx
+src/components/managerTabs/RozporyadzhennyaTab.tsx
+src/components/managerTabs/VyklyucheniTab.tsx
+src/components/RemindersTab.tsx
+src/components/shtatniy/EditPosadaModal.tsx
+src/components/shtatniy/ShtatniPosadyHeader.tsx
+src/components/shtatniy/ShtatniPosadyTable.tsx
+src/components/tabs/_components/AdditionalInfoModal.tsx
+src/components/tabs/_components/DocxPreviewModal.tsx
+src/components/tabs/_components/SavedTemplatesList.tsx
+src/components/tabs/_components/SavedTemplatesPanel.tsx
+src/components/tabs/_components/UserDataPreviewModal.tsx
+src/components/tabs/_components/UserFieldsModal.tsx
+src/components/tabs/_components/UserList.tsx
+src/components/tabs/SavedReportsTab.tsx
+src/components/tabs/UploadReportsTab.tsx
+src/components/tabs/YourSavedReportsTab.tsx
+src/components/userFormModal.tsx
+src/components/userInfo/AddHistoryModal.tsx
+src/components/userInfo/CommentsModal.tsx
+src/components/userInfo/HistoryItem.tsx
+src/components/userInfo/UserCard.tsx
+src/components/userInfo/UserHistory.tsx
+src/components/userInfo/UserInfoDetails.tsx
+src/components/userInfo/UserRelatives.tsx
+src/components/UserStatisticsDrawer.tsx
+src/components/userTables/TablesTab.tsx
+src/database/db.ts
+src/database/migrations.ts
+src/helpers/classifyStatusForReport.tsx
+src/helpers/csvImports.ts
+src/helpers/generateAndFlattenFullNameForms.ts
+src/helpers/generateAndFlattenTitleForms.ts
+src/helpers/imageOptionHelper.ts
+src/helpers/loadersSimple.ts
+src/helpers/pythonInstallerHelper.ts
+src/helpers/saveHistoryFiles.ts
+src/hooks/useDocxGenerator.ts
+src/icons/DefaultAvatar.tsx
+src/icons/LogoSvg.tsx
+src/index.css
+src/index.tsx
+src/ipc/app/initAppIdentity.ts
+src/ipc/appIdHandler.ts
+src/ipc/appManipulationHandler.ts
+src/ipc/auth/ensureDefaultAdmin.ts
+src/ipc/auth/ensureSuperuserHandler.ts
+src/ipc/auth/userAuth.ts
+src/ipc/backupHandlers.ts
+src/ipc/changeHistoryHandler.ts
+src/ipc/commentsUserHandler.ts
+src/ipc/directivesHandler.ts
+src/ipc/index.ts
+src/ipc/reportsHandler.ts
+src/ipc/todoHandler.ts
+src/ipc/userHandlers.ts
+src/ipc/userHistoryHandler.ts
+src/layout/BackupPanel.tsx
+src/layout/Header.tsx
+src/layout/ImportUsersTab.tsx
+src/layout/InstrtuctionsTab.tsx
+src/layout/ManagerTab.tsx
+src/layout/ReportsTab.tsx
+src/layout/ShtatniPosadyTab.tsx
+src/locales/en.ts
+src/locales/ua.ts
+src/main.ts
+src/main.tsx
+src/MainRouter.tsx
+src/Pages/DefaultAdminPanel.tsx
+src/Pages/ForgotPasswordPage.tsx
+src/Pages/LogIn.tsx
+src/Pages/RegisterPage.tsx
+src/preload.ts
+src/renderer.ts
+src/stores/combatAlternativeReportStore.ts
+src/stores/i18nStore.ts
+src/stores/reportFilesStore.ts
+src/stores/reportsStore.ts
+src/stores/useCombinedStore.ts
+src/stores/useIncompleteHistoryStore.ts
+src/stores/useNamedListStore.ts
+src/stores/useRozporyadzhennyaStore.ts
+src/stores/userStore.ts
+src/stores/useShtatniStore.ts
+src/stores/useVidnovlennyaStore.ts
+src/stores/useVyklyuchennyaStore.ts
+src/types/shtatnaPosada.ts
+src/types/user.ts
+src/utils/excelUserStatuses.ts
+src/utils/headerMap.ts
+src/utils/posadyBadgeHelper.ts
+src/utils/statusBadgeUtils.ts
