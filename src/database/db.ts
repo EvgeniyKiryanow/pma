@@ -9,7 +9,6 @@ export async function getDbPath(): Promise<string> {
     if (!app.isReady()) {
         await app.whenReady();
     }
-
     return path.join(app.getPath('userData'), 'users.db');
 }
 
@@ -26,6 +25,15 @@ export async function getDb() {
 
 export async function initializeDb() {
     const db = await getDb();
+
+    // ⚙️ Критичні PRAGMA для стабільності/швидкості (викликаються один раз на старт)
+    await db.exec(`
+      PRAGMA journal_mode=WAL;
+      PRAGMA synchronous=NORMAL;
+      PRAGMA foreign_keys=ON;
+      PRAGMA busy_timeout=5000;
+      PRAGMA temp_store=MEMORY;
+    `);
 
     await db.exec(`
   CREATE TABLE IF NOT EXISTS shtatni_posady (
@@ -160,19 +168,20 @@ CREATE TABLE IF NOT EXISTS named_list_tables (
             content TEXT,
             description TEXT,
             files TEXT,
-            FOREIGN KEY (userId) REFERENCES users(id)
+            FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
         );
     `);
 
     await db.exec(`
         CREATE TABLE IF NOT EXISTS comments (
-            id INTEGER PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             author TEXT,
             content TEXT,
             type TEXT,
             date TEXT,
-            files TEXT
+            files TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
     `);
 
@@ -193,11 +202,12 @@ CREATE TABLE IF NOT EXISTS named_list_tables (
             createdAt TEXT DEFAULT CURRENT_TIMESTAMP
         );
     `);
+
     await db.exec(`
   CREATE TABLE IF NOT EXISTS user_directives (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     userId INTEGER NOT NULL,
-    type TEXT NOT NULL, -- 'order', 'exclude', 'restore'
+    type TEXT NOT NULL CHECK (type IN ('order','exclude','restore')), -- 'order', 'exclude', 'restore'
     title TEXT NOT NULL,
     description TEXT,
     file TEXT,
@@ -206,6 +216,7 @@ CREATE TABLE IF NOT EXISTS named_list_tables (
     date TEXT NOT NULL
   );
 `);
+
     await db.exec(`
   CREATE TABLE IF NOT EXISTS change_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -217,6 +228,66 @@ CREATE TABLE IF NOT EXISTS named_list_tables (
     timestamp TEXT DEFAULT CURRENT_TIMESTAMP
   );
 `);
+
+    // 🔎 Індекси під часті запити
+    await db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_users_shpk ON users(shpkNumber);
+      CREATE INDEX IF NOT EXISTS idx_users_unitMain ON users(unitMain);
+      CREATE INDEX IF NOT EXISTS idx_users_soldierStatus ON users(soldierStatus);
+      CREATE INDEX IF NOT EXISTS idx_hist_user_date ON user_history(userId, date);
+      CREATE INDEX IF NOT EXISTS idx_ch_table_rec_time ON change_history(table_name, record_id, timestamp);
+      CREATE INDEX IF NOT EXISTS idx_named_list_key ON named_list_tables(key);
+    `);
+
+    // ✅ Валідація JSON через тригери (бо CHECK на існуючих колонках не додати без перетворень)
+    // users: relatives, comments, history
+    await db.exec(`
+      CREATE TRIGGER IF NOT EXISTS trg_users_json_insert
+      BEFORE INSERT ON users
+      FOR EACH ROW
+      BEGIN
+        SELECT CASE WHEN NEW.relatives IS NOT NULL AND json_valid(NEW.relatives) = 0
+          THEN RAISE(ABORT, 'Invalid JSON in users.relatives') END;
+        SELECT CASE WHEN NEW.comments IS NOT NULL AND json_valid(NEW.comments) = 0
+          THEN RAISE(ABORT, 'Invalid JSON in users.comments') END;
+        SELECT CASE WHEN NEW.history IS NOT NULL AND json_valid(NEW.history) = 0
+          THEN RAISE(ABORT, 'Invalid JSON in users.history') END;
+      END;
+    `);
+
+    await db.exec(`
+      CREATE TRIGGER IF NOT EXISTS trg_users_json_update
+      BEFORE UPDATE ON users
+      FOR EACH ROW
+      BEGIN
+        SELECT CASE WHEN NEW.relatives IS NOT NULL AND json_valid(NEW.relatives) = 0
+          THEN RAISE(ABORT, 'Invalid JSON in users.relatives') END;
+        SELECT CASE WHEN NEW.comments IS NOT NULL AND json_valid(NEW.comments) = 0
+          THEN RAISE(ABORT, 'Invalid JSON in users.comments') END;
+        SELECT CASE WHEN NEW.history IS NOT NULL AND json_valid(NEW.history) = 0
+          THEN RAISE(ABORT, 'Invalid JSON in users.history') END;
+      END;
+    `);
+
+    // named_list_tables: data має бути валідним JSON
+    await db.exec(`
+      CREATE TRIGGER IF NOT EXISTS trg_named_list_json_insert
+      BEFORE INSERT ON named_list_tables
+      FOR EACH ROW
+      BEGIN
+        SELECT CASE WHEN NEW.data IS NOT NULL AND json_valid(NEW.data) = 0
+          THEN RAISE(ABORT, 'Invalid JSON in named_list_tables.data') END;
+      END;
+    `);
+    await db.exec(`
+      CREATE TRIGGER IF NOT EXISTS trg_named_list_json_update
+      BEFORE UPDATE ON named_list_tables
+      FOR EACH ROW
+      BEGIN
+        SELECT CASE WHEN NEW.data IS NOT NULL AND json_valid(NEW.data) = 0
+          THEN RAISE(ABORT, 'Invalid JSON in named_list_tables.data') END;
+      END;
+    `);
 
     // ✅ Upgrade missing user columns
     const userColumns = await db.all(`PRAGMA table_info(users);`);
@@ -301,4 +372,7 @@ CREATE TABLE IF NOT EXISTS named_list_tables (
             await db.exec(`ALTER TABLE users ADD COLUMN ${colName} ${colType};`);
         }
     }
+
+    // 🧹 (опціонально) VACUUM після великих міграцій
+    // await db.exec('VACUUM');
 }
