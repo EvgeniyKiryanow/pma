@@ -4,7 +4,7 @@ import { AttendanceRow, useNamedListStore } from '../../../../../stores/useNamed
 import { useRozporyadzhennyaStore } from '../../../../../stores/useRozporyadzhennyaStore';
 import { useUserStore } from '../../../../../stores/userStore';
 import { useVyklyuchennyaStore } from '../../../../../stores/useVyklyuchennyaStore';
-import { StatusExcel } from '../../../../../utils/excelUserStatuses';
+import { StatusExcel } from '../../../../shared/utils/excelUserStatuses';
 
 const ROWS_PER_TABLE = 14;
 const months = [

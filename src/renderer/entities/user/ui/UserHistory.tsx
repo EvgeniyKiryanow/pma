@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useI18nStore } from '../../../../stores/i18nStore';
 import { useUserStore } from '../../../../stores/userStore';
 import type { CommentOrHistoryEntry } from '../../../../types/user';
-import { StatusExcel } from '../../../../utils/excelUserStatuses';
 import FilePreviewModal from '../../../shared/components/FilePreviewModal';
 import { HistoryHeader } from '../../../shared/components/HistoryHeader';
+import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 import AddHistoryModal from './AddHistoryModal';
 import HistoryItem from './HistoryItem';
 

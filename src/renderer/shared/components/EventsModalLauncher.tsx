@@ -2,7 +2,7 @@ import { Gift } from 'lucide-react';
 import pLimit from 'p-limit';
 import { useEffect, useState } from 'react';
 
-import { StatusExcel } from '../../../utils/excelUserStatuses';
+import { StatusExcel } from '../utils/excelUserStatuses';
 
 function EventsModal({
     tabs,

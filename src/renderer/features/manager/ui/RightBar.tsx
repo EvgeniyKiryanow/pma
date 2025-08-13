@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useI18nStore } from '../../../../stores/i18nStore';
 import { useUserStore } from '../../../../stores/userStore';
 import type { CommentOrHistoryEntry, User } from '../../../../types/user';
-import { StatusExcel } from '../../../../utils/excelUserStatuses';
+import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 import CommentsModal from '../../../entities/user/ui/CommentsModal';
 import UserHistory from '../../../entities/user/ui/UserHistory';
 import UserInfoDetails from '../../../entities/user/ui/UserInfoDetails';

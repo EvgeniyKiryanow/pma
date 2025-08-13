@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-import { HEADER_MAP } from '../../utils/headerMap';
+import { HEADER_MAP } from '../shared/utils/headerMap';
 
 export default function InstructionsTab() {
     const [activeTab, setActiveTab] = useState<

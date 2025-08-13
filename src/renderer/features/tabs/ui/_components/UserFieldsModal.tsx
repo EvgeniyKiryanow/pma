@@ -3,7 +3,7 @@ import { ClipboardCopy, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import type { User } from '../../../../../types/user';
-import { getFieldLabel } from '../../../../../utils/headerMap';
+import { getFieldLabel } from '../../../../shared/utils/headerMap';
 
 type UserModalConfig = {
     user: User | null | undefined;

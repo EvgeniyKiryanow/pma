@@ -1,7 +1,7 @@
 import { ClipboardCopy } from 'lucide-react';
 import { useState } from 'react';
 
-import { getFieldLabel } from '../../../../../utils/headerMap';
+import { getFieldLabel } from '../../../../shared/utils/headerMap';
 
 export default function UserDataPreviewModal({
     open,

@@ -2,8 +2,8 @@ import { FileText, Image as ImageIcon, Paperclip, ShieldCheck, X } from 'lucide-
 import { useEffect, useRef, useState } from 'react';
 
 import { useI18nStore } from '../../../../stores/i18nStore';
-import { StatusExcel } from '../../../../utils/excelUserStatuses';
 import FilePreviewModal from '../../../shared/components/FilePreviewModal';
+import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 
 type FileWithDataUrl = {
     name: string;

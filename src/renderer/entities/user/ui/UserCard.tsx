@@ -1,13 +1,13 @@
-import DefaultAvatar from '../../../../icons/DefaultAvatar';
 import { useUserStore } from '../../../../stores/userStore';
 import type { User } from '../../../../types/user';
+import DefaultAvatar from '../../../shared/icons/DefaultAvatar';
 import {
     getCategoryBadge,
     getPositionBadge,
     getShpkBadge,
     getUnitBadge,
-} from '../../../../utils/posadyBadgeHelper';
-import { getStatusBadge } from '../../../../utils/statusBadgeUtils';
+} from '../../../shared/utils/posadyBadgeHelper';
+import { getStatusBadge } from '../../../shared/utils/statusBadgeUtils';
 
 export default function UserCard({ user }: { user: User }) {
     const sidebarCollapsed = useUserStore((s) => s.sidebarCollapsed);

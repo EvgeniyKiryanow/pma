@@ -10,11 +10,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import LogoSvg from '../../../icons/LogoSvg';
-import EventsModalLauncher from '../../shared/components/EventsModalLauncher';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useUserStore } from '../../../stores/userStore';
 import type { User } from '../../../types/user';
+import EventsModalLauncher from '../../shared/components/EventsModalLauncher';
+import LogoSvg from '../../shared/icons/LogoSvg';
 
 type HeaderProps = {
     currentTab:

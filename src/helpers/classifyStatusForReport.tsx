@@ -1,4 +1,4 @@
-import { StatusExcel } from '../utils/excelUserStatuses';
+import { StatusExcel } from '../renderer/shared/utils/excelUserStatuses';
 
 export default function classifyStatusForReport(status?: string) {
     if (!status) return { statusInArea: '', absenceReason: '' };

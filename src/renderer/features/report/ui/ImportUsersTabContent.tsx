@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 
 import { excelSerialToDate, generateUserKey, needsUpdate } from '../../../../helpers/csvImports';
-import { HEADER_MAP } from '../../../../utils/headerMap';
+import { HEADER_MAP } from '../../../shared/utils/headerMap';
 
 export default function ImportUsersTabContent() {
     const [parsedSheets, setParsedSheets] = useState<Record<string, any[]>>({});
