@@ -74,14 +74,6 @@ src/assets/templates/Рапорт на відрядження.docx
 src/assets/templates/У розпорядження Безвісті.docx
 src/assets/templates/У розпорядження ДОВГОТРИВАЛЕ ЛІКУВАННЯ.docx
 src/assets/templates/У розпорядження СЗЧ.DOCX
-src/helpers/csvImports.ts
-src/helpers/generateAndFlattenFullNameForms.ts
-src/helpers/generateAndFlattenTitleForms.ts
-src/helpers/imageOptionHelper.ts
-src/helpers/loadersSimple.ts
-src/helpers/pythonInstallerHelper.ts
-src/helpers/saveHistoryFiles.ts
-src/main.ts
 src/main/autoUpdaterHandler.ts
 src/main/backupScheduler.ts
 src/main/db/db.ts
@@ -102,8 +94,7 @@ src/main/ipc/handlers/userHandlers.ts
 src/main/ipc/handlers/userHistoryHandler.ts
 src/main/ipc/index.ts
 src/main/main.ts
-src/preload.ts
-src/renderer.ts
+src/preload/preload.ts
 src/renderer/App.tsx
 src/renderer/app/layout/Header.tsx
 src/renderer/app/MainRouter.tsx
@@ -186,6 +177,7 @@ src/renderer/pages/ManagerTab.tsx
 src/renderer/pages/RegisterPage.tsx
 src/renderer/pages/ReportsTab.tsx
 src/renderer/pages/ShtatniPosadyTab.tsx
+src/renderer/renderer.ts
 src/renderer/shared/components/CustomTitleBar.tsx
 src/renderer/shared/components/EventsModalLauncher.tsx
 src/renderer/shared/components/FilePreviewModal.tsx
@@ -201,10 +193,13 @@ src/renderer/stores/i18nStore.ts
 src/renderer/stores/userStore.ts
 src/renderer/styles/index.css
 src/shared/helpers/classifyStatusForReport.tsx
+src/shared/helpers/csvImports.ts
 src/shared/helpers/generateAndFlattenFullNameForms.ts
 src/shared/helpers/generateAndFlattenTitleForms.ts
 src/shared/helpers/imageOptionHelper.ts
 src/shared/helpers/loadersSimple.ts
+src/shared/helpers/pythonInstallerHelper.ts
+src/shared/helpers/saveHistoryFiles.ts
 src/shared/locales/en.ts
 src/shared/locales/ua.ts
 src/shared/types/shtatnaPosada.ts

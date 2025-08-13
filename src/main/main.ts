@@ -185,9 +185,11 @@ process.on('unhandledRejection', (reason) => {
     console.error('Unhandled Rejection:', reason);
 });
 
+// eslint-disable-next-line promise/catch-or-return
 app.whenReady().then(async () => {
     const { python, script } = await initPythonEnvSimplified();
 
+    // eslint-disable-next-line promise/always-return
     if (!python) {
         console.warn('⚠️ Python env not ready');
     } else {
