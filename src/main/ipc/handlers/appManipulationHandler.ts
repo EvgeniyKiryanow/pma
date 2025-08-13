@@ -1,22 +1,6 @@
-import bcrypt from 'bcryptjs';
-import { getDb } from '../database/db';
-import { ipcMain, dialog, app, BrowserWindow } from 'electron';
-import fs from 'fs/promises';
-import { existsSync, rmSync, readdirSync, unlinkSync } from 'fs';
-import path from 'path';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import { resetUserTemplates } from '../main';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import log from 'electron-log';
 import { autoUpdater } from 'electron-updater';
-
-import { getDbPath } from '../database/db';
-import {
-    getBackupIntervalInDays,
-    setBackupIntervalInDays,
-    startScheduledBackup,
-} from '../backupScheduler';
-import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
 export function registerAppHandlers() {
     ipcMain.on('app:close', () => {

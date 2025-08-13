@@ -5,7 +5,7 @@ import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 
-import { getDb } from '../../database/db';
+import { getDb } from '../../../../database/db';
 
 const adminIdPath = path.join(app.getPath('userData'), 'admin_id');
 const appKeyPath = path.join(app.getPath('userData'), 'app_key');

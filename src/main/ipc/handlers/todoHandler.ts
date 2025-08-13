@@ -1,9 +1,6 @@
-import { app, ipcMain } from 'electron';
-import { getDb } from '../database/db';
-import path from 'path';
-import fs from 'fs';
-import { convertDocxToPdf } from 'src/main';
-import { exec } from 'child_process';
+import { ipcMain } from 'electron';
+
+import { getDb } from '../../../database/db';
 
 export function registerTodoHandlers() {
     ipcMain.handle('fetch-todos', async () => {

@@ -1,6 +1,7 @@
-import { getDb } from '../../database/db';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
+
+import { getDb } from '../../../../database/db';
 
 export async function ensureSuperuser() {
     const db = await getDb();

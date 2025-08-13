@@ -1,20 +1,14 @@
-import { ipcMain, dialog, app, BrowserWindow } from 'electron';
-import fs from 'fs/promises';
-import { existsSync, rmSync, readdirSync, unlinkSync } from 'fs';
-import path from 'path';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import { resetUserTemplates } from '../main';
-import log from 'electron-log';
-import { autoUpdater } from 'electron-updater';
-
-import { getDb, getDbPath } from '../database/db';
-import {
-    getBackupIntervalInDays,
-    setBackupIntervalInDays,
-    startScheduledBackup,
-} from '../backupScheduler';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import { app, dialog, ipcMain } from 'electron';
+import { existsSync, readdirSync, unlinkSync } from 'fs';
+import fs from 'fs/promises';
+import path from 'path';
+import { open } from 'sqlite';
+import sqlite3 from 'sqlite3';
+
+import { getDb, getDbPath } from '../../../database/db';
+import { resetUserTemplates } from '../../../main/main';
+import { getBackupIntervalInDays, setBackupIntervalInDays } from '../../backupScheduler';
 import { ensureDefaultAdmin } from './auth/ensureDefaultAdmin';
 function encryptWithPassword(data: Buffer, password: string): Buffer {
     const iv = randomBytes(12);
@@ -279,5 +273,5 @@ export function registerBackupHandlers() {
         }
     });
 
-    getBackupIntervalInDays().then(startScheduledBackup);
+    // getBackupIntervalInDays().then(startScheduledBackup);
 }

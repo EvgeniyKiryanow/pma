@@ -1,7 +1,8 @@
 import { app } from 'electron';
 import fs from 'fs/promises';
 import path from 'path';
-import { getDbPath } from './database/db';
+
+import { getDbPath } from '../database/db';
 
 let backupInterval: NodeJS.Timeout | null = null;
 

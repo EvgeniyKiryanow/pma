@@ -6,13 +6,13 @@ import fs from 'fs';
 import path from 'path';
 
 // ✅ Import our updater functions
-import { getDb, initializeDb } from './database/db';
-import { upgradeDbSchema } from './database/migrations';
-import { initPythonEnvSimplified } from './helpers/pythonInstallerHelper';
+import { getDb, initializeDb } from '../database/db';
+import { upgradeDbSchema } from '../database/migrations';
+import { initPythonEnvSimplified } from '../helpers/pythonInstallerHelper';
 import { registerDbHandlers } from './ipc';
-import { ensureAppIdentity } from './ipc/app/initAppIdentity';
-import { ensureDefaultAdmin } from './ipc/auth/ensureDefaultAdmin';
-import { ensureSuperuser } from './ipc/auth/ensureSuperuserHandler';
+import { ensureAppIdentity } from './ipc/handlers/app/initAppIdentity';
+import { ensureDefaultAdmin } from './ipc/handlers/auth/ensureDefaultAdmin';
+import { ensureSuperuser } from './ipc/handlers/auth/ensureSuperuserHandler';
 
 export function copyAllTemplates() {
     const sourceDir = path.join(__dirname, 'assets/templates');

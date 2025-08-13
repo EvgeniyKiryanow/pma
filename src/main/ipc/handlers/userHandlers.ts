@@ -1,9 +1,7 @@
 import { app, ipcMain } from 'electron';
-import { getDb } from '../database/db';
 import path from 'path';
-import fs from 'fs/promises';
-import saveHistoryFiles from '../helpers/saveHistoryFiles';
-import mime from 'mime-types';
+
+import { getDb } from '../../../database/db';
 
 const base = path.join(app.getPath('userData'), 'user_files');
 

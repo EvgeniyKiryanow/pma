@@ -1,9 +1,10 @@
-import { app, ipcMain } from 'electron';
-import { getDb } from '../database/db';
-import path from 'path';
-import { readFile } from 'fs/promises';
-import fs from 'fs';
 import { exec } from 'child_process';
+import { app, ipcMain } from 'electron';
+import fs from 'fs';
+import { readFile } from 'fs/promises';
+import path from 'path';
+
+import { getDb } from '../../../database/db';
 
 export function registerReportsHandlers() {
     function getTemplatesDir(): string {

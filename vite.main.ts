@@ -9,7 +9,7 @@ export default defineConfig({
         target: 'node16',
         ssr: true,
         rollupOptions: {
-            input: path.resolve(__dirname, 'src/main.ts'),
+            input: path.resolve(__dirname, 'src/main/main.ts'),
             external: ['electron', 'sqlite3', 'fs', 'path'],
             output: {
                 entryFileNames: 'main.js',

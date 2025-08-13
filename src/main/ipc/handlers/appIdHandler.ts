@@ -1,9 +1,6 @@
-import { app, ipcMain } from 'electron';
-import { getDb } from '../database/db';
-import path from 'path';
-import { readFile } from 'fs/promises';
-import fs from 'fs';
-import { exec } from 'child_process';
+import { ipcMain } from 'electron';
+
+import { getDb } from '../../../database/db';
 
 export function registerAppIdHandlers() {
     ipcMain.handle('app:get-key', async () => {

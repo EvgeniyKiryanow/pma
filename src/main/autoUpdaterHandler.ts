@@ -1,6 +1,6 @@
-import { autoUpdater } from 'electron-updater';
+import { app, BrowserWindow, dialog } from 'electron';
 import log from 'electron-log';
-import { dialog, BrowserWindow, app } from 'electron';
+import { autoUpdater } from 'electron-updater';
 
 let updaterInitialized = false;
 let updateDownloaded = false;
