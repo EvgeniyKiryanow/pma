@@ -10,6 +10,13 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
     interface Window {
         electronAPI: {
+            // ========= Comments  =========
+            getUserComments: (userId: number) => Promise<CommentOrHistoryEntry[]>;
+            addUserComment: (
+                userId: number,
+                newComment: CommentOrHistoryEntry,
+            ) => Promise<{ success: boolean; message?: string }>;
+            deleteUserComment: (id: number) => Promise<boolean>;
             // ========= Files / Misc =========
             loadHistoryFile: (
                 userId: number,
@@ -187,7 +194,6 @@ declare global {
                 app_key?: string | null;
                 user?: { id: number; username: string };
             }>;
-            getUserComments: (id: any) => Promise<void>;
             // ========= Change History =========
             exportChangeLogs: (password: string) => Promise<void>;
             importChangeLogs: (password: string) => Promise<{ imported: number; error?: string }>;

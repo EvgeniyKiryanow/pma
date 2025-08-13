@@ -107,7 +107,7 @@ export default function ShtatniPosadyTab() {
         let cancelled = false;
 
         fetchUsers()
-            .then(() => {
+            .then((): null => {
                 if (!cancelled) {
                     setUsersLoaded(true);
                 }

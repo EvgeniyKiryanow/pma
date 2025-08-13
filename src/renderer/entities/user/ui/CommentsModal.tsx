@@ -111,7 +111,7 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
         }
 
         Promise.all(filePromises)
-            .then((newFiles: any) => {
+            .then((newFiles) => {
                 setFiles((prev) => [...prev, ...newFiles]);
                 e.target.value = '';
                 return null;

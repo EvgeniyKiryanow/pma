@@ -2,7 +2,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    getUserComments: (id: any) => ipcRenderer.invoke('comments:get-user-comments'),
+    getUserComments: (userId: number) => ipcRenderer.invoke('comments:get-user-comments', userId),
+    addUserComment: (userId: number, newComment: any) =>
+        ipcRenderer.invoke('comments:add-user-comment', userId, newComment),
+    deleteUserComment: (id: number) => ipcRenderer.invoke('comments:delete-user-comment', id),
     // ========= Files / Misc =========
     loadHistoryFile: (userId: number, entryId: number, filename: string) =>
         ipcRenderer.invoke('history:load-file', userId, entryId, filename),
@@ -79,7 +82,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('auth:superuser-login', username, password),
     defaultAdminLogin: (username: string, password: string): Promise<string | false> =>
         ipcRenderer.invoke('auth:default-admin-login', username, password),
-loginAny: (u: string, p: string) => ipcRenderer.invoke('auth:login-any', u, p),
+    loginAny: (u: string, p: string) => ipcRenderer.invoke('auth:login-any', u, p),
     // ========= Auth Management (admin panel) =========
     // важливо: без паролів у Renderer
     getAuthUsers: () => ipcRenderer.invoke('auth:get-auth-users'),
