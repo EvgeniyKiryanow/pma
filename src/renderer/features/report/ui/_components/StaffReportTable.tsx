@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import classifyStatusForReport from '../../../../../helpers/classifyStatusForReport';
+import classifyStatusForReport from '../../../../../shared/helpers/classifyStatusForReport';
 import { ShtatnaPosada, useShtatniStore } from '../../../../../stores/useShtatniStore';
 import { CommentOrHistoryEntry } from '../../../../../types/user';
 import { useUserStore } from '../../../../stores/userStore';

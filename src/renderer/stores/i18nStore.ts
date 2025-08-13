@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
-import { en } from '../../locales/en';
-import { ua } from '../../locales/ua';
+import { en } from '../../shared/locales/en';
+import { ua } from '../../shared/locales/ua';
 
 type Language = 'en' | 'ua';
 

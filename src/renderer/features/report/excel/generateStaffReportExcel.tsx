@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
-import classifyStatusForReport from '../../../../helpers/classifyStatusForReport';
+import classifyStatusForReport from '../../../../shared/helpers/classifyStatusForReport';
 import { useShtatniStore } from '../../../../stores/useShtatniStore';
 import { useUserStore } from '../../../stores/userStore';
 
