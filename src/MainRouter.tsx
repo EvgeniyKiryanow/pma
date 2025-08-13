@@ -1,11 +1,12 @@
-import DefaultAdminPanel from '@pages/DefaultAdminPanel';
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
+import DefaultAdminPanel from '@/renderer/pages/DefaultAdminPanel';
+
 import App from './App';
-import ForgotPasswordPage from './Pages/ForgotPasswordPage';
-import LoginPage from './Pages/LogIn';
-import RegisterPage from './Pages/RegisterPage';
+import ForgotPasswordPage from './renderer/pages/ForgotPasswordPage';
+import LoginPage from './renderer/pages/LogIn';
+import RegisterPage from './renderer/pages/RegisterPage';
 import CustomTitleBar from './renderer/shared/components/CustomTitleBar';
 import { useI18nStore } from './stores/i18nStore';
 
