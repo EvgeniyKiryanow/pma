@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
-import { StatusExcel } from '../renderer/shared/utils/excelUserStatuses';
-import { useI18nStore } from '../renderer/stores/i18nStore';
-import { useUserStore } from '../renderer/stores/userStore';
-import type { RelativeContact, User } from '../shared/types/user';
+import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
+import { useI18nStore } from '../../../stores/i18nStore';
+import { useUserStore } from '../../../stores/userStore';
+import type { RelativeContact, User } from '../../../../shared/types/user';
 
 export default function UserFormModalUpdate({
     userToEdit,
