@@ -1,10 +1,10 @@
 import React, { JSX, useEffect, useMemo, useRef, useState } from 'react';
 
-import { AttendanceRow, useNamedListStore } from '../../../stores/useNamedListStore';
-import { useRozporyadzhennyaStore } from '../../../stores/useRozporyadzhennyaStore';
-import { useUserStore } from '../../../stores/userStore';
-import { useVyklyuchennyaStore } from '../../../stores/useVyklyuchennyaStore';
-import { StatusExcel } from '../../../utils/excelUserStatuses';
+import { AttendanceRow, useNamedListStore } from '../../../../../stores/useNamedListStore';
+import { useRozporyadzhennyaStore } from '../../../../../stores/useRozporyadzhennyaStore';
+import { useUserStore } from '../../../../../stores/userStore';
+import { useVyklyuchennyaStore } from '../../../../../stores/useVyklyuchennyaStore';
+import { StatusExcel } from '../../../../../utils/excelUserStatuses';
 
 const ROWS_PER_TABLE = 14;
 const months = [

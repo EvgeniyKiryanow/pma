@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useCombatReportStore } from '../../../stores/combatAlternativeReportStore';
+
+import { useCombatReportStore } from '../../../../../stores/combatAlternativeReportStore';
 
 type EditableCellProps = {
     unitName: string;

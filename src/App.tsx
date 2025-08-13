@@ -1,17 +1,19 @@
 import './index.css';
+
 import { useEffect, useRef } from 'react';
-import Header from './layout/Header';
+
 import UserFormModalUpdate from './components/userFormModal';
-import { useUserStore } from './stores/userStore';
-import BackupPanel from './layout/BackupPanel';
-import ReportsTab from './layout/ReportsTab';
 import TablesTab from './components/userTables/TablesTab';
-import InstructionsTab from './layout/InstrtuctionsTab';
+import BackupPanel from './layout/BackupPanel';
+import Header from './layout/Header';
 import ImportUsersTab from './layout/ImportUsersTab';
-import ShtatniPosadyTab from './layout/ShtatniPosadyTab';
+import InstructionsTab from './layout/InstrtuctionsTab';
 import ManagerTab from './layout/ManagerTab';
-import { startNamedListAutoApply } from './components/ExcelTables/_components/NamedListTable';
+import ReportsTab from './layout/ReportsTab';
+import ShtatniPosadyTab from './layout/ShtatniPosadyTab';
+import { startNamedListAutoApply } from './renderer/features/report/ui/_components/NamedListTable';
 import { useNamedListStore } from './stores/useNamedListStore';
+import { useUserStore } from './stores/userStore';
 
 export default function App() {
     const currentTab = useUserStore((s) => s.currentTab);
