@@ -1,9 +1,9 @@
 import { UserCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { useI18nStore } from '../../../../stores/i18nStore';
-import { useUserStore } from '../../../../stores/userStore'; // ✅ subscribe to store
 import type { User } from '../../../../types/user';
+import { useI18nStore } from '../../../stores/i18nStore';
+import { useUserStore } from '../../../stores/userStore'; // ✅ subscribe to store
 import UserCard from './UserCard';
 
 type Props = {

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
-import { useUserStore } from '../../../../../stores/userStore';
 import { useShtatniStore } from '../../../../../stores/useShtatniStore';
+import { useUserStore } from '../../../../stores/userStore';
 import { EditableCell } from './EditableCell';
 import { UnitStatsCalculator } from './UnitStatsCalculator';
 

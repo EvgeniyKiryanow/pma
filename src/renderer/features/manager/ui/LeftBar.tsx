@@ -1,11 +1,11 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
-import { useI18nStore } from '../../../../stores/i18nStore';
-import { useUserStore } from '../../../../stores/userStore';
 import type { User } from '../../../../types/user';
 import { getShpkBadge } from '../../../shared/utils/posadyBadgeHelper';
 import { getStatusBadge } from '../../../shared/utils/statusBadgeUtils';
+import { useI18nStore } from '../../../stores/i18nStore';
+import { useUserStore } from '../../../stores/userStore';
 
 type Props = {
     users: User[];

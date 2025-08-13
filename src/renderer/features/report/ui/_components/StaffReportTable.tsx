@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import classifyStatusForReport from '../../../../../helpers/classifyStatusForReport';
-import { useUserStore } from '../../../../../stores/userStore';
 import { ShtatnaPosada, useShtatniStore } from '../../../../../stores/useShtatniStore';
 import { CommentOrHistoryEntry } from '../../../../../types/user';
+import { useUserStore } from '../../../../stores/userStore';
 const STAFF_COLUMNS = [
     { key: 'shtatNumber', label: '№ посади' },
     { key: 'unit', label: 'Підрозділ' },

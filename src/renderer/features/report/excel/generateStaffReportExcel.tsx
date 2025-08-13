@@ -2,8 +2,8 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 import classifyStatusForReport from '../../../../helpers/classifyStatusForReport';
-import { useUserStore } from '../../../../stores/userStore';
 import { useShtatniStore } from '../../../../stores/useShtatniStore';
+import { useUserStore } from '../../../stores/userStore';
 
 export async function generateStaffReportExcel() {
     const shtatniPosady = useShtatniStore.getState().shtatniPosady;

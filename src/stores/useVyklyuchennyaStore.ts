@@ -1,6 +1,7 @@
 import { create } from 'zustand';
+
 import { FileWithDataUrl } from '../renderer/shared/components/FilePreviewModal';
-import { useUserStore } from './userStore';
+import { useUserStore } from '../renderer/stores/userStore';
 
 export type VyklyuchennyaEntry = {
     id: number;

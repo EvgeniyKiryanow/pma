@@ -4,7 +4,7 @@ import LeftBar from '../features/manager/ui/LeftBar';
 import RightBar from '../features/manager/ui/RightBar';
 import RozporyadzhennyaTab from '../features/manager/ui/RozporyadzhennyaTab';
 import VyklyucheniTab from '../features/manager/ui/VyklyucheniTab';
-import { useUserStore } from '../../stores/userStore';
+import { useUserStore } from '../stores/userStore';
 
 const tabLabels = [
     { id: 'main', label: 'Штат / за списком' },

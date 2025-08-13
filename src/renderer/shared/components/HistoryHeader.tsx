@@ -1,6 +1,6 @@
 import { ClipboardList, Plus } from 'lucide-react';
 
-import { useI18nStore } from '../../../stores/i18nStore';
+import { useI18nStore } from '../../stores/i18nStore';
 import { StatusExcel } from '../utils/excelUserStatuses';
 
 type HistoryHeaderProps = {

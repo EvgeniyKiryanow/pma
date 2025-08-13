@@ -2,7 +2,7 @@ import { Download, Maximize2, Minus, RotateCcw, Trash2, Upload, X } from 'lucide
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { useI18nStore } from '../../../stores/i18nStore';
+import { useI18nStore } from '../../stores/i18nStore';
 
 export default function CustomTitleBar() {
     const [version, setVersion] = useState('');

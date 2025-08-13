@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useI18nStore } from '../../../../stores/i18nStore';
+import { useI18nStore } from '../../../stores/i18nStore';
 import { useReportsStore } from '../../report/model/reportsStore';
 
 export default function UploadReportsTab() {

@@ -1,10 +1,10 @@
 import { Eye, Info, UploadCloud, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-import FilePreviewModal, { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
-import { useUserStore } from '../../../../stores/userStore';
 import { useVidnovlennyaStore } from '../../../../stores/useVidnovlennyaStore';
 import type { CommentOrHistoryEntry } from '../../../../types/user';
+import FilePreviewModal, { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
+import { useUserStore } from '../../../stores/userStore';
 
 export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);

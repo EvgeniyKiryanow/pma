@@ -12,8 +12,8 @@ import InstructionsTab from './renderer/pages/InstrtuctionsTab';
 import ManagerTab from './renderer/pages/ManagerTab';
 import ReportsTab from './renderer/pages/ReportsTab';
 import ShtatniPosadyTab from './renderer/pages/ShtatniPosadyTab';
+import { useUserStore } from './renderer/stores/userStore';
 import { useNamedListStore } from './stores/useNamedListStore';
-import { useUserStore } from './stores/userStore';
 
 export default function App() {
     const currentTab = useUserStore((s) => s.currentTab);

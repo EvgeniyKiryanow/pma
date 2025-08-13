@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { useI18nStore } from '../../../../../stores/i18nStore';
+import { useI18nStore } from '../../../../stores/i18nStore';
 import AdditionalInfoModal from './AdditionalInfoModal';
 import SavedTemplatesList from './SavedTemplatesList';
 type Props = {

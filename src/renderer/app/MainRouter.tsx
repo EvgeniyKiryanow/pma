@@ -4,11 +4,11 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import DefaultAdminPanel from '@/renderer/pages/DefaultAdminPanel';
 
 import App from '../../App';
-import { useI18nStore } from '../../stores/i18nStore';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import LoginPage from '../pages/LogIn';
 import RegisterPage from '../pages/RegisterPage';
 import CustomTitleBar from '../shared/components/CustomTitleBar';
+import { useI18nStore } from '../stores/i18nStore';
 
 export function Main() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);

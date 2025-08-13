@@ -1,14 +1,14 @@
 import { Edit3, MessageCircle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-import { useI18nStore } from '../../../../stores/i18nStore';
-import { useUserStore } from '../../../../stores/userStore';
 import type { CommentOrHistoryEntry, User } from '../../../../types/user';
-import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 import CommentsModal from '../../../entities/user/ui/CommentsModal';
 import UserHistory from '../../../entities/user/ui/UserHistory';
 import UserInfoDetails from '../../../entities/user/ui/UserInfoDetails';
 import UserStatisticsDrawer from '../../../entities/user/ui/UserStatisticsDrawer';
+import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
+import { useI18nStore } from '../../../stores/i18nStore';
+import { useUserStore } from '../../../stores/userStore';
 import RozporyadzhennyaModal from './RozporyadzhennyaModal';
 import VidnovytyModal from './VidnovytyModal';
 import VyklyuchennyaModal from './VyklyuchennyaModal';

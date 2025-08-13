@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { useI18nStore } from '../../../../stores/i18nStore';
-import { useUserStore } from '../../../../stores/userStore';
 import type { CommentOrHistoryEntry } from '../../../../types/user';
+import { useI18nStore } from '../../../stores/i18nStore';
+import { useUserStore } from '../../../stores/userStore';
 
 type CommentsModalProps = {
     onClose: () => void;

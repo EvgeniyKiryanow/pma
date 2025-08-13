@@ -1,4 +1,3 @@
-import { useUserStore } from '../../../../stores/userStore';
 import type { User } from '../../../../types/user';
 import DefaultAvatar from '../../../shared/icons/DefaultAvatar';
 import {
@@ -8,6 +7,7 @@ import {
     getUnitBadge,
 } from '../../../shared/utils/posadyBadgeHelper';
 import { getStatusBadge } from '../../../shared/utils/statusBadgeUtils';
+import { useUserStore } from '../../../stores/userStore';
 
 export default function UserCard({ user }: { user: User }) {
     const sidebarCollapsed = useUserStore((s) => s.sidebarCollapsed);

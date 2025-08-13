@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { useI18nStore } from '../../../../stores/i18nStore';
+import { useI18nStore } from '../../../stores/i18nStore';
 
 export default function BackupPanel() {
     //  const [activeTab, setActiveTab] = useState<'settings' | 'actions' | 'changeLogs'>('actions');

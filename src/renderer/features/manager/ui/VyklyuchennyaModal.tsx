@@ -2,9 +2,9 @@ import { Eye, Info, UploadCloud, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { useUserStore } from '../../../../stores/userStore';
 import { useVyklyuchennyaStore } from '../../../../stores/useVyklyuchennyaStore';
 import FilePreviewModal, { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
+import { useUserStore } from '../../../stores/userStore';
 
 export default function VyklyuchennyaModal({ onClose }: { onClose: () => void }) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
