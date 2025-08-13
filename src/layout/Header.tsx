@@ -1,19 +1,20 @@
-import { useEffect, useState } from 'react';
-import { useUserStore } from '../stores/userStore';
 import {
+    BookText,
+    DatabaseBackup,
+    FileBarChart,
+    FileSpreadsheet,
+    Info,
     LogOut,
     PlusCircle,
     Users,
-    FileBarChart,
-    DatabaseBackup,
-    FileSpreadsheet,
-    BookText,
-    Info,
 } from 'lucide-react';
-import type { User } from '../types/user';
-import { useI18nStore } from '../stores/i18nStore';
+import { useEffect, useState } from 'react';
+
 import LogoSvg from '../icons/LogoSvg';
-import EventsModalLauncher from '../components/EventsModalLauncher';
+import EventsModalLauncher from '../renderer/shared/components/EventsModalLauncher';
+import { useI18nStore } from '../stores/i18nStore';
+import { useUserStore } from '../stores/userStore';
+import type { User } from '../types/user';
 
 type HeaderProps = {
     currentTab:

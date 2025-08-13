@@ -1,6 +1,6 @@
 // stores/useVidnovlennyaStore.ts
 import { create } from 'zustand';
-import { FileWithDataUrl } from '../components/FilePreviewModal';
+import { FileWithDataUrl } from '../renderer/shared/components/FilePreviewModal';
 
 export type VidnovlennyaEntry = {
     userId: number;

@@ -1,8 +1,8 @@
 // components/FilePreviewModal.tsx
-import { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import { renderAsync } from 'docx-preview';
+import { X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import * as XLSX from 'xlsx';
 
 export type FileWithDataUrl = {
     name: string;

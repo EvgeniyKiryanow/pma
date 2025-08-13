@@ -1,6 +1,7 @@
-import { ClipboardList, Plus, ShieldCheck } from 'lucide-react';
-import { StatusExcel } from '../utils/excelUserStatuses';
-import { useI18nStore } from '../stores/i18nStore';
+import { ClipboardList, Plus } from 'lucide-react';
+
+import { useI18nStore } from '../../../stores/i18nStore';
+import { StatusExcel } from '../../../utils/excelUserStatuses';
 
 type HistoryHeaderProps = {
     currentStatus?: string;

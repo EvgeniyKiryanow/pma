@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-import { FileWithDataUrl } from '../../../../components/FilePreviewModal';
+import { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
 import { useI18nStore } from '../../../../stores/i18nStore';
 import { CommentOrHistoryEntry } from '../../../../types/user';
 

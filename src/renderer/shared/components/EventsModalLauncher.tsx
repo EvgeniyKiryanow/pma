@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
 import { Gift } from 'lucide-react';
-import { StatusExcel } from '../utils/excelUserStatuses';
-import { User } from '../types/user';
 import pLimit from 'p-limit';
+import { useEffect, useState } from 'react';
+
+import { StatusExcel } from '../../../utils/excelUserStatuses';
 
 function EventsModal({
     tabs,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import BackupControls from '../components/BackupControls';
+
 import { useI18nStore } from '../stores/i18nStore';
 
 export default function BackupPanel() {

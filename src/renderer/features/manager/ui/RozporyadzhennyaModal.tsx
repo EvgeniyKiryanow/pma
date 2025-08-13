@@ -1,7 +1,7 @@
 import { Eye, Info, UploadCloud, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-import FilePreviewModal, { FileWithDataUrl } from '../../../../components/FilePreviewModal';
+import FilePreviewModal, { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
 import { useRozporyadzhennyaStore } from '../../../../stores/useRozporyadzhennyaStore';
 import { useUserStore } from '../../../../stores/userStore';
 import { CommentOrHistoryEntry } from '../../../../types/user';

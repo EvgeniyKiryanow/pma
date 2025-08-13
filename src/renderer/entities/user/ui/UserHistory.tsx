@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import FilePreviewModal from '../../../../components/FilePreviewModal';
-import { HistoryHeader } from '../../../../components/HistoryHeader';
 import { useI18nStore } from '../../../../stores/i18nStore';
 import { useUserStore } from '../../../../stores/userStore';
 import type { CommentOrHistoryEntry } from '../../../../types/user';
 import { StatusExcel } from '../../../../utils/excelUserStatuses';
+import FilePreviewModal from '../../../shared/components/FilePreviewModal';
+import { HistoryHeader } from '../../../shared/components/HistoryHeader';
 import AddHistoryModal from './AddHistoryModal';
 import HistoryItem from './HistoryItem';
 

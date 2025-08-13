@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import App from './App';
-import CustomTitleBar from './components/CustomTitleBar';
 import ForgotPasswordPage from './Pages/ForgotPasswordPage';
 import LoginPage from './Pages/LogIn';
 import RegisterPage from './Pages/RegisterPage';
+import CustomTitleBar from './renderer/shared/components/CustomTitleBar';
 import { useI18nStore } from './stores/i18nStore';
 
 export function Main() {

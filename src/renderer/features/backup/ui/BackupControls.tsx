@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useI18nStore } from '../stores/i18nStore';
+
+import { useI18nStore } from '../../../../stores/i18nStore';
 
 const INTERVAL_OPTIONS = [1, 3, 5, 7, 10, 30];
 
