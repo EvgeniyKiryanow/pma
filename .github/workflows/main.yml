@@ -9,7 +9,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-14, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -43,7 +43,7 @@ jobs:
 
       # 🍏 macOS build step (ONLY x64 → works on Intel + ARM Rosetta)
       - name: Build & Publish macOS (x64 only)
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-14'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
