@@ -6,8 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useDocxGenerator } from '../../../../renderer/shared/hooks/useDocxGenerator';
 import { useI18nStore } from '../../../../stores/i18nStore';
-import { useReportsStore } from '../../../../stores/reportsStore';
 import type { User } from '../../../../types/user';
+import { useReportsStore } from '../../report/model/reportsStore';
 import DocxPreviewModal from './_components/DocxPreviewModal';
 import SavedTemplatesPanel from './_components/SavedTemplatesPanel';
 import UserFieldsModal from './_components/UserFieldsModal';

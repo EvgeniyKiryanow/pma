@@ -1,6 +1,6 @@
 // components/UserList.tsx
-import { useReportsStore } from '../../../../../stores/reportsStore';
 import type { User } from '../../../../../types/user';
+import { useReportsStore } from '../../../report/model/reportsStore';
 
 type Props = {
     users: User[];

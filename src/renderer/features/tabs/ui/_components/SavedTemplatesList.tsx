@@ -2,7 +2,7 @@
 import { CheckCircle } from 'lucide-react';
 
 // import type { Template } from '../../../types/template';
-import { useReportsStore } from '../../../../../stores/reportsStore';
+import { useReportsStore } from '../../../report/model/reportsStore';
 
 type Props = {
     templates: any[];

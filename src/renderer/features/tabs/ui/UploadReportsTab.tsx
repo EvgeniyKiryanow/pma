@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useI18nStore } from '../../../../stores/i18nStore';
-import { useReportsStore } from '../../../../stores/reportsStore';
+import { useReportsStore } from '../../report/model/reportsStore';
 
 export default function UploadReportsTab() {
     const { templates, addTemplate, addSavedTemplate } = useReportsStore();

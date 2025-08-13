@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useReportsStore } from '../../../../../stores/reportsStore';
+import { useReportsStore } from '../../../report/model/reportsStore';
 
 type Props = {
     open: boolean;
