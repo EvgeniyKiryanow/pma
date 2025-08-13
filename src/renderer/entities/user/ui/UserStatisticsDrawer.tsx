@@ -2,7 +2,7 @@
 import { ArrowRight, BarChart2, Briefcase, Clock, RefreshCcw, X } from 'lucide-react';
 import { useMemo } from 'react';
 
-import type { User } from '../../../../types/user';
+import type { User } from '../../../../shared/types/user';
 
 type Props = {
     user: User;

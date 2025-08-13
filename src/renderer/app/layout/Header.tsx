@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import type { User } from '../../../types/user';
+import type { User } from '../../../shared/types/user';
 import EventsModalLauncher from '../../shared/components/EventsModalLauncher';
 import LogoSvg from '../../shared/icons/LogoSvg';
 import { useI18nStore } from '../../stores/i18nStore';
@@ -38,7 +38,7 @@ type HeaderProps = {
             | 'shtatni',
     ) => void;
 };
-import { useIncompleteHistoryStore } from '../../../stores/useIncompleteHistoryStore';
+import { useIncompleteHistoryStore } from '../../features/report/model/useIncompleteHistoryStore';
 
 export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     const openUserFormForAdd = useUserStore((s) => s.openUserFormForAdd);

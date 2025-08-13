@@ -1,9 +1,9 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
-import { useNamedListStore } from '../../../../stores/useNamedListStore';
-import { useRozporyadzhennyaStore } from '../../../../stores/useRozporyadzhennyaStore';
-import { useVyklyuchennyaStore } from '../../../../stores/useVyklyuchennyaStore';
+import { useNamedListStore } from '../model/useNamedListStore';
+import { useRozporyadzhennyaStore } from '../../manager/model/useRozporyadzhennyaStore';
+import { useVyklyuchennyaStore } from '../../manager/model/useVyklyuchennyaStore';
 import { useUserStore } from '../../../stores/userStore';
 export async function exportNamedListTable() {
     const { activeKey, tables } = useNamedListStore.getState();

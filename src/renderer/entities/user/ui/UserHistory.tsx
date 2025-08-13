@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import type { CommentOrHistoryEntry } from '../../../../types/user';
+import type { CommentOrHistoryEntry } from '../../../../shared/types/user';
 import FilePreviewModal from '../../../shared/components/FilePreviewModal';
 import { HistoryHeader } from '../../../shared/components/HistoryHeader';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';

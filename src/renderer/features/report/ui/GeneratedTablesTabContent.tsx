@@ -1,7 +1,7 @@
 // GeneratedTablesTabContent.tsx
 import React, { useEffect, useState } from 'react';
 
-import { useShtatniStore } from '../../../../stores/useShtatniStore';
+import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
 import { useUserStore } from '../../../stores/userStore';
 import { exportNamedListTable } from '../excel/exportNamedListTable';
 import { generateAlternateCombatReportExcelTemplate } from '../excel/generateAlternateCombatReportExcelTemplate';

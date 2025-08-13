@@ -1,5 +1,5 @@
 // components/UserList.tsx
-import type { User } from '../../../../../types/user';
+import type { User } from '../../../../../shared/types/user';
 import { useReportsStore } from '../../../report/model/reportsStore';
 
 type Props = {

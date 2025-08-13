@@ -1,8 +1,8 @@
 import { Download, Trash2, UploadCloud } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { useReportFilesStore } from '../../../../stores/reportFilesStore';
 import { useI18nStore } from '../../../stores/i18nStore';
+import { useReportFilesStore } from '../../report/model/reportFilesStore';
 
 export default function YourSavedReportsTab() {
     const { t } = useI18nStore();

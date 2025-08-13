@@ -1,8 +1,8 @@
 import React, { JSX, useEffect, useMemo, useRef, useState } from 'react';
 
-import { AttendanceRow, useNamedListStore } from '../../../../../stores/useNamedListStore';
-import { useRozporyadzhennyaStore } from '../../../../../stores/useRozporyadzhennyaStore';
-import { useVyklyuchennyaStore } from '../../../../../stores/useVyklyuchennyaStore';
+import { AttendanceRow, useNamedListStore } from '../../model/useNamedListStore';
+import { useRozporyadzhennyaStore } from '../../../manager/model/useRozporyadzhennyaStore';
+import { useVyklyuchennyaStore } from '../../../manager/model/useVyklyuchennyaStore';
 import { StatusExcel } from '../../../../shared/utils/excelUserStatuses';
 import { useUserStore } from '../../../../stores/userStore';
 

@@ -1,4 +1,4 @@
-import type { RelativeContact } from '../../../../types/user';
+import type { RelativeContact } from '../../../../shared/types/user';
 
 export default function UserRelatives({ relatives }: { relatives: RelativeContact[] }) {
     return (

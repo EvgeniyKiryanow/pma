@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { ShtatnaPosada, useShtatniStore } from '../../stores/useShtatniStore';
+import { ShtatnaPosada, useShtatniStore } from '../entities/shtatna-posada/model/useShtatniStore';
 import type { CommentOrHistoryEntry, User } from '../../types/user';
 import EditPosadaModal from '../entities/shtatna-posada/ui/EditPosadaModal';
 import ShtatniPosadyHeader from '../entities/shtatna-posada/ui/ShtatniPosadyHeader';

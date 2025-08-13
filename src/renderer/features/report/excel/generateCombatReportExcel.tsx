@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
-import { useShtatniStore } from '../../../../stores/useShtatniStore';
+import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 import { useUserStore } from '../../../stores/userStore';
 

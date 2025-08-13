@@ -5,7 +5,7 @@ import PizZip from 'pizzip';
 import { useEffect, useRef, useState } from 'react';
 
 import { useDocxGenerator } from '../../../../renderer/shared/hooks/useDocxGenerator';
-import type { User } from '../../../../types/user';
+import type { User } from '../../../../shared/types/user';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useReportsStore } from '../../report/model/reportsStore';
 import DocxPreviewModal from './_components/DocxPreviewModal';

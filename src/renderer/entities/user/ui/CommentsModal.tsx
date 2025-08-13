@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import type { CommentOrHistoryEntry } from '../../../../types/user';
+import type { CommentOrHistoryEntry } from '../../../../shared/types/user';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useUserStore } from '../../../stores/userStore';
 

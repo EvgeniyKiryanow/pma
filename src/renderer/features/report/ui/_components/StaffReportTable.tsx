@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import classifyStatusForReport from '../../../../../shared/helpers/classifyStatusForReport';
-import { ShtatnaPosada, useShtatniStore } from '../../../../../stores/useShtatniStore';
-import { CommentOrHistoryEntry } from '../../../../../types/user';
+import { CommentOrHistoryEntry } from '../../../../../shared/types/user';
+import {
+    ShtatnaPosada,
+    useShtatniStore,
+} from '../../../../entities/shtatna-posada/model/useShtatniStore';
 import { useUserStore } from '../../../../stores/userStore';
 const STAFF_COLUMNS = [
     { key: 'shtatNumber', label: '№ посади' },

@@ -2,7 +2,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 import classifyStatusForReport from '../../../../shared/helpers/classifyStatusForReport';
-import { useShtatniStore } from '../../../../stores/useShtatniStore';
+import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
 import { useUserStore } from '../../../stores/userStore';
 
 export async function generateStaffReportExcel() {

@@ -1,8 +1,7 @@
 // components/ShtatniPosadyTable.tsx
 import { Pencil, Trash2 } from 'lucide-react';
 
-import type { ShtatnaPosada } from '../../../../stores/useShtatniStore';
-import type { CommentOrHistoryEntry, User } from '../../../../types/user';
+import type { CommentOrHistoryEntry, User } from '../../../../shared/types/user';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 import {
     getCategoryBadge,
@@ -11,6 +10,7 @@ import {
     getUnitBadge,
 } from '../../../shared/utils/posadyBadgeHelper';
 import { useUserStore } from '../../../stores/userStore';
+import type { ShtatnaPosada } from '../model/useShtatniStore';
 
 type GroupedEntry = {
     type: 'header' | 'pos';

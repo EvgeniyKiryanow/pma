@@ -1,4 +1,4 @@
-import type { User } from '../../../../types/user';
+import type { User } from '../../../../shared/types/user';
 import DefaultAvatar from '../../../shared/icons/DefaultAvatar';
 import {
     getCategoryBadge,

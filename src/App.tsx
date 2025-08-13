@@ -13,7 +13,7 @@ import ManagerTab from './renderer/pages/ManagerTab';
 import ReportsTab from './renderer/pages/ReportsTab';
 import ShtatniPosadyTab from './renderer/pages/ShtatniPosadyTab';
 import { useUserStore } from './renderer/stores/userStore';
-import { useNamedListStore } from './stores/useNamedListStore';
+import { useNamedListStore } from './renderer/features/report/model/useNamedListStore';
 
 export default function App() {
     const currentTab = useUserStore((s) => s.currentTab);

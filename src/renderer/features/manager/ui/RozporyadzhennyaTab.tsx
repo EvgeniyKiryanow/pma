@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { useRozporyadzhennyaStore } from '../../../../stores/useRozporyadzhennyaStore';
+import { useRozporyadzhennyaStore } from '../model/useRozporyadzhennyaStore';
 import FilePreviewModal, { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
 import { useUserStore } from '../../../stores/userStore';
 import LeftBar from './LeftBar';

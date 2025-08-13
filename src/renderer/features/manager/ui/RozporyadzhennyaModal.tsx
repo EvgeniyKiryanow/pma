@@ -1,10 +1,10 @@
 import { Eye, Info, UploadCloud, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-import { useRozporyadzhennyaStore } from '../../../../stores/useRozporyadzhennyaStore';
-import { CommentOrHistoryEntry } from '../../../../types/user';
+import { CommentOrHistoryEntry } from '../../../../shared/types/user';
 import FilePreviewModal, { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
 import { useUserStore } from '../../../stores/userStore';
+import { useRozporyadzhennyaStore } from '../model/useRozporyadzhennyaStore';
 
 export default function RozporyadzhennyaModal({ onClose }: { onClose: () => void }) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);

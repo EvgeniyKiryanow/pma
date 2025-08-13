@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
-import { FileWithDataUrl } from '../renderer/shared/components/FilePreviewModal';
-import { useUserStore } from '../renderer/stores/userStore';
+import { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
+import { useUserStore } from '../../../stores/userStore';
 
 export type RozporyadzhennyaEntry = {
     userId: number;

@@ -1,7 +1,7 @@
 import { Edit3, MessageCircle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-import type { CommentOrHistoryEntry, User } from '../../../../types/user';
+import type { CommentOrHistoryEntry, User } from '../../../../shared/types/user';
 import CommentsModal from '../../../entities/user/ui/CommentsModal';
 import UserHistory from '../../../entities/user/ui/UserHistory';
 import UserInfoDetails from '../../../entities/user/ui/UserInfoDetails';
