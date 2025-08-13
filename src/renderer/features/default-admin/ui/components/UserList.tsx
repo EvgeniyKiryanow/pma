@@ -1,4 +1,4 @@
-import type { FullUser } from './types';
+import type { FullUser } from '../../model/types';
 import UserCard from './UserCard';
 
 export default function UserList({

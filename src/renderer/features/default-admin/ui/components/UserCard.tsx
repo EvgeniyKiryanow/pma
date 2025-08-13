@@ -1,5 +1,5 @@
-import type { FullUser, Role } from './types';
-import { cls } from './utils';
+import type { FullUser, Role } from '../../model/types';
+import { cls } from '../../model/utils';
 
 export default function UserCard({
     user,

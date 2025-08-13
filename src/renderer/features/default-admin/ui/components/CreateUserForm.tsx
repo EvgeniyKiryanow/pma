@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
-import type { NewUserState } from './types';
-import { cls, scorePassword } from './utils';
+import type { NewUserState } from '../../model/types';
+import { cls, scorePassword } from '../../model/utils';
 
 export default function CreateUserForm({
     state,

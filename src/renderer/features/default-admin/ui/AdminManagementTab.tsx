@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import * as api from './components/api';
+import * as api from '../model/api';
+import type { FullUser, NewUserState } from '../model/types';
 import CreateUserForm from './components/CreateUserForm';
 import { Toast } from './components/Toast';
-import type { FullUser, NewUserState } from './components/types';
 import UserList from './components/UserList';
 import UsersToolbar from './components/UsersToolbar';
 
