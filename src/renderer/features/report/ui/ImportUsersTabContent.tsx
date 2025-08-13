@@ -2,7 +2,11 @@ import { Search, UploadCloud } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 
-import { excelSerialToDate, generateUserKey, needsUpdate } from '../../../../helpers/csvImports';
+import {
+    excelSerialToDate,
+    generateUserKey,
+    needsUpdate,
+} from '../../../../shared/helpers/csvImports';
 import { HEADER_MAP } from '../../../shared/utils/headerMap';
 
 export default function ImportUsersTabContent() {

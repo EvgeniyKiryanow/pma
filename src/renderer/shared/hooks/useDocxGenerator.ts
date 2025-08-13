@@ -5,13 +5,13 @@ import ImageModule from 'docxtemplater-image-module-free';
 import PizZip from 'pizzip';
 import type * as ShevchenkoType from 'shevchenko';
 
-import generateAndFlattenFullNameForms from '../../../helpers/generateAndFlattenFullNameForms';
+import generateAndFlattenFullNameForms from '../../../shared/helpers/generateAndFlattenFullNameForms';
 // import { GrammaticalGender } from 'shevchenko';
 import generateAndFlattenTitleForms, {
     extractCasesFromResponse,
-} from '../../../helpers/generateAndFlattenTitleForms';
-import getImageOptions from '../../../helpers/imageOptionHelper';
-import { hideLoader, showLoader } from '../../../helpers/loadersSimple';
+} from '../../../shared/helpers/generateAndFlattenTitleForms';
+import getImageOptions from '../../../shared/helpers/imageOptionHelper';
+import { hideLoader, showLoader } from '../../../shared/helpers/loadersSimple';
 let shevPromise: Promise<typeof ShevchenkoType> | null = null;
 async function getShevchenkoModule(): Promise<typeof ShevchenkoType> {
     if (!shevPromise) {

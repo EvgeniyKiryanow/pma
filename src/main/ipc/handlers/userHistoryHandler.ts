@@ -2,7 +2,7 @@ import { app, ipcMain } from 'electron';
 import fs from 'fs/promises';
 import path from 'path';
 
-import saveHistoryFiles from '../../../helpers/saveHistoryFiles';
+import saveHistoryFiles from '../../../shared/helpers/saveHistoryFiles';
 import { CommentOrHistoryEntry } from '../../../shared/types/user';
 import { getDb } from '../../db/db';
 const base = path.join(app.getPath('userData'), 'user_files');

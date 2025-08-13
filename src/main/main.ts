@@ -5,7 +5,7 @@ import started from 'electron-squirrel-startup';
 import fs from 'fs';
 import path from 'path';
 
-import { initPythonEnvSimplified } from '../helpers/pythonInstallerHelper';
+import { initPythonEnvSimplified } from '../shared/helpers/pythonInstallerHelper';
 // ✅ Import our updater functions
 import { getDb, initializeDb } from './db/db';
 import { upgradeDbSchema } from './db/migrations';

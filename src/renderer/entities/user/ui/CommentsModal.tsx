@@ -110,10 +110,15 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
             }
         }
 
-        Promise.all(filePromises).then((newFiles) => {
-            setFiles((prev) => [...prev, ...newFiles]);
-            e.target.value = '';
-        });
+        Promise.all(filePromises)
+            .then((newFiles: any) => {
+                setFiles((prev) => [...prev, ...newFiles]);
+                e.target.value = '';
+                return null;
+            })
+            .catch((error) => {
+                console.error('Error reading files:', error);
+            });
     };
 
     const removeFile = (index: number) => {
