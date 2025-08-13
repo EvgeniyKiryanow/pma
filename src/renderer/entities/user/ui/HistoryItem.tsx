@@ -93,7 +93,7 @@ export default function HistoryItem({ entry, onDelete, onEdit, userId, onPreview
         newPosada = description.replace('Призначено на посаду', '').trim();
     }
     const isIncompleteStatusChange =
-        isStatusChange && (!entry.period.from || !entry.files || entry.files.length === 0);
+        isStatusChange && (!entry.period?.from || !entry.files || entry.files.length === 0);
 
     return (
         <li

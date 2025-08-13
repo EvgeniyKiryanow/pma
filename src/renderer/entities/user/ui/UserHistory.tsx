@@ -207,7 +207,7 @@ export default function UserHistory({
                     ].map(({ label, value }) => (
                         <button
                             key={value}
-                            onClick={() => setDateRange(value)}
+                            onClick={() => setDateRange(value as typeof dateRange)}
                             className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition ${
                                 dateRange === value
                                     ? 'bg-blue-600 text-white border-blue-600 shadow'
