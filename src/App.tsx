@@ -4,14 +4,14 @@ import { useEffect, useRef } from 'react';
 
 import UserFormModalUpdate from './components/userFormModal';
 import TablesTab from './components/userTables/TablesTab';
-import BackupPanel from './layout/BackupPanel';
-import Header from './layout/Header';
-import ImportUsersTab from './layout/ImportUsersTab';
-import InstructionsTab from './layout/InstrtuctionsTab';
-import ManagerTab from './layout/ManagerTab';
-import ReportsTab from './layout/ReportsTab';
-import ShtatniPosadyTab from './layout/ShtatniPosadyTab';
+import Header from './renderer/app/layout/Header';
+import BackupPanel from './renderer/features/backup/ui/BackupPanel';
 import { startNamedListAutoApply } from './renderer/features/report/ui/_components/NamedListTable';
+import ImportUsersTab from './renderer/pages/ImportUsersTab';
+import InstructionsTab from './renderer/pages/InstrtuctionsTab';
+import ManagerTab from './renderer/pages/ManagerTab';
+import ReportsTab from './renderer/pages/ReportsTab';
+import ShtatniPosadyTab from './renderer/pages/ShtatniPosadyTab';
 import { useNamedListStore } from './stores/useNamedListStore';
 import { useUserStore } from './stores/userStore';
 

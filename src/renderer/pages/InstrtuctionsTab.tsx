@@ -1,26 +1,25 @@
-import { useState } from 'react';
 import {
-    FileText,
-    Users,
-    UploadCloud,
-    Info,
-    Lightbulb,
-    UserCircle,
     ClipboardList,
-    Edit3,
     Download,
-    RefreshCw,
-    Settings,
-    RotateCcw,
-    Minus,
-    X,
-    Upload,
-    Trash2,
-    ChevronDown,
-    ChevronUp,
+    Edit3,
+    FileText,
+    Info,
     Layers,
+    Lightbulb,
+    Minus,
+    RefreshCw,
+    RotateCcw,
+    Settings,
+    Trash2,
+    Upload,
+    UploadCloud,
+    UserCircle,
+    Users,
+    X,
 } from 'lucide-react';
-import { HEADER_MAP } from '../utils/headerMap';
+import { useState } from 'react';
+
+import { HEADER_MAP } from '../../utils/headerMap';
 
 export default function InstructionsTab() {
     const [activeTab, setActiveTab] = useState<

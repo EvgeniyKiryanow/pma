@@ -1,8 +1,8 @@
 // ImportUsersTabs.tsx
 import React, { useState } from 'react';
 
-import GeneratedTablesTabContent from '../renderer/features/report/ui/GeneratedTablesTabContent';
-import ImportUsersTabContent from '../renderer/features/report/ui/ImportUsersTabContent';
+import GeneratedTablesTabContent from '../features/report/ui/GeneratedTablesTabContent';
+import ImportUsersTabContent from '../features/report/ui/ImportUsersTabContent';
 
 export default function ImportUsersTabs() {
     const [activeTab, setActiveTab] = useState<'import' | 'generated'>('import');

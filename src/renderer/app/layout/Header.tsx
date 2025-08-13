@@ -10,11 +10,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import LogoSvg from '../icons/LogoSvg';
-import EventsModalLauncher from '../renderer/shared/components/EventsModalLauncher';
-import { useI18nStore } from '../stores/i18nStore';
-import { useUserStore } from '../stores/userStore';
-import type { User } from '../types/user';
+import LogoSvg from '../../../icons/LogoSvg';
+import EventsModalLauncher from '../../shared/components/EventsModalLauncher';
+import { useI18nStore } from '../../../stores/i18nStore';
+import { useUserStore } from '../../../stores/userStore';
+import type { User } from '../../../types/user';
 
 type HeaderProps = {
     currentTab:
@@ -38,7 +38,7 @@ type HeaderProps = {
             | 'shtatni',
     ) => void;
 };
-import { useIncompleteHistoryStore } from '../stores/useIncompleteHistoryStore';
+import { useIncompleteHistoryStore } from '../../../stores/useIncompleteHistoryStore';
 
 export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     const openUserFormForAdd = useUserStore((s) => s.openUserFormForAdd);

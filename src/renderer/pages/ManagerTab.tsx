@@ -1,10 +1,10 @@
 import { useState } from 'react';
 
-import LeftBar from '../renderer/features/manager/ui/LeftBar';
-import RightBar from '../renderer/features/manager/ui/RightBar';
-import RozporyadzhennyaTab from '../renderer/features/manager/ui/RozporyadzhennyaTab';
-import VyklyucheniTab from '../renderer/features/manager/ui/VyklyucheniTab';
-import { useUserStore } from '../stores/userStore';
+import LeftBar from '../features/manager/ui/LeftBar';
+import RightBar from '../features/manager/ui/RightBar';
+import RozporyadzhennyaTab from '../features/manager/ui/RozporyadzhennyaTab';
+import VyklyucheniTab from '../features/manager/ui/VyklyucheniTab';
+import { useUserStore } from '../../stores/userStore';
 
 const tabLabels = [
     { id: 'main', label: 'Штат / за списком' },

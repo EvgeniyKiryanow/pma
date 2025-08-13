@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import EditPosadaModal from '../renderer/entities/shtatna-posada/ui/EditPosadaModal';
-import ShtatniPosadyHeader from '../renderer/entities/shtatna-posada/ui/ShtatniPosadyHeader';
-import ShtatniPosadyTable from '../renderer/entities/shtatna-posada/ui/ShtatniPosadyTable';
-import { useUserStore } from '../stores/userStore';
-import { ShtatnaPosada, useShtatniStore } from '../stores/useShtatniStore';
-import type { CommentOrHistoryEntry, User } from '../types/user';
+import { useUserStore } from '../../stores/userStore';
+import { ShtatnaPosada, useShtatniStore } from '../../stores/useShtatniStore';
+import type { CommentOrHistoryEntry, User } from '../../types/user';
+import EditPosadaModal from '../entities/shtatna-posada/ui/EditPosadaModal';
+import ShtatniPosadyHeader from '../entities/shtatna-posada/ui/ShtatniPosadyHeader';
+import ShtatniPosadyTable from '../entities/shtatna-posada/ui/ShtatniPosadyTable';
 
 export default function ShtatniPosadyTab() {
     const { shtatniPosady, loading, fetchAll, deletePosada, updatePosada, deleteAll } =
