@@ -99,9 +99,12 @@ export function authUserHandlers() {
         return { success: true };
     });
 
+    // in authUserHandlers()
     ipcMain.handle('auth:get-auth-users', async () => {
         const db = await getDb();
-        return await db.all(`SELECT id, username, recovery_hint, role, key FROM auth_user`);
+        return await db.all(
+            `SELECT id, username, recovery_hint, role, role_id, key FROM auth_user`,
+        );
     });
 
     ipcMain.handle(

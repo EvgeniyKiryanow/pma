@@ -14,7 +14,7 @@ export type TabKey =
     | 'shtatni'
     | 'admin';
 
-const ALL_KNOWN_TABS: TabKey[] = [
+const ALL_TABS: TabKey[] = [
     'manager',
     'backups',
     'reminders',
@@ -26,24 +26,22 @@ const ALL_KNOWN_TABS: TabKey[] = [
     'admin',
 ];
 
-function readAllowedTabsFromStorage(): TabKey[] {
+function readAllowed(): TabKey[] {
     try {
         const raw = localStorage.getItem('allowedTabs');
-        if (!raw) return [];
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) return [];
-        return parsed.filter((t: any) => ALL_KNOWN_TABS.includes(t));
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr.filter((t: any) => ALL_TABS.includes(t)) : [];
     } catch {
         return [];
     }
 }
 
-const savedAllowed = readAllowedTabsFromStorage();
-const savedLastTab = localStorage.getItem('lastTab') as TabKey | null;
-const initialCurrent =
-    savedAllowed.length && savedLastTab && savedAllowed.includes(savedLastTab)
-        ? savedLastTab
-        : ((savedAllowed[0] as TabKey | null) ?? 'manager');
+const savedAllowed = readAllowed();
+const savedLast = (localStorage.getItem('lastTab') as TabKey | null) || null;
+const initialTab =
+    savedAllowed.length && savedLast && savedAllowed.includes(savedLast)
+        ? savedLast
+        : (savedAllowed[0] ?? 'manager');
 
 type UserStore = {
     users: User[];
@@ -85,35 +83,29 @@ export const useUserStore = create<UserStore>((set, get) => ({
     isUserFormOpen: false,
 
     // 🔹 Hydrate on startup
-    currentTab: initialCurrent ?? 'manager',
+    currentTab: initialTab,
     setCurrentTab: (tab) => {
         const { allowedTabs } = get();
-        if (allowedTabs.length && !allowedTabs.includes(tab)) return; // guard
+        if (allowedTabs.length && !allowedTabs.includes(tab)) return; // hard guard
         localStorage.setItem('lastTab', tab);
         set({ currentTab: tab });
     },
 
-    // 🔹 Hydrate allowedTabs
     allowedTabs: savedAllowed,
     setAllowedTabs: (tabs) => {
-        const valid = tabs.filter((t) => ALL_KNOWN_TABS.includes(t));
-        localStorage.setItem('allowedTabs', JSON.stringify(valid)); // ✅ persist
-
+        const valid = tabs.filter((t) => ALL_TABS.includes(t as TabKey)) as TabKey[];
+        localStorage.setItem('allowedTabs', JSON.stringify(valid));
         const { currentTab } = get();
         const next =
-            valid.length === 0
-                ? null
-                : currentTab && valid.includes(currentTab)
-                  ? currentTab
-                  : valid[0];
-
-        if (next) localStorage.setItem('lastTab', next);
+            valid.length === 0 ? 'manager' : valid.includes(currentTab) ? currentTab : valid[0];
+        localStorage.setItem('lastTab', next);
         set({ allowedTabs: valid, currentTab: next });
     },
+
     clearAuth: () => {
-        localStorage.removeItem('allowedTabs'); // ✅ clear persisted perms
+        localStorage.removeItem('allowedTabs');
         localStorage.removeItem('lastTab');
-        set({ allowedTabs: [], currentTab: null });
+        set({ allowedTabs: [], currentTab: 'manager' });
     },
 
     sidebarCollapsed: false,

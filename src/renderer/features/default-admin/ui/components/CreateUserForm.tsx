@@ -1,94 +1,94 @@
+// src/pages/admin/ui/components/CreateUserForm.tsx
 import { useMemo } from 'react';
 
 import type { NewUserState } from '../../model/types';
-import { cls, scorePassword } from '../../model/utils';
+
+type RoleOption = { id: number; name: string };
+
+export type CreateUserFormProps = {
+    state: NewUserState;
+    setState: (s: NewUserState | ((s: NewUserState) => NewUserState)) => void;
+    // Allow async OR sync:
+    onCreate: () => void | Promise<void>;
+    // NEW (optional to keep backward compat):
+    roles?: RoleOption[];
+    selectedRoleId?: number | null;
+    setSelectedRoleId?: (id: number | null) => void;
+};
 
 export default function CreateUserForm({
     state,
     setState,
     onCreate,
-}: {
-    state: NewUserState;
-    setState: (u: NewUserState) => void;
-    onCreate: () => void;
-}) {
-    const pwScore = useMemo(() => scorePassword(state.password), [state.password]);
+    roles = [],
+    selectedRoleId,
+    setSelectedRoleId,
+}: CreateUserFormProps) {
+    const roleOptions = useMemo(() => roles.map((r) => ({ value: r.id, label: r.name })), [roles]);
 
     return (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-800">Створити користувача</h3>
-            </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+            <h3 className="text-lg font-semibold text-slate-900">Створити користувача</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div className="md:col-span-1">
-                    <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wide">
-                        Username
-                    </label>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="space-y-1 md:col-span-1">
+                    <label className="text-xs text-slate-500">Логін</label>
                     <input
-                        className="w-full border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 rounded-lg px-3 py-2 text-sm outline-none transition"
+                        className="w-full border rounded-xl px-3 py-2 bg-white"
+                        placeholder="username"
                         value={state.username}
-                        placeholder="j.doe"
                         onChange={(e) => setState({ ...state, username: e.target.value })}
                     />
                 </div>
 
-                <div className="md:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wide">
-                        Password
-                    </label>
+                <div className="space-y-1 md:col-span-1">
+                    <label className="text-xs text-slate-500">Пароль</label>
                     <input
                         type="password"
-                        className="w-full border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 rounded-lg px-3 py-2 text-sm outline-none transition"
-                        value={state.password}
+                        className="w-full border rounded-xl px-3 py-2 bg-white"
                         placeholder="••••••••"
+                        value={state.password}
                         onChange={(e) => setState({ ...state, password: e.target.value })}
                     />
-                    <div className="mt-2 h-2 w-full bg-slate-100 rounded">
-                        <div
-                            className={cls(
-                                'h-2 rounded transition-all',
-                                pwScore <= 2
-                                    ? 'bg-rose-400'
-                                    : pwScore <= 3
-                                      ? 'bg-amber-400'
-                                      : 'bg-emerald-500',
-                            )}
-                            style={{ width: `${(pwScore / 5) * 100}%` }}
-                        />
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-1">
-                        Рекомендовано 12+ символів, великі/малі, цифри, спецсимволи
-                    </p>
                 </div>
 
-                <div className="md:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wide">
-                        Recovery Hint
+                <div className="space-y-1 md:col-span-1">
+                    <label className="text-xs text-slate-500">
+                        Підказка для відновлення (необов’язково)
                     </label>
                     <input
-                        className="w-full border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 rounded-lg px-3 py-2 text-sm outline-none transition"
+                        className="w-full border rounded-xl px-3 py-2 bg-white"
+                        placeholder="Напр.: улюблена страва"
                         value={state.recovery_hint}
-                        placeholder="Напр., улюблене місто"
                         onChange={(e) => setState({ ...state, recovery_hint: e.target.value })}
                     />
                 </div>
+
+                <div className="space-y-1 md:col-span-1">
+                    <label className="text-xs text-slate-500">Роль</label>
+                    <select
+                        className="w-full border rounded-xl px-3 py-2 bg-white"
+                        value={selectedRoleId ?? ''}
+                        onChange={(e) =>
+                            setSelectedRoleId?.(e.target.value ? Number(e.target.value) : null)
+                        }
+                    >
+                        {roleOptions.length === 0 && <option value="">— немає ролей —</option>}
+                        {roleOptions.map((r) => (
+                            <option key={r.value} value={r.value}>
+                                {r.label}
+                            </option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-slate-500 mt-1">
+                        Оберіть роль (набір доступних вкладок визначається в «Ролі та доступи»).
+                    </p>
+                </div>
             </div>
 
-            <div className="flex items-center justify-end mt-4 gap-2">
-                <button
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-medium rounded-lg shadow-sm transition"
-                    onClick={() =>
-                        setState({ username: '', password: '', recovery_hint: '', role: 'user' })
-                    }
-                >
-                    Скинути
-                </button>
-                <button
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition"
-                    onClick={onCreate}
-                >
-                    ➕ Створити
+            <div className="flex justify-end">
+                <button onClick={onCreate} className="rounded-xl px-4 py-2 bg-slate-900 text-white">
+                    Додати користувача
                 </button>
             </div>
         </div>

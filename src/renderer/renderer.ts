@@ -170,37 +170,25 @@ declare global {
             // ========= Roles & permissions (NEW) =========
             roles: {
                 list: () => Promise<
-                    { id: number; name: string; description: string; allowed_tabs: any[] }[]
+                    { id: number; name: string; description?: string; allowed_tabs: string[] }[]
                 >;
-                create: (payload: {
+                create: (role: {
                     name: string;
                     description?: string;
-                    allowed_tabs: any[];
-                }) => Promise<{
-                    success: boolean;
-                    role?: {
-                        id: number;
-                        name: string;
-                        description: string;
-                        allowed_tabs: any[];
-                    };
-                    message?: string;
-                }>;
+                    allowed_tabs: string[];
+                }) => Promise<{ success: boolean; message?: string }>;
                 update: (
                     id: number,
-                    updates: Partial<{ name: string; description: string; allowed_tabs: any[] }>,
-                ) => Promise<{
-                    success: boolean;
-                    role?: {
-                        id: number;
-                        name: string;
-                        description: string;
-                        allowed_tabs: any[];
-                    };
-                    message?: string;
-                }>;
+                    updates: Partial<{ name: string; description: string; allowed_tabs: string[] }>,
+                ) => Promise<{ success: boolean; message?: string }>;
                 delete: (id: number) => Promise<{ success: boolean; message?: string }>;
+                setForUser: (
+                    userId: number,
+                    roleId: number,
+                ) => Promise<{ success: boolean; message?: string }>;
+                getAllowedTabsForUser: (userId: number) => Promise<string[]>;
             };
+
             setUserRole: (
                 userId: number,
                 roleId: number,

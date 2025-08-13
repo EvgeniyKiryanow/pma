@@ -18,16 +18,8 @@ import { useI18nStore } from '../../stores/i18nStore';
 import { TabKey, useUserStore } from '../../stores/userStore';
 
 type HeaderProps = {
-    currentTab:
-        | 'manager'
-        | 'backups'
-        | 'reminders'
-        | 'reports'
-        | 'tables'
-        | 'instructions'
-        | 'importUsers'
-        | 'shtatni';
-    setCurrentTab: (tab: HeaderProps['currentTab']) => void;
+    currentTab: TabKey;
+    setCurrentTab: (tab: TabKey) => void;
 };
 
 export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
@@ -96,7 +88,7 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
         sessionStorage.removeItem('role');
         sessionStorage.removeItem('username');
         localStorage.removeItem('appKey');
-        clearAuth(); // NEW: clear permissions + currentTab
+        clearAuth();
         window.location.reload();
     };
 

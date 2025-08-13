@@ -169,14 +169,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     roles: {
         list: () => ipcRenderer.invoke('roles:list'),
-        create: (payload: { name: string; description?: string; allowed_tabs: string[] }) =>
-            ipcRenderer.invoke('roles:create', payload),
-        update: (
-            id: number,
-            updates: Partial<{ name: string; description: string; allowed_tabs: string[] }>,
-        ) => ipcRenderer.invoke('roles:update', id, updates),
-        delete: (id: number) => ipcRenderer.invoke('roles:delete', id),
+        create: (role: any) => ipcRenderer.invoke('roles:create', role),
+        update: (id: any, updates: any) => ipcRenderer.invoke('roles:update', id, updates),
+        delete: (id: any) => ipcRenderer.invoke('roles:delete', id),
+        setForUser: (userId: any, roleId: any) =>
+            ipcRenderer.invoke('roles:set-for-user', userId, roleId),
+        getAllowedTabsForUser: (userId: any) =>
+            ipcRenderer.invoke('roles:get-allowed-tabs-for-user', userId),
     },
-    setUserRole: (userId: number, roleId: number) =>
-        ipcRenderer.invoke('auth:set-user-role', userId, roleId),
 });

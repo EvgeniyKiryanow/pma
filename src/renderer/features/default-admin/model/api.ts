@@ -93,32 +93,33 @@ export async function deleteUser(userId: number) {
 }
 
 // ------- Roles (NEW) -------
-export async function fetchRoles(): Promise<RoleDTO[]> {
-    return await window.electronAPI.roles.list();
+export async function fetchRoles() {
+    return window.electronAPI.roles.list();
 }
 
-export async function createRole(payload: {
+export async function createRole(role: {
     name: string;
     description?: string;
-    allowed_tabs: TabKey[];
-}): Promise<{ success: boolean; role?: RoleDTO; message?: string }> {
-    return await window.electronAPI.roles.create(payload);
+    allowed_tabs: string[];
+}) {
+    return window.electronAPI.roles.create(role);
 }
 
 export async function updateRole(
     id: number,
-    updates: Partial<{ name: string; description: string; allowed_tabs: TabKey[] }>,
-): Promise<{ success: boolean; role?: RoleDTO; message?: string }> {
-    return await window.electronAPI.roles.update(id, updates);
+    updates: Partial<{ name: string; description: string; allowed_tabs: string[] }>,
+) {
+    return window.electronAPI.roles.update(id, updates);
 }
 
-export async function deleteRole(id: number): Promise<{ success: boolean; message?: string }> {
-    return await window.electronAPI.roles.delete(id);
+export async function deleteRole(id: number) {
+    return window.electronAPI.roles.delete(id);
 }
 
-export async function setUserRole(
-    userId: number,
-    roleId: number,
-): Promise<{ success: boolean; message?: string }> {
-    return await window.electronAPI.setUserRole(userId, roleId);
+export async function setUserRole(userId: number, roleId: number) {
+    return window.electronAPI.roles.setForUser(userId, roleId);
+}
+
+export async function getAllowedTabsForUser(userId: number) {
+    return window.electronAPI.roles.getAllowedTabsForUser(userId);
 }

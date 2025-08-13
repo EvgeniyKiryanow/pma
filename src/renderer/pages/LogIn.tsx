@@ -33,6 +33,7 @@ export default function LoginPage({
                 return;
             }
 
+            // session tokens / meta
             if (res.key) localStorage.setItem('authToken', res.key);
             else localStorage.removeItem('authToken');
 
@@ -50,21 +51,42 @@ export default function LoginPage({
                 sessionStorage.removeItem('username');
             }
 
-            // NEW: save per-tab permissions to store
-            const DEFAULT_ALLOWED: ReturnType<typeof useUserStore.getState>['allowedTabs'] = [
-                'manager',
-                'backups',
-                'reports',
-                'tables',
-                'instructions',
-                'importUsers',
-                'shtatni', // shown only if DB has data, but still allowed here
-                // 'reminders', // include if you actually use it
-                // 'admin',     // include if you show Admin tab in header
-            ];
+            // ===== RBAC: load allowed tabs for this user =====
+            const { setAllowedTabs } = useUserStore.getState();
 
-            const allowedFromServer = (res.permissions?.allowed_tabs ?? DEFAULT_ALLOWED) as any;
-            useUserStore.getState().setAllowedTabs(allowedFromServer);
+            let allowed: string[] = [];
+
+            if (res.role === 'default_admin') {
+                // built-in admin → full access
+                allowed = [
+                    'manager',
+                    'reports',
+                    'backups',
+                    'tables',
+                    'importUsers',
+                    'shtatni',
+                    'instructions',
+                    'admin',
+                ];
+            } else {
+                // fetch from roles table via IPC
+                const userId = res.user?.id;
+                if (userId) {
+                    try {
+                        allowed = await window.electronAPI.roles.getAllowedTabsForUser(userId);
+                    } catch {
+                        // if IPC not available or fails, fall back to safe minimum
+                        allowed = [];
+                    }
+                }
+                if (!allowed || allowed.length === 0) {
+                    // minimal safe default – user can only see Manager
+                    allowed = ['manager'];
+                }
+            }
+
+            // push into store (store will persist & fix currentTab if needed)
+            setAllowedTabs(allowed as any);
 
             onLoginSuccess();
         } catch (err) {

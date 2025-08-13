@@ -1,49 +1,43 @@
-// src/ipc/handlers/authUserHandlers.ts
-import crypto from 'crypto';
 import { ipcMain } from 'electron';
 
 import { getDb } from '../../db/db';
 
-const normalize = (v: string) =>
-    String(v || '')
-        .trim()
-        .toLowerCase();
-const genKey = () => crypto.randomBytes(24).toString('hex');
 export function registerRolesHandler() {
-    // --- roles CRUD ---
+    // list roles
     ipcMain.handle('roles:list', async () => {
         const db = await getDb();
         const rows = await db.all(
             `SELECT id, name, description, allowed_tabs FROM roles ORDER BY name ASC`,
         );
-        return rows.map((r: any) => ({ ...r, allowed_tabs: JSON.parse(r.allowed_tabs || '[]') }));
+        return rows.map((r: any) => ({
+            ...r,
+            allowed_tabs: safeParseArray(r.allowed_tabs),
+        }));
     });
 
+    // create role
     ipcMain.handle(
         'roles:create',
-        async (_e, payload: { name: string; description?: string; allowed_tabs: string[] }) => {
+        async (_e, role: { name: string; description?: string; allowed_tabs: string[] }) => {
             const db = await getDb();
             try {
                 await db.run(
-                    `INSERT INTO roles (name, description, allowed_tabs) VALUES (?, ?, json(?))`,
-                    normalize(payload.name),
-                    payload.description ?? '',
-                    JSON.stringify(payload.allowed_tabs || []),
+                    `INSERT INTO roles (name, description, allowed_tabs) VALUES (?, ?, ?)`,
+                    role.name.trim(),
+                    role.description ?? '',
+                    JSON.stringify(role.allowed_tabs ?? []),
                 );
-                const row = await db.get(
-                    `SELECT id, name, description, allowed_tabs FROM roles WHERE name = ?`,
-                    normalize(payload.name),
-                );
-                return {
-                    success: true,
-                    role: { ...row, allowed_tabs: JSON.parse(row.allowed_tabs || '[]') },
-                };
-            } catch {
-                return { success: false, message: 'Role exists or DB error' };
+                return { success: true };
+            } catch (e: any) {
+                const msg = (e.message || '').includes('UNIQUE')
+                    ? 'Роль з такою назвою вже існує'
+                    : 'Помилка створення ролі';
+                return { success: false, message: msg };
             }
         },
     );
 
+    // update role
     ipcMain.handle(
         'roles:update',
         async (
@@ -54,41 +48,95 @@ export function registerRolesHandler() {
             const db = await getDb();
             const fields: string[] = [];
             const values: any[] = [];
-            if (typeof updates.name === 'string') {
+
+            if (typeof updates.name === 'string' && updates.name.trim()) {
                 fields.push('name = ?');
-                values.push(normalize(updates.name));
+                values.push(updates.name.trim());
             }
             if (typeof updates.description === 'string') {
                 fields.push('description = ?');
-                values.push(updates.description);
+                values.push(updates.description ?? '');
             }
-            if (Array.isArray(updates.allowed_tabs)) {
-                fields.push('allowed_tabs = json(?)');
+            if (updates.allowed_tabs) {
+                fields.push('allowed_tabs = ?');
                 values.push(JSON.stringify(updates.allowed_tabs));
             }
-            if (!fields.length) return { success: false, message: 'No updates' };
-            values.push(id);
+            if (!fields.length) return { success: false, message: 'Немає змін' };
+
             try {
+                values.push(id);
                 await db.run(`UPDATE roles SET ${fields.join(', ')} WHERE id = ?`, values);
-                const row = await db.get(
-                    `SELECT id, name, description, allowed_tabs FROM roles WHERE id = ?`,
-                    id,
-                );
-                return {
-                    success: true,
-                    role: { ...row, allowed_tabs: JSON.parse(row.allowed_tabs || '[]') },
-                };
-            } catch {
-                return { success: false, message: 'DB error' };
+                return { success: true };
+            } catch (e: any) {
+                const msg = (e.message || '').includes('UNIQUE')
+                    ? 'Назва ролі вже використовується'
+                    : 'Помилка оновлення ролі';
+                return { success: false, message: msg };
             }
         },
     );
 
+    // delete role (only if not used)
     ipcMain.handle('roles:delete', async (_e, id: number) => {
         const db = await getDb();
-        const inUse = await db.get(`SELECT COUNT(*) AS c FROM auth_user WHERE role_id = ?`, id);
-        if (inUse?.c > 0) return { success: false, message: 'Role is assigned to users' };
+        const ref = await db.get(`SELECT COUNT(*) as cnt FROM auth_user WHERE role_id = ?`, id);
+        if (ref?.cnt > 0) return { success: false, message: 'Роль використовується користувачами' };
         await db.run(`DELETE FROM roles WHERE id = ?`, id);
         return { success: true };
     });
+
+    // assign role to user
+    ipcMain.handle('roles:set-for-user', async (_e, userId: number, roleId: number) => {
+        const db = await getDb();
+        const role = await db.get(`SELECT id, name FROM roles WHERE id = ?`, roleId);
+        if (!role) return { success: false, message: 'Роль не знайдено' };
+
+        // keep legacy "role" column in sync for compatibility
+        await db.run(
+            `UPDATE auth_user SET role_id = ?, role = ? WHERE id = ?`,
+            role.id,
+            role.name,
+            userId,
+        );
+        return { success: true };
+    });
+
+    // get allowed tabs for user
+    ipcMain.handle('roles:get-allowed-tabs-for-user', async (_e, userId: number) => {
+        const db = await getDb();
+        const user = await db.get(`SELECT id, role, role_id FROM auth_user WHERE id = ?`, userId);
+        if (!user) return [];
+
+        if (user.role_id) {
+            const r = await db.get(`SELECT allowed_tabs FROM roles WHERE id = ?`, user.role_id);
+            return safeParseArray(r?.allowed_tabs) ?? [];
+        }
+
+        // fallback for legacy user/admin string roles
+        if (user.role === 'admin') {
+            return [
+                'manager',
+                'reports',
+                'backups',
+                'tables',
+                'importUsers',
+                'shtatni',
+                'instructions',
+                'admin',
+            ];
+        }
+        if (user.role === 'user') {
+            return ['manager', 'instructions'];
+        }
+        return ['manager']; // minimal safe default
+    });
+}
+
+function safeParseArray(s: any): string[] {
+    try {
+        const v = JSON.parse(s ?? '[]');
+        return Array.isArray(v) ? v : [];
+    } catch {
+        return [];
+    }
 }
