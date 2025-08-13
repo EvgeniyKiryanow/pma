@@ -7,6 +7,7 @@ export default function UserList({
     savingId,
     generatingId,
     deletingId,
+    roles,
     onChangeUser,
     onSaveUser,
     onGenerateKey,
@@ -14,6 +15,7 @@ export default function UserList({
 }: {
     admins: FullUser[];
     users: FullUser[];
+    roles: any;
     savingId: number | null;
     generatingId: number | null;
     deletingId: number | null;

@@ -1,3 +1,5 @@
+// src/shared/types/user.ts
+
 export type MediaType =
     | 'text'
     | 'pdf'
@@ -31,8 +33,11 @@ export type RelativeContact = {
     email?: string;
     notes?: string;
 };
+
+export type Gender = 'male' | 'female';
+
 export type User = {
-    shtatNumber: string | boolean;
+    shtatNumber: string | boolean; // keep as provided
     id: number;
     photo?: string;
     fullName: string;
@@ -49,6 +54,7 @@ export type User = {
     relatives: RelativeContact[];
     comments: CommentOrHistoryEntry[];
     history: CommentOrHistoryEntry[];
+
     callsign?: string;
     passportData?: string;
     participantNumber?: string;
@@ -117,10 +123,10 @@ export type User = {
     positionGenitive?: string;
     positionDative?: string;
     positionInstrumental?: string;
+
+    // ✅ (was missing) soldierStatus
     soldierStatus?: string;
 };
-
-export type Gender = 'male' | 'female';
 
 export type FullName = {
     lastName: string;

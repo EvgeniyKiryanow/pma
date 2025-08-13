@@ -86,7 +86,19 @@ export function authUserHandlers() {
         },
     );
 
-    // ⚠️ важливо: не віддаємо password у Renderer
+    ipcMain.handle('auth:set-user-role', async (_e, userId: number, roleId: number) => {
+        const db = await getDb();
+        const role = await db.get(`SELECT id FROM roles WHERE id = ?`, roleId);
+        if (!role) return { success: false, message: 'Role not found' };
+        await db.run(
+            `UPDATE auth_user SET role_id = ?, role = (SELECT name FROM roles WHERE id = ?) WHERE id = ?`,
+            roleId,
+            roleId,
+            userId,
+        );
+        return { success: true };
+    });
+
     ipcMain.handle('auth:get-auth-users', async () => {
         const db = await getDb();
         return await db.all(`SELECT id, username, recovery_hint, role, key FROM auth_user`);

@@ -167,4 +167,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
             sourceId?: string;
         }) => ipcRenderer.invoke('change-history:log', change),
     },
+    roles: {
+        list: () => ipcRenderer.invoke('roles:list'),
+        create: (payload: { name: string; description?: string; allowed_tabs: string[] }) =>
+            ipcRenderer.invoke('roles:create', payload),
+        update: (
+            id: number,
+            updates: Partial<{ name: string; description: string; allowed_tabs: string[] }>,
+        ) => ipcRenderer.invoke('roles:update', id, updates),
+        delete: (id: number) => ipcRenderer.invoke('roles:delete', id),
+    },
+    setUserRole: (userId: number, roleId: number) =>
+        ipcRenderer.invoke('auth:set-user-role', userId, roleId),
 });

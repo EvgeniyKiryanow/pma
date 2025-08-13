@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import * as api from '../model/api';
 import type { FullUser, NewUserState } from '../model/types';
 import CreateUserForm from './components/CreateUserForm';
+import RolesPanel from './components/RolesPanel';
 import { Toast } from './components/Toast';
 import UserList from './components/UserList';
 import UsersToolbar from './components/UsersToolbar';
@@ -15,6 +16,11 @@ export default function AdminManagementTab() {
     const [savingId, setSavingId] = useState<number | null>(null);
     const [generatingId, setGeneratingId] = useState<number | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [roles, setRoles] = useState<any[]>([]);
+    useEffect(() => {
+        // eslint-disable-next-line promise/catch-or-return
+        api.fetchRoles().then(setRoles);
+    }, []);
 
     const [newUser, setNewUser] = useState<NewUserState>({
         username: '',
@@ -158,7 +164,7 @@ export default function AdminManagementTab() {
                     {users.length} користувач(ів)
                 </span>
             </div>
-
+            <RolesPanel />
             {message && <Toast kind="ok" text={message} />}
             {error && <Toast kind="err" text={error} />}
 
@@ -186,6 +192,7 @@ export default function AdminManagementTab() {
                     </div>
                 ) : (
                     <UserList
+                        roles={roles}
                         admins={adminUsers}
                         users={regularUsers}
                         savingId={savingId}

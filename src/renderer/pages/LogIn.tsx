@@ -2,6 +2,8 @@ import { HelpCircle, Lock, UserCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { useUserStore } from '../stores/userStore';
+
 type LoginPageProps = {
     onLoginSuccess: () => void;
     onForgotPassword: () => void;
@@ -31,25 +33,38 @@ export default function LoginPage({
                 return;
             }
 
-            // токен: використовуй key як маркер сесії (або створюй свою сесію у main)
             if (res.key) localStorage.setItem('authToken', res.key);
             else localStorage.removeItem('authToken');
 
             sessionStorage.setItem('role', res.role || 'user');
 
-            // для default_admin можна ще зберегти app_key, якщо треба для налаштувань
             if (res.role === 'default_admin' && res.app_key) {
                 localStorage.setItem('appKey', res.app_key);
             } else {
                 localStorage.removeItem('appKey');
             }
 
-            // опціонально: зберегти імʼя користувача
             if (res.user?.username) {
                 sessionStorage.setItem('username', res.user.username);
             } else {
                 sessionStorage.removeItem('username');
             }
+
+            // NEW: save per-tab permissions to store
+            const DEFAULT_ALLOWED: ReturnType<typeof useUserStore.getState>['allowedTabs'] = [
+                'manager',
+                'backups',
+                'reports',
+                'tables',
+                'instructions',
+                'importUsers',
+                'shtatni', // shown only if DB has data, but still allowed here
+                // 'reminders', // include if you actually use it
+                // 'admin',     // include if you show Admin tab in header
+            ];
+
+            const allowedFromServer = (res.permissions?.allowed_tabs ?? DEFAULT_ALLOWED) as any;
+            useUserStore.getState().setAllowedTabs(allowedFromServer);
 
             onLoginSuccess();
         } catch (err) {

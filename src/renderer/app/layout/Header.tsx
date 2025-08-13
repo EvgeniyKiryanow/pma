@@ -8,13 +8,14 @@ import {
     PlusCircle,
     Users,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { User } from '../../../shared/types/user';
+import { useIncompleteHistoryStore } from '../../features/report/model/useIncompleteHistoryStore';
 import EventsModalLauncher from '../../shared/components/EventsModalLauncher';
 import LogoSvg from '../../shared/icons/LogoSvg';
 import { useI18nStore } from '../../stores/i18nStore';
-import { useUserStore } from '../../stores/userStore';
+import { TabKey, useUserStore } from '../../stores/userStore';
 
 type HeaderProps = {
     currentTab:
@@ -26,19 +27,8 @@ type HeaderProps = {
         | 'instructions'
         | 'importUsers'
         | 'shtatni';
-    setCurrentTab: (
-        tab:
-            | 'manager'
-            | 'backups'
-            | 'reminders'
-            | 'reports'
-            | 'tables'
-            | 'instructions'
-            | 'importUsers'
-            | 'shtatni',
-    ) => void;
+    setCurrentTab: (tab: HeaderProps['currentTab']) => void;
 };
-import { useIncompleteHistoryStore } from '../../features/report/model/useIncompleteHistoryStore';
 
 export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     const openUserFormForAdd = useUserStore((s) => s.openUserFormForAdd);
@@ -49,35 +39,33 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
     const headerCollapsed = useUserStore((s) => s.headerCollapsed);
     const setHeaderCollapsed = useUserStore((s) => s.setHeaderCollapsed);
 
-    const [hasShtatni, setHasShtatni] = useState(false);
-    useEffect(() => {
-        const loadUsers = async () => {
-            const allUsers: User[] = await window.electronAPI.fetchUsersMetadata();
+    const allowedTabs = useUserStore((s) => s.allowedTabs);
+    const clearAuth = useUserStore((s) => s.clearAuth);
 
-            // 🧹 Strip history to reduce memory footprint
+    const [hasShtatni, setHasShtatni] = useState(false);
+
+    useEffect(() => {
+        (async () => {
+            const allUsers: User[] = await window.electronAPI.fetchUsersMetadata();
             const map = Object.fromEntries(
                 allUsers.map((u) => [u.id, { ...u, history: [] as User['history'] }]),
             );
             setUsersById(map);
-        };
-        loadUsers();
+        })();
     }, []);
 
     useEffect(() => {
-        const checkIncompleteHistories = async () => {
+        (async () => {
             const allUsers: User[] = await window.electronAPI.fetchUsersMetadata();
             useIncompleteHistoryStore.getState().clearAll();
-
             for (const user of allUsers.filter(
                 (u) => u.shpkNumber !== 'excluded' && !String(u.shpkNumber).includes('order'),
             )) {
                 if (!user.history) continue;
                 for (const entry of user.history) {
                     if (entry.type !== 'statusChange') continue;
-
                     const hasNoFiles = !entry.files || entry.files.length === 0;
                     const hasNoPeriod = !entry.period;
-
                     if (hasNoFiles || hasNoPeriod) {
                         useIncompleteHistoryStore
                             .getState()
@@ -93,32 +81,28 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                     }
                 }
             }
-        };
-        checkIncompleteHistories();
+        })();
     }, []);
 
-    // ✅ Check if штатні посади table has data
     useEffect(() => {
-        const checkShtatni = async () => {
+        (async () => {
             const shtatni = await window.electronAPI.shtatni.fetchAll();
             setHasShtatni(shtatni.length > 0);
-        };
-        checkShtatni();
+        })();
     }, []);
 
     const handleLogout = () => {
         localStorage.removeItem('authToken');
         sessionStorage.removeItem('role');
+        sessionStorage.removeItem('username');
+        localStorage.removeItem('appKey');
+        clearAuth(); // NEW: clear permissions + currentTab
         window.location.reload();
     };
 
-    // ✅ Base tabs
-    const tabs = [
-        {
-            key: 'manager',
-            label: t('header.managerTab'),
-            icon: <Users className="w-4 h-4" />,
-        },
+    // Base tabs (note: no Admin tab in this header yet)
+    const baseTabs = [
+        { key: 'manager', label: t('header.managerTab'), icon: <Users className="w-4 h-4" /> },
         {
             key: 'reports',
             label: t('header.reportsTab'),
@@ -129,30 +113,29 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
             label: t('header.backupTab'),
             icon: <DatabaseBackup className="w-4 h-4" />,
         },
-        {
-            key: 'importUsers',
-            label: 'Excel',
-            icon: <FileSpreadsheet className="w-4 h-4" />,
-        },
+        { key: 'importUsers', label: 'Excel', icon: <FileSpreadsheet className="w-4 h-4" /> },
         {
             key: 'instructions',
             label: t('header.instructions'),
             icon: <BookText className="w-4 h-4" />,
         },
+        // { key: 'reminders', label: 'Reminders', icon: <Bell className="w-4 h-4" /> }, // add if you use it
     ] as const;
 
-    // ✅ Conditionally add "Штатні посади" if DB has data
-    const allTabs = hasShtatni
-        ? [
-              ...tabs.slice(0, 4),
-              {
-                  key: 'shtatni',
-                  label: 'БЧС',
-                  icon: <FileSpreadsheet className="w-4 h-4" />,
-              },
-              ...tabs.slice(4),
-          ]
-        : tabs;
+    // Conditionally add "Штатні посади"
+    const allTabs = useMemo(() => {
+        const list = hasShtatni
+            ? [
+                  ...baseTabs.slice(0, 4),
+                  { key: 'shtatni', label: 'БЧС', icon: <FileSpreadsheet className="w-4 h-4" /> },
+                  ...baseTabs.slice(4),
+              ]
+            : baseTabs;
+
+        // Filter by permissions
+        const allowedSet = new Set(allowedTabs);
+        return list.filter((t) => allowedSet.has(t.key as TabKey));
+    }, [hasShtatni, allowedTabs.join(',')]);
 
     return (
         <header className="bg-gradient-to-r from-blue-50 to-blue-100 shadow border-b relative">

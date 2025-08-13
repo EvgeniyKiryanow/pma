@@ -7,6 +7,17 @@ import type { CommentOrHistoryEntry, User } from '../shared/types/user';
 export {};
 
 declare global {
+    // App tab keys used in permissions
+    // type any =
+    //     | 'manager'
+    //     | 'backups'
+    //     | 'reports'
+    //     | 'tables'
+    //     | 'importUsers'
+    //     | 'shtatni'
+    //     | 'instructions'
+    //     | 'admin';
+
     // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
     interface Window {
         electronAPI: {
@@ -17,6 +28,7 @@ declare global {
                 newComment: CommentOrHistoryEntry,
             ) => Promise<{ success: boolean; message?: string }>;
             deleteUserComment: (id: number) => Promise<boolean>;
+
             // ========= Files / Misc =========
             loadHistoryFile: (
                 userId: number,
@@ -107,6 +119,18 @@ declare global {
             ) => Promise<boolean>;
             superuserLogin: (username: string, password: string) => Promise<string | false>;
             defaultAdminLogin: (username: string, password: string) => Promise<string | false>;
+            loginAny: (
+                u: string,
+                p: string,
+            ) => Promise<{
+                ok: boolean;
+                role?: 'default_admin' | 'admin' | 'user';
+                key?: string | null;
+                app_key?: string | null;
+                user?: { id: number; username: string };
+                // NEW: per-tab permissions from the server
+                permissions?: { allowed_tabs: any[] };
+            }>;
 
             // ========= Auth Management =========
             getAuthUsers: () => Promise<
@@ -114,8 +138,11 @@ declare global {
                     id: number;
                     username: string;
                     recovery_hint: string | null;
-                    role: 'user' | 'admin';
+                    role: 'user' | 'admin'; // kept for backward compatibility
                     key: string;
+                    // NEW: richer role info
+                    role_id?: number | null;
+                    role_name?: string | null;
                 }[]
             >;
             updateAuthUser: (
@@ -139,6 +166,45 @@ declare global {
             updateDefaultAdmin: (
                 updates: Partial<{ username: string; password: string; recovery_hint: string }>,
             ) => Promise<boolean>;
+
+            // ========= Roles & permissions (NEW) =========
+            roles: {
+                list: () => Promise<
+                    { id: number; name: string; description: string; allowed_tabs: any[] }[]
+                >;
+                create: (payload: {
+                    name: string;
+                    description?: string;
+                    allowed_tabs: any[];
+                }) => Promise<{
+                    success: boolean;
+                    role?: {
+                        id: number;
+                        name: string;
+                        description: string;
+                        allowed_tabs: any[];
+                    };
+                    message?: string;
+                }>;
+                update: (
+                    id: number,
+                    updates: Partial<{ name: string; description: string; allowed_tabs: any[] }>,
+                ) => Promise<{
+                    success: boolean;
+                    role?: {
+                        id: number;
+                        name: string;
+                        description: string;
+                        allowed_tabs: any[];
+                    };
+                    message?: string;
+                }>;
+                delete: (id: number) => Promise<{ success: boolean; message?: string }>;
+            };
+            setUserRole: (
+                userId: number,
+                roleId: number,
+            ) => Promise<{ success: boolean; message?: string }>;
 
             // ========= App Keys / Version =========
             appKey: () => Promise<string>;
@@ -184,16 +250,7 @@ declare global {
 
             // ========= Morphology =========
             morphy: { analyzeWords: (words: string[]) => Promise<any> };
-            loginAny: (
-                u: string,
-                p: string,
-            ) => Promise<{
-                ok: boolean;
-                role?: 'default_admin' | 'admin' | 'user';
-                key?: string | null;
-                app_key?: string | null;
-                user?: { id: number; username: string };
-            }>;
+
             // ========= Change History =========
             exportChangeLogs: (password: string) => Promise<void>;
             importChangeLogs: (password: string) => Promise<{ imported: number; error?: string }>;
