@@ -81,7 +81,7 @@ export default function RightBar() {
         if (!user) return;
         const updatedUser: User = {
             ...user,
-            history: (user.history || []).filter((h) => h.id !== id),
+            history: (user.history || []).filter((h: any) => h.id !== id),
         };
         updateUser(updatedUser);
         window.location.reload();
@@ -89,7 +89,8 @@ export default function RightBar() {
 
     const handleShowComments = async () => {
         if (!user) return;
-        const comments = await window.electronAPI.getUserComments(user.id);
+        const result = await window.electronAPI.getUserComments(user.id);
+        const comments: CommentOrHistoryEntry[] = Array.isArray(result) ? result : [];
         setDbComments(comments);
         setShowComments(true);
     };

@@ -2,6 +2,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
+    getUserComments: (id: any) => ipcRenderer.invoke('comments:get-user-comments'),
     // ========= Files / Misc =========
     loadHistoryFile: (userId: number, entryId: number, filename: string) =>
         ipcRenderer.invoke('history:load-file', userId, entryId, filename),

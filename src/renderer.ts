@@ -187,7 +187,7 @@ declare global {
                 app_key?: string | null;
                 user?: { id: number; username: string };
             }>;
-
+            getUserComments: (id: any) => Promise<void>;
             // ========= Change History =========
             exportChangeLogs: (password: string) => Promise<void>;
             importChangeLogs: (password: string) => Promise<{ imported: number; error?: string }>;
