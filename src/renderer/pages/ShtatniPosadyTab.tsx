@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import type { CommentOrHistoryEntry, User } from '../../shared/types/user';
 import { ShtatnaPosada, useShtatniStore } from '../entities/shtatna-posada/model/useShtatniStore';
-import type { CommentOrHistoryEntry, User } from '../../types/user';
 import EditPosadaModal from '../entities/shtatna-posada/ui/EditPosadaModal';
 import ShtatniPosadyHeader from '../entities/shtatna-posada/ui/ShtatniPosadyHeader';
 import ShtatniPosadyTable from '../entities/shtatna-posada/ui/ShtatniPosadyTable';
@@ -106,12 +106,26 @@ export default function ShtatniPosadyTab() {
     useEffect(() => {
         let cancelled = false;
 
-        fetchUsers().then(() => {
-            if (!cancelled) setUsersLoaded(true);
-        });
-        fetchAll().then(() => {
-            if (!cancelled) setPosadyLoaded(true);
-        });
+        fetchUsers()
+            .then(() => {
+                if (!cancelled) {
+                    setUsersLoaded(true);
+                }
+                return null;
+            })
+            .catch((err) => {
+                console.error('Error fetching users:', err);
+            });
+        fetchAll()
+            .then(() => {
+                if (!cancelled) {
+                    setPosadyLoaded(true);
+                }
+                return null;
+            })
+            .catch((err) => {
+                console.error('Error fetching posady:', err);
+            });
 
         return () => {
             // ✅ Reset state when component unmounts
@@ -124,8 +138,12 @@ export default function ShtatniPosadyTab() {
     useEffect(() => {
         if (!usersLoaded || !posadyLoaded || hasSyncedUsers) return;
 
-        mergeUserAssignmentsOnce().then(() => setHasSyncedUsers(true));
-    }, [usersLoaded, posadyLoaded, hasSyncedUsers]);
+        mergeUserAssignmentsOnce()
+            .then(() => setHasSyncedUsers(true))
+            .catch((err) => {
+                console.error('Error merging user assignments:', err);
+            });
+    }, [usersLoaded, posadyLoaded, hasSyncedUsers, mergeUserAssignmentsOnce]);
 
     const assignUserToPosada = async (userId: number, pos: ShtatnaPosada) => {
         const selectedUser = users.find((u) => u.id === userId);

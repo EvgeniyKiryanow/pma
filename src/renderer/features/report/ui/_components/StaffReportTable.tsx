@@ -203,7 +203,7 @@ export function StaffReportTable() {
                                                 backgroundColor: col.background || 'transparent',
                                                 border: '1px solid black',
                                                 padding: '6px 4px',
-                                                textAlign: col.center ? 'center' : 'left',
+                                                textAlign: 'left',
                                                 verticalAlign: 'top',
                                             }}
                                         >
@@ -224,7 +224,7 @@ export function StaffReportTable() {
                                             ) : (
                                                 <span
                                                     style={{
-                                                        fontWeight: col.bold ? 'bold' : 'normal',
+                                                        fontWeight: 'normal',
                                                     }}
                                                 >
                                                     {value || ''}
