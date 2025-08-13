@@ -4,7 +4,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, HashRouter } from 'react-router-dom';
 
-import { Main } from './MainRouter';
+import { Main } from './renderer/app/MainRouter';
 
 const isProd = window.location.protocol === 'file:';
 const Router: any = isProd ? HashRouter : BrowserRouter;
