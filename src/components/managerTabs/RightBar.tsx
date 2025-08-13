@@ -1,16 +1,17 @@
-import { useState } from 'react';
-import { useUserStore } from '../../stores/userStore';
-import type { User, CommentOrHistoryEntry } from '../../types/user';
-import UserInfoDetails from '../userInfo/UserInfoDetails';
-import UserHistory from '../userInfo/UserHistory';
-import CommentsModal from '../userInfo/CommentsModal';
 import { Edit3, MessageCircle, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+
+import CommentsModal from '../../renderer/entities/user/ui/CommentsModal';
+import UserHistory from '../../renderer/entities/user/ui/UserHistory';
+import UserInfoDetails from '../../renderer/entities/user/ui/UserInfoDetails';
+import UserStatisticsDrawer from '../../renderer/entities/user/ui/UserStatisticsDrawer';
 import { useI18nStore } from '../../stores/i18nStore';
+import { useUserStore } from '../../stores/userStore';
+import type { CommentOrHistoryEntry, User } from '../../types/user';
 import { StatusExcel } from '../../utils/excelUserStatuses';
-import UserStatisticsDrawer from '../UserStatisticsDrawer';
 import RozporyadzhennyaModal from './_components/RozporyadzhennyaModal';
-import VyklyuchennyaModal from './_components/VyklyuchennyaModal';
 import VidnovytyModal from './_components/VidnovytyModal';
+import VyklyuchennyaModal from './_components/VyklyuchennyaModal';
 
 export default function RightBar() {
     const [showComments, setShowComments] = useState(false);

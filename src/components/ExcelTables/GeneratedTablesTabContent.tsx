@@ -1,16 +1,16 @@
 // GeneratedTablesTabContent.tsx
 import React, { useEffect, useState } from 'react';
-// import { CombatReportTable } from './_components/CombatReportTable';
-import { StaffReportTable } from './_components/StaffReportTable';
-import { generateCombatReportExcel } from './excelTemplates/generateCombatReportExcel';
-import { generateStaffReportExcel } from './excelTemplates/generateStaffReportExcel';
+
+import { useUserStore } from '../../stores/userStore';
 import { useShtatniStore } from '../../stores/useShtatniStore';
 import { AlternateCombatReportTable } from './_components/AlternateCombatReportTable';
-import { generateAlternateCombatReportExcelTemplate } from './excelTemplates/generateAlternateCombatReportExcelTemplate';
-import { useUserStore } from '../../stores/userStore';
-import { UnitStatsCalculator } from './_components/UnitStatsCalculator';
 import { NamedListTable } from './_components/NamedListTable';
+// import { CombatReportTable } from './_components/CombatReportTable';
+import { StaffReportTable } from './_components/StaffReportTable';
+import { UnitStatsCalculator } from './_components/UnitStatsCalculator';
 import { exportNamedListTable } from './excelTemplates/exportNamedListTable';
+import { generateAlternateCombatReportExcelTemplate } from './excelTemplates/generateAlternateCombatReportExcelTemplate';
+import { generateStaffReportExcel } from './excelTemplates/generateStaffReportExcel';
 
 type Props = {
     onRequestImportTab?: () => void; // ✅ new optional callback
