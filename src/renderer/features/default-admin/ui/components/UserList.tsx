@@ -83,7 +83,7 @@ export default function UserList({
                             ID: {user.id} • Джерело: {user.source}
                         </div>
                         <div className="text-sm text-slate-600 mt-1">
-                            Роль: <span className="font-medium">{currentRoleName}</span>
+                            {/* Роль: <span className="font-medium">{currentRoleName}</span> */}
                         </div>
                         {user.source === 'auth_user' && (
                             <div className="mt-2 flex items-center gap-2">
