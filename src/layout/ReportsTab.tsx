@@ -1,9 +1,10 @@
+import { FileText, Users } from 'lucide-react';
 import { useState } from 'react';
-import UploadReportsTab from '../components/tabs/UploadReportsTab';
-import SavedReportsTab from '../components/tabs/SavedReportsTab';
-import YourSavedReportsTab from '../components/tabs/YourSavedReportsTab';
+
+import SavedReportsTab from '../renderer/features/tabs/ui/SavedReportsTab';
+import UploadReportsTab from '../renderer/features/tabs/ui/UploadReportsTab';
+import YourSavedReportsTab from '../renderer/features/tabs/ui/YourSavedReportsTab';
 import { useI18nStore } from '../stores/i18nStore';
-import { FilePlus, FileText, Users } from 'lucide-react';
 
 export default function ReportsTab() {
     const { t } = useI18nStore();

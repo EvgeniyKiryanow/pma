@@ -4,10 +4,10 @@ import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import { useEffect, useRef, useState } from 'react';
 
-import { useDocxGenerator } from '../../hooks/useDocxGenerator';
-import { useI18nStore } from '../../stores/i18nStore';
-import { useReportsStore } from '../../stores/reportsStore';
-import type { User } from '../../types/user';
+import { useDocxGenerator } from '../../../../hooks/useDocxGenerator';
+import { useI18nStore } from '../../../../stores/i18nStore';
+import { useReportsStore } from '../../../../stores/reportsStore';
+import type { User } from '../../../../types/user';
 import DocxPreviewModal from './_components/DocxPreviewModal';
 import SavedTemplatesPanel from './_components/SavedTemplatesPanel';
 import UserFieldsModal from './_components/UserFieldsModal';

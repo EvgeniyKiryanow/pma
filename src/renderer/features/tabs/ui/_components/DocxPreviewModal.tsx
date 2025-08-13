@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import PizZip from 'pizzip';
-import Docxtemplater from 'docxtemplater';
 import { renderAsync } from 'docx-preview';
+import Docxtemplater from 'docxtemplater';
+import PizZip from 'pizzip';
+import { useEffect } from 'react';
 
 type Props = {
     open: boolean;

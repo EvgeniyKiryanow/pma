@@ -1,8 +1,9 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { useState, useMemo } from 'react';
-import type { User } from '../../../types/user';
-import { X, ClipboardCopy } from 'lucide-react';
-import { getFieldLabel } from '../../../utils/headerMap';
+import { ClipboardCopy, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+
+import type { User } from '../../../../../types/user';
+import { getFieldLabel } from '../../../../../utils/headerMap';
 
 type UserModalConfig = {
     user: User | null | undefined;
