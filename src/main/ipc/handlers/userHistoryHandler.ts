@@ -1,10 +1,10 @@
 import { app, ipcMain } from 'electron';
 import fs from 'fs/promises';
 import path from 'path';
-import { CommentOrHistoryEntry } from 'src/types/user';
 
-import { getDb } from '../../../database/db';
 import saveHistoryFiles from '../../../helpers/saveHistoryFiles';
+import { CommentOrHistoryEntry } from '../../../shared/types/user';
+import { getDb } from '../../db/db';
 const base = path.join(app.getPath('userData'), 'user_files');
 import mime from 'mime-types';
 

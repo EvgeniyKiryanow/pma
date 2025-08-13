@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 
-import { getDb } from '../../../database/db';
+import { getDb } from '../../db/db';
 
 export function registerDirectivesHandler() {
     ipcMain.handle('directives:add', async (_e, entry) => {

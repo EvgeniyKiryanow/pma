@@ -6,7 +6,7 @@ import path from 'path';
 import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 
-import { getDb, getDbPath } from '../../../database/db';
+import { getDb, getDbPath } from '../../db/db';
 import { resetUserTemplates } from '../../../main/main';
 import { getBackupIntervalInDays, setBackupIntervalInDays } from '../../backupScheduler';
 import { ensureDefaultAdmin } from './auth/ensureDefaultAdmin';

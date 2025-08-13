@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 
-import { getDb } from '../../../database/db';
+import { getDb } from '../../db/db';
 
 export function registerAppIdHandlers() {
     ipcMain.handle('app:get-key', async () => {

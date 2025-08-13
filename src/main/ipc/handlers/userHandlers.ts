@@ -1,7 +1,7 @@
 import { app, ipcMain } from 'electron';
 import path from 'path';
 
-import { getDb } from '../../../database/db';
+import { getDb } from '../../db/db';
 
 const base = path.join(app.getPath('userData'), 'user_files');
 

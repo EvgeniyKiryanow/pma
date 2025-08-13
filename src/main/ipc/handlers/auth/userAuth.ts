@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { ipcMain } from 'electron';
 
-import { getDb } from '../../../../database/db';
+import { getDb } from '../../../db/db';
 
 function normUsername(u: string) {
     return String(u || '')

@@ -4,7 +4,7 @@ import fs from 'fs';
 import { readFile } from 'fs/promises';
 import path from 'path';
 
-import { getDb } from '../../../database/db';
+import { getDb } from '../../db/db';
 
 export function registerReportsHandlers() {
     function getTemplatesDir(): string {

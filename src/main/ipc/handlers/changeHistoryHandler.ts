@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { dialog, ipcMain } from 'electron';
 import fs from 'fs/promises';
 
-import { getDb } from '../../../database/db';
+import { getDb } from '../../db/db';
 
 function encryptWithPassword(json: any, password: string): Buffer {
     const iv = randomBytes(12);

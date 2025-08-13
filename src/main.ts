@@ -5,14 +5,14 @@ import started from 'electron-squirrel-startup';
 import fs from 'fs';
 import path from 'path';
 
-import { initPythonEnvSimplified } from '../helpers/pythonInstallerHelper';
+import { initPythonEnvSimplified } from './helpers/pythonInstallerHelper';
 // ✅ Import our updater functions
-import { getDb, initializeDb } from './db/db';
-import { upgradeDbSchema } from './db/migrations';
-import { registerDbHandlers } from './ipc';
-import { ensureAppIdentity } from './ipc/handlers/app/initAppIdentity';
-import { ensureDefaultAdmin } from './ipc/handlers/auth/ensureDefaultAdmin';
-import { ensureSuperuser } from './ipc/handlers/auth/ensureSuperuserHandler';
+import { getDb, initializeDb } from './main/db/db';
+import { upgradeDbSchema } from './main/db/migrations';
+import { registerDbHandlers } from './main/ipc';
+import { ensureAppIdentity } from './main/ipc/handlers/app/initAppIdentity';
+import { ensureDefaultAdmin } from './main/ipc/handlers/auth/ensureDefaultAdmin';
+import { ensureSuperuser } from './main/ipc/handlers/auth/ensureSuperuserHandler';
 
 export function copyAllTemplates() {
     const sourceDir = path.join(__dirname, 'assets/templates');
