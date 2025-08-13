@@ -1,8 +1,8 @@
 // src/types/global.d.ts
-import './index';
+import './renderer/index';
 
-import { ShtatnaPosada } from './types/shtatnaPosada';
-import type { CommentOrHistoryEntry, User } from './types/user';
+import { ShtatnaPosada } from './shared/types/shtatnaPosada';
+import type { CommentOrHistoryEntry, User } from './shared/types/user';
 
 export {};
 

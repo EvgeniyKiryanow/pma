@@ -1,19 +1,19 @@
-import './index.css';
+import './styles/index.css';
 
 import { useEffect, useRef } from 'react';
 
-import Header from './renderer/app/layout/Header';
-import UserFormModalUpdate from './renderer/entities/user/ui/userFormModal';
-import BackupPanel from './renderer/features/backup/ui/BackupPanel';
-import { useNamedListStore } from './renderer/features/report/model/useNamedListStore';
-import { startNamedListAutoApply } from './renderer/features/report/ui/_components/NamedListTable';
-import TablesTab from './renderer/features/report/ui/_components/TablesTab';
-import ImportUsersTab from './renderer/pages/ImportUsersTab';
-import InstructionsTab from './renderer/pages/InstrtuctionsTab';
-import ManagerTab from './renderer/pages/ManagerTab';
-import ReportsTab from './renderer/pages/ReportsTab';
-import ShtatniPosadyTab from './renderer/pages/ShtatniPosadyTab';
-import { useUserStore } from './renderer/stores/userStore';
+import Header from './app/layout/Header';
+import UserFormModalUpdate from './entities/user/ui/userFormModal';
+import BackupPanel from './features/backup/ui/BackupPanel';
+import { useNamedListStore } from './features/report/model/useNamedListStore';
+import { startNamedListAutoApply } from './features/report/ui/_components/NamedListTable';
+import TablesTab from './features/report/ui/_components/TablesTab';
+import ImportUsersTab from './pages/ImportUsersTab';
+import InstructionsTab from './pages/InstrtuctionsTab';
+import ManagerTab from './pages/ManagerTab';
+import ReportsTab from './pages/ReportsTab';
+import ShtatniPosadyTab from './pages/ShtatniPosadyTab';
+import { useUserStore } from './stores/userStore';
 
 export default function App() {
     const currentTab = useUserStore((s) => s.currentTab);
