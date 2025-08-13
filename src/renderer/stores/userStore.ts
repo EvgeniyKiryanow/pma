@@ -12,7 +12,38 @@ export type TabKey =
     | 'instructions'
     | 'importUsers'
     | 'shtatni'
-    | 'admin'; // keep for future Admin tab
+    | 'admin';
+
+const ALL_KNOWN_TABS: TabKey[] = [
+    'manager',
+    'backups',
+    'reminders',
+    'reports',
+    'tables',
+    'instructions',
+    'importUsers',
+    'shtatni',
+    'admin',
+];
+
+function readAllowedTabsFromStorage(): TabKey[] {
+    try {
+        const raw = localStorage.getItem('allowedTabs');
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter((t: any) => ALL_KNOWN_TABS.includes(t));
+    } catch {
+        return [];
+    }
+}
+
+const savedAllowed = readAllowedTabsFromStorage();
+const savedLastTab = localStorage.getItem('lastTab') as TabKey | null;
+const initialCurrent =
+    savedAllowed.length && savedLastTab && savedAllowed.includes(savedLastTab)
+        ? savedLastTab
+        : ((savedAllowed[0] as TabKey | null) ?? 'manager');
 
 type UserStore = {
     users: User[];
@@ -23,7 +54,6 @@ type UserStore = {
     currentTab: TabKey | null;
     setCurrentTab: (tab: TabKey) => void;
 
-    // NEW permissions
     allowedTabs: TabKey[];
     setAllowedTabs: (tabs: TabKey[]) => void;
     clearAuth: () => void;
@@ -48,51 +78,40 @@ type UserStore = {
     getUserById: (id: number) => Promise<User | null>;
 };
 
-const DEFAULT_TAB: TabKey = 'manager';
-const ALL_KNOWN_TABS: TabKey[] = [
-    'manager',
-    'backups',
-    'reminders',
-    'reports',
-    'tables',
-    'instructions',
-    'importUsers',
-    'shtatni',
-    'admin',
-];
-
 export const useUserStore = create<UserStore>((set, get) => ({
     users: [],
     selectedUser: null,
     editingUser: null,
     isUserFormOpen: false,
 
-    currentTab: (localStorage.getItem('lastTab') as TabKey) || DEFAULT_TAB,
+    // 🔹 Hydrate on startup
+    currentTab: initialCurrent ?? 'manager',
     setCurrentTab: (tab) => {
         const { allowedTabs } = get();
-        // only allow switching to allowed tabs
-        if (allowedTabs.length && !allowedTabs.includes(tab)) return;
+        if (allowedTabs.length && !allowedTabs.includes(tab)) return; // guard
         localStorage.setItem('lastTab', tab);
         set({ currentTab: tab });
     },
 
-    // NEW: permissions
-    allowedTabs: [], // set after successful login
+    // 🔹 Hydrate allowedTabs
+    allowedTabs: savedAllowed,
     setAllowedTabs: (tabs) => {
-        // sanitize: only tabs we know
         const valid = tabs.filter((t) => ALL_KNOWN_TABS.includes(t));
+        localStorage.setItem('allowedTabs', JSON.stringify(valid)); // ✅ persist
+
         const { currentTab } = get();
-        // fix current tab if not allowed anymore
         const next =
             valid.length === 0
                 ? null
                 : currentTab && valid.includes(currentTab)
                   ? currentTab
                   : valid[0];
+
         if (next) localStorage.setItem('lastTab', next);
         set({ allowedTabs: valid, currentTab: next });
     },
     clearAuth: () => {
+        localStorage.removeItem('allowedTabs'); // ✅ clear persisted perms
         localStorage.removeItem('lastTab');
         set({ allowedTabs: [], currentTab: null });
     },
@@ -109,6 +128,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
             editingUser: null,
             isUserFormOpen: false,
         }),
+
     getUserById: async (id: number): Promise<User | null> => {
         const user: User | null = await window.electronAPI.users.getOne(id);
         return user;
@@ -128,13 +148,13 @@ export const useUserStore = create<UserStore>((set, get) => ({
         set({ users });
     },
 
-    addUser: async (user: any) => {
+    addUser: async (user) => {
         await window.electronAPI.addUser(user);
         const users = await window.electronAPI.fetchUsersMetadata();
         set({ users });
     },
 
-    updateUser: async (user: any) => {
+    updateUser: async (user) => {
         const updatedUser: User = await window.electronAPI.updateUser(user);
         const users = await window.electronAPI.fetchUsersMetadata();
         set({
@@ -144,7 +164,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
         });
     },
 
-    deleteUser: async (userId: any) => {
+    deleteUser: async (userId) => {
         const success: boolean = await window.electronAPI.deleteUser(userId);
         if (success) {
             const users = await window.electronAPI.fetchUsersMetadata();
@@ -162,8 +182,6 @@ export const useUserStore = create<UserStore>((set, get) => ({
         if (current?.id === user.id && current.history && current.comments) return;
 
         const fullUser = await window.electronAPI.users.getOne(user.id);
-        if (fullUser) {
-            set({ selectedUser: fullUser });
-        }
+        if (fullUser) set({ selectedUser: fullUser });
     },
 }));
