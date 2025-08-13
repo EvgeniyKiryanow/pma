@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { useRozporyadzhennyaStore } from '../../stores/useRozporyadzhennyaStore';
-import { useUserStore } from '../../stores/userStore';
-import FilePreviewModal, { FileWithDataUrl } from '../../components/FilePreviewModal';
 import { Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+import FilePreviewModal, { FileWithDataUrl } from '../../../../components/FilePreviewModal';
+import { useRozporyadzhennyaStore } from '../../../../stores/useRozporyadzhennyaStore';
+import { useUserStore } from '../../../../stores/userStore';
 import LeftBar from './LeftBar';
 import RightBar from './RightBar';
 

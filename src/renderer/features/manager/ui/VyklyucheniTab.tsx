@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { useVyklyuchennyaStore } from '../../stores/useVyklyuchennyaStore';
-import { useUserStore } from '../../stores/userStore';
-import FilePreviewModal, { FileWithDataUrl } from '../../components/FilePreviewModal';
+import { useEffect, useState } from 'react';
+
+import FilePreviewModal, { FileWithDataUrl } from '../../../../components/FilePreviewModal';
+import { useUserStore } from '../../../../stores/userStore';
+import { useVyklyuchennyaStore } from '../../../../stores/useVyklyuchennyaStore';
 import LeftBar from './LeftBar';
 import RightBar from './RightBar';
 
@@ -10,7 +11,6 @@ export default function VyklyucheniTab() {
     const { list, fetchAll, removeVyklyuchennya, clearAllVyklyuchennya } = useVyklyuchennyaStore();
     const users = useUserStore((s) => s.users);
     const excludedUsers = users.filter((u) => u.shpkNumber === 'excluded');
-    console.log(excludedUsers, 'excludedUsers');
     const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
     const [activeView, setActiveView] = useState<'table' | 'bars'>('table');
 

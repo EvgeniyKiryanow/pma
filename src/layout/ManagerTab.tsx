@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import LeftBar from '../components/managerTabs/LeftBar';
-import RightBar from '../components/managerTabs/RightBar';
-import RozporyadzhennyaTab from '../components/managerTabs/RozporyadzhennyaTab';
-import VyklyucheniTab from '../components/managerTabs/VyklyucheniTab';
+
+import LeftBar from '../renderer/features/manager/ui/LeftBar';
+import RightBar from '../renderer/features/manager/ui/RightBar';
+import RozporyadzhennyaTab from '../renderer/features/manager/ui/RozporyadzhennyaTab';
+import VyklyucheniTab from '../renderer/features/manager/ui/VyklyucheniTab';
 import { useUserStore } from '../stores/userStore';
 
 const tabLabels = [

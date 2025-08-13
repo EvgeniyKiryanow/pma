@@ -1,20 +1,22 @@
+import { Eye, Info, UploadCloud, X } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { X, Eye, UploadCloud, Info } from 'lucide-react';
-import FilePreviewModal, { FileWithDataUrl } from '../../FilePreviewModal';
-import { useUserStore } from '../../../stores/userStore';
-import { useVidnovlennyaStore } from '../../../stores/useVidnovlennyaStore';
-import type { CommentOrHistoryEntry } from '../../../types/user';
 
-export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
+import FilePreviewModal, { FileWithDataUrl } from '../../../../components/FilePreviewModal';
+import { useRozporyadzhennyaStore } from '../../../../stores/useRozporyadzhennyaStore';
+import { useUserStore } from '../../../../stores/userStore';
+import { CommentOrHistoryEntry } from '../../../../types/user';
+
+export default function RozporyadzhennyaModal({ onClose }: { onClose: () => void }) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [periodFrom, setPeriodFrom] = useState('');
-    const [file, setFile] = useState<FileWithDataUrl | null>(null);
-    const [showPreview, setShowPreview] = useState(false);
     const user = useUserStore((s) => s.selectedUser);
     const updateUser = useUserStore((s) => s.updateUser);
-    const addVidnovlennya = useVidnovlennyaStore((s) => s.addVidnovlennya);
+
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [period, setPeriod] = useState({ from: '', to: '' });
+    const [file, setFile] = useState<FileWithDataUrl | null>(null);
+    const [showPreview, setShowPreview] = useState(false);
+    const addRozporyadzhennya = useRozporyadzhennyaStore((s) => s.addEntry);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
@@ -31,35 +33,37 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
         reader.readAsDataURL(f);
     };
 
-    const handleSubmit = () => {
-        if (!title || !file || !user) return;
+    const handleSubmit = async () => {
+        if (!title || !period.from || !file || !user) return;
 
-        // ✅ 1. Save to store
-        addVidnovlennya({
+        const now = new Date().toISOString();
+
+        // ✅ 1. Save into store instead of to disk
+        addRozporyadzhennya({
             userId: user.id,
             title,
             description,
-            period: { from: periodFrom },
+            period,
             file,
-            date: new Date().toISOString(),
+            date: now, // ✅ замість createdAt
         });
 
-        // ✅ 2. Add to history
+        // ✅ 2. Add to user history
         const historyEntry: CommentOrHistoryEntry = {
             id: Date.now(),
-            type: 'restore',
-            date: new Date().toISOString(),
+            type: 'order',
+            date: now,
             author: 'System',
-            description: `Відновлено користувача: ${title}`,
+            description: `Подано розпорядження: ${title}`,
             content: description,
             files: [file],
-            period: { from: periodFrom, to: periodFrom },
+            period,
         };
 
         updateUser({
             ...user,
-            shpkNumber: String(user.shpkNumber || '').replace(/_(order|excluded)$/, ''),
             history: [...(user.history || []), historyEntry],
+            shpkNumber: user.shpkNumber ? `${user.shpkNumber}_order` : 'order',
         });
 
         // ✅ 3. Close modal
@@ -78,19 +82,19 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
                     <X />
                 </button>
 
-                <h2 className="text-xl font-bold mb-3 text-gray-800">♻️ Відновити користувача</h2>
+                <h2 className="text-xl font-bold mb-3 text-gray-800">📤 Подати розпорядження</h2>
 
-                {/* Info Block */}
-                <div className="bg-green-50 border border-green-200 text-green-900 text-sm rounded-lg p-4 mb-5 flex gap-2">
-                    <Info className="w-5 h-5 mt-0.5 shrink-0 text-green-800" />
+                {/* Description */}
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-900 text-sm rounded-lg p-4 mb-5 flex gap-2">
+                    <Info className="w-5 h-5 mt-0.5 shrink-0 text-yellow-800" />
                     <div>
-                        Після відновлення, користувача буде <strong>повернено до розрахунку</strong>{' '}
-                        БЧС та всіх активних звітів. Обов’язково <strong>перевірте всі дані</strong>{' '}
-                        користувача (посада, звання, статус, тощо) перед підтвердженням.
+                        Після подачі розпорядження, статус користувача буде оновлено, і він
+                        автоматично <strong>виключиться з підрахунку БЧС</strong>. Додайте файл з
+                        підтвердженням або наказом.
                     </div>
                 </div>
 
-                {/* Form */}
+                {/* Form Fields */}
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
@@ -100,7 +104,7 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-green-300"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-300"
                             placeholder="Введіть заголовок"
                         />
                     </div>
@@ -110,27 +114,45 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
                         <textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-green-300"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-300"
                             rows={3}
-                            placeholder="Додатковий опис (необов’язково)"
+                            placeholder="Додатковий опис"
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                            Дата відновлення <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="date"
-                            value={periodFrom}
-                            onChange={(e) => setPeriodFrom(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-green-300"
-                        />
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-700">
+                                Період: з <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="date"
+                                value={period.from}
+                                onChange={(e) => setPeriod({ ...period, from: e.target.value })}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-700">до</label>
+                            <input
+                                type="date"
+                                value={period.to}
+                                onChange={(e) => setPeriod({ ...period, to: e.target.value })}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            />
+                        </div>
                     </div>
+                    {user?.soldierStatus && (
+                        <div className="mb-4 px-4 py-2 rounded-lg border border-yellow-300 bg-yellow-50 text-yellow-800 text-sm font-medium">
+                            Поточний статус:{' '}
+                            <span className="font-semibold">{user.soldierStatus}</span>
+                        </div>
+                    )}
 
+                    {/* Upload */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Підтверджуючий файл <span className="text-red-500">*</span>
+                            Файл підтвердження <span className="text-red-500">*</span>
                         </label>
                         <input
                             ref={fileInputRef}
@@ -142,7 +164,7 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 text-sm font-medium shadow border border-green-200"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm font-medium shadow border border-blue-200"
                         >
                             <UploadCloud className="w-4 h-4" />
                             Вибрати файл
@@ -174,14 +196,14 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
                 <div className="mt-6 flex justify-end">
                     <button
                         onClick={handleSubmit}
-                        disabled={!title || !file}
+                        disabled={!title || !period.from || !file}
                         className={`px-6 py-2 rounded-lg shadow font-medium text-sm transition ${
-                            !title || !file
+                            !title || !period.from || !file
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-green-600 hover:bg-green-700 text-white'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white'
                         }`}
                     >
-                        Підтвердити відновлення
+                        Вивести в розпорядження
                     </button>
                 </div>
             </div>

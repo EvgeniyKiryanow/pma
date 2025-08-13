@@ -1,12 +1,11 @@
-import { useState } from 'react';
-import { useUserStore } from '../../stores/userStore';
-import type { User } from '../../types/user';
-import DefaultAvatar from '../../icons/DefaultAvatar';
-import { getStatusBadge } from '../../utils/statusBadgeUtils';
-import { useI18nStore } from '../../stores/i18nStore';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { getCategoryBadge, getShpkBadge } from '../../utils/posadyBadgeHelper';
-import pLimit from 'p-limit';
+import { useState } from 'react';
+
+import { useI18nStore } from '../../../../stores/i18nStore';
+import { useUserStore } from '../../../../stores/userStore';
+import type { User } from '../../../../types/user';
+import { getShpkBadge } from '../../../../utils/posadyBadgeHelper';
+import { getStatusBadge } from '../../../../utils/statusBadgeUtils';
 
 type Props = {
     users: User[];
