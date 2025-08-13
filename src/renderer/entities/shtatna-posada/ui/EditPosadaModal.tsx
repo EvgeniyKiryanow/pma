@@ -1,5 +1,5 @@
 // components/EditPosadaModal.tsx
-import { ShtatnaPosada } from '../../stores/useShtatniStore';
+import { ShtatnaPosada } from '../../../../stores/useShtatniStore';
 
 type Props = {
     form: Partial<ShtatnaPosada>;
