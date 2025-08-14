@@ -97,13 +97,13 @@ export class UnitStatsCalculator {
     };
 
     // ✅ Planned totals reference
-    static PLANNED_TOTALS: Record<string, { total: number; officer: number; soldier: number }> = {
-        'Управління роти': { total: 10, officer: 3, soldier: 7 },
-        '1-й взвод': { total: 31, officer: 1, soldier: 30 },
-        '2-й взвод': { total: 31, officer: 1, soldier: 30 },
-        '3-й взвод': { total: 31, officer: 1, soldier: 30 },
-        ВСЬОГО: { total: 0, officer: 0, soldier: 0 }, // sum later
-    };
+    // static PLANNED_TOTALS: Record<string, { total: number; officer: number; soldier: number }> = {
+    //     'Управління роти': { total: 10, officer: 3, soldier: 7 },
+    //     '1-й взвод': { total: 31, officer: 1, soldier: 30 },
+    //     '2-й взвод': { total: 31, officer: 1, soldier: 30 },
+    //     '3-й взвод': { total: 31, officer: 1, soldier: 30 },
+    //     ВСЬОГО: { total: 0, officer: 0, soldier: 0 }, // sum later
+    // };
 
     static calculateAdditionalStats(
         users: any[],
@@ -173,9 +173,20 @@ export class UnitStatsCalculator {
         };
     }
 
-    // ✅ Utility: get planned totals for 1 unit
-    static getPlannedTotals(unitName: any) {
-        return this.PLANNED_TOTALS[unitName] || { total: 0, officer: 0, soldier: 0 };
+    private static _plannedTotals: Record<
+        string,
+        { total: number; officer: number; soldier: number }
+    > = {};
+
+    /** Call this after importing / fetching штатні посади */
+    static setPlannedTotals(
+        map: Record<string, { total: number; officer: number; soldier: number }>,
+    ) {
+        this._plannedTotals = map || {};
+    }
+
+    static getPlannedTotals(unitName: string) {
+        return this._plannedTotals[unitName] || { total: 0, officer: 0, soldier: 0 };
     }
 
     // ✅ Count how many users have each soldierStatus
@@ -345,10 +356,10 @@ export class UnitStatsCalculator {
         for (const unitName of UNITS) {
             if (unitName === 'ВСЬОГО') {
                 // === Глобальна агрегація по всім підрозділам
-                const plannedSum = Object.keys(this.PLANNED_TOTALS).reduce(
+                const plannedSum = Object.keys(this._plannedTotals).reduce(
                     (acc, key) => {
                         if (key === 'ВСЬОГО') return acc;
-                        const v = this.PLANNED_TOTALS[key];
+                        const v = this._plannedTotals[key];
                         return {
                             total: acc.total + v.total,
                             officer: acc.officer + v.officer,

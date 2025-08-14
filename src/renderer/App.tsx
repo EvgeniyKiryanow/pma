@@ -3,6 +3,9 @@ import './styles/index.css';
 
 import { useEffect, useRef } from 'react';
 
+import { useShtatniStore } from '../renderer/entities/shtatna-posada/model/useShtatniStore';
+import { UnitStatsCalculator } from '../renderer/features/report/ui/_components/UnitStatsCalculator';
+import { buildPlannedTotalsFromShtatni } from '../renderer/shared/utils/plannedTotalsFromShtatni';
 import Header from './app/layout/Header';
 import UserFormModalUpdate from './entities/user/ui/userFormModal';
 import BackupPanel from './features/backup/ui/BackupPanel';
@@ -34,12 +37,21 @@ export default function App() {
     const loadAllTables = useNamedListStore((s) => s.loadAllTables);
     const loadedOnce = useNamedListStore((s) => s.loadedOnce);
 
+    const shtatniPosady = useShtatniStore((s) => s.shtatniPosady);
+    const fetchShtatni = useShtatniStore((s) => s.fetchAll);
+
     const autoApplyStarted = useRef(false);
 
     useEffect(() => {
         fetchUsers();
         loadAllTables();
+        fetchShtatni();
     }, []);
+
+    useEffect(() => {
+        const planned = buildPlannedTotalsFromShtatni(shtatniPosady);
+        UnitStatsCalculator.setPlannedTotals(planned);
+    }, [shtatniPosady]);
 
     useEffect(() => {
         if (!autoApplyStarted.current && users.length > 0 && loadedOnce) {
