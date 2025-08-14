@@ -98,10 +98,10 @@ export class UnitStatsCalculator {
 
     // ✅ Planned totals reference
     static PLANNED_TOTALS: Record<string, { total: number; officer: number; soldier: number }> = {
-        'Управління роти': { total: 11, officer: 3, soldier: 8 },
-        '1-й взвод': { total: 34, officer: 1, soldier: 33 },
-        '2-й взвод': { total: 34, officer: 1, soldier: 33 },
-        '3-й взвод': { total: 34, officer: 1, soldier: 33 },
+        'Управління роти': { total: 10, officer: 3, soldier: 7 },
+        '1-й взвод': { total: 31, officer: 1, soldier: 30 },
+        '2-й взвод': { total: 31, officer: 1, soldier: 30 },
+        '3-й взвод': { total: 31, officer: 1, soldier: 30 },
         ВСЬОГО: { total: 0, officer: 0, soldier: 0 }, // sum later
     };
 
