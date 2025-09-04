@@ -1,10 +1,10 @@
-import { existsSync } from 'fs';
-import path from 'path';
-import { shell, dialog, app } from 'electron';
 import { execFileSync, spawnSync } from 'child_process';
-import https from 'https';
+import { app, dialog, shell } from 'electron';
+import { existsSync } from 'fs';
 import fs from 'fs';
+import https from 'https';
 import os from 'os';
+import path from 'path';
 
 // ✅ Resolve correct path depending on packaged/dev
 function resolveAssetsPath(...segments: string[]) {

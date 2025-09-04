@@ -11,8 +11,6 @@ import { getDb, initializeDb } from './db/db';
 import { upgradeDbSchema } from './db/migrations';
 import { registerDbHandlers } from './ipc';
 import { ensureAppIdentity } from './ipc/handlers/app/initAppIdentity';
-import { ensureDefaultAdmin } from './ipc/handlers/auth/ensureDefaultAdmin';
-import { ensureSuperuser } from './ipc/handlers/auth/ensureSuperuserHandler';
 
 export function copyAllTemplates() {
     const sourceDir = path.join(__dirname, 'assets/templates');
@@ -187,14 +185,14 @@ process.on('unhandledRejection', (reason) => {
 
 // eslint-disable-next-line promise/catch-or-return
 app.whenReady().then(async () => {
-    const { python, script } = await initPythonEnvSimplified();
+    // const { python, script } = await initPythonEnvSimplified();
 
     // eslint-disable-next-line promise/always-return
-    if (!python) {
-        console.warn('⚠️ Python env not ready');
+    if (true) {
+        // console.warn('⚠️ Python env not ready');
     } else {
-        globalPythonPath = python;
-        globalMorphyScript = script;
+        // globalPythonPath = python;
+        // globalMorphyScript = script;
     }
 
     registerDbHandlers();
@@ -202,8 +200,8 @@ app.whenReady().then(async () => {
     await upgradeDbSchema();
     await migrateAuthUserTable();
     await ensureAppIdentity();
-    await ensureSuperuser();
-    await ensureDefaultAdmin();
+    // await ensureSuperuser();
+    // await ensureDefaultAdmin();
     copyAllTemplates();
     // setupAutoUpdater();
     createWindow();
