@@ -6,7 +6,9 @@ import { defineConfig } from 'vite';
 export default defineConfig({
     build: {
         outDir: '.vite/build',
-        emptyOutDir: true,
+        // main and preload share this folder: clearing it here would delete preload.js
+        // (`npm run clean:build` wipes it once before a full build).
+        emptyOutDir: false,
         target: 'node20',
         ssr: true,
         sourcemap: true,

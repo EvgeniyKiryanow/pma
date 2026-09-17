@@ -79,6 +79,13 @@ export function createMainWindow(isDev: boolean): BrowserWindow {
         if (level >= 3) logger.error(`Renderer console: ${message} (${sourceId}:${line})`);
     });
 
+    // Development only: use the built renderer instead of the Vite dev server
+    // (lets automated UI checks run without starting the dev server).
+    if (isDev && process.env.PMA_RENDERER === 'built') {
+        void window.loadFile(AppPaths.rendererIndex);
+        return window;
+    }
+
     if (isDev) {
         void window.loadURL(DEV_SERVER_URL);
         window.webContents.openDevTools({ mode: 'detach' });

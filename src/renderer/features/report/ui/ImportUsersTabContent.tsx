@@ -107,13 +107,17 @@ export default function ImportUsersTabContent() {
                 h.includes("ім'я"),
         );
 
-        const hasDob = headers.some(
-            (h) =>
-                h.includes('Дата народ') ||
-                h.includes('date of birth') ||
-                h.includes('дн') ||
-                h.includes('dob'),
-        );
+        // Headers are already lower-cased here, so comparing against "Дата народ" never
+        // matched and a normal table with "ПІБ" + "Дата народження" was not recognized.
+        const hasDob = headers.some((h) => {
+            const compact = h.replace(/[\s.]+/g, '');
+            return (
+                compact.includes('датанарод') ||
+                compact.includes('dateofbirth') ||
+                compact.includes('dob') ||
+                compact === 'дн'
+            );
+        });
 
         // ✅ Якщо є fullname і дата народження
         if (hasFullname && hasDob) return true;

@@ -103,7 +103,7 @@ async function bootstrap(): Promise<void> {
             missingUuids: await db.get(`SELECT COUNT(*) AS n FROM users WHERE uuid IS NULL`),
             // Optional scenario script (plain JS module exporting `async ({ container, app }) => result`).
             script: process.env.PMA_DEV_SCRIPT
-                ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+                ? // eslint-disable-next-line @typescript-eslint/no-var-requires
                   await require(path.resolve(process.env.PMA_DEV_SCRIPT))({ container, app })
                 : undefined,
         };
@@ -124,6 +124,22 @@ async function bootstrap(): Promise<void> {
         container.scheduler.stop();
         void container.database.close();
     });
+
+    // Development only: drive the running window from a script (automated UI checks).
+    if (isDev && process.env.PMA_DEV_SCRIPT) void runDevScript(container, mainWindow);
+}
+
+async function runDevScript(container: unknown, window: BrowserWindow): Promise<void> {
+    await new Promise<void>((resolve) => window.webContents.once('did-finish-load', () => resolve()));
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const script = require(path.resolve(process.env.PMA_DEV_SCRIPT as string));
+        const result = await script({ container, app, window });
+        process.stdout.write(`DEV_SCRIPT_RESULT ${JSON.stringify(result)}\n`);
+    } catch (error) {
+        process.stdout.write(`DEV_SCRIPT_ERROR ${String((error as Error)?.stack ?? error)}\n`);
+    }
+    if (process.env.PMA_DEV_EXIT) app.exit(0);
 }
 
 function fatal(error: unknown): void {
