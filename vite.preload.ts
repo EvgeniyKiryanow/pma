@@ -17,10 +17,6 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': path.resolve(__dirname, 'src'),
-            '@ipc': path.resolve(__dirname, 'src/ipc'),
-            '@shared': path.resolve(__dirname, 'src/shared'),
-            '@utils': path.resolve(__dirname, 'src/utils'),
-            '@types': path.resolve(__dirname, 'src/types'),
         },
     },
 });

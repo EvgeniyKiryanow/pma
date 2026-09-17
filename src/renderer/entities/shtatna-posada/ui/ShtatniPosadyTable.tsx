@@ -158,7 +158,7 @@ export default function ShtatniPosadyTable({
                                                         {
                                                             id: Date.now(),
                                                             date: new Date().toISOString(),
-                                                            type: 'statusChange',
+                                                            type: 'statusChange' as const,
                                                             author: 'System',
                                                             description: `Статус змінено з "${previousStatus}" → "${newStatus}"`,
                                                             content: `Статус змінено з "${previousStatus}" на "${newStatus}"`,

@@ -1,70 +1,31 @@
-import { Download, Maximize2, Minus, RotateCcw, Trash2, Upload, X } from 'lucide-react';
+import { Download, Maximize2, Minus, RotateCcw, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useI18nStore } from '../../stores/i18nStore';
+import { useSessionStore } from '../../stores/sessionStore';
 
+/**
+ * Frameless window title bar. Only window controls live here: data operations
+ * (restore, reset) moved to the Backups tab where they require permissions.
+ */
 export default function CustomTitleBar() {
+    const { t } = useI18nStore();
     const [version, setVersion] = useState('');
     const [checking, setChecking] = useState(false);
-    const [hasUser, setHasUser] = useState<boolean | null>(null);
-    const { t } = useI18nStore();
-    const [isDefaultAdmin, setIsDefaultAdmin] = useState(false);
-    const navigate = useNavigate();
-    const location = useLocation();
-    const isOnAdminPanel = location.pathname === '/default-admin';
+    const isSignedIn = useSessionStore((s) => s.status === 'ready');
 
     useEffect(() => {
-        setIsDefaultAdmin(
-            sessionStorage.getItem('role') === 'admin' ||
-                sessionStorage.getItem('role') === 'default_admin',
-        );
-    }, []);
-
-    useEffect(() => {
-        window.electronAPI.getAppVersion().then(setVersion);
-        window.electronAPI.hasUser().then(setHasUser);
+        void window.electronAPI.getAppVersion().then(setVersion);
     }, []);
 
     const handleCheckUpdate = async () => {
         setChecking(true);
-        const result = await window.electronAPI.checkForUpdates();
-        setChecking(false);
-        if (result.status === 'error') {
-            alert(t('titleBar.updateError') + ': ' + result.message);
-        } else {
-            alert(t('titleBar.updateStarted'));
-        }
-    };
-
-    const handleRestore = async () => {
-        // if (!hasUser) {
-        //     alert(t('titleBar.restoreNoUser'));
-        //     return;
-        // }
-
-        const success = await window.electronAPI.restoreDb();
-        if (success) {
-            alert(t('titleBar.restoreSuccess'));
-            window.location.reload();
-        } else {
-            alert(t('titleBar.restoreFail'));
-        }
-    };
-
-    const handleResetDb = async () => {
-        const confirmReset = window.confirm(t('titleBar.resetConfirm'));
-        if (!confirmReset) return;
-
-        const success = await window.electronAPI.resetDb();
-        if (success) {
-            localStorage.removeItem('authToken');
-            sessionStorage.removeItem('authToken');
-
-            alert(t('titleBar.resetSuccess'));
-            window.location.reload();
-        } else {
-            alert(t('titleBar.resetFail'));
+        try {
+            const result = await window.electronAPI.checkForUpdates();
+            if (result.status === 'error') alert(`${t('titleBar.updateError')}: ${result.message}`);
+            else alert(t('titleBar.updateStarted'));
+        } finally {
+            setChecking(false);
         }
     };
 
@@ -82,53 +43,16 @@ export default function CustomTitleBar() {
                 className="flex gap-2"
                 style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
-                {/* Uncomment if you want update button */}
-                {isOnAdminPanel ? (
+                {isSignedIn && (
                     <button
-                        className="p-1 hover:bg-indigo-600 rounded"
-                        title={t('titleBar.returnToApp')}
-                        onClick={() => navigate('/')}
+                        className="p-1 hover:bg-blue-600 rounded disabled:opacity-50"
+                        title={t('titleBar.updateCheck')}
+                        onClick={handleCheckUpdate}
+                        disabled={checking}
                     >
-                        ⬅️
+                        <Download className="w-4 h-4" />
                     </button>
-                ) : (
-                    isDefaultAdmin && (
-                        <button
-                            className="p-1 hover:bg-indigo-600 rounded"
-                            title={t('titleBar.adminPanel')}
-                            onClick={() => navigate('/default-admin')}
-                        >
-                            🛠️
-                        </button>
-                    )
                 )}
-
-                <button
-                    className="p-1 hover:bg-blue-600 rounded"
-                    title={t('titleBar.updateCheck')}
-                    onClick={handleCheckUpdate}
-                >
-                    <Download className="w-4 h-4" />
-                </button>
-
-                {/* {hasUser && ( */}
-                <button
-                    className={`p-1 rounded 'hover:bg-green-600' `}
-                    title={t('titleBar.restore')}
-                    onClick={handleRestore}
-                >
-                    <Upload className="w-4 h-4" />
-                </button>
-                {/* )} */}
-
-                <button
-                    className="p-1 hover:bg-yellow-600 rounded"
-                    title={t('titleBar.reset')}
-                    onClick={handleResetDb}
-                >
-                    <Trash2 className="w-4 h-4" />
-                </button>
-
                 <button
                     className="p-1 hover:bg-gray-600 rounded"
                     title={t('titleBar.reload')}
@@ -136,11 +60,10 @@ export default function CustomTitleBar() {
                 >
                     <RotateCcw className="w-4 h-4" />
                 </button>
-                {/* ✅ HIDE BUTTON */}
                 <button
                     className="p-1 hover:bg-gray-500 rounded"
                     title={t('titleBar.hide')}
-                    onClick={() => window.electronAPI.hideApp()}
+                    onClick={() => void window.electronAPI.hideApp()}
                 >
                     <Minus className="w-4 h-4" />
                 </button>

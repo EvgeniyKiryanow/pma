@@ -1,324 +1,235 @@
-import { app, ipcMain } from 'electron';
 import fs from 'fs/promises';
-import path from 'path';
-
-import saveHistoryFiles from '../../../shared/helpers/saveHistoryFiles';
-import { CommentOrHistoryEntry } from '../../../shared/types/user';
-import { getDb } from '../../db/db';
-const base = path.join(app.getPath('userData'), 'user_files');
 import mime from 'mime-types';
 
+import type { CommentOrHistoryEntry } from '../../../shared/types/user';
+import { database } from '../../db/connection';
+import { historyEntryDir, historyFilePath, saveHistoryFiles } from '../../personnel/historyFiles';
+import { parseUserRow, safeJsonArray } from '../../personnel/userFields';
+import { access, handle } from '../secureHandle';
+import { logChange } from './changeLog';
+
+const FILTER_DAYS: Record<string, number> = {
+    '1day': 1,
+    '7days': 7,
+    '14days': 14,
+    '30days': 30,
+    all: 100 * 365,
+};
+
+function filterFromDate(filter: string): Date {
+    const date = new Date();
+    date.setDate(date.getDate() - (FILTER_DAYS[filter] ?? 30));
+    return date;
+}
+
+function fileMeta(files: CommentOrHistoryEntry['files']) {
+    return (files || []).map((f: any) => ({ name: f.name, type: f.type, size: f.size }));
+}
+
 export function registertUserHistoryHandlers() {
-    ipcMain.handle('history:get-user-history', async (_event, userId: number, filter: string) => {
-        const db = await getDb();
+    const view = access.any('personnel.view');
+    const edit = access.any('history.edit');
 
+    handle('history:get-user-history', view, async (_event, userId: number, filter: string) => {
+        const db = await database.get();
         const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
-        if (!user || !user.history) return [];
-
-        const history: CommentOrHistoryEntry[] = JSON.parse(user.history);
-
-        const fromDate = getFilterDate(filter);
+        const history = safeJsonArray(user?.history) as CommentOrHistoryEntry[];
+        const fromDate = filterFromDate(filter);
         return history.filter((entry) => new Date(entry.date) >= fromDate);
     });
 
-    ipcMain.handle('fetch-users-metadata', async () => {
-        const db = await getDb();
+    /** Personnel list without heavy history/comments JSON. */
+    handle('fetch-users-metadata', view, async () => {
+        const db = await database.get();
         const rows = await db.all('SELECT * FROM users');
-
-        const safeParse = (jsonStr: string, fallback: any) => {
-            try {
-                return JSON.parse(jsonStr);
-            } catch {
-                return fallback;
-            }
-        };
-
         return rows.map((row: any) => {
-            const { history, comments, relatives, ...rest } = row;
-            return {
-                ...rest,
-                relatives: safeParse(relatives, []), // we keep relatives
-            };
+            const { history: _history, comments: _comments, ...rest } = row;
+            return parseUserRow(rest, ['relatives']);
         });
     });
 
-    ipcMain.handle('users:get-one', async (_event, userId) => {
-        const db = await getDb();
-        const user = await db.get('SELECT * FROM users WHERE id = ?', userId);
-        if (!user) return null;
+    /** Status changes without an attached document or period (the red badge in the header). */
+    handle('history:find-incomplete', view, async () => {
+        const db = await database.get();
+        const rows = await db.all('SELECT id, shpkNumber, history FROM users');
+        const result: {
+            userId: number;
+            entryId: number;
+            reason: 'missing_file' | 'missing_period' | 'missing_both';
+        }[] = [];
 
-        const safeParse = (jsonStr: string, fallback: any) => {
-            try {
-                return JSON.parse(jsonStr);
-            } catch {
-                return fallback;
+        for (const row of rows) {
+            const shpk = String(row.shpkNumber ?? '');
+            if (shpk === 'excluded' || shpk.includes('order')) continue;
+            for (const entry of safeJsonArray(row.history) as CommentOrHistoryEntry[]) {
+                if (entry?.type !== 'statusChange') continue;
+                const noFiles = !entry.files || entry.files.length === 0;
+                const noPeriod = !entry.period;
+                if (!noFiles && !noPeriod) continue;
+                result.push({
+                    userId: row.id,
+                    entryId: entry.id,
+                    reason:
+                        noFiles && noPeriod
+                            ? 'missing_both'
+                            : noFiles
+                              ? 'missing_file'
+                              : 'missing_period',
+                });
             }
-        };
-
-        return {
-            ...user,
-            relatives: safeParse(user.relatives, []),
-            comments: safeParse(user.comments, []),
-            history: safeParse(user.history, []),
-        };
-    });
-
-    ipcMain.handle('history:load-file', async (_event, userId, entryId, filename) => {
-        const fullPath = path.join(
-            app.getPath('userData'),
-            'history_files', // FIXED here
-            userId.toString(),
-            entryId.toString(),
-            filename,
-        );
-
-        try {
-            const buffer = await fs.readFile(fullPath);
-            const mimeType = mime.lookup(filename) || 'application/octet-stream';
-            return {
-                dataUrl: `data:${mimeType};base64,${buffer.toString('base64')}`,
-            };
-        } catch (err) {
-            console.warn(`❌ Failed to read file ${filename}:`, err);
-            throw new Error(`Файл не знайдено: ${filename}`);
         }
+        return result;
     });
 
-    ipcMain.handle(
-        'history:getByUserAndRange',
-        async (_event, userId: number, range: '1d' | '7d' | '30d' | 'all') => {
-            const db = await getDb();
-            const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
-            if (!user?.history) return [];
+    handle('users:get-one', view, async (_event, userId: number) => {
+        const db = await database.get();
+        const user = await db.get('SELECT * FROM users WHERE id = ?', userId);
+        return user ? parseUserRow(user) : null;
+    });
 
-            const allHistory: CommentOrHistoryEntry[] = JSON.parse(user.history);
-            const now = new Date();
-            const threshold = new Date(now);
-
-            if (range !== 'all') {
-                const days = range === '1d' ? 1 : range === '7d' ? 7 : 30;
-                threshold.setDate(now.getDate() - days);
+    handle(
+        'history:load-file',
+        view,
+        async (_event, userId: number, entryId: number, filename: string) => {
+            try {
+                const buffer = await fs.readFile(historyFilePath(userId, entryId, filename));
+                const mimeType = mime.lookup(filename) || 'application/octet-stream';
+                return { dataUrl: `data:${mimeType};base64,${buffer.toString('base64')}` };
+            } catch {
+                throw new Error(`Файл не знайдено: ${filename}`);
             }
-
-            return allHistory.filter((entry) => {
-                if (range === 'all') return true;
-                return new Date(entry.date) >= threshold;
-            });
         },
     );
 
-    ipcMain.handle('history:add-entry', async (_event, userId: number, newEntry: any) => {
-        const db = await getDb();
-        const user = await db.get(`SELECT * FROM users WHERE id = ?`, userId);
+    handle(
+        'history:getByUserAndRange',
+        view,
+        async (_event, userId: number, range: '1d' | '7d' | '30d' | 'all') => {
+            const db = await database.get();
+            const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
+            const history = safeJsonArray(user?.history) as CommentOrHistoryEntry[];
+            if (range === 'all') return history;
 
-        if (!user) {
-            console.warn(`[History] ⚠️ add-entry: користувача з id=${userId} не знайдено`);
-            return { success: false, message: 'User not found' };
-        }
+            const threshold = new Date();
+            threshold.setDate(threshold.getDate() - (range === '1d' ? 1 : range === '7d' ? 7 : 30));
+            return history.filter((entry) => new Date(entry.date) >= threshold);
+        },
+    );
 
-        const existingHistory = user.history ? JSON.parse(user.history) : [];
-
-        const entryId = newEntry.id;
-        const rawFiles = newEntry.files || [];
-
-        // ✅ Збереження файлів на диск
-        await saveHistoryFiles(userId, entryId, rawFiles);
-
-        // ✅ Зберігаємо тільки метадані
-        const cleanedFiles = rawFiles.map((f: any) => ({
-            name: f.name,
-            type: f.type,
-            size: f.size,
-        }));
-
-        const cleanEntry = {
-            ...newEntry,
-            files: cleanedFiles,
-        };
-
-        existingHistory.push(cleanEntry);
-
-        // ✅ Оновлюємо історію в БД
-        await db.run(
-            `UPDATE users SET history = ? WHERE id = ?`,
-            JSON.stringify(existingHistory),
-            userId,
-        );
-
-        // ✅ Отримуємо оновлений запис користувача для логування
-        const updatedUser = await db.get(`SELECT * FROM users WHERE id = ?`, userId);
-
-        // ✅ Логування
-        try {
-            await db.run(
-                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-             VALUES (?, ?, ?, ?, ?)`,
-                'users',
-                userId,
-                'update',
-                JSON.stringify(updatedUser),
-                'local',
-            );
-        } catch (err) {
-            console.warn(
-                `[ChangeHistory] ❌ Помилка при логуванні history:add-entry для user id=${userId}`,
-                err,
-            );
-        }
-
-        return { success: true };
-    });
-
-    ipcMain.handle(
-        'history:edit-entry',
-        async (_event, userId: number, updatedEntry: CommentOrHistoryEntry) => {
-            const db = await getDb();
-            const user = await db.get('SELECT * FROM users WHERE id = ?', userId);
+    handle(
+        'history:add-entry',
+        edit,
+        async (_event, userId: number, newEntry: any) => {
+            const db = await database.get();
+            const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
             if (!user) return { success: false, message: 'User not found' };
 
-            const history: CommentOrHistoryEntry[] = user.history ? JSON.parse(user.history) : [];
-            const idx = history.findIndex((h) => h.id === updatedEntry.id);
-            if (idx === -1) return { success: false, message: 'History entry not found' };
+            await saveHistoryFiles(userId, newEntry.id, newEntry.files || []);
 
-            const entryId = updatedEntry.id;
-            const newFiles = updatedEntry.files || [];
-
-            // ✅ Видалення старих файлів, які відсутні в оновленій версії
-            const oldFiles = history[idx].files || [];
-            const oldNames = oldFiles.map((f) => f.name);
-            const newNames = newFiles.map((f) => f.name);
-            const removedFiles = oldNames.filter((name) => !newNames.includes(name));
-
-            const entryDir = path.join(
-                app.getPath('userData'),
-                'history_files',
-                `${userId}`,
-                `${entryId}`,
-            );
-            for (const name of removedFiles) {
-                try {
-                    const fullPath = path.join(entryDir, name);
-                    await fs.rm(fullPath, { force: true });
-                } catch (err) {
-                    console.warn(`⚠️ Failed to delete removed file "${name}"`, err);
-                }
-            }
-
-            // ✅ Зберігаємо нові/оновлені файли
-            await saveHistoryFiles(userId, entryId, newFiles);
-
-            // ✅ Зберігаємо лише метадані файлів
-            const cleanedFiles = newFiles.map((f) => ({
-                name: f.name,
-                type: f.type,
-                size: f.size,
-            }));
-
-            history[idx] = {
-                ...updatedEntry,
-                files: cleanedFiles,
-            };
-
-            // ✅ Оновлюємо базу
-            await db.run(
-                'UPDATE users SET history = ? WHERE id = ?',
-                JSON.stringify(history),
-                userId,
-            );
-
-            // ✅ Логування зміни
-            try {
-                const updatedUser = await db.get('SELECT * FROM users WHERE id = ?', userId);
-
-                await db.run(
-                    `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-                 VALUES (?, ?, ?, ?, ?)`,
+            await database.transaction(async (tx) => {
+                const current = await tx.get('SELECT history FROM users WHERE id = ?', userId);
+                const history = safeJsonArray(current?.history);
+                history.push({ ...newEntry, files: fileMeta(newEntry.files) });
+                await tx.run(
+                    'UPDATE users SET history = ? WHERE id = ?',
+                    JSON.stringify(history),
+                    userId,
+                );
+                await logChange(
+                    tx,
                     'users',
                     userId,
                     'update',
-                    JSON.stringify(updatedUser),
-                    'local',
+                    await tx.get('SELECT * FROM users WHERE id = ?', userId),
                 );
-            } catch (err) {
-                console.warn(
-                    `[ChangeHistory] ❌ Помилка при логуванні history:edit-entry userId=${userId}`,
-                    err,
-                );
-            }
-
+            });
             return { success: true };
         },
+        { audit: 'history.add' },
     );
 
-    ipcMain.handle('deleteUserHistory', async (_event, historyId: number) => {
-        const db = await getDb();
-        const users = await db.all('SELECT id, history FROM users');
+    handle(
+        'history:edit-entry',
+        edit,
+        async (_event, userId: number, updatedEntry: CommentOrHistoryEntry) => {
+            const db = await database.get();
+            const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
+            if (!user) return { success: false, message: 'User not found' };
 
-        for (const user of users) {
-            const history: CommentOrHistoryEntry[] = JSON.parse(user.history || '[]');
-            const match = history.find((h) => h.id === historyId);
-            if (!match) continue;
+            const history = safeJsonArray(user.history) as CommentOrHistoryEntry[];
+            const index = history.findIndex((h) => h.id === updatedEntry.id);
+            if (index === -1) return { success: false, message: 'History entry not found' };
 
-            // ✅ Видаляємо запис із історії
-            const updatedHistory = history.filter((item) => item.id !== historyId);
-            await db.run(
-                'UPDATE users SET history = ? WHERE id = ?',
-                JSON.stringify(updatedHistory),
-                user.id,
-            );
-
-            // ✅ Видаляємо файли, прив'язані до цього запису
-            const dirPath = path.join(
-                app.getPath('userData'),
-                'history_files',
-                String(user.id),
-                String(historyId),
-            );
-
-            try {
-                await fs.rm(dirPath, { recursive: true, force: true });
-                console.log(`🗑️ Deleted files for history ${historyId} of user ${user.id}`);
-            } catch (err) {
-                console.warn(`⚠️ Failed to delete files for history ${historyId}:`, err);
+            const newFiles = updatedEntry.files || [];
+            const newNames = new Set(newFiles.map((f: any) => f.name));
+            for (const old of history[index].files || []) {
+                if (newNames.has(old.name)) continue;
+                await fs
+                    .rm(historyFilePath(userId, updatedEntry.id, old.name), { force: true })
+                    .catch((err) => console.warn('Failed to delete removed attachment', err));
             }
+            await saveHistoryFiles(userId, updatedEntry.id, newFiles);
 
-            // ✅ Логування оновлення користувача
-            try {
-                const updatedUser = await db.get('SELECT * FROM users WHERE id = ?', user.id);
-
-                await db.run(
-                    `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-                 VALUES (?, ?, ?, ?, ?)`,
+            await database.transaction(async (tx) => {
+                const current = await tx.get('SELECT history FROM users WHERE id = ?', userId);
+                const latest = safeJsonArray(current?.history) as CommentOrHistoryEntry[];
+                const i = latest.findIndex((h) => h.id === updatedEntry.id);
+                if (i === -1) return;
+                latest[i] = { ...updatedEntry, files: fileMeta(newFiles) };
+                await tx.run(
+                    'UPDATE users SET history = ? WHERE id = ?',
+                    JSON.stringify(latest),
+                    userId,
+                );
+                await logChange(
+                    tx,
                     'users',
-                    user.id,
+                    userId,
                     'update',
-                    JSON.stringify(updatedUser),
-                    'local',
+                    await tx.get('SELECT * FROM users WHERE id = ?', userId),
                 );
-            } catch (err) {
-                console.warn(
-                    `[ChangeHistory] ❌ Помилка при логуванні видалення history id=${historyId}`,
-                    err,
-                );
+            });
+            return { success: true };
+        },
+        { audit: 'history.edit' },
+    );
+
+    handle(
+        'deleteUserHistory',
+        edit,
+        async (_event, historyId: number) => {
+            const db = await database.get();
+            const users = await db.all('SELECT id, history FROM users');
+
+            for (const user of users) {
+                const history = safeJsonArray(user.history) as CommentOrHistoryEntry[];
+                if (!history.some((h) => h.id === historyId)) continue;
+
+                await database.transaction(async (tx) => {
+                    const remaining = history.filter((item) => item.id !== historyId);
+                    await tx.run(
+                        'UPDATE users SET history = ? WHERE id = ?',
+                        JSON.stringify(remaining),
+                        user.id,
+                    );
+                    await logChange(
+                        tx,
+                        'users',
+                        user.id,
+                        'update',
+                        await tx.get('SELECT * FROM users WHERE id = ?', user.id),
+                    );
+                });
+                await fs
+                    .rm(historyEntryDir(user.id, historyId), { recursive: true, force: true })
+                    .catch((err) =>
+                        console.warn('Failed to delete attachments of history entry', err),
+                    );
+
+                return { success: true, deletedFromUserId: user.id };
             }
-
-            return { success: true, deletedFromUserId: user.id };
-        }
-
-        return { success: false, message: 'History entry not found in any user' };
-    });
-}
-export function getFilterDate(filter: string): Date {
-    const now = new Date();
-    const map: Record<string, number> = {
-        '1day': 1,
-        '7days': 7,
-        '14days': 14,
-        '30days': 30,
-        all: 100 * 365,
-    };
-
-    const days = map[filter] ?? 30;
-    now.setDate(now.getDate() - days);
-    return now;
+            return { success: false, message: 'History entry not found in any user' };
+        },
+        { audit: 'history.delete' },
+    );
 }

@@ -37,6 +37,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Type errors must never reach a release build
+      - name: Typecheck
+        run: npm run typecheck
+
       # 5️⃣ Build app
       - name: Build app
         run: npm run build

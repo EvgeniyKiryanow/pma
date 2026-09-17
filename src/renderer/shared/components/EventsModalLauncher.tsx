@@ -2,6 +2,7 @@ import { Gift } from 'lucide-react';
 import pLimit from 'p-limit';
 import { useEffect, useState } from 'react';
 
+import { useSessionStore } from '../../stores/sessionStore';
 import { StatusExcel } from '../utils/excelUserStatuses';
 
 function EventsModal({
@@ -127,6 +128,8 @@ export default function EventsModalLauncher() {
     const [entries, setEntries] = useState([]);
 
     async function fetchOrderEntriesFromDb() {
+        // Birthdays and statuses still work for roles without access to orders.
+        if (!useSessionStore.getState().can('directives.view')) return [];
         const raw = await window.electronAPI.directives.getAllByType('order');
 
         const parsed = raw.map((entry: any) => ({

@@ -8,12 +8,17 @@ type IncompleteEntry = {
 
 type IncompleteHistoryStore = {
     entries: IncompleteEntry[];
+    /** Recomputed in the main process from the stored history. */
+    load: () => Promise<void>;
     addIncomplete: (userId: number, entryId: number, reason: IncompleteEntry['reason']) => void;
     clearAll: () => void;
 };
 
 export const useIncompleteHistoryStore = create<IncompleteHistoryStore>((set) => ({
     entries: [],
+    load: async () => {
+        set({ entries: await window.electronAPI.findIncompleteHistory() });
+    },
     addIncomplete: (userId, entryId, reason) =>
         set((state) => ({
             entries: [

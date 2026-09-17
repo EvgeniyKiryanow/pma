@@ -10,11 +10,13 @@
     "dev:renderer": "vite --config vite.renderer.ts",
     "dev:electron": "cross-env NODE_ENV=development electron .",
     "dev": "concurrently -k \"npm run watch:main\" \"npm run watch:preload\" \"npm run dev:renderer\" \"wait-on http://localhost:5173 && npm run dev:electron\"",
-  
     "build:main": "vite build --config vite.main.ts",
     "build:preload": "vite build --config vite.preload.ts",
     "build:renderer": "vite build --config vite.renderer.ts",
     "build": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "analyze": "cross-env ANALYZE=1 vite build --config vite.renderer.ts",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "release": "npm run build && npm run dist"
@@ -23,19 +25,19 @@
     "appId": "com.your.app",
     "productName": "PManager",
     "directories": {
-      "buildResources": "assets/icons"
+      "buildResources": "assets/icons",
+      "output": "dist"
     },
     "files": [
       "renderer_dist/**/*",
       ".vite/build/**/*",
-      "node_modules/**/*",
-      "assets/**/*",
+      "assets/icons/**/*",
+      "assets/templates/**/*",
       "package.json"
     ],
     "asarUnpack": [
       "node_modules/sqlite3/**",
-      "assets/templates/**",
-      "assets/python/**"
+      "assets/templates/**"
     ],
     "mac": {
       "category": "public.app-category.utilities",
@@ -59,7 +61,12 @@
     "win": {
       "icon": "assets/icons/appIcon.ico",
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "nsis": {
@@ -92,32 +99,21 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@electron-forge/cli": "^7.8.1",
-    "@electron-forge/maker-deb": "^7.8.1",
-    "@electron-forge/maker-rpm": "^7.8.1",
-    "@electron-forge/maker-squirrel": "^7.8.1",
-    "@electron-forge/maker-zip": "^7.8.1",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.8.1",
-    "@electron-forge/plugin-fuses": "^7.8.1",
-    "@electron-forge/plugin-vite": "^7.8.1",
-    "@electron/fuses": "^1.8.0",
     "@eslint/js": "^8.57.1",
-    "@types/bcrypt": "^5.0.2",
-    "@types/electron-squirrel-startup": "^1.0.2",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/file-saver": "^2.0.7",
-    "@types/jquery": "^3.5.32",
     "@types/mime-types": "^3.0.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "@types/react-window": "^1.8.8",
-    "@typescript-eslint/eslint-plugin": "^5.62.0",
-    "@typescript-eslint/parser": "^5.62.0",
+    "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.2.0",
     "cross-env": "^10.0.0",
+    "docx-preview": "^0.3.7",
+    "docxtemplater": "^3.70.0",
+    "docxtemplater-image-module-free": "^1.1.1",
     "electron": "37.2.0",
-    "electron-builder": "^26.0.12",
+    "electron-builder": "^26.15.3",
     "eslint": "^8.57.1",
-    "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-promise": "^6.6.0",
     "eslint-plugin-react": "^7.37.5",
@@ -128,46 +124,33 @@
     "eslint-plugin-sonarjs": "^3.0.4",
     "eslint-plugin-sort-keys-fix": "^1.1.2",
     "eslint-plugin-unused-imports": "^4.1.4",
-    "globals": "^16.3.0",
-    "prettier": "^3.6.2",
-    "ts-node": "^10.9.2",
-    "typescript": "~4.5.4",
-    "typescript-eslint": "^7.18.0",
-    "vite": "^5.4.19",
-    "wait-on": "^8.0.4"
-  },
-  "dependencies": {
-    "@tailwindcss/postcss": "^4.1.11",
-    "@vitejs/plugin-react": "^4.6.0",
-    "ag-grid-community": "^34.0.1",
-    "ag-grid-react": "^34.0.1",
-    "bcryptjs": "^3.0.2",
-    "docx": "^9.5.1",
-    "docx-preview": "^0.3.5",
-    "docxtemplater": "^3.65.2",
-    "docxtemplater-image-module-free": "^1.1.1",
-    "electron-log": "^5.4.1",
-    "electron-squirrel-startup": "^1.0.1",
-    "electron-updater": "^6.6.2",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
+    "globals": "^16.3.0",
     "lucide-react": "^0.525.0",
-    "mammoth": "^1.9.1",
-    "mime-types": "^3.0.1",
+    "p-limit": "^3.1.0",
     "pizzip": "^3.2.0",
-    "postcss": "^8.5.6",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.3",
-    "react-window": "^1.8.11",
-    "rollup-plugin-visualizer": "^6.0.3",
-    "shevchenko": "^3.1.4",
-    "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7",
-    "tailwindcss": "^4.1.11",
-    "uuid": "^11.1.0",
+    "postcss": "^8.5.28",
+    "prettier": "^3.6.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "rollup-plugin-visualizer": "^6.0.11",
+    "shevchenko": "^3.2.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.5.4",
+    "typescript-eslint": "^7.18.0",
+    "uuid": "^11.1.1",
+    "vite": "^5.4.19",
+    "wait-on": "^8.0.4",
     "xlsx": "^0.18.5",
-    "xlsx-js-style": "^1.2.0",
-    "zustand": "^5.0.6"
+    "zustand": "^5.0.15"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "electron-log": "^5.4.1",
+    "electron-updater": "^6.6.2",
+    "mime-types": "^3.0.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   }
 }

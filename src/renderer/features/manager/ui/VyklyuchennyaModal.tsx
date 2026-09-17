@@ -1,6 +1,5 @@
 import { Eye, Info, UploadCloud, X } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 
 import FilePreviewModal, { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
 import { useUserStore } from '../../../stores/userStore';
@@ -38,7 +37,6 @@ export default function VyklyuchennyaModal({ onClose }: { onClose: () => void })
 
         // 1. Save to store
         addVyklyuchennya({
-            id: uuidv4(),
             userId: user.id,
             title,
             description,

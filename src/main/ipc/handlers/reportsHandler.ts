@@ -1,490 +1,348 @@
-import { exec } from 'child_process';
-import { app, ipcMain } from 'electron';
+import { execFile } from 'child_process';
 import fs from 'fs';
-import { readFile } from 'fs/promises';
+import fsp from 'fs/promises';
 import path from 'path';
 
-import { getDb } from '../../db/db';
+import { AppPaths, resolveInside, safeFileName } from '../../core/paths';
+import { database } from '../../db/connection';
+import { access, handle } from '../secureHandle';
+import { logChange } from './changeLog';
+
+function parseExtraData(row: any): Record<string, unknown> {
+    try {
+        return row.extra_data ? JSON.parse(row.extra_data) : {};
+    } catch {
+        return {};
+    }
+}
+
+/** Uploaded templates are always addressed by file name inside AppPaths.reports. */
+function reportFilePath(fileNameOrLegacyPath: string): string {
+    return resolveInside(AppPaths.reports, safeFileName(fileNameOrLegacyPath));
+}
 
 export function registerReportsHandlers() {
-    function getTemplatesDir(): string {
-        if (app.isPackaged) {
-            return path.join(process.resourcesPath, 'app.asar.unpacked', 'assets', 'templates');
-        } else {
-            return path.join(__dirname, '..', 'build', 'assets', 'templates');
-        }
-    }
+    registerStaffingHandlers();
+    registerTemplateHandlers();
+    registerNamedListHandlers();
+}
 
-    ipcMain.handle('delete-all-shtatni-posady', async () => {
-        const db = await getDb();
+// ---------------------------------------------------------------- Штатні посади (БЧС)
 
-        // 1. Отримуємо всі записи перед видаленням
-        const rows = await db.all('SELECT * FROM shtatni_posady');
+function registerStaffingHandlers() {
+    const edit = access.any('staffing.edit');
 
-        if (!rows || rows.length === 0) {
-            console.warn('[ShtatniPosady] ⚠️ Немає записів для видалення');
-            return { success: true, deleted: 0 };
-        }
-
-        // 2. Видаляємо всі записи
-        await db.run('DELETE FROM shtatni_posady');
-
-        // 3. Логуємо кожен запис
-        for (const row of rows) {
-            try {
-                await db.run(
-                    `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-                 VALUES (?, ?, ?, ?, ?)`,
-                    'shtatni_posady',
-                    row.id,
-                    'delete',
-                    JSON.stringify(row),
-                    'local',
-                );
-            } catch (err) {
-                console.warn(`[ChangeHistory] ❌ Помилка при логуванні delete id=${row.id}`, err);
-            }
-        }
-
-        return { success: true, deleted: rows.length };
-    });
-
-    ipcMain.handle('fetch-shtatni-posady', async () => {
-        const db = await getDb();
+    handle('fetch-shtatni-posady', access.any('staffing.view'), async () => {
+        const db = await database.get();
         const rows = await db.all('SELECT * FROM shtatni_posady ORDER BY shtat_number ASC');
-
-        return rows.map((row: any) => {
-            let parsedExtra = {};
-            try {
-                parsedExtra = row.extra_data ? JSON.parse(row.extra_data) : {};
-            } catch (e) {
-                console.warn('⚠️ Failed to parse extra_data for', row.shtat_number, row.extra_data);
-            }
-
-            return {
-                ...row,
-                extra_data: parsedExtra,
-            };
-        });
+        return rows.map((row: any) => ({ ...row, extra_data: parseExtraData(row) }));
     });
 
-    ipcMain.handle('import-shtatni-posady', async (_event, positions: any[]) => {
-        const db = await getDb();
+    handle(
+        'import-shtatni-posady',
+        edit,
+        async (_event, positions: any[]) => {
+            let added = 0;
+            let skipped = 0;
+            await database.transaction(async (db) => {
+                for (const pos of positions ?? []) {
+                    const exists = await db.get(
+                        `SELECT 1 FROM shtatni_posady WHERE shtat_number = ?`,
+                        pos.shtat_number,
+                    );
+                    if (exists) {
+                        skipped++;
+                        continue;
+                    }
+                    const res = await db.run(
+                        `INSERT INTO shtatni_posady (shtat_number, unit_name, position_name, category, shpk_code, extra_data)
+                         VALUES (?, ?, ?, ?, ?, ?)`,
+                        pos.shtat_number,
+                        pos.unit_name ?? '',
+                        pos.position_name ?? '',
+                        pos.category ?? '',
+                        pos.shpk_code ?? '',
+                        JSON.stringify(pos.extra_data ?? {}),
+                    );
+                    added++;
+                    const inserted = await db.get(
+                        'SELECT * FROM shtatni_posady WHERE id = ?',
+                        res.lastID,
+                    );
+                    await logChange(db, 'shtatni_posady', Number(res.lastID), 'insert', {
+                        ...inserted,
+                        extra_data: parseExtraData(inserted),
+                    });
+                }
+            });
+            return { success: true, added, skipped, total: positions?.length ?? 0 };
+        },
+        { audit: 'staffing.import' },
+    );
 
-        let addedCount = 0;
-        let skippedCount = 0;
-
-        for (const pos of positions) {
-            const existing = await db.get(
-                `SELECT shtat_number FROM shtatni_posady WHERE shtat_number = ?`,
-                pos.shtat_number,
-            );
-
-            if (existing) {
-                skippedCount++;
-                continue;
-            }
-
-            const res = await db.run(
-                `INSERT INTO shtatni_posady 
-             (shtat_number, unit_name, position_name, category, shpk_code, extra_data)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-                [
+    handle(
+        'update-shtatni-posada',
+        edit,
+        async (_event, pos: any) => {
+            return database.transaction(async (db) => {
+                const existing = await db.get(
+                    `SELECT id FROM shtatni_posady WHERE shtat_number = ?`,
                     pos.shtat_number,
+                );
+                if (!existing) return { success: false, message: 'Position not found' };
+
+                await db.run(
+                    `UPDATE shtatni_posady SET unit_name = ?, position_name = ?, category = ?, shpk_code = ?, extra_data = ?
+                     WHERE shtat_number = ?`,
                     pos.unit_name ?? '',
                     pos.position_name ?? '',
                     pos.category ?? '',
                     pos.shpk_code ?? '',
                     JSON.stringify(pos.extra_data ?? {}),
-                ],
-            );
-            addedCount++;
+                    pos.shtat_number,
+                );
+                const updated = await db.get(
+                    `SELECT * FROM shtatni_posady WHERE id = ?`,
+                    existing.id,
+                );
+                await logChange(db, 'shtatni_posady', existing.id, 'update', updated);
+                return { success: true };
+            });
+        },
+        { audit: 'staffing.update' },
+    );
 
-            // 🔐 Логування доданого запису
-            try {
-                const inserted = {
-                    id: res.lastID,
-                    shtat_number: pos.shtat_number,
-                    unit_name: pos.unit_name ?? '',
-                    position_name: pos.position_name ?? '',
-                    category: pos.category ?? '',
-                    shpk_code: pos.shpk_code ?? '',
-                    extra_data: pos.extra_data ?? {},
+    handle(
+        'delete-shtatni-posada',
+        edit,
+        async (_event, shtatNumber: string) => {
+            return database.transaction(async (db) => {
+                const row = await db.get(
+                    `SELECT * FROM shtatni_posady WHERE shtat_number = ?`,
+                    shtatNumber,
+                );
+                if (!row) return { success: false };
+                await db.run(`DELETE FROM shtatni_posady WHERE id = ?`, row.id);
+                await logChange(db, 'shtatni_posady', row.id, 'delete', row);
+                return { success: true };
+            });
+        },
+        { audit: 'staffing.delete' },
+    );
+
+    handle(
+        'delete-all-shtatni-posady',
+        edit,
+        async () => {
+            return database.transaction(async (db) => {
+                const rows = await db.all('SELECT * FROM shtatni_posady');
+                await db.run('DELETE FROM shtatni_posady');
+                for (const row of rows)
+                    await logChange(db, 'shtatni_posady', row.id, 'delete', row);
+                return { success: true, deleted: rows.length };
+            });
+        },
+        { audit: 'staffing.delete-all' },
+    );
+}
+
+// ---------------------------------------------------------------- DOCX templates & reports
+
+function registerTemplateHandlers() {
+    const view = access.any('reports.view');
+    const manage = access.any('reports.templates');
+
+    /** Bundled templates shipped with the app. */
+    handle('get-all-report-templates', view, async () => {
+        const dir = AppPaths.bundledTemplates;
+        if (!fs.existsSync(dir)) return [];
+        const files = (await fsp.readdir(dir)).filter((f) => f.endsWith('.docx'));
+        return Promise.all(
+            files.map(async (file) => {
+                const fullPath = path.join(dir, file);
+                const [content, stat] = await Promise.all([
+                    fsp.readFile(fullPath),
+                    fsp.stat(fullPath),
+                ]);
+                return {
+                    id: file,
+                    name: path.basename(file, '.docx'),
+                    timestamp: stat.mtimeMs,
+                    content: content.buffer.slice(
+                        content.byteOffset,
+                        content.byteOffset + content.byteLength,
+                    ),
                 };
-
-                await db.run(
-                    `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-                 VALUES (?, ?, ?, ?, ?)`,
-                    'shtatni_posady',
-                    inserted.id,
-                    'insert',
-                    JSON.stringify(inserted),
-                    'local',
-                );
-            } catch (err) {
-                console.warn(
-                    `[ChangeHistory] ❌ Помилка при логуванні insert shtat_number=${pos.shtat_number}`,
-                    err,
-                );
-            }
-        }
-
-        return { success: true, added: addedCount, skipped: skippedCount, total: positions.length };
+            }),
+        );
     });
 
-    ipcMain.handle('update-shtatni-posada', async (_event, pos: any) => {
-        const db = await getDb();
-
-        const existing = await db.get(
-            `SELECT * FROM shtatni_posady WHERE shtat_number = ?`,
-            pos.shtat_number,
-        );
-
-        if (!existing) {
-            return { success: false, message: 'Position not found' };
-        }
-
-        // 1. Оновлення
-        await db.run(
-            `UPDATE shtatni_posady 
-         SET unit_name = ?, position_name = ?, category = ?, shpk_code = ?, extra_data = ?
-         WHERE shtat_number = ?`,
-            [
-                pos.unit_name ?? '',
-                pos.position_name ?? '',
-                pos.category ?? '',
-                pos.shpk_code ?? '',
-                JSON.stringify(pos.extra_data ?? {}),
-                pos.shtat_number,
-            ],
-        );
-
-        // 2. Отримати оновлений запис
-        const updated = await db.get(
-            `SELECT * FROM shtatni_posady WHERE shtat_number = ?`,
-            pos.shtat_number,
-        );
-
-        // 3. Логування зміни
-        try {
-            await db.run(
-                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-             VALUES (?, ?, ?, ?, ?)`,
-                'shtatni_posady',
-                updated.id,
-                'update',
-                JSON.stringify(updated),
-                'local',
-            );
-        } catch (err) {
-            console.warn(
-                `[ChangeHistory] ❌ Помилка при логуванні update shtat_number=${pos.shtat_number}`,
-                err,
-            );
-        }
-
-        return { success: true };
-    });
-
-    ipcMain.handle('delete-shtatni-posada', async (_event, shtat_number: string) => {
-        const db = await getDb();
-
-        // 1. Отримуємо запис перед видаленням
-        const row = await db.get(
-            `SELECT * FROM shtatni_posady WHERE shtat_number = ?`,
-            shtat_number,
-        );
-
-        if (!row) {
-            console.warn(
-                `[ShtatniPosady] ⚠️ delete: запис з shtat_number=${shtat_number} не знайдено`,
-            );
-            return { success: false };
-        }
-
-        // 2. Видаляємо
-        const res = await db.run(`DELETE FROM shtatni_posady WHERE shtat_number = ?`, shtat_number);
-
-        // 3. Логуємо
-        try {
-            await db.run(
-                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-             VALUES (?, ?, ?, ?, ?)`,
-                'shtatni_posady',
-                row.id,
-                'delete',
-                JSON.stringify(row),
-                'local',
-            );
-        } catch (err) {
-            console.warn(
-                `[ChangeHistory] ❌ Помилка при логуванні delete shtat_number=${shtat_number}`,
-                err,
-            );
-        }
-
-        return { success: res.changes > 0 };
-    });
-
-    // === Other existing handlers for reports ===
-    ipcMain.handle('get-all-report-templates', async () => {
-        const templatesDir = getTemplatesDir();
-
-        if (!fs.existsSync(templatesDir)) {
-            console.warn('⚠️ Templates directory not found:', templatesDir);
-            return [];
-        }
-
-        const files = fs.readdirSync(templatesDir).filter((f) => f.endsWith('.docx'));
-
-        return files.map((file) => {
-            const fullPath = path.join(templatesDir, file);
-            const content = fs.readFileSync(fullPath);
-
-            return {
-                id: file,
-                name: path.basename(file, '.docx'),
-                timestamp: fs.statSync(fullPath).mtimeMs,
-                content: content.buffer,
-            };
-        });
-    });
-
-    ipcMain.handle('convert-docx-to-pdf', async (_, buffer: ArrayBuffer, fileName: string) => {
-        const tempDir = path.join(app.getPath('temp'), 'docx-previews');
-        fs.mkdirSync(tempDir, { recursive: true });
-
-        const docxPath = path.join(tempDir, fileName);
-        const pdfPath = docxPath.replace(/\.docx$/, '.pdf');
-
-        fs.writeFileSync(docxPath, Buffer.from(buffer));
+    /** Preview through LibreOffice when it is installed. Arguments are passed without a shell. */
+    handle('convert-docx-to-pdf', view, async (_event, buffer: ArrayBuffer, fileName: string) => {
+        const tempDir = path.join(AppPaths.temp, 'docx-previews');
+        await fsp.mkdir(tempDir, { recursive: true });
+        const docxPath = resolveInside(tempDir, safeFileName(fileName));
+        const pdfPath = docxPath.replace(/\.docx$/i, '.pdf');
+        await fsp.writeFile(docxPath, Buffer.from(buffer));
 
         return new Promise<string>((resolve, reject) => {
-            const cmd = `soffice --headless --convert-to pdf --outdir "${tempDir}" "${docxPath}"`;
-            exec(cmd, (err: any) => {
-                if (err || !fs.existsSync(pdfPath)) {
-                    reject(err || 'PDF not created');
-                    return;
-                }
-                resolve(pdfPath);
-            });
+            execFile(
+                'soffice',
+                ['--headless', '--convert-to', 'pdf', '--outdir', tempDir, docxPath],
+                { windowsHide: true, timeout: 60_000 },
+                (err) => {
+                    if (err || !fs.existsSync(pdfPath)) reject(err || new Error('PDF not created'));
+                    else resolve(pdfPath);
+                },
+            );
         });
     });
 
-    ipcMain.handle('add-report-template', async (_event, name: string, filePath: string) => {
-        const db = await getDb();
+    handle(
+        'save-report-file-to-disk',
+        manage,
+        async (_event, buffer: ArrayBuffer, name: string) => {
+            await fsp.mkdir(AppPaths.reports, { recursive: true });
+            const fileName = safeFileName(name);
+            await fsp.writeFile(reportFilePath(fileName), Buffer.from(buffer));
+            return fileName;
+        },
+        { audit: 'reports.upload-template' },
+    );
 
-        // 1. Вставка шаблону
-        const res = await db.run(
-            'INSERT INTO report_templates (name, filePath) VALUES (?, ?)',
-            name,
-            filePath,
-        );
+    handle(
+        'add-report-template',
+        manage,
+        async (_event, name: string, filePath: string) => {
+            const fileName = safeFileName(filePath);
+            await database.transaction(async (db) => {
+                const res = await db.run(
+                    'INSERT INTO report_templates (name, filePath) VALUES (?, ?)',
+                    name,
+                    fileName,
+                );
+                const inserted = await db.get(
+                    'SELECT * FROM report_templates WHERE id = ?',
+                    res.lastID,
+                );
+                await logChange(db, 'report_templates', Number(res.lastID), 'insert', inserted);
+            });
+            return { success: true };
+        },
+        { audit: 'reports.add-template' },
+    );
 
-        // 2. Логування зміни
-        try {
-            const inserted = {
-                id: res.lastID,
-                name,
-                filePath,
-            };
+    handle(
+        'delete-report-template',
+        manage,
+        async (_event, id: number) => {
+            const row = await database.transaction(async (db) => {
+                const existing = await db.get('SELECT * FROM report_templates WHERE id = ?', id);
+                if (!existing) return null;
+                await db.run('DELETE FROM report_templates WHERE id = ?', id);
+                await logChange(db, 'report_templates', existing.id, 'delete', existing);
+                return existing;
+            });
+            if (!row) return { success: false };
 
-            await db.run(
-                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-             VALUES (?, ?, ?, ?, ?)`,
-                'report_templates',
-                inserted.id,
-                'insert',
-                JSON.stringify(inserted),
-                'local',
+            const db = await database.get();
+            const stillUsed = await db.get(
+                'SELECT 1 FROM report_templates WHERE filePath = ?',
+                row.filePath,
             );
-        } catch (err) {
-            console.warn(`[ChangeHistory] ❌ Помилка при логуванні insert шаблону ${name}`, err);
-        }
+            if (!stillUsed)
+                await fsp.rm(reportFilePath(row.filePath), { force: true }).catch(() => undefined);
+            return { success: true };
+        },
+        { audit: 'reports.delete-template' },
+    );
 
-        return { success: true };
+    handle('get-all-report-templates-from-db', view, async () => {
+        const db = await database.get();
+        return db.all('SELECT * FROM report_templates ORDER BY createdAt DESC');
     });
 
-    ipcMain.handle('delete-report-template', async (_event, id: number) => {
-        const db = await getDb();
-
-        // 1. Отримуємо шаблон перед видаленням
-        const row = await db.get('SELECT * FROM report_templates WHERE id = ?', id);
-
-        if (!row) {
-            console.warn(`[ReportTemplates] ⚠️ delete: шаблон з id=${id} не знайдено`);
-            return { success: false };
-        }
-
-        // 2. Видаляємо
-        await db.run('DELETE FROM report_templates WHERE id = ?', id);
-
-        // 3. Логуємо видалення
-        try {
-            await db.run(
-                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-             VALUES (?, ?, ?, ?, ?)`,
-                'report_templates',
-                row.id,
-                'delete',
-                JSON.stringify(row),
-                'local',
-            );
-        } catch (err) {
-            console.warn(`[ChangeHistory] ❌ Помилка при логуванні delete шаблону id=${id}`, err);
-        }
-
-        return { success: true };
+    handle('read-report-file-buffer', view, async (_event, filePath: string) => {
+        const buffer = await fsp.readFile(reportFilePath(filePath));
+        return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     });
+}
 
-    ipcMain.handle('get-all-report-templates-from-db', async () => {
-        const db = await getDb();
-        return await db.all('SELECT * FROM report_templates ORDER BY createdAt DESC');
-    });
+// ---------------------------------------------------------------- Named list (іменний список / табель)
 
-    ipcMain.handle('save-report-file-to-disk', async (_, buffer: ArrayBuffer, name: string) => {
-        try {
-            const reportsDir = path.join(app.getPath('userData'), 'reports');
-            const filePath = path.join(reportsDir, name);
+function registerNamedListHandlers() {
+    const edit = access.any('tables.edit');
 
-            fs.mkdirSync(reportsDir, { recursive: true });
-            fs.writeFileSync(filePath, Buffer.from(buffer));
+    handle(
+        'named-list:create',
+        edit,
+        async (_event, key: string, data: any) => {
+            return database.transaction(async (db) => {
+                const exists = await db.get(`SELECT 1 FROM named_list_tables WHERE key = ?`, key);
+                if (exists) return { success: false, message: 'Table already exists' };
+                await db.run(
+                    `INSERT INTO named_list_tables (key, data) VALUES (?, ?)`,
+                    key,
+                    JSON.stringify(data),
+                );
+                await logChange(db, 'named_list_tables', key, 'insert', { key, data });
+                return { success: true };
+            });
+        },
+        { audit: 'tables.named-list-create' },
+    );
 
-            return filePath;
-        } catch (err) {
-            console.error('Failed to save report file to disk:', err);
-            throw err;
-        }
-    });
-
-    ipcMain.handle('read-report-file-buffer', async (_event, filePath: string) => {
-        try {
-            const buffer = await readFile(filePath);
-            return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-        } catch (error) {
-            console.error(`Failed to read file at ${filePath}:`, error);
-            throw error;
-        }
-    });
-
-    // іменний список
-    ipcMain.handle('named-list:create', async (_event, key: string, data: any) => {
-        const db = await getDb();
-
-        const exists = await db.get(`SELECT 1 FROM named_list_tables WHERE key = ?`, key);
-        if (exists) {
-            console.warn(`[NamedList] ⚠️ Table with key=${key} already exists`);
-            return { success: false, message: 'Table already exists' };
-        }
-
-        await db.run(
-            `INSERT INTO named_list_tables (key, data) VALUES (?, ?)`,
-            key,
-            JSON.stringify(data),
-        );
-
-        try {
-            const fullEntry = {
-                key,
-                data,
-            };
-
-            await db.run(
-                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-             VALUES (?, ?, ?, ?, ?)`,
-                'named_list_tables',
-                key,
-                'insert',
-                JSON.stringify(fullEntry),
-                'local',
-            );
-        } catch (err) {
-            console.warn(`[NamedList] ❌ Logging insert failed for key=${key}`, err);
-        }
-
-        return { success: true };
-    });
-
-    ipcMain.handle(
+    handle(
         'named-list:update-cell',
+        edit,
         async (_event, key: string, rowId: number, dayIndex: number, value: string) => {
-            const db = await getDb();
-            const row = await db.get(`SELECT data FROM named_list_tables WHERE key = ?`, key);
-            if (!row) return { success: false, message: 'Table not found' };
+            return database.transaction(async (db) => {
+                const row = await db.get(`SELECT data FROM named_list_tables WHERE key = ?`, key);
+                if (!row) return { success: false, message: 'Table not found' };
 
-            const data = JSON.parse(row.data);
-            const rowToUpdate = data.find((r: any) => r.id === rowId);
-            if (!rowToUpdate) return { success: false, message: 'Row not found' };
+                const data = JSON.parse(row.data);
+                const target = data.find((r: any) => r.id === rowId);
+                if (!target) return { success: false, message: 'Row not found' };
+                target.attendance[dayIndex] = value;
 
-            rowToUpdate.attendance[dayIndex] = value;
-
-            await db.run(
-                `UPDATE named_list_tables SET data = ? WHERE key = ?`,
-                JSON.stringify(data),
-                key,
-            );
-
-            try {
-                const fullEntry = {
+                await db.run(
+                    `UPDATE named_list_tables SET data = ? WHERE key = ?`,
+                    JSON.stringify(data),
+                    key,
+                );
+                await logChange(db, 'named_list_tables', key, 'update', {
                     key,
                     updatedRowId: rowId,
                     updatedDayIndex: dayIndex,
                     newValue: value,
                     fullData: data,
-                };
-
-                await db.run(
-                    `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-                 VALUES (?, ?, ?, ?, ?)`,
-                    'named_list_tables',
-                    key,
-                    'update',
-                    JSON.stringify(fullEntry),
-                    'local',
-                );
-            } catch (err) {
-                console.warn(`[NamedList] ❌ Logging update failed for key=${key}`, err);
-            }
-
-            return { success: true };
+                });
+                return { success: true };
+            });
         },
     );
-    ipcMain.handle('named-list:delete', async (_event, key: string) => {
-        const db = await getDb();
 
-        const row = await db.get(`SELECT data FROM named_list_tables WHERE key = ?`, key);
-        if (!row) {
-            console.warn(`[NamedList] ⚠️ delete: no data for key=${key}`);
-            return { success: false };
-        }
+    handle(
+        'named-list:delete',
+        edit,
+        async (_event, key: string) => {
+            return database.transaction(async (db) => {
+                const row = await db.get(`SELECT data FROM named_list_tables WHERE key = ?`, key);
+                if (!row) return { success: false };
+                await db.run(`DELETE FROM named_list_tables WHERE key = ?`, key);
+                await logChange(db, 'named_list_tables', key, 'delete', {
+                    key,
+                    data: JSON.parse(row.data),
+                });
+                return { success: true };
+            });
+        },
+        { audit: 'tables.named-list-delete' },
+    );
 
-        await db.run(`DELETE FROM named_list_tables WHERE key = ?`, key);
-
-        try {
-            const fullEntry = {
-                key,
-                data: JSON.parse(row.data),
-            };
-
-            await db.run(
-                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-             VALUES (?, ?, ?, ?, ?)`,
-                'named_list_tables',
-                key,
-                'delete',
-                JSON.stringify(fullEntry),
-                'local',
-            );
-        } catch (err) {
-            console.warn(`[NamedList] ❌ Logging delete failed for key=${key}`, err);
-        }
-
-        return { success: true };
-    });
-
-    ipcMain.handle('named-list:get-all', async () => {
-        const db = await getDb();
-        const rows = await db.all(`SELECT * FROM named_list_tables`);
+    handle('named-list:get-all', access.any('tables.view'), async () => {
+        const db = await database.get();
+        const rows = await db.all(`SELECT key, data FROM named_list_tables`);
         return rows.map((r: any) => ({ key: r.key, data: JSON.parse(r.data) }));
     });
 }

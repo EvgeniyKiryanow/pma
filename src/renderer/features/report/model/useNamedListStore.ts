@@ -53,8 +53,8 @@ export const useNamedListStore = create<NamedListStore>((set, get) => ({
 
         const dbTables = await window.electronAPI.namedList.getAll();
 
-        const tablesArray: any = Array.isArray(dbTables) ? dbTables : [];
-        const mapped = tablesArray.reduce((acc: Record<string, AttendanceRow[]>, { key, data }) => {
+        const tablesArray = Array.isArray(dbTables) ? dbTables : [];
+        const mapped = tablesArray.reduce<Record<string, AttendanceRow[]>>((acc, { key, data }) => {
             acc[key] = data;
             return acc;
         }, {});

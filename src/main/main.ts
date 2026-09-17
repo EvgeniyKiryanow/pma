@@ -1,216 +1,153 @@
-import { exec, execFile } from 'child_process';
-import { app, BrowserWindow, screen } from 'electron';
-import { ipcMain } from 'electron';
-import started from 'electron-squirrel-startup';
-import fs from 'fs';
+import { app, BrowserWindow, dialog } from 'electron';
 import path from 'path';
 
-import { initPythonEnvSimplified } from '../shared/helpers/pythonInstallerHelper';
-// ✅ Import our updater functions
-import { getDb, initializeDb } from './db/db';
-import { upgradeDbSchema } from './db/migrations';
-import { registerDbHandlers } from './ipc';
-import { ensureAppIdentity } from './ipc/handlers/app/initAppIdentity';
+import { AppError } from '../shared/ipc/result';
+import { createContainer } from './app/container';
+import { applySecurityPolicies, createMainWindow } from './app/window';
+import {
+    registerAccountsIpc,
+    registerAuditIpc,
+    registerAuthIpc,
+    registerRolesIpc,
+} from './auth/ipc';
+import { registerBackupIpc } from './backup/ipc';
+import { getInstanceId } from './core/instance';
+import { createLogger } from './core/logger';
+import { AppPaths } from './core/paths';
+import { registerFeatureHandlers } from './ipc';
+import { setAuditSink } from './ipc/secureHandle';
 
-export function copyAllTemplates() {
-    const sourceDir = path.join(__dirname, 'assets/templates');
-    const destDir = path.join(app.getPath('userData'), 'templates');
+const isDev = !app.isPackaged;
+const logger = createLogger('main');
 
-    fs.mkdirSync(destDir, { recursive: true });
+// Development only: run against a separate data folder (e.g. a copy of a fixture database).
+if (isDev && process.env.PMA_USER_DATA_DIR) {
+    app.setPath('userData', path.resolve(process.env.PMA_USER_DATA_DIR));
+}
+// Development only: start, run migrations, print a report and exit (no window).
+const smokeTest = isDev && process.argv.includes('--smoke-test');
 
-    const files = fs.readdirSync(sourceDir).filter((f) => f.endsWith('.docx'));
+let mainWindow: BrowserWindow | null = null;
 
-    files.forEach((file) => {
-        const sourcePath = path.join(sourceDir, file);
-        const destPath = path.join(destDir, file);
+process.on('unhandledRejection', (reason) => logger.error('Unhandled rejection', reason));
+process.on('uncaughtException', (error) => logger.error('Uncaught exception', error));
 
-        if (!fs.existsSync(destPath)) {
-            fs.copyFileSync(sourcePath, destPath);
-            console.log(`✅ Copied: ${file}`);
-        } else {
-            console.log(`ℹ️ Already exists: ${file}`);
-        }
+if (!smokeTest && !app.requestSingleInstanceLock()) {
+    // A second copy would write to the same database; focus the running one instead.
+    app.quit();
+} else {
+    app.on('second-instance', () => {
+        if (!mainWindow) return;
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+    });
+
+    app.whenReady()
+        .then(bootstrap)
+        .catch((error) => fatal(error));
+
+    app.on('window-all-closed', () => {
+        if (process.platform !== 'darwin') app.quit();
+    });
+
+    app.on('activate', () => {
+        if (!smokeTest && BrowserWindow.getAllWindows().length === 0)
+            mainWindow = createMainWindow(isDev);
     });
 }
 
-export function resetUserTemplates() {
-    const userTemplatesDir = path.join(app.getPath('userData'), 'templates');
-    const defaultTemplatesDir = path.join(process.resourcesPath, 'assets', 'templates');
+async function bootstrap(): Promise<void> {
+    logger.info(`Starting v${app.getVersion()} (${isDev ? 'development' : 'production'})`);
+    const container = createContainer();
+    getInstanceId();
 
-    if (!fs.existsSync(defaultTemplatesDir)) {
-        console.warn('⚠️ Default templates folder not found:', defaultTemplatesDir);
+    const db = await container.database.get();
+    const tables = await db.get<{ n: number }>(
+        `SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table'`,
+    );
+    const isExistingDatabase = (tables?.n ?? 0) > 0;
+
+    const report = await container.migrations.run(db, {
+        log: (message) => logger.info(message),
+        beforeMigrate: async (from, to) => {
+            if (!isExistingDatabase) return;
+            const snapshot = await container.backups.createSafetyDatabaseSnapshot(
+                `pre-migration-v${from}-to-v${to}`,
+            );
+            logger.info(`Safety snapshot before migration: ${snapshot}`);
+        },
+    });
+    await container.templates.ensureInstalled();
+
+    setAuditSink(container.auditSink);
+    registerAuthIpc(container.auth);
+    registerAccountsIpc(container.accountService);
+    registerRolesIpc(container.roleService);
+    registerAuditIpc(container.audit);
+    registerBackupIpc({
+        backups: container.backups,
+        settings: container.settings,
+        scheduler: container.scheduler,
+        hasAccounts: () => container.auth.hasAccounts(),
+    });
+    registerFeatureHandlers();
+
+    if (smokeTest) {
+        const summary = {
+            userData: AppPaths.userData,
+            migrations: report,
+            schemaVersion: await container.migrations.currentVersion(db),
+            accounts: await db.get(`SELECT COUNT(*) AS n FROM accounts`),
+            roles: await db.all(`SELECT name, is_system, grants_all FROM roles`),
+            personnel: await db.get(`SELECT COUNT(*) AS n FROM users`),
+            missingUuids: await db.get(`SELECT COUNT(*) AS n FROM users WHERE uuid IS NULL`),
+            // Optional scenario script (plain JS module exporting `async ({ container, app }) => result`).
+            script: process.env.PMA_DEV_SCRIPT
+                ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+                  await require(path.resolve(process.env.PMA_DEV_SCRIPT))({ container, app })
+                : undefined,
+        };
+        process.stdout.write(`SMOKE_TEST_RESULT ${JSON.stringify(summary)}\n`);
+        await container.database.close();
+        app.exit(0);
         return;
     }
 
-    // Load names of default templates
-    const defaultFiles = fs
-        .readdirSync(defaultTemplatesDir)
-        .filter((file) => file.endsWith('.docx'));
+    container.scheduler.start();
+    applySecurityPolicies(isDev);
+    mainWindow = createMainWindow(isDev);
+    mainWindow.on('closed', () => {
+        mainWindow = null;
+    });
 
-    if (fs.existsSync(userTemplatesDir)) {
-        const userFiles = fs.readdirSync(userTemplatesDir).filter((file) => file.endsWith('.docx'));
-
-        for (const file of userFiles) {
-            if (!defaultFiles.includes(file)) {
-                const fullPath = path.join(userTemplatesDir, file);
-                try {
-                    fs.unlinkSync(fullPath);
-                    console.log(`🗑 Deleted template: ${file}`);
-                } catch (err) {
-                    console.warn(`⚠️ Failed to delete ${file}:`, err);
-                }
-            }
-        }
-    }
-}
-
-export function convertDocxToPdf(inputPath: string, outputDir: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const libreOfficeCmd = `soffice --headless --convert-to pdf --outdir "${outputDir}" "${inputPath}"`;
-        exec(libreOfficeCmd, (error, stdout, stderr) => {
-            if (error) {
-                reject(`LibreOffice error: ${stderr || error.message}`);
-                return;
-            }
-
-            const outputFile = path.join(
-                outputDir,
-                path.basename(inputPath).replace(/\.docx$/, '.pdf'),
-            );
-            if (fs.existsSync(outputFile)) {
-                resolve(outputFile);
-            } else {
-                reject('PDF not created.');
-            }
-        });
+    app.on('before-quit', () => {
+        container.scheduler.stop();
+        void container.database.close();
     });
 }
-async function migrateAuthUserTable() {
-    const db = await getDb();
 
-    const columns = await db.all(`PRAGMA table_info(auth_user)`);
-    const colNames = columns.map((c: any) => c.name);
-
-    const required: [string, string][] = [
-        ['recovery_hint', 'TEXT'],
-        ['role', 'TEXT DEFAULT "user"'],
-        ['key', 'TEXT'],
-    ];
-
-    for (const [name, type] of required) {
-        if (!colNames.includes(name)) {
-            await db.exec(`ALTER TABLE auth_user ADD COLUMN ${name} ${type}`);
-        }
+function fatal(error: unknown): void {
+    logger.error('Startup failed', error);
+    if (smokeTest) {
+        process.stdout.write(`SMOKE_TEST_ERROR ${String((error as Error)?.stack ?? error)}\n`);
+        app.exit(1);
+        return;
     }
-}
 
-let globalPythonPath: string | null = null;
-let globalMorphyScript: string | null = null;
-
-async function initPythonEnv() {
-    const { python, script } = await initPythonEnvSimplified();
-    if (!python) return false;
-    globalPythonPath = python;
-    globalMorphyScript = script;
-    return true;
-}
-
-ipcMain.handle('analyze-words', async (_event, phrase: string) => {
-    if (!globalPythonPath) throw new Error('Python not ready');
-    return new Promise((resolve, reject) => {
-        execFile(
-            globalPythonPath!,
-            [globalMorphyScript!, JSON.stringify(phrase)],
-            {
-                encoding: 'utf8',
-                env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
-            },
-            (error, stdout) => {
-                if (error) return reject(error);
-                try {
-                    resolve(JSON.parse(stdout));
-                } catch {
-                    reject('JSON parse error: ' + stdout);
-                }
-            },
+    const logFile = path.join(AppPaths.userData, 'logs', 'main.log');
+    if (error instanceof AppError && error.code === 'SCHEMA_TOO_NEW') {
+        dialog.showErrorBox(
+            'Потрібна новіша версія програми',
+            'Дані на цьому компʼютері створені новішою версією PManager.\n' +
+                'Встановіть актуальну версію програми. Дані не змінювались.',
         );
-    });
-});
-
-// ✅ Main window create function
-const iconPath = path.join(
-    __dirname,
-    '..',
-    'assets',
-    'icons',
-    process.platform === 'win32'
-        ? 'appIcon.ico'
-        : process.platform === 'linux'
-          ? 'appIcon.png'
-          : 'appIcon.icns',
-);
-
-const isDev = !app.isPackaged;
-
-if (started) app.quit();
-
-const createWindow = () => {
-    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-    const mainWindow = new BrowserWindow({
-        width: Math.floor(width),
-        height: Math.floor(height),
-        icon: iconPath,
-        frame: false,
-        titleBarStyle: 'hidden',
-        webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
-            contextIsolation: true,
-            nodeIntegration: false,
-        },
-    });
-
-    if (isDev) {
-        mainWindow.loadURL('http://localhost:5173');
-        mainWindow.webContents.openDevTools();
     } else {
-        const indexPath = path.join(app.getAppPath(), 'renderer_dist/index.html');
-        mainWindow.loadFile(indexPath);
+        dialog.showErrorBox(
+            'Не вдалося запустити PManager',
+            'Під час запуску сталася помилка. Дані не змінювались: перед оновленням бази ' +
+                'створюється резервна копія.\n\n' +
+                `Журнал для діагностики: ${logFile}`,
+        );
     }
-};
-
-// ✅ Handle App Startup
-process.on('unhandledRejection', (reason) => {
-    console.error('Unhandled Rejection:', reason);
-});
-
-// eslint-disable-next-line promise/catch-or-return
-app.whenReady().then(async () => {
-    // const { python, script } = await initPythonEnvSimplified();
-
-    // eslint-disable-next-line promise/always-return
-    if (true) {
-        // console.warn('⚠️ Python env not ready');
-    } else {
-        // globalPythonPath = python;
-        // globalMorphyScript = script;
-    }
-
-    registerDbHandlers();
-    await initializeDb();
-    await upgradeDbSchema();
-    await migrateAuthUserTable();
-    await ensureAppIdentity();
-    // await ensureSuperuser();
-    // await ensureDefaultAdmin();
-    copyAllTemplates();
-    // setupAutoUpdater();
-    createWindow();
-});
-
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
-});
-
-app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
+    app.exit(1);
+}

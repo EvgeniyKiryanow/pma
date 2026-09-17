@@ -1,99 +1,74 @@
-import { ipcMain } from 'electron';
-
-import { getDb } from '../../db/db';
+import { database } from '../../db/connection';
+import { safeJsonArray } from '../../personnel/userFields';
+import { access, handle } from '../secureHandle';
+import { logChange } from './changeLog';
 
 export function registerCommentsHandlers() {
-    ipcMain.handle('comments:get-user-comments', async (_event, userId: number) => {
-        const db = await getDb();
-        const user = await db.get('SELECT comments FROM users WHERE id = ?', userId);
-        if (!user || !user.comments) return [];
-        return JSON.parse(user.comments);
-    });
+    handle(
+        'comments:get-user-comments',
+        access.any('personnel.view'),
+        async (_event, userId: number) => {
+            const db = await database.get();
+            const user = await db.get('SELECT comments FROM users WHERE id = ?', userId);
+            return safeJsonArray(user?.comments);
+        },
+    );
 
-    ipcMain.handle('comments:add-user-comment', async (_event, userId: number, newComment: any) => {
-        const db = await getDb();
+    handle(
+        'comments:add-user-comment',
+        access.any('history.edit'),
+        async (_event, userId: number, newComment: any) => {
+            return database.transaction(async (db) => {
+                const user = await db.get('SELECT comments FROM users WHERE id = ?', userId);
+                if (!user) return { success: false, message: 'User not found' };
 
-        // 1. Отримуємо користувача
-        const user = await db.get('SELECT * FROM users WHERE id = ?', userId);
-        if (!user) {
-            console.warn(`[Users] ⚠️ add-user-comment: користувача з id=${userId} не знайдено`);
-            return { success: false, message: 'User not found' };
-        }
-
-        // 2. Додаємо коментар
-        const existingComments = user.comments ? JSON.parse(user.comments) : [];
-        existingComments.push(newComment);
-
-        // 3. Оновлюємо поле comments
-        await db.run(
-            'UPDATE users SET comments = ? WHERE id = ?',
-            JSON.stringify(existingComments),
-            userId,
-        );
-
-        // 4. Отримуємо оновленого користувача
-        const updated = await db.get('SELECT * FROM users WHERE id = ?', userId);
-
-        // 5. Логуємо зміну
-        try {
-            await db.run(
-                `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-             VALUES (?, ?, ?, ?, ?)`,
-                'users',
-                userId,
-                'update',
-                JSON.stringify(updated),
-                'local',
-            );
-        } catch (err) {
-            console.warn(
-                `[ChangeHistory] ❌ Помилка при логуванні доданого коментаря user id=${userId}`,
-                err,
-            );
-        }
-
-        return { success: true };
-    });
-
-    ipcMain.handle('comments:delete-user-comment', async (_event, id: number) => {
-        const db = await getDb();
-        const users = await db.all('SELECT id, comments FROM users');
-
-        for (const user of users) {
-            const comments = JSON.parse(user.comments || '[]');
-            const updated = comments.filter((entry: any) => entry.id !== id);
-
-            if (updated.length !== comments.length) {
-                // 1. Оновлюємо коментарі
+                const comments = safeJsonArray(user.comments);
+                comments.push(newComment);
                 await db.run(
                     'UPDATE users SET comments = ? WHERE id = ?',
-                    JSON.stringify(updated),
-                    user.id,
+                    JSON.stringify(comments),
+                    userId,
                 );
+                await logChange(
+                    db,
+                    'users',
+                    userId,
+                    'update',
+                    await db.get('SELECT * FROM users WHERE id = ?', userId),
+                );
+                return { success: true };
+            });
+        },
+        { audit: 'comments.add' },
+    );
 
-                // 2. Отримуємо оновленого користувача
-                const updatedUser = await db.get('SELECT * FROM users WHERE id = ?', user.id);
+    handle(
+        'comments:delete-user-comment',
+        access.any('history.edit'),
+        async (_event, id: number) => {
+            return database.transaction(async (db) => {
+                const users = await db.all('SELECT id, comments FROM users');
+                for (const user of users) {
+                    const comments = safeJsonArray(user.comments) as { id: number }[];
+                    const remaining = comments.filter((entry) => entry.id !== id);
+                    if (remaining.length === comments.length) continue;
 
-                // 3. Логування зміни
-                try {
                     await db.run(
-                        `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
-                     VALUES (?, ?, ?, ?, ?)`,
+                        'UPDATE users SET comments = ? WHERE id = ?',
+                        JSON.stringify(remaining),
+                        user.id,
+                    );
+                    await logChange(
+                        db,
                         'users',
                         user.id,
                         'update',
-                        JSON.stringify(updatedUser),
-                        'local',
-                    );
-                } catch (err) {
-                    console.warn(
-                        `[ChangeHistory] ❌ Помилка при логуванні видалення коментаря для user id=${user.id}`,
-                        err,
+                        await db.get('SELECT * FROM users WHERE id = ?', user.id),
                     );
                 }
-            }
-        }
-
-        return true;
-    });
+                return true;
+            });
+        },
+        { audit: 'comments.delete' },
+    );
 }

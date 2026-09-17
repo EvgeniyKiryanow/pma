@@ -1,0 +1,58 @@
+import fs from 'fs';
+import fsp from 'fs/promises';
+import path from 'path';
+
+const RETRYABLE = new Set(['EBUSY', 'EPERM', 'EACCES']);
+
+async function withRetry<T>(work: () => Promise<T>, attempts = 5): Promise<T> {
+    for (let i = 1; ; i++) {
+        try {
+            return await work();
+        } catch (err: any) {
+            // Windows: antivirus / indexer may hold a file for a moment right after it was closed.
+            if (i >= attempts || !RETRYABLE.has(err?.code)) throw err;
+            await new Promise((resolve) => setTimeout(resolve, 150 * i));
+        }
+    }
+}
+
+/** Moves a file or directory; falls back to copy + delete across volumes. Missing source is a no-op. */
+export async function move(source: string, target: string): Promise<boolean> {
+    if (!fs.existsSync(source)) return false;
+    await fsp.mkdir(path.dirname(target), { recursive: true });
+    await withRetry(async () => {
+        try {
+            await fsp.rename(source, target);
+        } catch (err: any) {
+            if (err?.code !== 'EXDEV') throw err;
+            await fsp.cp(source, target, { recursive: true, errorOnExist: true, force: false });
+            await fsp.rm(source, { recursive: true, force: true });
+        }
+    });
+    return true;
+}
+
+export async function remove(target: string): Promise<void> {
+    await withRetry(() => fsp.rm(target, { recursive: true, force: true }));
+}
+
+export function timestampForFileName(date = new Date()): string {
+    return date.toISOString().replace(/[:.]/g, '-');
+}
+
+export async function directorySize(directory: string): Promise<{ files: number; bytes: number }> {
+    const result = { files: 0, bytes: 0 };
+    if (!fs.existsSync(directory)) return result;
+    for (const item of await fsp.readdir(directory, { withFileTypes: true })) {
+        const full = path.join(directory, item.name);
+        if (item.isDirectory()) {
+            const nested = await directorySize(full);
+            result.files += nested.files;
+            result.bytes += nested.bytes;
+        } else if (item.isFile()) {
+            result.files += 1;
+            result.bytes += (await fsp.stat(full)).size;
+        }
+    }
+    return result;
+}

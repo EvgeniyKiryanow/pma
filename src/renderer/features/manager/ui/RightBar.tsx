@@ -29,13 +29,6 @@ export default function RightBar() {
     const [showExcludeModal, setShowExcludeModal] = useState(false);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
 
-    /** ✅ Refresh full user history from DB */
-    const refreshHistory = async () => {
-        if (!user) return;
-        const freshHistory = await window.electronAPI.getUserHistory(user.id, 'all');
-        updateUser({ ...user, history: freshHistory });
-    };
-
     const handleStatusChange = async (newStatus: StatusExcel) => {
         if (!user) return;
 
@@ -197,12 +190,10 @@ export default function RightBar() {
                     <section className="bg-white/80 border rounded-xl shadow-md hover:shadow-lg transition p-4">
                         <UserHistory
                             userId={user.id}
-                            history={user.history || []}
                             onAddHistory={handleAddHistory}
                             onDeleteHistory={handleDeleteHistory}
                             onStatusChange={handleStatusChange}
                             currentStatus={user.soldierStatus || ''}
-                            refreshHistory={refreshHistory} // ✅ Pass refresh fn to UserHistory
                         />
                     </section>
                 </div>

@@ -1,34 +1,31 @@
-import { ipcMain } from 'electron';
-
-import { getDb } from '../../db/db';
+import { database } from '../../db/connection';
+import { access, handle } from '../secureHandle';
 
 export function registerTodoHandlers() {
-    ipcMain.handle('fetch-todos', async () => {
-        const db = await getDb();
-        const rows = await db.all('SELECT * FROM todos ORDER BY id DESC');
-        return rows;
+    const rule = access.authenticated;
+
+    handle('fetch-todos', rule, async () => {
+        const db = await database.get();
+        return db.all('SELECT * FROM todos ORDER BY id DESC');
     });
 
-    ipcMain.handle('add-todos', async (_event, content: string) => {
-        const db = await getDb();
+    handle('add-todos', rule, async (_event, content: string) => {
+        const db = await database.get();
         const result = await db.run(
-            'INSERT INTO todos (content, completed) VALUES (?, ?)',
+            'INSERT INTO todos (content, completed) VALUES (?, 0)',
             content,
-            false,
         );
-        const newTodo = await db.get('SELECT * FROM todos WHERE id = ?', result.lastID);
-        return newTodo;
+        return db.get('SELECT * FROM todos WHERE id = ?', result.lastID);
     });
 
-    ipcMain.handle('toggle-todos', async (_event, id: number) => {
-        const db = await getDb();
+    handle('toggle-todos', rule, async (_event, id: number) => {
+        const db = await database.get();
         await db.run('UPDATE todos SET completed = NOT completed WHERE id = ?', id);
-        const updated = await db.get('SELECT * FROM todos WHERE id = ?', id);
-        return updated;
+        return db.get('SELECT * FROM todos WHERE id = ?', id);
     });
 
-    ipcMain.handle('delete-todos', async (_event, id: number) => {
-        const db = await getDb();
+    handle('delete-todos', rule, async (_event, id: number) => {
+        const db = await database.get();
         await db.run('DELETE FROM todos WHERE id = ?', id);
         return true;
     });

@@ -1,4 +1,7 @@
+import { foundationUa } from './foundation.ua';
+
 export const ua = {
+    ...foundationUa,
     header: {
         title: 'Менеджер Персоналу',
         addUser: 'Додати Персонал',
@@ -109,6 +112,8 @@ export const ua = {
         restore: 'Відновити резервну копію',
         reset: 'Скинути застосунок',
         reload: 'Перезавантажити',
+        hide: 'Згорнути',
+        fullscreen: 'На весь екран',
         close: 'Закрити',
         updateCheck: 'Перевірити наявність оновлень',
         updateError: 'Помилка під час перевірки оновлень',

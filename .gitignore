@@ -93,3 +93,4 @@ out/
 build/
 dist/
 renderer_dist/
+dist-installer/

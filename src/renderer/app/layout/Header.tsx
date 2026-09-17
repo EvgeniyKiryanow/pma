@@ -1,133 +1,53 @@
-import {
-    BookText,
-    DatabaseBackup,
-    FileBarChart,
-    FileSpreadsheet,
-    Info,
-    LogOut,
-    PlusCircle,
-    Users,
-} from 'lucide-react';
+import { Info, LogOut, PlusCircle, UserCircle2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import type { User } from '../../../shared/types/user';
+import MyAccountDialog from '../../features/account/ui/MyAccountDialog';
 import { useIncompleteHistoryStore } from '../../features/report/model/useIncompleteHistoryStore';
 import EventsModalLauncher from '../../shared/components/EventsModalLauncher';
 import LogoSvg from '../../shared/icons/LogoSvg';
 import { useI18nStore } from '../../stores/i18nStore';
-import { TabKey, useUserStore } from '../../stores/userStore';
+import { usePermissions, useSessionStore } from '../../stores/sessionStore';
+import { type TabKey, useUserStore } from '../../stores/userStore';
+import type { TabDefinition } from '../navigation';
 
 type HeaderProps = {
+    tabs: TabDefinition[];
     currentTab: TabKey;
     setCurrentTab: (tab: TabKey) => void;
 };
 
-export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
+const REASON_LABELS = {
+    missing_file: 'відсутній файл',
+    missing_period: 'відсутній період',
+    missing_both: 'немає файлу та періоду',
+} as const;
+
+export default function Header({ tabs, currentTab, setCurrentTab }: HeaderProps) {
     const openUserFormForAdd = useUserStore((s) => s.openUserFormForAdd);
+    const users = useUserStore((s) => s.users);
     const { t, language, setLanguage } = useI18nStore();
+    const { session, can } = usePermissions();
+    const logout = useSessionStore((s) => s.logout);
     const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+    const [showAccountDialog, setShowAccountDialog] = useState(false);
     const incompleteEntries = useIncompleteHistoryStore((s) => s.entries);
-    const [usersById, setUsersById] = useState<Record<number, User>>({});
-    const headerCollapsed = useUserStore((s) => s.headerCollapsed);
-    const setHeaderCollapsed = useUserStore((s) => s.setHeaderCollapsed);
+    const loadIncomplete = useIncompleteHistoryStore((s) => s.load);
 
-    const allowedTabs = useUserStore((s) => s.allowedTabs);
-    const clearAuth = useUserStore((s) => s.clearAuth);
-
-    const [hasShtatni, setHasShtatni] = useState(false);
+    const canViewPersonnel = can('personnel.view');
 
     useEffect(() => {
-        (async () => {
-            const allUsers: User[] = await window.electronAPI.fetchUsersMetadata();
-            const map = Object.fromEntries(
-                allUsers.map((u) => [u.id, { ...u, history: [] as User['history'] }]),
-            );
-            setUsersById(map);
-        })();
-    }, []);
+        if (canViewPersonnel) void loadIncomplete();
+    }, [canViewPersonnel, users, loadIncomplete]);
 
-    useEffect(() => {
-        (async () => {
-            const allUsers: User[] = await window.electronAPI.fetchUsersMetadata();
-            useIncompleteHistoryStore.getState().clearAll();
-            for (const user of allUsers.filter(
-                (u) => u.shpkNumber !== 'excluded' && !String(u.shpkNumber).includes('order'),
-            )) {
-                if (!user.history) continue;
-                for (const entry of user.history) {
-                    if (entry.type !== 'statusChange') continue;
-                    const hasNoFiles = !entry.files || entry.files.length === 0;
-                    const hasNoPeriod = !entry.period;
-                    if (hasNoFiles || hasNoPeriod) {
-                        useIncompleteHistoryStore
-                            .getState()
-                            .addIncomplete(
-                                user.id,
-                                entry.id,
-                                hasNoFiles && hasNoPeriod
-                                    ? 'missing_both'
-                                    : hasNoFiles
-                                      ? 'missing_file'
-                                      : 'missing_period',
-                            );
-                    }
-                }
-            }
-        })();
-    }, []);
+    const usersById = useMemo(() => new Map(users.map((u) => [u.id, u])), [users]);
 
-    useEffect(() => {
-        (async () => {
-            const shtatni = await window.electronAPI.shtatni.fetchAll();
-            setHasShtatni(shtatni.length > 0);
-        })();
-    }, []);
-
-    const handleLogout = () => {
-        localStorage.removeItem('authToken');
-        sessionStorage.removeItem('role');
-        sessionStorage.removeItem('username');
-        localStorage.removeItem('appKey');
-        clearAuth();
-        window.location.reload();
-    };
-
-    // Base tabs (note: no Admin tab in this header yet)
-    const baseTabs = [
-        { key: 'manager', label: t('header.managerTab'), icon: <Users className="w-4 h-4" /> },
-        {
-            key: 'reports',
-            label: t('header.reportsTab'),
-            icon: <FileBarChart className="w-4 h-4" />,
-        },
-        {
-            key: 'backups',
-            label: t('header.backupTab'),
-            icon: <DatabaseBackup className="w-4 h-4" />,
-        },
-        { key: 'importUsers', label: 'Excel', icon: <FileSpreadsheet className="w-4 h-4" /> },
-        {
-            key: 'instructions',
-            label: t('header.instructions'),
-            icon: <BookText className="w-4 h-4" />,
-        },
-        // { key: 'reminders', label: 'Reminders', icon: <Bell className="w-4 h-4" /> }, // add if you use it
-    ] as const;
-
-    // Conditionally add "Штатні посади"
-    const allTabs = useMemo(() => {
-        const list = hasShtatni
-            ? [
-                  ...baseTabs.slice(0, 4),
-                  { key: 'shtatni', label: 'БЧС', icon: <FileSpreadsheet className="w-4 h-4" /> },
-                  ...baseTabs.slice(4),
-              ]
-            : baseTabs;
-
-        // Filter by permissions
-        const allowedSet = new Set(allowedTabs);
-        return list.filter((t) => allowedSet.has(t.key as TabKey));
-    }, [hasShtatni, allowedTabs.join(',')]);
+    const incompleteByUser = useMemo(() => {
+        const groups = new Map<number, typeof incompleteEntries>();
+        for (const entry of incompleteEntries) {
+            groups.set(entry.userId, [...(groups.get(entry.userId) ?? []), entry]);
+        }
+        return [...groups.entries()];
+    }, [incompleteEntries]);
 
     return (
         <header className="bg-gradient-to-r from-blue-50 to-blue-100 shadow border-b relative">
@@ -164,10 +84,9 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         </button>
                     )}
 
-                    <EventsModalLauncher />
+                    {canViewPersonnel && <EventsModalLauncher />}
 
-                    {/* ✅ Add User (only in Manager) */}
-                    {currentTab === 'manager' && (
+                    {currentTab === 'manager' && can('personnel.create') && (
                         <button
                             onClick={openUserFormForAdd}
                             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition"
@@ -177,7 +96,6 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         </button>
                     )}
 
-                    {/* ✅ Language Switcher */}
                     <div className="flex items-center gap-1 text-xs bg-white rounded-full px-2 py-1 shadow-sm border">
                         <button
                             onClick={() => setLanguage('ua')}
@@ -189,9 +107,25 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         </button>
                     </div>
 
-                    {/* ✅ Logout */}
+                    {session && (
+                        <button
+                            onClick={() => setShowAccountDialog(true)}
+                            className="hidden md:flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs shadow-sm border hover:bg-blue-50"
+                            title={`${t('admin.security.title')} · ${t('session.role')}: ${session.roleName}`}
+                        >
+                            <UserCircle2 className="h-4 w-4 text-blue-600" />
+                            <span className="font-medium text-gray-800">
+                                {session.displayName || session.username}
+                            </span>
+                            <span className="text-gray-500">· {session.roleName}</span>
+                        </button>
+                    )}
+                    {showAccountDialog && (
+                        <MyAccountDialog onClose={() => setShowAccountDialog(false)} />
+                    )}
+
                     <button
-                        onClick={handleLogout}
+                        onClick={() => void logout()}
                         className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-full bg-red-500 hover:bg-red-600 text-white shadow-sm transition"
                     >
                         <LogOut className="w-4 h-4" />
@@ -200,15 +134,15 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                 </div>
             </div>
 
-            {/* === MODERN TABS === */}
+            {/* === TABS === */}
             <nav className="px-4 sm:px-8 border-t bg-white shadow-lg shadow-gray-300 relative z-10">
                 <div className="flex gap-2 py-2 overflow-x-auto">
-                    {allTabs.map((tab) => {
+                    {tabs.map((tab) => {
                         const isActive = currentTab === tab.key;
                         return (
                             <button
                                 key={tab.key}
-                                onClick={() => setCurrentTab(tab.key as HeaderProps['currentTab'])}
+                                onClick={() => setCurrentTab(tab.key)}
                                 className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                                     isActive
                                         ? 'bg-blue-100 text-blue-700 shadow-sm border border-blue-300'
@@ -216,13 +150,12 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                                 }`}
                             >
                                 {tab.icon}
-                                {tab.label}
+                                {tab.label(t)}
                             </button>
                         );
                     })}
                 </div>
             </nav>
-            {/* === Birthday Modal === */}
 
             {showIncompleteModal && (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
@@ -254,53 +187,29 @@ export default function Header({ currentTab, setCurrentTab }: HeaderProps) {
                         </div>
 
                         <div className="space-y-4 max-h-[400px] overflow-y-auto text-sm">
-                            {Object.entries(
-                                incompleteEntries.reduce<Record<number, any>>((acc, entry) => {
-                                    if (!acc[entry.userId]) acc[entry.userId] = [];
-                                    acc[entry.userId].push(entry);
-                                    return acc;
-                                }, {}),
-                            ).map(([userIdStr, entries]) => {
-                                const user = usersById[Number(userIdStr)];
-                                return (
-                                    <div
-                                        key={userIdStr}
-                                        className="border border-gray-200 bg-gray-50 rounded-lg p-3 shadow-sm"
-                                    >
-                                        <div className="font-semibold text-blue-800 text-sm mb-2">
-                                            👤 {user?.fullName || `Користувач (ID ${userIdStr})`}
-                                        </div>
-                                        <ul className="list-disc pl-5 text-gray-700 space-y-1">
-                                            {entries.map(
-                                                (entry: {
-                                                    entryId: number;
-                                                    reason:
-                                                        | 'missing_file'
-                                                        | 'missing_period'
-                                                        | 'missing_both';
-                                                }) => (
-                                                    <li key={entry.entryId}>
-                                                        <span className="text-gray-500">Запис</span>{' '}
-                                                        №{' '}
-                                                        <span className="font-mono text-blue-700">
-                                                            {entry.entryId}
-                                                        </span>
-                                                        :{' '}
-                                                        {
-                                                            {
-                                                                missing_file: 'відсутній файл',
-                                                                missing_period: 'відсутній період',
-                                                                missing_both:
-                                                                    'немає файлу та періоду',
-                                                            }[entry.reason]
-                                                        }
-                                                    </li>
-                                                ),
-                                            )}
-                                        </ul>
+                            {incompleteByUser.map(([userId, entries]) => (
+                                <div
+                                    key={userId}
+                                    className="border border-gray-200 bg-gray-50 rounded-lg p-3 shadow-sm"
+                                >
+                                    <div className="font-semibold text-blue-800 text-sm mb-2">
+                                        👤{' '}
+                                        {usersById.get(userId)?.fullName ||
+                                            `Користувач (ID ${userId})`}
                                     </div>
-                                );
-                            })}
+                                    <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                                        {entries.map((entry) => (
+                                            <li key={entry.entryId}>
+                                                <span className="text-gray-500">Запис</span> №{' '}
+                                                <span className="font-mono text-blue-700">
+                                                    {entry.entryId}
+                                                </span>
+                                                : {REASON_LABELS[entry.reason]}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
                         </div>
 
                         <button

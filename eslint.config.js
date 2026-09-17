@@ -49,20 +49,20 @@ export default tseslint.config(
             'simple-import-sort/imports': 'warn',
             'simple-import-sort/exports': 'warn',
 
-            // Невикор. імпорти/змінні
+            // Невикор. імпорти/змінні. Змінні перевіряє правило typescript-eslint: воно розуміє
+            // parameter properties (`private readonly db`) та імена параметрів у типах функцій.
             'unused-imports/no-unused-imports': 'warn',
-            'unused-imports/no-unused-vars': [
+            'unused-imports/no-unused-vars': 'off',
+            '@typescript-eslint/no-unused-vars': [
                 'warn',
                 {
                     vars: 'all',
                     varsIgnorePattern: '^_',
                     args: 'after-used',
                     argsIgnorePattern: '^_',
+                    ignoreRestSiblings: true,
                 },
             ],
-
-            // TS-послаблення (заміщені unused-imports)
-            '@typescript-eslint/no-unused-vars': 'off',
             '@typescript-eslint/no-explicit-any': 'warn',
             '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
             '@typescript-eslint/no-inferrable-types': 'off',

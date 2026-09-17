@@ -18,8 +18,15 @@ export default function ImportUsersTabContent() {
     const lowerSearch = searchTerm.toLowerCase();
 
     useEffect(() => {
-        window.electronAPI.getDbColums().then((cols: string[]) => setDbColumns(cols));
-        window.electronAPI.fetchUsersMetadata().then((users: any[]) => setExistingUsers(users));
+        // Import of staffing positions only does not require access to personnel data.
+        window.electronAPI
+            .getDbColumns()
+            .then((cols: string[]) => setDbColumns(cols))
+            .catch(() => setDbColumns([]));
+        window.electronAPI
+            .fetchUsersMetadata()
+            .then((users: any[]) => setExistingUsers(users))
+            .catch(() => setExistingUsers([]));
     }, []);
 
     const findBestDbColumn = (excelHeader: string, dbCols: string[]): string => {
@@ -45,7 +52,7 @@ export default function ImportUsersTabContent() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const dbCols = await window.electronAPI.getDbColums();
+        const dbCols = await window.electronAPI.getDbColumns();
         setDbColumns(dbCols);
 
         const reader = new FileReader();

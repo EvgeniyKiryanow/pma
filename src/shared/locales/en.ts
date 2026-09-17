@@ -1,4 +1,7 @@
+import { foundationEn } from './foundation.en';
+
 export const en = {
+    ...foundationEn,
     header: {
         title: 'Personnel Manager',
         addUser: 'Add new Person',
@@ -100,6 +103,8 @@ export const en = {
         restore: 'Restore Backup',
         reset: 'Reset App',
         reload: 'Reload',
+        hide: 'Minimize',
+        fullscreen: 'Full screen',
         close: 'Close',
         updateCheck: 'Check for updates',
         updateError: 'Error checking for updates',

@@ -1,31 +1,23 @@
-// src/App.tsx
 import './styles/index.css';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import { useShtatniStore } from '../renderer/entities/shtatna-posada/model/useShtatniStore';
 import { UnitStatsCalculator } from '../renderer/features/report/ui/_components/UnitStatsCalculator';
 import { buildPlannedTotalsFromShtatni } from '../renderer/shared/utils/plannedTotalsFromShtatni';
 import Header from './app/layout/Header';
+import { visibleTabs } from './app/navigation';
 import UserFormModalUpdate from './entities/user/ui/userFormModal';
-import BackupPanel from './features/backup/ui/BackupPanel';
 import { useNamedListStore } from './features/report/model/useNamedListStore';
 import { startNamedListAutoApply } from './features/report/ui/_components/NamedListTable';
-import TablesTab from './features/report/ui/_components/TablesTab';
-import ImportUsersTab from './pages/ImportUsersTab';
-import InstructionsTab from './pages/InstrtuctionsTab';
-import ManagerTab from './pages/ManagerTab';
-import ReportsTab from './pages/ReportsTab';
-import ShtatniPosadyTab from './pages/ShtatniPosadyTab';
+import { usePermissions } from './stores/sessionStore';
 import { useUserStore } from './stores/userStore';
 
 export default function App() {
+    const { can, canAny } = usePermissions();
+
     const currentTab = useUserStore((s) => s.currentTab);
     const setCurrentTab = useUserStore((s) => s.setCurrentTab);
-
-    // ✅ get allowed tabs from store (persisted after login)
-    const allowedTabs = useUserStore((s) => s.allowedTabs);
-
     const users = useUserStore((s) => s.users);
     const fetchUsers = useUserStore((s) => s.fetchUsers);
     const selectedUser = useUserStore((s) => s.selectedUser);
@@ -40,29 +32,34 @@ export default function App() {
     const shtatniPosady = useShtatniStore((s) => s.shtatniPosady);
     const fetchShtatni = useShtatniStore((s) => s.fetchAll);
 
+    const canViewPersonnel = can('personnel.view');
+    const canViewTables = can('tables.view');
+    const canEditTables = can('tables.edit');
+    const canViewStaffing = can('staffing.view');
+
     const autoApplyStarted = useRef(false);
 
+    // Load only what the current role is allowed to read.
     useEffect(() => {
-        fetchUsers();
-        loadAllTables();
-        fetchShtatni();
-    }, []);
+        if (canViewPersonnel) void fetchUsers();
+        if (canViewTables) void loadAllTables();
+        if (canViewStaffing) void fetchShtatni();
+    }, [canViewPersonnel, canViewTables, canViewStaffing]);
 
     useEffect(() => {
-        const planned = buildPlannedTotalsFromShtatni(shtatniPosady);
-        UnitStatsCalculator.setPlannedTotals(planned);
+        UnitStatsCalculator.setPlannedTotals(buildPlannedTotalsFromShtatni(shtatniPosady));
     }, [shtatniPosady]);
 
+    // Fills today's named list column from soldier statuses (only for roles that may edit it).
     useEffect(() => {
-        if (!autoApplyStarted.current && users.length > 0 && loadedOnce) {
-            const stop = startNamedListAutoApply();
-            autoApplyStarted.current = true;
-            return () => {
-                stop();
-                autoApplyStarted.current = false;
-            };
-        }
-    }, [users.length, loadedOnce]);
+        if (!canEditTables || autoApplyStarted.current || users.length === 0 || !loadedOnce) return;
+        const stop = startNamedListAutoApply();
+        autoApplyStarted.current = true;
+        return () => {
+            stop();
+            autoApplyStarted.current = false;
+        };
+    }, [canEditTables, users.length, loadedOnce]);
 
     useEffect(() => {
         if (selectedUser && !users.find((u) => u.id === selectedUser.id)) {
@@ -70,44 +67,26 @@ export default function App() {
         }
     }, [users]);
 
-    // 🚧 HARD GUARD: if the current tab is not allowed, jump to the first allowed tab
-    useEffect(() => {
-        if (allowedTabs && allowedTabs.length > 0) {
-            if (!allowedTabs.includes(currentTab as any)) {
-                setCurrentTab(allowedTabs[0] as any);
-            }
-        }
-    }, [currentTab, allowedTabs.join(',')]); // join to trigger when content changes
+    const tabs = useMemo(
+        () => visibleTabs({ canAny, hasStaffingTable: shtatniPosady.length > 0 }),
+        [canAny, shtatniPosady.length],
+    );
+    const activeTab = tabs.find((tab) => tab.key === currentTab) ?? tabs[0];
 
-    // optional: block rendering of a forbidden tab during the tiny redirect window
-    const canView = allowedTabs.length === 0 || allowedTabs.includes(currentTab as any);
+    // Keep the stored tab in sync when the role no longer allows it.
+    useEffect(() => {
+        if (activeTab && activeTab.key !== currentTab) setCurrentTab(activeTab.key);
+    }, [activeTab?.key, currentTab]);
 
     return (
         <div className="h-screen flex flex-col bg-gray-50 pt-[44px]">
-            <Header currentTab={currentTab} setCurrentTab={setCurrentTab} />
+            <Header
+                tabs={tabs}
+                currentTab={activeTab?.key ?? currentTab}
+                setCurrentTab={setCurrentTab}
+            />
 
-            {/* small guard while redirecting */}
-            {!canView ? (
-                <div className="flex-1 flex items-center justify-center text-slate-500">
-                    Перенаправлення…
-                </div>
-            ) : currentTab === 'manager' ? (
-                <div className="flex flex-1 overflow-hidden">
-                    <ManagerTab />
-                </div>
-            ) : currentTab === 'backups' ? (
-                <BackupPanel />
-            ) : currentTab === 'reports' ? (
-                <ReportsTab />
-            ) : currentTab === 'tables' ? (
-                <TablesTab />
-            ) : currentTab === 'importUsers' ? (
-                <ImportUsersTab />
-            ) : currentTab === 'shtatni' ? (
-                <ShtatniPosadyTab />
-            ) : currentTab === 'instructions' ? (
-                <InstructionsTab />
-            ) : null}
+            {activeTab?.render()}
 
             {isUserFormOpen && (
                 <UserFormModalUpdate userToEdit={editingUser} onClose={closeUserForm} />
