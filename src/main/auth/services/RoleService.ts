@@ -109,8 +109,13 @@ export class RoleService {
     }
 
     private async assertNameFree(name: string, exceptId?: number): Promise<void> {
-        const existing = await this.roles.findByName(name);
-        if (existing && existing.id !== exceptId) {
+        // Compared in JS: SQLite's NOCASE collation only folds ASCII, so "Оператор" and
+        // "оператор" would both be allowed and confuse administrators.
+        const wanted = name.toLocaleLowerCase('uk-UA');
+        const clash = (await this.roles.list()).find(
+            (role) => role.id !== exceptId && role.name.toLocaleLowerCase('uk-UA') === wanted,
+        );
+        if (clash) {
             throw new AppError('CONFLICT', 'Роль з такою назвою вже існує', { field: 'name' });
         }
     }

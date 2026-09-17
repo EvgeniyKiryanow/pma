@@ -20,6 +20,13 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src", "vite.main.ts", "vite.preload.ts", "vite.renderer.ts"],
+  "include": [
+    "src",
+    "tests",
+    "vite.main.ts",
+    "vite.preload.ts",
+    "vite.renderer.ts",
+    "vitest.config.ts"
+  ],
   "exclude": ["node_modules", ".vite", "renderer_dist", "dist", "src/assets"]
 }
