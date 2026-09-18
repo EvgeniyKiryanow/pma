@@ -5,6 +5,7 @@ import { AppError } from '../shared/ipc/result';
 import { type Container, createContainer } from './app/container';
 import { openDataSet, type OpenedDataSet, prepareDataKey } from './app/dataSet';
 import { applySecurityPolicies, createMainWindow } from './app/window';
+import { readWindowState } from './app/windowState';
 import { getInstanceId } from './core/instance';
 import { createLogger } from './core/logger';
 import { AppPaths } from './core/paths';
@@ -46,7 +47,7 @@ if (!smokeTest && !app.requestSingleInstanceLock()) {
 
     app.on('activate', () => {
         if (!smokeTest && BrowserWindow.getAllWindows().length === 0)
-            mainWindow = createMainWindow(isDev);
+            mainWindow = createMainWindow(isDev, readWindowState());
     });
 }
 
@@ -95,7 +96,7 @@ async function bootstrap(): Promise<void> {
     }
 
     applySecurityPolicies(isDev);
-    mainWindow = createMainWindow(isDev);
+    mainWindow = createMainWindow(isDev, readWindowState());
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
