@@ -64,6 +64,7 @@ export const PERMISSIONS = [
     { key: 'accounts.manage', group: 'administration', sensitive: true },
     { key: 'roles.manage', group: 'administration', sensitive: true },
     { key: 'audit.view', group: 'administration', sensitive: true },
+    { key: 'security.manage', group: 'administration', sensitive: true },
 ] as const satisfies readonly PermissionDefinitionInput[];
 
 export type PermissionKey = (typeof PERMISSIONS)[number]['key'];

@@ -24,6 +24,7 @@ import {
     Badge,
     Button,
     Card,
+    Checkbox,
     formatBytes,
     formatDateTime,
     PasswordField,
@@ -452,13 +453,14 @@ function ChangeLogSection() {
 function DangerZoneSection() {
     const { t } = useI18nStore();
     const [confirmation, setConfirmation] = useState('');
+    const [destroyCopies, setDestroyCopies] = useState(false);
     const [busy, setBusy] = useState(false);
     const word = t('backups.danger.word');
 
     const reset = async () => {
         setBusy(true);
         try {
-            await backupApi.resetAll();
+            await backupApi.resetAll({ destroyLocalCopies: destroyCopies });
             window.location.reload();
         } catch (err) {
             toast.error(errorMessage(err, t));
@@ -473,7 +475,17 @@ function DangerZoneSection() {
             className="border-danger-line"
         >
             <div className="space-y-4">
-                <Alert tone="error">{t('backups.danger.description')}</Alert>
+                <Alert tone="error">
+                    {destroyCopies
+                        ? t('backups.danger.descriptionDestroy')
+                        : t('backups.danger.description')}
+                </Alert>
+                <Checkbox
+                    checked={destroyCopies}
+                    onChange={setDestroyCopies}
+                    label={t('backups.danger.destroyCopies')}
+                    description={t('backups.danger.destroyCopiesHint')}
+                />
                 <TextField
                     label={t('backups.danger.confirmLabel', { word })}
                     value={confirmation}

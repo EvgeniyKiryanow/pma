@@ -4,6 +4,8 @@ import type {
     ExportResult,
     ImportInspection,
     ImportSelection,
+    ResetOptions,
+    ResetResult,
     RestoreResult,
     SnapshotInfo,
 } from '../../shared/backup/types';
@@ -25,7 +27,8 @@ export const backupApi = {
     listSnapshots: () => invoke<Result<SnapshotInfo[]>>(BACKUP_CHANNELS.listSnapshots),
     createSnapshot: () => invoke<Result<string>>(BACKUP_CHANNELS.createSnapshot),
     openBackupsFolder: () => invoke<Result<void>>(BACKUP_CHANNELS.openBackupsFolder),
-    resetAll: () => invoke<Result<string>>(BACKUP_CHANNELS.resetAll),
+    resetAll: (options: ResetOptions) =>
+        invoke<Result<ResetResult>>(BACKUP_CHANNELS.resetAll, options),
 };
 
 /** Change-log exchange between computers (offline, encrypted .pmc files). */

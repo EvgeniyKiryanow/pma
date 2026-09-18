@@ -1,6 +1,7 @@
 import type { CommentOrHistoryEntry } from '../../shared/types/user';
 import { defineModule, type ModuleContext } from '../app/module';
 import { AppPaths } from '../core/paths';
+import { fileCipher } from '../security';
 import { CommentService } from './CommentService';
 import { EntryListStore } from './EntryListStore';
 import { HistoryAttachments } from './HistoryAttachments';
@@ -15,11 +16,12 @@ export function createPersonnelModule(context: ModuleContext) {
     const logger = context.createLogger('personnel');
     const people = new PersonnelRepository(context.db);
 
-    const personnel = new PersonnelService(transactor, people, journal);
+    const attachments = new HistoryAttachments(() => AppPaths.historyFiles, logger, fileCipher);
+    const personnel = new PersonnelService(transactor, people, journal, attachments);
     const history = new HistoryService(
         transactor,
         new EntryListStore<CommentOrHistoryEntry>(people, journal, 'history'),
-        new HistoryAttachments(() => AppPaths.historyFiles, logger),
+        attachments,
     );
     const comments = new CommentService(
         transactor,

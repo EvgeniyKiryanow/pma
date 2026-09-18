@@ -1,7 +1,6 @@
-import type { Database } from 'sqlite';
-import type sqlite3 from 'sqlite3';
+import type { Db } from './driver';
 
-export type Db = Database<sqlite3.Database, sqlite3.Statement>;
+export type { Db, RunResult } from './driver';
 
 /** Lazily resolves the current connection (it may be reopened after a restore). */
 export type DbProvider = () => Promise<Db>;

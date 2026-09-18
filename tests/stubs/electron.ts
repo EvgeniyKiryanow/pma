@@ -68,8 +68,30 @@ export class BrowserWindow {
 }
 
 export const Menu = { setApplicationMenu: (): void => undefined, buildFromTemplate: () => ({}) };
+let clipboardText = '';
+export const clipboard = {
+    readText: () => clipboardText,
+    writeText: (text: string) => {
+        clipboardText = text;
+    },
+    clear: () => {
+        clipboardText = '';
+    },
+};
+export const powerMonitor = { on: (): void => undefined };
 export const screen = { getPrimaryDisplay: () => ({ workAreaSize: { width: 1280, height: 800 } }) };
 export const contextBridge = { exposeInMainWorld: (): void => undefined };
 export const ipcRenderer = { invoke: async (): Promise<void> => undefined, on: (): void => undefined, send: (): void => undefined };
 
-export default { app, ipcMain, dialog, shell, session, BrowserWindow, Menu, screen };
+export default {
+    app,
+    ipcMain,
+    dialog,
+    shell,
+    session,
+    BrowserWindow,
+    Menu,
+    screen,
+    clipboard,
+    powerMonitor,
+};

@@ -45,6 +45,20 @@ export type RestoreResult = {
     migratedTo: number;
 };
 
+export type ResetOptions = {
+    /**
+     * Also destroy every local copy (automatic and safety snapshots) instead of keeping the
+     * current data in a safety snapshot. Nothing is left on this computer to recover from.
+     */
+    destroyLocalCopies?: boolean;
+};
+
+export type ResetResult = {
+    /** Safety snapshot with the previous data, or null when everything was destroyed. */
+    safetySnapshot: string | null;
+    destroyedFiles: number;
+};
+
 export type AutoBackupSettings = {
     enabled: boolean;
     intervalDays: number;

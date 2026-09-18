@@ -1,13 +1,16 @@
 import path from 'path';
+import { pathToFileURL } from 'url';
 import { describe, expect, it } from 'vitest';
 
-import { resolveInside, safeFileName } from './paths';
+import { AppPaths, isAppPageUrl, resolveInside, safeFileName } from './paths';
 
 const base = path.resolve('C:/pma-data/history_files');
 
 describe('resolveInside', () => {
     it('joins segments inside the base folder', () => {
-        expect(resolveInside(base, '12', '77', 'наказ.pdf')).toBe(path.join(base, '12', '77', 'наказ.pdf'));
+        expect(resolveInside(base, '12', '77', 'наказ.pdf')).toBe(
+            path.join(base, '12', '77', 'наказ.pdf'),
+        );
     });
 
     it('refuses to step outside with ..', () => {
@@ -42,5 +45,27 @@ describe('safeFileName', () => {
         expect(() => safeFileName('')).toThrow();
         expect(() => safeFileName('..')).toThrow();
         expect(() => safeFileName('   ')).toThrow();
+    });
+});
+
+describe('isAppPageUrl', () => {
+    const page = pathToFileURL(AppPaths.rendererIndex).href;
+
+    it('accepts the app page, with or without a hash', () => {
+        expect(isAppPageUrl(page)).toBe(true);
+        expect(isAppPageUrl(`${page}#/manager`)).toBe(true);
+    });
+
+    it('refuses any other local file and anything remote', () => {
+        expect(isAppPageUrl(pathToFileURL(path.resolve('C:/Users/Public/evil.html')).href)).toBe(
+            false,
+        );
+        expect(
+            isAppPageUrl(
+                pathToFileURL(path.join(path.dirname(AppPaths.rendererIndex), 'other.html')).href,
+            ),
+        ).toBe(false);
+        expect(isAppPageUrl('https://example.com/index.html')).toBe(false);
+        expect(isAppPageUrl('data:text/html,<p>x</p>')).toBe(false);
     });
 });

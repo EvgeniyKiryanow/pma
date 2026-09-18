@@ -107,8 +107,15 @@ export const en = {
         fullscreen: 'Full screen',
         close: 'Close',
         updateCheck: 'Check for updates',
-        updateError: 'Error checking for updates',
-        updateStarted: 'Update check started. If a new version is found, it will be downloaded.',
+        updateCurrent: 'You have the newest version ({{version}})',
+        updateAvailableTitle: 'Version {{version}} is available',
+        updateAvailableText:
+            'PManager will download the update, close and start again in the new version. Save open forms first.',
+        updateInstall: 'Update',
+        updateDownloading: 'Downloading version {{version}}… Do not turn off the computer',
+        updateManual:
+            'Version {{version}} is available. Download the installer from the releases page and install it over this version — your data stays.',
+        updateRestarting: 'Update downloaded. PManager is restarting…',
         restoreNoUser: 'You must have a registered user to restore a backup.',
         restoreFail: '✅ Restored! Please restart.',
         restoreSuccess: 'Restore failed. Try again.',

@@ -1,6 +1,7 @@
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 
+import { filesApi } from '../../../shared/api/files';
 import { Alert, Button } from '../../../shared/ui';
 import { useI18nStore } from '../../../stores/i18nStore';
 
@@ -11,7 +12,7 @@ export default function RecoveryCodeDisplay({ code }: { code: string }) {
 
     const copy = async () => {
         try {
-            await navigator.clipboard.writeText(code);
+            await filesApi.copyText(code);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         } catch {

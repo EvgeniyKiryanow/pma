@@ -1,8 +1,10 @@
 import { Download, FileSpreadsheet, FolderOpen, Trash2, UploadCloud } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { reportError } from '../../../shared/api/errors';
 import { reportTemplatesApi } from '../../../shared/api/reports';
 import { downloadFile } from '../../../shared/lib/download';
+import { pickFiles } from '../../../shared/lib/pickFiles';
 import { cn, EmptyState, formatDateTime, IconButton, SearchInput } from '../../../shared/ui';
 import { confirmAction } from '../../../shared/ui/confirm';
 import { useI18nStore } from '../../../stores/i18nStore';
@@ -19,22 +21,25 @@ export default function YourSavedReportsTab() {
         void loadFromDb();
     }, []);
 
-    const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    const handleDrop = (e: React.DragEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setDragOver(false);
         const droppedFiles = Array.from(e.dataTransfer.files);
         droppedFiles.forEach((file) => void addFileFromDisk(file));
     };
 
-    const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
-        selectedFiles.forEach((file) => void addFileFromDisk(file));
-        e.target.value = '';
+    const chooseFiles = async () => {
+        try {
+            const selectedFiles = await pickFiles('any', { multiple: true });
+            for (const file of selectedFiles) await addFileFromDisk(file);
+        } catch (err) {
+            reportError(err, { context: 'saved-reports-add' });
+        }
     };
 
     // A failure reaches the global handler, which shows a translated notification.
     const handleDownload = async (filePath: string, name: string) => {
-        downloadFile(await reportTemplatesApi.readFile(filePath), name || filePath);
+        await downloadFile(await reportTemplatesApi.readFile(filePath), name || filePath);
     };
 
     const handleDelete = async (id: number, name: string) => {
@@ -54,7 +59,9 @@ export default function YourSavedReportsTab() {
     return (
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
             <div className="mx-auto max-w-4xl space-y-5">
-                <label
+                <button
+                    type="button"
+                    onClick={() => void chooseFiles()}
                     onDrop={handleDrop}
                     onDragOver={(e) => {
                         e.preventDefault();
@@ -62,6 +69,7 @@ export default function YourSavedReportsTab() {
                     }}
                     onDragLeave={() => setDragOver(false)}
                     className={cn(
+                        'w-full',
                         'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-6 py-9 text-center transition-colors',
                         dragOver
                             ? 'border-primary bg-primary-soft'
@@ -77,8 +85,7 @@ export default function YourSavedReportsTab() {
                     <span className="text-xs text-ink-3">
                         Звіти зберігаються на цьому компʼютері
                     </span>
-                    <input type="file" multiple className="hidden" onChange={handleFileInput} />
-                </label>
+                </button>
 
                 <section className="card overflow-hidden">
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">

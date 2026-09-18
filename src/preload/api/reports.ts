@@ -32,7 +32,7 @@ export const reportsApi = {
     getAllReportTemplates: () =>
         invoke<BundledReportTemplate[]>(REPORT_CHANNELS.listBundledTemplates),
     convertDocxToPdf: (buffer: ArrayBuffer, fileName: string) =>
-        invoke<string>(REPORT_CHANNELS.convertDocxToPdf, buffer, fileName),
+        invoke<Uint8Array>(REPORT_CHANNELS.convertDocxToPdf, buffer, fileName),
     saveReportFileToDisk: (buffer: ArrayBuffer, name: string) =>
         invoke<string>(REPORT_CHANNELS.saveFile, buffer, name),
     addReportTemplateToDb: (name: string, filePath: string) =>

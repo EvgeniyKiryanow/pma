@@ -1,4 +1,5 @@
 import { defineModule, type ModuleContext } from '../app/module';
+import { type DataKeyring, noKeyring } from './DataKeyring';
 import { registerAccountsIpc, registerAuthIpc, registerRolesIpc } from './ipc';
 import { PasswordHasher, PasswordPolicy } from './PasswordHasher';
 import { RecoveryCodes } from './RecoveryCodes';
@@ -11,7 +12,11 @@ import { SessionFactory } from './services/SessionFactory';
 import type { SessionManager } from './SessionManager';
 
 /** Sign-in, sessions, accounts and roles. */
-export function createAuthModule(context: ModuleContext, sessions: SessionManager) {
+export function createAuthModule(
+    context: ModuleContext,
+    sessions: SessionManager,
+    keyring: DataKeyring = noKeyring,
+) {
     const { db, transactor, createLogger } = context;
     const accountsRepo = new AccountRepository(db);
     const rolesRepo = new RoleRepository(db);
@@ -28,6 +33,8 @@ export function createAuthModule(context: ModuleContext, sessions: SessionManage
         passwordPolicy,
         new RecoveryCodes(),
         createLogger('auth'),
+        undefined,
+        keyring,
     );
     const accounts = new AccountService(
         transactor,
@@ -37,6 +44,7 @@ export function createAuthModule(context: ModuleContext, sessions: SessionManage
         passwordPolicy,
         auth,
         createLogger('accounts'),
+        keyring,
     );
     const roles = new RoleService(transactor, rolesRepo, auth, createLogger('roles'));
 

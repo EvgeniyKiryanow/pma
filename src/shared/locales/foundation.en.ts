@@ -42,7 +42,8 @@ export const foundationEn: typeof foundationUa = {
         events: 'Upcoming events',
         incomplete: 'Records without a file or period',
         minimize: 'Minimize',
-        fullscreen: 'Full screen',
+        maximize: 'Maximize',
+        restoreDown: 'Restore down',
         close: 'Close the application',
         reload: 'Reload window',
         updates: 'Check for updates',
@@ -56,6 +57,9 @@ export const foundationEn: typeof foundationUa = {
     session: {
         role: 'Role',
         logout: 'Log out',
+    },
+    files: {
+        saved: 'File saved: {{file}}',
     },
     auth: {
         passwordHint: 'At least {{min}} characters',
@@ -111,6 +115,15 @@ export const foundationEn: typeof foundationUa = {
             copied: 'Copied',
             confirm: 'I have written it down',
         },
+        lock: {
+            title: 'Screen locked',
+            idle: 'The app was not used for {{minutes}} min, so the session ended and the data was hidden. Sign in again to continue.',
+            system: 'The computer was locked or went to sleep, so the session ended. Sign in again to continue.',
+        },
+        dataLocked: {
+            title: 'The data opens after sign-in',
+            text: 'Windows could not open the data by itself (for example, the Windows password was changed). Sign in with your PManager login and password: the data opens, and next time everything works as usual.',
+        },
     },
     errors: {
         VALIDATION: 'Check the entered data',
@@ -131,6 +144,10 @@ export const foundationEn: typeof foundationUa = {
         SCHEMA_TOO_NEW: 'The backup was made by a newer version. Update PManager first',
         CANCELED: 'Canceled',
         NOTHING_SELECTED: 'Select a file first',
+        DATA_LOCKED:
+            'The data on this computer is encrypted. Sign in with your PManager login and password to open it',
+        UPDATE_FAILED:
+            'Could not get the update. Check the internet connection or download the installer manually',
         INTERNAL: 'Something went wrong. Details were written to the application log',
     },
     auditActions: {
@@ -189,7 +206,12 @@ export const foundationEn: typeof foundationUa = {
             'create-snapshot': 'Local copy',
         },
         sync: { export: 'Change log export', import: 'Change log import' },
-        system: { 'reset-all': 'All data erased' },
+        system: { 'reset-all': 'All data erased', update: 'Application update installed' },
+        files: { export: 'File saved from the app' },
+        settings: {
+            'update-security': 'Security settings',
+            'update-unit-info': 'Unit details for documents',
+        },
     },
     permissionGroups: {
         personnel: 'Personnel',
@@ -222,6 +244,7 @@ export const foundationEn: typeof foundationUa = {
         accounts: { manage: 'Manage users' },
         roles: { manage: 'Manage roles' },
         audit: { view: 'View audit log' },
+        security: { manage: 'Security settings (screen auto-lock)' },
     },
     admin: {
         title: 'Administration',
@@ -230,11 +253,23 @@ export const foundationEn: typeof foundationUa = {
             roles: 'Roles',
             audit: 'Audit log',
             security: 'My account',
+            policy: 'Security',
         },
         tabsHint: {
             accounts: 'Accounts and passwords',
             roles: 'Sets of access rights',
             audit: 'Who changed what and when',
+            policy: 'Screen auto-lock',
+        },
+        policy: {
+            title: 'Screen auto-lock',
+            description:
+                'When the app is not used for the chosen time, the session ends, the data disappears from the screen and the user signs in again. Stored in the database and carried by backups.',
+            idleLock: 'Lock after inactivity',
+            minutes: '{{count}} min',
+            explain:
+                'The screen also locks as soon as Windows is locked (Win + L) or the computer goes to sleep. A long operation (creating or restoring a backup) is not interrupted: the lock follows when it ends. Text copied from the app is removed from the clipboard.',
+            saved: 'Security settings saved',
         },
         accounts: {
             title: 'Users',
@@ -406,6 +441,11 @@ export const foundationEn: typeof foundationUa = {
             title: 'Erase everything',
             description:
                 'Removes all data and accounts from this computer and returns to initial setup. Current data is moved into a safety copy.',
+            descriptionDestroy:
+                'Removes all data and accounts from this computer together with every local copy. Files are overwritten first, then deleted. Data can then only be restored from a full .pmb backup kept on another drive.',
+            destroyCopies: 'Also destroy all local copies',
+            destroyCopiesHint:
+                'Automatic and safety copies on this computer. Without this, the current data stays in a safety copy.',
             confirmLabel: 'Type {{word}} to confirm',
             word: 'ERASE',
             button: 'Erase all data',

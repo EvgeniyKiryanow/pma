@@ -2,7 +2,10 @@ import { FileText, MessageSquareText, Paperclip, Send, Trash2, X } from 'lucide-
 import { useEffect, useMemo, useState } from 'react';
 
 import type { CommentOrHistoryEntry } from '../../../../shared/types/user';
+import { reportError } from '../../../shared/api/errors';
 import { commentsApi } from '../../../shared/api/personnel';
+import { downloadFile } from '../../../shared/lib/download';
+import { pickFiles, readAsDataUrl } from '../../../shared/lib/pickFiles';
 import { Avatar, Button, EmptyState, IconButton, Modal, SearchInput } from '../../../shared/ui';
 import { confirmAction } from '../../../shared/ui/confirm';
 import { useI18nStore } from '../../../stores/i18nStore';
@@ -87,52 +90,21 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
         setComments((prev) => prev.filter((c) => c.id !== id));
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFiles = e.target.files;
-        if (!selectedFiles) return;
-
-        const filePromises: Promise<UploadedFile>[] = [];
-
-        for (let i = 0; i < selectedFiles.length; i++) {
-            const file = selectedFiles[i];
-
-            if (
-                file.type.startsWith('image/') ||
-                file.type === 'application/pdf' ||
-                file.type === 'image/svg+xml'
-            ) {
-                filePromises.push(
-                    new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                            resolve({
-                                name: file.name,
-                                type: file.type,
-                                dataUrl: reader.result as string,
-                            });
-                        };
-                        reader.readAsDataURL(file);
-                    }),
-                );
-            } else {
-                filePromises.push(
-                    Promise.resolve({
-                        name: file.name,
-                        type: file.type,
-                    }),
-                );
-            }
+    // Images and PDFs only (the dialog offers nothing else); stored with the comment.
+    const attachFiles = async () => {
+        try {
+            const picked = await pickFiles('comment-files', { multiple: true });
+            const read = await Promise.all(
+                picked.map(async (file) => ({
+                    name: file.name,
+                    type: file.type,
+                    dataUrl: await readAsDataUrl(file),
+                })),
+            );
+            setFiles((prev) => [...prev, ...read]);
+        } catch (err) {
+            reportError(err, { context: 'comment-attach' });
         }
-
-        Promise.all(filePromises)
-            .then((newFiles) => {
-                setFiles((prev) => [...prev, ...newFiles]);
-                e.target.value = '';
-                return null;
-            })
-            .catch((error) => {
-                console.error('Error reading files:', error);
-            });
     };
 
     const removeFile = (index: number) => {
@@ -199,21 +171,14 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
                     )}
 
                     <div className="flex items-center justify-between gap-3">
-                        <label
-                            htmlFor="comment-file-upload"
+                        <button
+                            type="button"
+                            onClick={() => void attachFiles()}
                             className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-ink-2 transition-colors hover:bg-surface-3 hover:text-ink"
                         >
                             <Paperclip className="size-4" />
                             {t('comments.selectFiles')}
-                        </label>
-                        <input
-                            id="comment-file-upload"
-                            type="file"
-                            multiple
-                            accept="image/*,application/pdf,image/svg+xml"
-                            onChange={handleFileChange}
-                            className="hidden"
-                        />
+                        </button>
                         <Button
                             size="sm"
                             icon={<Send className="size-3.5" />}
@@ -273,11 +238,16 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
                                         <div className="mt-2 flex flex-wrap gap-2">
                                             {c.files.map((file, i) =>
                                                 file.dataUrl ? (
-                                                    <a
+                                                    <button
                                                         key={i}
-                                                        href={file.dataUrl}
-                                                        download={file.name}
-                                                        title={`Завантажити ${file.name}`}
+                                                        type="button"
+                                                        onClick={() =>
+                                                            void downloadFile(
+                                                                file.dataUrl,
+                                                                file.name,
+                                                            )
+                                                        }
+                                                        title={`Зберегти ${file.name}`}
                                                         className="flex items-center gap-2 rounded-lg border border-line bg-surface-2 py-1 pl-1 pr-2 text-xs text-ink-2 hover:border-line-strong hover:text-ink"
                                                     >
                                                         {file.type === 'application/pdf' ? (
@@ -294,7 +264,7 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
                                                         <span className="max-w-[140px] truncate">
                                                             {file.name}
                                                         </span>
-                                                    </a>
+                                                    </button>
                                                 ) : (
                                                     <span
                                                         key={i}

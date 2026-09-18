@@ -11,6 +11,7 @@ import {
 } from '../../shared/ipc/result';
 import { type Session, sessionManager } from '../auth/SessionManager';
 import { createLogger } from '../core/logger';
+import { isAppPageUrl } from '../core/paths';
 
 const logger = createLogger('ipc');
 
@@ -62,11 +63,42 @@ export function setAuditSink(sink: AuditSink): void {
     auditSink = sink;
 }
 
+/** A call that runs this long (an export, a restore) counts as the person being at the screen. */
+const LONG_CALL_MS = 3000;
+const activeCalls = new Map<number, number>();
+const longCallEndedAt = new Map<number, number>();
+
+/**
+ * What each window is doing right now. The idle lock never ends a session in the middle of
+ * an operation (a backup export can run for minutes without a single key press).
+ */
+export const callActivity = {
+    isBusy: (senderId: number): boolean => (activeCalls.get(senderId) ?? 0) > 0,
+    lastLongCallEndedAt: (senderId: number): number => longCallEndedAt.get(senderId) ?? 0,
+};
+
+async function track<T>(senderId: number, work: () => Promise<T>): Promise<T> {
+    activeCalls.set(senderId, (activeCalls.get(senderId) ?? 0) + 1);
+    const started = Date.now();
+    try {
+        return await work();
+    } finally {
+        const left = (activeCalls.get(senderId) ?? 1) - 1;
+        if (left > 0) activeCalls.set(senderId, left);
+        else activeCalls.delete(senderId);
+        if (Date.now() - started >= LONG_CALL_MS) longCallEndedAt.set(senderId, Date.now());
+    }
+}
+
 const DEV_SERVER_ORIGIN = 'http://localhost:5173';
 
+/**
+ * Only the app's own page may call the main process. Any other local file (for example an
+ * HTML file dropped onto the window) is not trusted even though it is also `file://`.
+ */
 function isTrustedSender(event: IpcMainInvokeEvent | IpcMainEvent): boolean {
     const url = event.senderFrame?.url ?? '';
-    if (url.startsWith('file://')) return true;
+    if (isAppPageUrl(url)) return true;
     return !app.isPackaged && url.startsWith(DEV_SERVER_ORIGIN);
 }
 
@@ -122,29 +154,31 @@ export function handle(
             throw err;
         }
 
-        if (!auditAction) return handler(event, ...args);
+        return track(event.sender.id, async () => {
+            if (!auditAction) return handler(event, ...args);
 
-        try {
-            const result = await handler(event, ...args);
-            const failed = isFailResult(result);
-            await auditSink?.({
-                action: auditAction,
-                outcome: failed ? 'failure' : 'success',
-                session: sessionManager.get(event.sender) ?? session,
-                args,
-                error: failed ? (result as { error: string }).error : undefined,
-            });
-            return result;
-        } catch (err) {
-            await auditSink?.({
-                action: auditAction,
-                outcome: 'failure',
-                session,
-                args,
-                error: err,
-            });
-            throw err;
-        }
+            try {
+                const result = await handler(event, ...args);
+                const failed = isFailResult(result);
+                await auditSink?.({
+                    action: auditAction,
+                    outcome: failed ? 'failure' : 'success',
+                    session: sessionManager.get(event.sender) ?? session,
+                    args,
+                    error: failed ? (result as { error: string }).error : undefined,
+                });
+                return result;
+            } catch (err) {
+                await auditSink?.({
+                    action: auditAction,
+                    outcome: 'failure',
+                    session,
+                    args,
+                    error: err,
+                });
+                throw err;
+            }
+        });
     });
 }
 

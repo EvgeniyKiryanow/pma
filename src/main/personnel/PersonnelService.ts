@@ -2,6 +2,7 @@ import { AppError } from '../../shared/ipc/result';
 import type { User } from '../../shared/types/user';
 import type { Transactor } from '../db/types';
 import type { ChangeJournal } from '../sync/ChangeJournal';
+import type { HistoryAttachments } from './HistoryAttachments';
 import {
     type Assignment,
     type PersonnelRepository,
@@ -18,6 +19,8 @@ export class PersonnelService {
         private readonly transactor: Transactor,
         private readonly people: PersonnelRepository,
         private readonly journal: ChangeJournal,
+        /** Documents of a deleted person must not stay on disk without their owner. */
+        private readonly attachments?: Pick<HistoryAttachments, 'removePerson'>,
     ) {}
 
     /** Everyone, without the heavy history/comments JSON. */
@@ -51,15 +54,17 @@ export class PersonnelService {
         });
     }
 
-    /** Returns false when there is no such person. */
+    /** Returns false when there is no such person. Their attachments are deleted as well. */
     async remove(id: number): Promise<boolean> {
-        return this.transactor.transaction(async () => {
+        const removed = await this.transactor.transaction(async () => {
             const row = await this.people.findById(id);
             if (!row) return false;
             await this.people.delete(id);
             await this.journal.record('users', id, 'delete', row);
             return true;
         });
+        if (removed) await this.attachments?.removePerson(id);
+        return removed;
     }
 
     /** Assigns staff positions to many people at once; all or nothing. */

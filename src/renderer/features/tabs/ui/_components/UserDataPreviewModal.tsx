@@ -1,6 +1,7 @@
 import { ClipboardCopy, IdCard } from 'lucide-react';
 import { useState } from 'react';
 
+import { filesApi } from '../../../../shared/api/files';
 import { Button, EmptyState, Modal, SearchInput } from '../../../../shared/ui';
 import { toast } from '../../../../shared/ui/toast';
 import { getFieldLabel } from '../../../../shared/utils/headerMap';
@@ -29,7 +30,7 @@ export default function UserDataPreviewModal({
         });
 
     const handleCopy = (val: string) => {
-        void navigator.clipboard.writeText(val);
+        void filesApi.copyText(val);
         toast.success('Значення скопійовано');
     };
 

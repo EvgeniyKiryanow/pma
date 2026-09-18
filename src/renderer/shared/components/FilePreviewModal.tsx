@@ -1,9 +1,10 @@
 import { renderAsync } from 'docx-preview';
 import { Download, FileText } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 
-import { Alert, buttonClass, EmptyState, Modal } from '../ui';
+import { downloadFile } from '../lib/download';
+import { Alert, Button, EmptyState, Modal } from '../ui';
 
 export type FileWithDataUrl = {
     name: string;
@@ -67,6 +68,31 @@ function ExcelPreview({ dataUrl }: { dataUrl: string }) {
     }
 }
 
+/**
+ * PDF inside the app: the content is handed to the built-in viewer as an in-memory blob, so
+ * the document never has to be saved somewhere to be read.
+ */
+function PdfPreview({ dataUrl, title }: { dataUrl: string; title: string }) {
+    const [url, setUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        const binary = atob(dataUrl.split(',')[1] ?? '');
+        const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+        const objectUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+        setUrl(objectUrl);
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [dataUrl]);
+
+    if (!url) return null;
+    return (
+        <iframe
+            src={url}
+            title={title}
+            className="h-[72vh] w-full rounded-lg border-0 bg-surface"
+        />
+    );
+}
+
 function DocxPreview({ dataUrl }: { dataUrl: string }) {
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -103,14 +129,15 @@ export default function FilePreviewModal({ file, onClose }: Props) {
             width="max-w-5xl"
             bodyClassName={isImage || isPdf ? 'p-3 bg-surface-2' : 'px-5 py-5 bg-surface-2'}
             footer={
-                <a
-                    href={file.dataUrl}
-                    download={file.name}
-                    className={buttonClass('secondary', 'md')}
+                <Button
+                    variant="secondary"
+                    icon={<Download className="size-4" />}
+                    onClick={async () => {
+                        await downloadFile(file.dataUrl, file.name);
+                    }}
                 >
-                    <Download className="size-4" />
-                    Завантажити
-                </a>
+                    Зберегти копію…
+                </Button>
             }
         >
             {isImage ? (
@@ -120,11 +147,7 @@ export default function FilePreviewModal({ file, onClose }: Props) {
                     className="mx-auto max-h-[72vh] rounded-lg object-contain"
                 />
             ) : isPdf ? (
-                <iframe
-                    src={file.dataUrl}
-                    title={file.name}
-                    className="h-[72vh] w-full rounded-lg border-0 bg-surface"
-                />
+                <PdfPreview dataUrl={file.dataUrl} title={file.name} />
             ) : isDocx ? (
                 <DocxPreview dataUrl={file.dataUrl} />
             ) : isXlsx ? (
@@ -133,7 +156,7 @@ export default function FilePreviewModal({ file, onClose }: Props) {
                 <EmptyState
                     icon={<FileText />}
                     title="Перегляд цього типу файлу недоступний"
-                    description="Завантажте файл і відкрийте його у відповідній програмі."
+                    description="Збережіть копію файлу й відкрийте її у відповідній програмі."
                 />
             )}
         </Modal>

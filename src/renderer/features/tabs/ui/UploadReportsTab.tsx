@@ -1,7 +1,9 @@
 import { FileUp, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { reportError } from '../../../shared/api/errors';
 import { reportTemplatesApi } from '../../../shared/api/reports';
+import { pickFile } from '../../../shared/lib/pickFiles';
 import { Alert, Button, Card } from '../../../shared/ui';
 import { toast } from '../../../shared/ui/toast';
 import { useI18nStore } from '../../../stores/i18nStore';
@@ -12,40 +14,39 @@ export default function UploadReportsTab() {
     const { t } = useI18nStore();
     const [previewBuffer, setPreviewBuffer] = useState<ArrayBuffer | null>(null);
     const [uploadedTemplateName, setUploadedTemplateName] = useState<string>('');
-    const [pdfPath, setPdfPath] = useState<string | null>(null);
+    // The PDF is kept in memory only (a blob URL), nothing is written to disk for the preview.
+    const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
-    const handleTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async () => {
-            const result = reader.result;
-            if (!result || typeof result === 'string') return;
-
-            setPreviewBuffer(result);
+    const chooseTemplate = async () => {
+        try {
+            const file = await pickFile('docx');
+            if (!file) return;
+            setPreviewBuffer(await file.arrayBuffer());
             setUploadedTemplateName(file.name);
-        };
-
-        reader.readAsArrayBuffer(file);
-        e.target.value = '';
+        } catch (err) {
+            reportError(err, { context: 'template-upload' });
+        }
     };
 
     useEffect(() => {
-        if (previewBuffer && uploadedTemplateName) {
-            const convertToPdf = async () => {
-                try {
-                    const pdfPath = await reportTemplatesApi.convertToPdf(
-                        previewBuffer,
-                        uploadedTemplateName,
-                    );
-                    setPdfPath(pdfPath);
-                } catch (err) {
-                    console.error('PDF conversion failed:', err);
-                }
-            };
-            void convertToPdf();
-        }
+        if (!previewBuffer || !uploadedTemplateName) return;
+        let url: string | null = null;
+        const convertToPdf = async () => {
+            try {
+                const pdf = await reportTemplatesApi.convertToPdf(
+                    previewBuffer,
+                    uploadedTemplateName,
+                );
+                url = URL.createObjectURL(new Blob([pdf], { type: 'application/pdf' }));
+                setPdfUrl(url);
+            } catch (err) {
+                console.error('PDF conversion failed:', err);
+            }
+        };
+        void convertToPdf();
+        return () => {
+            if (url) URL.revokeObjectURL(url);
+        };
     }, [previewBuffer, uploadedTemplateName]);
 
     const handleSaveTemplate = () => {
@@ -63,7 +64,7 @@ export default function UploadReportsTab() {
 
         setPreviewBuffer(null);
         setUploadedTemplateName('');
-        setPdfPath(null);
+        setPdfUrl(null);
     };
 
     return (
@@ -74,9 +75,10 @@ export default function UploadReportsTab() {
                     description="Шаблон — це документ Word (.docx) з полями для автоматичного заповнення даними військовослужбовця."
                     icon={<FileUp />}
                 >
-                    <label
-                        htmlFor="upload-template"
-                        className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line-strong px-6 py-10 text-center transition-colors hover:border-primary hover:bg-primary-soft"
+                    <button
+                        type="button"
+                        onClick={() => void chooseTemplate()}
+                        className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line-strong px-6 py-10 text-center transition-colors hover:border-primary hover:bg-primary-soft"
                     >
                         <span className="grid size-12 place-items-center rounded-2xl bg-primary-soft text-primary-ink">
                             <FileUp className="size-6" />
@@ -89,14 +91,7 @@ export default function UploadReportsTab() {
                                 ? 'Натисніть, щоб обрати інший файл'
                                 : 'Лише файли .docx'}
                         </span>
-                    </label>
-                    <input
-                        id="upload-template"
-                        type="file"
-                        accept=".docx"
-                        onChange={handleTemplateUpload}
-                        className="hidden"
-                    />
+                    </button>
 
                     <div className="mt-4 flex justify-end">
                         <Button
@@ -109,14 +104,14 @@ export default function UploadReportsTab() {
                     </div>
                 </Card>
 
-                {uploadedTemplateName && !pdfPath && (
+                {uploadedTemplateName && !pdfUrl && (
                     <Alert tone="info">Готуємо попередній перегляд…</Alert>
                 )}
 
-                {pdfPath && (
+                {pdfUrl && (
                     <Card title={`${t('reports.previewTitle')}: ${uploadedTemplateName}`}>
                         <iframe
-                            src={`file://${pdfPath}`}
+                            src={pdfUrl}
                             className="h-[640px] w-full rounded-lg border border-line bg-surface-2"
                             title="PDF Preview"
                         />

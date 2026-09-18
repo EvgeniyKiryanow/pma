@@ -1,3 +1,5 @@
+import fs from 'fs';
+
 import { AppError } from '../../shared/ipc/result';
 import type {
     HistoryFilter,
@@ -7,7 +9,7 @@ import type {
 import type { CommentOrHistoryEntry } from '../../shared/types/user';
 import type { Transactor } from '../db/types';
 import type { EntryListStore } from './EntryListStore';
-import { attachmentMeta, type HistoryAttachments } from './HistoryAttachments';
+import type { HistoryAttachments } from './HistoryAttachments';
 
 const FILTER_DAYS: Record<HistoryFilter, number> = {
     '1day': 1,
@@ -51,38 +53,54 @@ export class HistoryService {
         return newerThanDays(entries, RANGE_DAYS[range] ?? 30);
     }
 
-    /** Throws NOT_FOUND when the person does not exist. */
+    /**
+     * Adds an entry with its attachments. The files are written first; if the entry cannot be
+     * saved they are removed again, so neither exists without the other. Throws NOT_FOUND
+     * when the person does not exist.
+     */
     async add(userId: number, entry: CommentOrHistoryEntry): Promise<void> {
         if ((await this.history.read(userId)) === null) {
             throw new AppError('NOT_FOUND', 'User not found');
         }
-        const files = entry.files || [];
-        await this.attachments.save(userId, entry.id, files);
-
-        await this.transactor.transaction(async () => {
-            const entries = await this.requireEntries(userId);
-            entries.push({ ...entry, files: attachmentMeta(files) });
-            await this.history.write(userId, entries);
-        });
+        const dirExisted = fs.existsSync(this.attachments.entryDir(userId, entry.id));
+        try {
+            const files = await this.attachments.save(userId, entry.id, entry.files || []);
+            await this.transactor.transaction(async () => {
+                const entries = await this.requireEntries(userId);
+                entries.push({ ...entry, files });
+                await this.history.write(userId, entries);
+            });
+        } catch (err) {
+            if (!dirExisted) await this.attachments.removeEntry(userId, entry.id);
+            throw err;
+        }
     }
 
-    /** Replaces an entry; attachments that were removed from it are deleted. Throws NOT_FOUND. */
+    /**
+     * Replaces an entry; attachments that were removed from it are deleted once the new
+     * version is saved. Throws NOT_FOUND.
+     */
     async edit(userId: number, entry: CommentOrHistoryEntry): Promise<void> {
         const entries = await this.requireEntries(userId);
         const current = entries.find((item) => item.id === entry.id);
         if (!current) throw new AppError('NOT_FOUND', 'History entry not found');
+        const before = current.files || [];
 
-        const files = entry.files || [];
-        await this.attachments.removeOthers(userId, entry.id, current.files || [], files);
-        await this.attachments.save(userId, entry.id, files);
-
-        await this.transactor.transaction(async () => {
-            const latest = await this.requireEntries(userId);
-            const index = latest.findIndex((item) => item.id === entry.id);
-            if (index === -1) return;
-            latest[index] = { ...entry, files: attachmentMeta(files) };
-            await this.history.write(userId, latest);
-        });
+        const files = await this.attachments.save(userId, entry.id, entry.files || []);
+        try {
+            await this.transactor.transaction(async () => {
+                const latest = await this.requireEntries(userId);
+                const index = latest.findIndex((item) => item.id === entry.id);
+                if (index === -1) throw new AppError('NOT_FOUND', 'History entry not found');
+                latest[index] = { ...entry, files };
+                await this.history.write(userId, latest);
+            });
+        } catch (err) {
+            // Keep what the saved entry still points to; drop only files new in this attempt.
+            await this.attachments.removeOthers(userId, entry.id, files, before);
+            throw err;
+        }
+        await this.attachments.removeOthers(userId, entry.id, before, files);
     }
 
     /** Deletes the entry wherever it is; returns the person it belonged to. Throws NOT_FOUND. */

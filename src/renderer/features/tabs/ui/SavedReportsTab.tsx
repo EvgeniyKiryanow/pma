@@ -32,8 +32,16 @@ export default function SavedReportsTab() {
     const [users, setUsers] = useState<User[]>([]);
     const [previewBuffer, setPreviewBuffer] = useState<ArrayBuffer | null>(null);
     const previewRef = useRef<HTMLDivElement>(null);
-    const additionalFields = useReportsStore.getState().additionalInfo;
+    const additionalFields = useReportsStore((s) => s.additionalInfo);
     const selectedUser2 = users.find((u) => u.id === useReportsStore.getState().selectedUserId2);
+
+    // Unit details for the documents live in the database (they travel with backups).
+    useEffect(() => {
+        useReportsStore
+            .getState()
+            .loadAdditionalInfo()
+            .catch((error) => reportError(error, { context: 'reports.unit-info' }));
+    }, []);
     useEffect(() => {
         if (selectedUser2) {
             const defaultFields = Object.keys(selectedUser2).reduce(
@@ -138,7 +146,7 @@ export default function SavedReportsTab() {
     const handleDownload = () => {
         if (!previewBuffer) return;
 
-        downloadFile(previewBuffer, `${selectedTemplate?.name || 'document'}.docx`);
+        void downloadFile(previewBuffer, `${selectedTemplate?.name || 'document'}.docx`);
     };
 
     return (

@@ -1,8 +1,9 @@
 import fsp from 'fs/promises';
 import os from 'os';
 import path from 'path';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { IdleLock } from '../../src/main/auth/IdleLock';
 import { PasswordHasher, PasswordPolicy } from '../../src/main/auth/PasswordHasher';
 import { RecoveryCodes } from '../../src/main/auth/RecoveryCodes';
 import { AccountRepository } from '../../src/main/auth/repositories/AccountRepository';
@@ -74,7 +75,12 @@ async function setupAdmin() {
 
 describe('first run', () => {
     it('reports an empty installation', async () => {
-        expect(await auth.getState(sender)).toEqual({ hasAccounts: false, session: null });
+        expect(await auth.getState(sender)).toEqual({
+            hasAccounts: false,
+            session: null,
+            lock: null,
+            dataLocked: false,
+        });
     });
 
     it('creates the administrator, signs them in and shows a recovery code once', async () => {
@@ -372,5 +378,128 @@ describe('roles administration', () => {
         });
 
         expect(sessions.get(userWindow)?.permissions.sort()).toEqual(['personnel.edit', 'personnel.view']);
+    });
+});
+
+describe('screen lock', () => {
+    const TEN_MINUTES = 10 * 60_000;
+    let now: number;
+    let busy: boolean;
+    let longCallEndedAt: number;
+    let lock: IdleLock;
+
+    beforeEach(() => {
+        now = Date.now();
+        busy = false;
+        longCallEndedAt = 0;
+        lock = new IdleLock({
+            sessions,
+            idleMinutes: async () => 10,
+            isBusy: () => busy,
+            lastLongCallEndedAt: () => longCallEndedAt,
+            logger: silentLogger,
+            now: () => now,
+        });
+    });
+
+    /** A window whose keyboard and mouse the test can drive. */
+    function inputWindow(id: number) {
+        const listeners: Record<string, (...args: any[]) => void> = {};
+        const sent: string[] = [];
+        const contents = {
+            id,
+            on: (event: string, listener: (...args: any[]) => void) => {
+                listeners[event] = listener;
+            },
+            once: (): void => undefined,
+            send: (channel: string) => sent.push(channel),
+            isDestroyed: () => false,
+            type: (inputType: string) => listeners['input-event']?.({}, { type: inputType }),
+            sent,
+        };
+        return contents as any;
+    }
+
+    it('ends the session after the timeout and says who was signed in', async () => {
+        const window = inputWindow(7);
+        lock.watch(window);
+        await auth.setup(window, { username: ADMIN.username, password: ADMIN.password });
+
+        now += TEN_MINUTES - 1000;
+        await lock.check();
+        expect((await auth.getState(window)).session).not.toBeNull();
+
+        now += 2000;
+        await lock.check();
+        const state = await auth.getState(window);
+        expect(state.session).toBeNull();
+        expect(state.lock).toEqual({ reason: 'idle', username: ADMIN.username, idleMinutes: 10 });
+        // The window is told at once, so it drops the data it shows.
+        expect(window.sent).toContain('auth:session-changed');
+    });
+
+    it('keeps the session while the person works', async () => {
+        const window = inputWindow(8);
+        lock.watch(window);
+        await auth.setup(window, { username: ADMIN.username, password: ADMIN.password });
+
+        for (let i = 0; i < 5; i++) {
+            now += 5 * 60_000;
+            window.type(i % 2 ? 'mouseMove' : 'keyDown');
+            await lock.check();
+        }
+        expect((await auth.getState(window)).session).not.toBeNull();
+    });
+
+    it('never interrupts a running operation and waits the full timeout after it', async () => {
+        await setupAdmin();
+        busy = true;
+        now += 3 * TEN_MINUTES;
+        await lock.check();
+        expect(sessions.get(sender)).not.toBeNull();
+
+        busy = false;
+        longCallEndedAt = now;
+        now += TEN_MINUTES - 1000;
+        await lock.check();
+        expect(sessions.get(sender)).not.toBeNull();
+
+        now += 2000;
+        await lock.check();
+        expect(sessions.get(sender)).toBeNull();
+    });
+
+    it('locks at once together with Windows', async () => {
+        await setupAdmin();
+        await lock.lockAll();
+        const state = await auth.getState(sender);
+        expect(state.session).toBeNull();
+        expect(state.lock?.reason).toBe('system');
+    });
+
+    it('forgets the lock after the next sign-in and after a normal logout', async () => {
+        await setupAdmin();
+        now += 2 * TEN_MINUTES;
+        await lock.check();
+        expect((await auth.getState(sender)).lock).not.toBeNull();
+
+        await auth.login(sender, ADMIN.username, ADMIN.password);
+        expect((await auth.getState(sender)).lock).toBeNull();
+
+        auth.logout(sender);
+        expect((await auth.getState(sender)).lock).toBeNull();
+    });
+
+    it('does nothing when nobody is signed in', async () => {
+        const idleMinutes = vi.fn(async () => 10);
+        const quiet = new IdleLock({
+            sessions,
+            idleMinutes,
+            isBusy: () => false,
+            lastLongCallEndedAt: () => 0,
+            logger: silentLogger,
+        });
+        await quiet.check();
+        expect(idleMinutes).not.toHaveBeenCalled();
     });
 });

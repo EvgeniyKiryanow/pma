@@ -1,12 +1,20 @@
 import fs from 'fs';
-import { open } from 'sqlite';
-import sqlite3 from 'sqlite3';
 
+import { AppError } from '../../shared/ipc/result';
 import { createLogger } from '../core/logger';
 import { AppPaths } from '../core/paths';
+import { dataVault } from '../security';
+import { openDatabase } from './driver';
 import type { Db } from './types';
 
 const logger = createLogger('db');
+
+/**
+ * Key of the data set: a string opens the encrypted database, `null` means the key is not
+ * available yet (data locked until someone signs in), `undefined` opens an unencrypted file
+ * (tests and fixtures).
+ */
+export type DatabaseKey = () => string | null | undefined;
 
 /**
  * Owns the single SQLite connection of the main process.
@@ -18,7 +26,10 @@ export class DatabaseManager {
     private opening: Promise<Db> | null = null;
     private txQueue: Promise<unknown> = Promise.resolve();
 
-    constructor(private readonly filePath: () => string = () => AppPaths.database) {}
+    constructor(
+        private readonly filePath: () => string = () => AppPaths.database,
+        private readonly key: DatabaseKey = () => undefined,
+    ) {}
 
     get path(): string {
         return this.filePath();
@@ -91,7 +102,10 @@ export class DatabaseManager {
         return next;
     }
 
-    /** Consistent, compacted copy of the live database (works while the app is running). */
+    /**
+     * Consistent, compacted copy of the live database (works while the app is running).
+     * The copy is encrypted with the same key as the live database.
+     */
     async snapshotTo(targetFile: string): Promise<void> {
         const db = await this.get();
         if (fs.existsSync(targetFile)) fs.rmSync(targetFile);
@@ -99,13 +113,28 @@ export class DatabaseManager {
     }
 
     private async open(): Promise<Db> {
-        const db = (await open({ filename: this.path, driver: sqlite3.Database })) as Db;
+        const key = this.key();
+        if (key === null) throw new AppError('DATA_LOCKED');
+        let db: Db;
+        try {
+            db = openDatabase(this.path, { key });
+        } catch (err) {
+            if ((err as { code?: string })?.code === 'SQLITE_NOTADB') {
+                logger.error('The database cannot be read with the key of this computer');
+                throw new AppError('DATA_LOCKED');
+            }
+            throw err;
+        }
+        // secure_delete: deleted and overwritten records are zeroed in the file instead of
+        // lingering in free pages (a removed person must not be recoverable from users.db).
+        // temp_store: SQLite never writes temporary files to the Windows temp folder.
         await db.exec(`
             PRAGMA journal_mode = WAL;
             PRAGMA synchronous = NORMAL;
             PRAGMA foreign_keys = ON;
             PRAGMA busy_timeout = 5000;
             PRAGMA temp_store = MEMORY;
+            PRAGMA secure_delete = ON;
         `);
         this.db = db;
         logger.info('Database opened');
@@ -113,4 +142,8 @@ export class DatabaseManager {
     }
 }
 
-export const database = new DatabaseManager();
+/** The app's database: encrypted with the data key of this computer (see DataVault). */
+export const database = new DatabaseManager(
+    () => AppPaths.database,
+    () => dataVault.databaseKey(),
+);

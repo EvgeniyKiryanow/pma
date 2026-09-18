@@ -12,10 +12,25 @@ export type SessionInfo = {
     hasRecoveryCode: boolean;
 };
 
+/** Why the last session of this window ended without the user signing out. */
+export type SessionLock = {
+    reason: 'idle' | 'system';
+    username: string;
+    /** Idle timeout that applied, for the message on the sign-in screen. */
+    idleMinutes: number;
+};
+
 export type AuthState = {
     /** false on a fresh install: the renderer shows the first-run setup screen. */
     hasAccounts: boolean;
     session: SessionInfo | null;
+    /** Set after an automatic lock until someone signs in again. */
+    lock: SessionLock | null;
+    /**
+     * The encrypted data could not be opened automatically (Windows password was reset, new
+     * Windows profile): the next PManager sign-in opens it.
+     */
+    dataLocked?: boolean;
 };
 
 export type AccountDTO = {

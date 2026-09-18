@@ -97,7 +97,7 @@ export const TABS: TabDefinition[] = [
         label: (t) => t('nav.admin'),
         icon: <ShieldCheck />,
         group: 'system',
-        requires: ['accounts.manage', 'roles.manage', 'audit.view'],
+        requires: ['accounts.manage', 'roles.manage', 'audit.view', 'security.manage'],
         render: () => <AdminTab />,
     },
     {

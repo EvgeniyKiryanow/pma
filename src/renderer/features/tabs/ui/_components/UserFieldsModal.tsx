@@ -2,6 +2,7 @@ import { ClipboardCopy, ListChecks } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import type { User } from '../../../../../shared/types/user';
+import { filesApi } from '../../../../shared/api/files';
 import { Button, cn, EmptyState, Modal, SearchInput } from '../../../../shared/ui';
 import { toast } from '../../../../shared/ui/toast';
 import { getFieldLabel } from '../../../../shared/utils/headerMap';
@@ -54,7 +55,7 @@ export default function UserDataCombinedModal({ open, onClose, usersConfig }: Pr
     if (!open || usersConfig.length === 0) return null;
 
     const handleCopy = (val: string) => {
-        void navigator.clipboard.writeText(val);
+        void filesApi.copyText(val);
         toast.success('Значення скопійовано');
     };
 

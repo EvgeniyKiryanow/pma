@@ -21,6 +21,8 @@ export const ERROR_CODES = [
     'SCHEMA_TOO_NEW',
     'CANCELED',
     'NOTHING_SELECTED',
+    'DATA_LOCKED',
+    'UPDATE_FAILED',
     'INTERNAL',
 ] as const;
 

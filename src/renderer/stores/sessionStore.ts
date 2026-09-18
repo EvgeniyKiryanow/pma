@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 import type { PermissionKey } from '../../shared/auth/permissions';
-import type { AuthState, SessionInfo, SetupInput } from '../../shared/auth/types';
+import type { AuthState, SessionInfo, SessionLock, SetupInput } from '../../shared/auth/types';
 import { authApi } from '../shared/api/security';
 
 export type AuthStatus = 'loading' | 'setup' | 'login' | 'change-password' | 'ready';
@@ -9,6 +9,10 @@ export type AuthStatus = 'loading' | 'setup' | 'login' | 'change-password' | 're
 type SessionStore = {
     status: AuthStatus;
     session: SessionInfo | null;
+    /** Why the screen was locked (idle, Windows lock) — explained on the sign-in screen. */
+    lock: SessionLock | null;
+    /** The data opens with the next sign-in (Windows could not open it by itself). */
+    dataLocked: boolean;
     /** Shown once right after first-run setup, before entering the app. */
     pendingRecoveryCode: string | null;
 
@@ -24,7 +28,7 @@ type SessionStore = {
     canAny: (...permissions: PermissionKey[]) => boolean;
 };
 
-function statusOf(state: AuthState): AuthStatus {
+function statusOf(state: Pick<AuthState, 'hasAccounts' | 'session'>): AuthStatus {
     if (!state.hasAccounts) return 'setup';
     if (!state.session) return 'login';
     if (state.session.mustChangePassword) return 'change-password';
@@ -45,6 +49,8 @@ let subscribed = false;
 export const useSessionStore = create<SessionStore>((set, get) => ({
     status: 'loading',
     session: null,
+    lock: null,
+    dataLocked: false,
     pendingRecoveryCode: null,
 
     init: async () => {
@@ -58,21 +64,33 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     refresh: async () => {
         const hadSession = Boolean(get().session);
         const state = await authApi.getState();
+        // A lock or a logout elsewhere: reload, so nothing of the previous session stays
+        // in this window's memory. The sign-in screen then explains why.
         if (hadSession && !state.session) {
             reloadRenderer();
             return;
         }
-        set({ status: statusOf(state), session: state.session });
+        set({
+            status: statusOf(state),
+            session: state.session,
+            lock: state.lock ?? null,
+            dataLocked: Boolean(state.dataLocked),
+        });
     },
 
     setup: async (input) => {
         const { session, recoveryCode } = await authApi.setup(input);
-        set({ session, status: 'ready', pendingRecoveryCode: recoveryCode });
+        set({ session, status: 'ready', pendingRecoveryCode: recoveryCode, lock: null });
     },
 
     login: async (username, password) => {
         const session = await authApi.login(username, password);
-        set({ session, status: statusOf({ hasAccounts: true, session }) });
+        set({
+            session,
+            status: statusOf({ hasAccounts: true, session }),
+            lock: null,
+            dataLocked: false,
+        });
     },
 
     logout: async () => {

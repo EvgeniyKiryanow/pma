@@ -3,10 +3,9 @@ import fs from 'fs';
 import fsp from 'fs/promises';
 import os from 'os';
 import path from 'path';
-import { open } from 'sqlite';
-import sqlite3 from 'sqlite3';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { openDatabase } from '../../src/main/db/driver';
 import { migrationRunner } from '../../src/main/db/migrations';
 import type { Db } from '../../src/main/db/types';
 
@@ -30,7 +29,7 @@ afterAll(async () => {
 });
 
 async function openDb(file: string): Promise<Db> {
-    const db = (await open({ filename: file, driver: sqlite3.Database })) as Db;
+    const db = openDatabase(file);
     await db.exec('PRAGMA foreign_keys = ON');
     return db;
 }

@@ -1,6 +1,7 @@
 import fsp from 'fs/promises';
 
 import { resolveInside, safeFileName } from '../core/paths';
+import { FileCipher } from '../security/FileCipher';
 
 /** Converts a Node buffer into the ArrayBuffer the renderer receives over IPC. */
 export function toArrayBuffer(buffer: Buffer): ArrayBuffer {
@@ -15,7 +16,11 @@ export function toArrayBuffer(buffer: Buffer): ArrayBuffer {
  * folder; older databases stored absolute paths, which are reduced to the file name.
  */
 export class ReportFileStore {
-    constructor(private readonly root: () => string) {}
+    constructor(
+        private readonly root: () => string,
+        /** Documents are stored encrypted with the data key (pass-through without a key). */
+        private readonly cipher: FileCipher = new FileCipher(() => null),
+    ) {}
 
     pathOf(fileNameOrLegacyPath: string): string {
         return resolveInside(this.root(), safeFileName(fileNameOrLegacyPath));
@@ -25,12 +30,12 @@ export class ReportFileStore {
     async save(name: string, content: Buffer): Promise<string> {
         await fsp.mkdir(this.root(), { recursive: true });
         const fileName = safeFileName(name);
-        await fsp.writeFile(this.pathOf(fileName), content);
+        await fsp.writeFile(this.pathOf(fileName), this.cipher.encrypt(content));
         return fileName;
     }
 
     async read(fileName: string): Promise<ArrayBuffer> {
-        return toArrayBuffer(await fsp.readFile(this.pathOf(fileName)));
+        return toArrayBuffer(this.cipher.decrypt(await fsp.readFile(this.pathOf(fileName))));
     }
 
     /** Best effort: a file that is already gone is not an error. */

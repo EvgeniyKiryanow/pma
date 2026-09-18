@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
+
+import { downloadFile } from '../../../shared/lib/download';
 
 export async function generateAlternateCombatReportExcelTemplate(report: Record<string, any>) {
     const wb = new ExcelJS.Workbook();
@@ -397,10 +398,8 @@ export async function generateAlternateCombatReportExcelTemplate(report: Record<
         addStyledBodyRow(startRow + i, row.label, row.values);
     });
     const buffer = await wb.xlsx.writeBuffer();
-    saveAs(
-        new Blob([buffer], {
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        }),
+    await downloadFile(
+        buffer as ArrayBuffer,
         `alternate_template_${new Date().toISOString().slice(0, 10)}.xlsx`,
     );
 }

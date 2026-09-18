@@ -9,7 +9,9 @@ import {
 } from '../../../../shared/helpers/csvImports';
 import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
 import { errorMessage } from '../../../shared/api/call';
+import { reportError } from '../../../shared/api/errors';
 import { personnelApi } from '../../../shared/api/personnel';
+import { pickFile } from '../../../shared/lib/pickFiles';
 import { Badge, Button, cn, SearchInput } from '../../../shared/ui';
 import { toast } from '../../../shared/ui/toast';
 import { HEADER_MAP } from '../../../shared/utils/headerMap';
@@ -58,13 +60,16 @@ export default function ImportUsersTabContent() {
         return excelHeader;
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        e.target.value = '';
-        if (file) void loadWorkbook(file);
+    const chooseWorkbook = async () => {
+        try {
+            const file = await pickFile('excel');
+            if (file) await loadWorkbook(file);
+        } catch (err) {
+            reportError(err, { context: 'excel-import' });
+        }
     };
 
-    const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    const handleDrop = (e: React.DragEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setDragOver(false);
         const file = e.dataTransfer.files?.[0];
@@ -378,7 +383,9 @@ export default function ImportUsersTabContent() {
     return (
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
             <div className="mx-auto max-w-6xl space-y-5">
-                <label
+                <button
+                    type="button"
+                    onClick={() => void chooseWorkbook()}
                     onDrop={handleDrop}
                     onDragOver={(e) => {
                         e.preventDefault();
@@ -386,7 +393,7 @@ export default function ImportUsersTabContent() {
                     }}
                     onDragLeave={() => setDragOver(false)}
                     className={cn(
-                        'relative flex cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors',
+                        'relative flex w-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors',
                         dragOver
                             ? 'border-primary bg-primary-soft'
                             : 'border-line-strong bg-surface hover:border-primary hover:bg-primary-soft',
@@ -412,13 +419,7 @@ export default function ImportUsersTabContent() {
                             ШПК → БЧС
                         </Badge>
                     </span>
-                    <input
-                        type="file"
-                        accept=".xlsx, .xls"
-                        className="hidden"
-                        onChange={handleFileUpload}
-                    />
-                </label>
+                </button>
 
                 {hasData && (
                     <SearchInput

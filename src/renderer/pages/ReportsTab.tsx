@@ -11,10 +11,19 @@ import { usePermissions } from '../stores/sessionStore';
 
 type ReportsView = 'upload' | 'saved' | 'yourSaved';
 
+/**
+ * «Створити рапорт» (a document filled in from a template) is not finished yet, so its tab is
+ * hidden. Switch this on once the feature is ready; nothing else needs to change.
+ */
+const REPORT_CREATION_READY = false;
+
 export default function ReportsTab() {
     const { t } = useI18nStore();
     const { can } = usePermissions();
-    const [tab, setTab] = useState<ReportsView>('saved');
+    const [tab, setTab] = useState<ReportsView>(() => {
+        if (REPORT_CREATION_READY) return 'saved';
+        return can('reports.templates') ? 'upload' : 'yourSaved';
+    });
 
     return (
         <div className="flex min-h-0 flex-1 flex-col">
@@ -26,8 +35,9 @@ export default function ReportsTab() {
                         items={[
                             {
                                 value: 'saved',
-                                label: 'Створити рапорт',
+                                label: t('reports.generateFilledTemplate'),
                                 icon: <FileText />,
+                                hidden: !REPORT_CREATION_READY,
                             },
                             {
                                 value: 'upload',
@@ -47,7 +57,7 @@ export default function ReportsTab() {
 
             <div className="flex min-h-0 flex-1 flex-col">
                 {tab === 'upload' && <UploadReportsTab />}
-                {tab === 'saved' && <SavedReportsTab />}
+                {REPORT_CREATION_READY && tab === 'saved' && <SavedReportsTab />}
                 {tab === 'yourSaved' && <YourSavedReportsTab />}
             </div>
         </div>

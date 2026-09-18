@@ -1,7 +1,7 @@
 import { app, BrowserWindow, Menu, screen, session } from 'electron';
 
 import { createLogger } from '../core/logger';
-import { AppPaths } from '../core/paths';
+import { AppPaths, isAppPageUrl } from '../core/paths';
 
 const logger = createLogger('window');
 export const DEV_SERVER_URL = 'http://localhost:5173';
@@ -10,6 +10,11 @@ const ALLOWED_PERMISSIONS = new Set(['clipboard-sanitized-write', 'fullscreen'])
 
 /** App-wide Electron hardening. Call once after `app.whenReady()`. */
 export function applySecurityPolicies(isDev: boolean): void {
+    // No spell checking at all: it would start the Windows spelling service, which keeps
+    // its own dictionaries in the user's profile.
+    session.defaultSession.setSpellCheckerEnabled(false);
+    session.defaultSession.setSpellCheckerLanguages([]);
+
     // Deny camera, microphone, geolocation, notifications... the app needs none of them.
     session.defaultSession.setPermissionRequestHandler((_contents, permission, callback) =>
         callback(ALLOWED_PERMISSIONS.has(permission)),
@@ -18,13 +23,23 @@ export function applySecurityPolicies(isDev: boolean): void {
         ALLOWED_PERMISSIONS.has(permission),
     );
 
+    // Files leave the app only through the main process (`files:save`), which writes them
+    // without leaving a trace in Windows. A browser download would go through a dialog that
+    // records the file in the registry, so none is allowed.
+    session.defaultSession.on('will-download', (event) => {
+        logger.warn('Blocked a browser download');
+        event.preventDefault();
+    });
+
     app.on('web-contents-created', (_event, contents) => {
         contents.on('will-attach-webview', (event) => event.preventDefault());
         contents.setWindowOpenHandler(() => ({ action: 'deny' }));
+        // Only the app's own page. A file dropped onto the window would otherwise open in it
+        // (and a dropped HTML page would get the app's bridge).
         contents.on('will-navigate', (event, url) => {
-            const allowed = isDev ? url.startsWith(DEV_SERVER_URL) : url.startsWith('file://');
+            const allowed = isAppPageUrl(url) || (isDev && url.startsWith(DEV_SERVER_URL));
             if (!allowed) {
-                logger.warn('Blocked navigation to an external URL');
+                logger.warn('Blocked navigation away from the app page');
                 event.preventDefault();
             }
         });
@@ -40,11 +55,40 @@ export function applySecurityPolicies(isDev: boolean): void {
     }
 }
 
+/**
+ * Removes everything Chromium keeps for the window on disk (local storage, caches, code
+ * cache). Part of a full reset: the app starts as if it was just installed.
+ */
+export async function clearBrowserData(): Promise<void> {
+    const browser = session.defaultSession;
+    await browser.clearStorageData();
+    await browser.clearCache();
+    await browser.clearCodeCaches({});
+}
+
+/** Smallest window the screens still fit into (sidebar + a readable table). */
+const MIN_WINDOW = { width: 960, height: 600 };
+
+/**
+ * Size of the window when it is not maximized (the title-bar button): most of the screen,
+ * never smaller than the app can work in.
+ */
+function restoredSize(workArea: { width: number; height: number }) {
+    const fit = (share: number, total: number, min: number) =>
+        Math.min(total, Math.max(min, Math.round(total * share)));
+    return {
+        width: fit(0.6, workArea.width, MIN_WINDOW.width),
+        height: fit(0.7, workArea.height, MIN_WINDOW.height),
+    };
+}
+
 export function createMainWindow(isDev: boolean): BrowserWindow {
-    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+    const workArea = screen.getPrimaryDisplay().workAreaSize;
     const window = new BrowserWindow({
-        width,
-        height,
+        ...restoredSize(workArea),
+        center: true,
+        minWidth: Math.min(MIN_WINDOW.width, workArea.width),
+        minHeight: Math.min(MIN_WINDOW.height, workArea.height),
         show: false,
         backgroundColor: '#f3f3ec',
         icon: AppPaths.windowIcon,
@@ -61,7 +105,11 @@ export function createMainWindow(isDev: boolean): BrowserWindow {
         },
     });
 
-    window.once('ready-to-show', () => window.show());
+    // Opens maximized; the title-bar button switches to the smaller window and back.
+    window.once('ready-to-show', () => {
+        window.maximize();
+        window.show();
+    });
 
     // Renderer problems end up in the log file that units send back for diagnostics.
     const contents = window.webContents;

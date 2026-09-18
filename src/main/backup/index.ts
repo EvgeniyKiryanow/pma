@@ -9,6 +9,8 @@ import { AppPaths } from '../core/paths';
 import type { DatabaseManager } from '../db/connection';
 import type { MigrationRunner } from '../db/migrations/runner';
 import type { TemplateInstaller } from '../reports/TemplateInstaller';
+import type { DataEncryptor } from '../security/DataEncryptor';
+import type { DataVault } from '../security/DataVault';
 import { AutoBackupScheduler } from './AutoBackupScheduler';
 import { BackupService } from './BackupService';
 import { registerBackupIpc } from './ipc';
@@ -25,6 +27,11 @@ type BackupModuleDeps = {
     sessions: SessionManager;
     templates: TemplateInstaller;
     hasAccounts: () => Promise<boolean>;
+    onDataReplaced?: () => void;
+    clearBrowserData?: () => Promise<void>;
+    destroyLogs?: () => Promise<number>;
+    vault?: DataVault;
+    encryptor?: DataEncryptor;
 };
 
 /** Full encrypted backups, restore, automatic snapshots and full reset. */
@@ -38,6 +45,11 @@ export function createBackupModule(context: ModuleContext, deps: BackupModuleDep
         logger: context.createLogger('backup'),
         appVersion: () => app.getVersion(),
         instanceId: getInstanceId,
+        onDataReplaced: deps.onDataReplaced,
+        clearBrowserData: deps.clearBrowserData,
+        destroyLogs: deps.destroyLogs,
+        vault: deps.vault,
+        encryptor: deps.encryptor,
     });
     const scheduler = new AutoBackupScheduler(
         backups,

@@ -2,7 +2,9 @@ import { Camera, Plus, Trash2, UserPlus, UserRoundPen } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import type { RelativeContact, User } from '../../../../shared/types/user';
+import { reportError } from '../../../shared/api/errors';
 import { useAsyncAction } from '../../../shared/hooks/useAsyncAction';
+import { pickFile, readAsDataUrl } from '../../../shared/lib/pickFiles';
 import { Avatar, Button, cn, IconButton, Modal } from '../../../shared/ui';
 import { toast } from '../../../shared/ui/toast';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
@@ -122,17 +124,16 @@ export default function UserFormModalUpdate({
         }
     }, [userToEdit]);
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-            if (reader.result) {
-                setForm((f) => ({ ...f, photo: reader.result as string }));
-                setPhotoPreview(reader.result as string);
-            }
-        };
-        reader.readAsDataURL(file);
+    const choosePhoto = async () => {
+        try {
+            const file = await pickFile('images');
+            if (!file) return;
+            const photo = await readAsDataUrl(file);
+            setForm((f) => ({ ...f, photo }));
+            setPhotoPreview(photo);
+        } catch (err) {
+            reportError(err, { context: 'photo-upload' });
+        }
     };
 
     const handleAddRelative = () => {
@@ -360,7 +361,12 @@ export default function UserFormModalUpdate({
             >
                 {/* Photo + status */}
                 <div className="flex flex-wrap items-center gap-5 rounded-2xl border border-line bg-surface-2 p-4">
-                    <label htmlFor="photo-upload" className="group relative cursor-pointer">
+                    <button
+                        type="button"
+                        onClick={() => void choosePhoto()}
+                        aria-label={t('user.photo')}
+                        className="group relative cursor-pointer rounded-2xl"
+                    >
                         {photoPreview ? (
                             <img
                                 src={photoPreview}
@@ -373,14 +379,7 @@ export default function UserFormModalUpdate({
                         <span className="absolute inset-0 grid place-items-center rounded-2xl bg-[oklch(15%_0.02_130/0.55)] text-[oklch(98%_0_0)] opacity-0 transition-opacity group-hover:opacity-100">
                             <Camera className="size-6" />
                         </span>
-                    </label>
-                    <input
-                        id="photo-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handlePhotoUpload}
-                    />
+                    </button>
                     <div className="min-w-[220px] flex-1 space-y-3">
                         <div>
                             <p className="text-sm font-medium text-ink">{t('user.photo')}</p>

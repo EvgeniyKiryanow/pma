@@ -17,7 +17,8 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "better-sqlite3-multiple-ciphers": ["node_modules/better-sqlite3-multiple-ciphers/index.d.ts"]
     }
   },
   "include": [

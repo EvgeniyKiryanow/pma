@@ -24,7 +24,8 @@ export default defineConfig({
                     "connect-src 'self' data: blob:",
                     "worker-src 'self' blob:",
                     "object-src 'none'",
-                    "frame-src 'none'",
+                    // PDF documents are shown from in-memory blobs by the built-in viewer.
+                    "frame-src blob:",
                     "base-uri 'none'",
                     "form-action 'none'",
                 ].join('; ');

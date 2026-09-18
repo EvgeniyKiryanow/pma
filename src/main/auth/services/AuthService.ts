@@ -5,6 +5,7 @@ import type { AuthState, SessionInfo, SetupInput } from '../../../shared/auth/ty
 import { AppError } from '../../../shared/ipc/result';
 import type { Logger } from '../../core/logger';
 import type { Transactor } from '../../db/types';
+import { type DataKeyring, noKeyring } from '../DataKeyring';
 import type { PasswordHasher, PasswordPolicy } from '../PasswordHasher';
 import type { RecoveryCodes } from '../RecoveryCodes';
 import type { AccountRepository, AccountRow } from '../repositories/AccountRepository';
@@ -27,9 +28,13 @@ export class AuthService {
         private readonly recoveryCodes: RecoveryCodes,
         private readonly logger: Logger,
         private readonly lockout: LockoutPolicy = { maxAttempts: 5, lockMinutes: 5 },
+        /** The data key follows the passwords (see security/DataVault). */
+        private readonly keyring: DataKeyring = noKeyring,
     ) {}
 
     async hasAccounts(): Promise<boolean> {
+        // Locked data exists, so its accounts do (they are inside the encrypted database).
+        if (this.keyring.isLocked()) return true;
         return (await this.accounts.count()) > 0;
     }
 
@@ -38,6 +43,8 @@ export class AuthService {
         return {
             hasAccounts: await this.hasAccounts(),
             session: session ? toSessionInfo(session) : null,
+            lock: session ? null : this.sessions.lockOf(sender),
+            dataLocked: this.keyring.isLocked(),
         };
     }
 
@@ -70,6 +77,7 @@ export class AuthService {
         });
 
         this.logger.info(`Initial administrator created (account #${accountId})`);
+        await this.keyring.remember(username, input.password);
         const session = await this.startSession(sender, await this.requireAccount(accountId));
         return { session, recoveryCode };
     }
@@ -80,6 +88,12 @@ export class AuthService {
         password: string,
     ): Promise<SessionInfo> {
         const username = normalizeUsername(usernameInput);
+        // Locked data opens with the password of any account that could open it before.
+        if (this.keyring.isLocked()) {
+            if (!username || !(await this.keyring.unlock(username, password))) {
+                throw new AppError('INVALID_CREDENTIALS');
+            }
+        }
         const account = username ? await this.accounts.findByUsername(username) : undefined;
 
         if (account?.locked_until && Date.parse(account.locked_until) > Date.now()) {
@@ -99,6 +113,7 @@ export class AuthService {
             last_login_at: new Date().toISOString(),
         });
         this.logger.info(`Login: account #${account.id}`);
+        await this.keyring.remember(account.username, password);
         return this.startSession(sender, account);
     }
 
@@ -131,6 +146,7 @@ export class AuthService {
             must_change_password: 0,
         });
         this.logger.info(`Password changed: account #${account.id}`);
+        await this.keyring.remember(account.username, newPassword);
         return this.startSession(sender, await this.requireAccount(account.id));
     }
 
@@ -156,6 +172,7 @@ export class AuthService {
             locked_until: null,
         });
         this.logger.warn(`Password recovered with recovery code: account #${account.id}`);
+        await this.keyring.remember(account.username, newPassword);
     }
 
     /** Issues a new recovery code for the signed-in account; the previous one stops working. */

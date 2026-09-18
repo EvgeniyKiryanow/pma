@@ -1,6 +1,7 @@
 import { ArrowRight, FilePlus2, FileText, Paperclip, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
+import { reportError } from '../../../shared/api/errors';
 import FilePreviewModal from '../../../shared/components/FilePreviewModal';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { Alert, Button, FieldShell, Modal } from '../../../shared/ui';
@@ -27,8 +28,9 @@ type AddHistoryModalProps = {
         files: FileWithDataUrl[],
         maybeNewStatus?: StatusExcel,
         period?: { from: string; to: string },
-    ) => void;
-    onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    ) => Promise<void> | void;
+    /** Opens the file dialog and adds the chosen documents to `files`. */
+    onAttach: () => void;
     currentStatus?: string;
     initialPeriod?: { from: string; to: string };
 };
@@ -42,11 +44,10 @@ export default function AddHistoryModal({
     files,
     removeFile,
     onSubmit,
-    onFileChange,
+    onAttach,
     currentStatus = '',
     initialPeriod,
 }: AddHistoryModalProps) {
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const { t } = useI18nStore();
     const [newStatus, setNewStatus] = useState<string>('');
     const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
@@ -60,10 +61,21 @@ export default function AddHistoryModal({
 
     if (!isOpen) return null;
 
-    const handleSave = () => {
-        onSubmit(description, files, newStatus ? (newStatus as StatusExcel) : undefined, period);
-        setNewStatus('');
-        setPeriod(initialPeriod || { from: '', to: '' });
+    // The form is cleared only after a successful save: if the entry or its documents could
+    // not be stored, everything the user entered stays in place for another attempt.
+    const handleSave = async () => {
+        try {
+            await onSubmit(
+                description,
+                files,
+                newStatus ? (newStatus as StatusExcel) : undefined,
+                period,
+            );
+            setNewStatus('');
+            setPeriod(initialPeriod || { from: '', to: '' });
+        } catch (err) {
+            reportError(err, { context: 'history-save' });
+        }
     };
 
     const missingForStatus =
@@ -157,7 +169,7 @@ export default function AddHistoryModal({
                     <p className="label">Документи</p>
                     <button
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={onAttach}
                         className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line-strong px-4 py-4 text-sm font-medium text-ink-2 transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink"
                     >
                         <Paperclip className="size-4" />
@@ -166,14 +178,6 @@ export default function AddHistoryModal({
                             · PDF, Word, Excel, зображення
                         </span>
                     </button>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        onChange={onFileChange}
-                        accept=".doc,.docx,.xls,.xlsx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf,image/*"
-                        className="hidden"
-                    />
 
                     {files.length > 0 && (
                         <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">

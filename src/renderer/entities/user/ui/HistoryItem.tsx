@@ -62,7 +62,7 @@ export default function HistoryItem({
 
     const handleDownload = async (file: { name: string; dataUrl?: string }) => {
         const dataUrl = file.dataUrl ?? (await historyApi.loadFile(userId, entry.id, file.name));
-        downloadFile(dataUrl, file.name);
+        await downloadFile(dataUrl, file.name);
     };
 
     const handleDelete = async () => {

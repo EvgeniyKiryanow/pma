@@ -1,6 +1,6 @@
 import { shell } from 'electron';
 
-import type { AutoBackupSettings, BackupSettings } from '../../shared/backup/types';
+import type { AutoBackupSettings, BackupSettings, ResetOptions } from '../../shared/backup/types';
 import { BACKUP_CHANNELS } from '../../shared/ipc/channels';
 import { AppError } from '../../shared/ipc/result';
 import { chooseOpenFile, chooseSavePath } from '../core/dialogs';
@@ -131,7 +131,17 @@ export function registerBackupIpc({ backups, settings, scheduler, hasAccounts }:
         },
     );
 
-    handleResult(BACKUP_CHANNELS.resetAll, access.any('system.reset'), () => backups.resetAll(), {
-        audit: 'system.reset-all',
-    });
+    handleResult(
+        BACKUP_CHANNELS.resetAll,
+        access.any('system.reset'),
+        (_event, options: unknown) =>
+            backups.resetAll({
+                destroyLocalCopies: Boolean(
+                    options &&
+                        typeof options === 'object' &&
+                        (options as ResetOptions).destroyLocalCopies === true,
+                ),
+            }),
+        { audit: 'system.reset-all' },
+    );
 }

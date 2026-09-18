@@ -2,6 +2,7 @@ import { contextBridge, webFrame } from 'electron';
 
 import { appApi } from './api/app';
 import { backupApi, changeLogApi } from './api/backup';
+import { filesApi, settingsApi } from './api/files';
 import { commentsApi, directivesApi, historyApi, personnelApi } from './api/personnel';
 import { namedListApi, remindersApi, reportsApi, staffingApi } from './api/reports';
 import { accountsApi, auditApi, authApi, eventsApi, rolesApi } from './api/security';
@@ -20,6 +21,8 @@ const api = {
     roles: rolesApi,
     audit: auditApi,
     backup: backupApi,
+    files: filesApi,
+    settings: settingsApi,
     events: eventsApi,
     directives: directivesApi,
     shtatni: staffingApi,

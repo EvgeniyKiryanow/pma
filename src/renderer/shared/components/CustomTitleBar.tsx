@@ -1,12 +1,26 @@
-import { Download, Maximize2, Minus, Moon, RotateCcw, Sun, X, ZoomIn, ZoomOut } from 'lucide-react';
+import {
+    Copy,
+    Download,
+    Minus,
+    Moon,
+    RotateCcw,
+    Square,
+    Sun,
+    X,
+    ZoomIn,
+    ZoomOut,
+} from 'lucide-react';
 import { type CSSProperties, type ReactNode, useEffect, useState } from 'react';
 
 import { useI18nStore } from '../../stores/i18nStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useUiStore } from '../../stores/uiStore';
+import { reportError } from '../api/errors';
 import { systemApi } from '../api/system';
 import LogoSvg from '../icons/LogoSvg';
 import { cn, IconButton } from '../ui';
+import { runBlocking } from '../ui/blockingTask';
+import { confirmAction } from '../ui/confirm';
 import { toast } from '../ui/toast';
 
 const drag = { WebkitAppRegion: 'drag' } as CSSProperties;
@@ -37,13 +51,55 @@ export default function CustomTitleBar({
         void systemApi.getVersion().then(setVersion);
     }, []);
 
+    // Maximizing also happens by double-clicking the bar or with Win+Arrow: follow the window.
+    const [maximized, setMaximized] = useState(true);
+    useEffect(() => {
+        let timer: number | undefined;
+        const update = () => {
+            systemApi
+                .isMaximized()
+                .then(setMaximized)
+                .catch(() => undefined);
+        };
+        const onResize = () => {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(update, 120);
+        };
+        update();
+        window.addEventListener('resize', onResize);
+        return () => {
+            window.clearTimeout(timer);
+            window.removeEventListener('resize', onResize);
+        };
+    }, []);
+
     const handleCheckUpdate = async () => {
         setChecking(true);
         try {
-            const result = await systemApi.checkForUpdates();
-            if (result.status === 'error')
-                toast.error(`${t('titleBar.updateError')}: ${result.message}`);
-            else toast.info(t('titleBar.updateStarted'));
+            const update = await systemApi.checkForUpdates();
+            const version = update.version;
+            if (update.status === 'current') {
+                toast.success(t('titleBar.updateCurrent', { version }));
+                return;
+            }
+            if (!update.canInstall) {
+                toast.info(t('titleBar.updateManual', { version }));
+                return;
+            }
+            const confirmed = await confirmAction({
+                title: t('titleBar.updateAvailableTitle', { version }),
+                message: t('titleBar.updateAvailableText'),
+                confirmLabel: t('titleBar.updateInstall'),
+                tone: 'primary',
+            });
+            if (!confirmed) return;
+            // Window-wide: nothing may be edited while the app is about to restart.
+            await runBlocking(t('titleBar.updateDownloading', { version }), () =>
+                systemApi.installUpdate(),
+            );
+            toast.info(t('titleBar.updateRestarting'));
+        } catch (error) {
+            reportError(error);
         } finally {
             setChecking(false);
         }
@@ -152,10 +208,14 @@ export default function CustomTitleBar({
                     <Minus className="size-4" />
                 </WindowButton>
                 <WindowButton
-                    label={t('shell.fullscreen')}
-                    onClick={() => systemApi.toggleFullScreen()}
+                    label={maximized ? t('shell.restoreDown') : t('shell.maximize')}
+                    onClick={() => systemApi.toggleMaximize()}
                 >
-                    <Maximize2 className="size-3.5" />
+                    {maximized ? (
+                        <Copy className="size-3.5 -scale-x-100" />
+                    ) : (
+                        <Square className="size-3" />
+                    )}
                 </WindowButton>
                 <WindowButton label={t('shell.close')} onClick={() => systemApi.close()} danger>
                     <X className="size-4" />

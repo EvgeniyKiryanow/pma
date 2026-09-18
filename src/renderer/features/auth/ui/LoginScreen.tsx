@@ -11,8 +11,11 @@ import RecoverPasswordScreen from './RecoverPasswordScreen';
 export default function LoginScreen() {
     const { t } = useI18nStore();
     const login = useSessionStore((s) => s.login);
+    const lock = useSessionStore((s) => s.lock);
+    const dataLocked = useSessionStore((s) => s.dataLocked);
     const [mode, setMode] = useState<'login' | 'recover'>('login');
-    const [username, setUsername] = useState('');
+    // After an automatic lock the same person usually comes back: keep their login.
+    const [username, setUsername] = useState(lock?.username ?? '');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
@@ -50,6 +53,18 @@ export default function LoginScreen() {
     return (
         <AuthLayout title={t('auth.login.title')} subtitle={t('auth.login.subtitle')}>
             <form onSubmit={submit} className="space-y-4">
+                {dataLocked && !notice && !error && (
+                    <Alert tone="info" title={t('auth.dataLocked.title')}>
+                        {t('auth.dataLocked.text')}
+                    </Alert>
+                )}
+                {lock && !dataLocked && !notice && !error && (
+                    <Alert tone="warning" title={t('auth.lock.title')}>
+                        {lock.reason === 'idle'
+                            ? t('auth.lock.idle', { minutes: lock.idleMinutes })
+                            : t('auth.lock.system')}
+                    </Alert>
+                )}
                 {notice && <Alert tone="success">{notice}</Alert>}
                 {error && <Alert tone="error">{error}</Alert>}
                 <TextField
@@ -57,13 +72,14 @@ export default function LoginScreen() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username"
-                    autoFocus
+                    autoFocus={!lock}
                     required
                 />
                 <PasswordField
                     label={t('auth.login.password')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoFocus={Boolean(lock)}
                     required
                 />
                 <Button

@@ -1,47 +1,38 @@
 import { Eye, FileText, UploadCloud, X } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
+import type { FileKind } from '../../../shared/types/files';
+import { reportError } from '../api/errors';
+import { pickFile, readAsDataUrl } from '../lib/pickFiles';
 import { cn, IconButton } from '../ui';
 import FilePreviewModal, { type FileWithDataUrl } from './FilePreviewModal';
-
-export const DOCUMENT_ACCEPT =
-    'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/*';
 
 /** Single supporting document (order, report...) read as a data URL, with preview. */
 export default function AttachmentPicker({
     file,
     onChange,
-    accept = DOCUMENT_ACCEPT,
+    kind = 'documents',
     placeholder = 'Оберіть файл-підставу',
 }: {
     file: FileWithDataUrl | null;
     onChange: (file: FileWithDataUrl | null) => void;
-    accept?: string;
+    kind?: FileKind;
     placeholder?: string;
 }) {
-    const inputRef = useRef<HTMLInputElement | null>(null);
     const [showPreview, setShowPreview] = useState(false);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const f = e.target.files?.[0];
-        if (!f) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-            onChange({ name: f.name, type: f.type, dataUrl: reader.result as string });
-        };
-        reader.readAsDataURL(f);
-        e.target.value = '';
+    const choose = async () => {
+        try {
+            const picked = await pickFile(kind);
+            if (!picked) return;
+            onChange({ name: picked.name, type: picked.type, dataUrl: await readAsDataUrl(picked) });
+        } catch (err) {
+            reportError(err, { context: 'attachment-picker' });
+        }
     };
 
     return (
         <>
-            <input
-                ref={inputRef}
-                type="file"
-                accept={accept}
-                onChange={handleFileChange}
-                className="hidden"
-            />
             {file ? (
                 <div className="flex items-center gap-3 rounded-xl border border-line bg-surface-2 p-2.5 pl-3">
                     <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary-ink">
@@ -67,7 +58,7 @@ export default function AttachmentPicker({
             ) : (
                 <button
                     type="button"
-                    onClick={() => inputRef.current?.click()}
+                    onClick={() => void choose()}
                     className={cn(
                         'flex w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line-strong px-4 py-5 text-sm transition-colors',
                         'text-ink-2 hover:border-primary hover:bg-primary-soft hover:text-primary-ink',

@@ -1,8 +1,8 @@
 import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
 
 import classifyStatusForReport from '../../../../shared/helpers/classifyStatusForReport';
 import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
+import { downloadFile } from '../../../shared/lib/download';
 import { useUserStore } from '../../../stores/userStore';
 
 export async function generateStaffReportExcel() {
@@ -129,6 +129,14 @@ export async function generateStaffReportExcel() {
         return '000000'; // black
     }
 
+    // The holder of a position is the person with its number (shpkNumber), the same link the
+    // БЧС table uses. Matching by title and unit gave every "командир" of a unit one person.
+    const holders = new Map<string, (typeof users)[number]>();
+    for (const u of users) {
+        const number = String(u.shpkNumber ?? '').trim();
+        if (number && !holders.has(number)) holders.set(number, u);
+    }
+
     // === Start writing data after yellow line ===
     let currentRow = yellowRowIndex + 1;
 
@@ -166,9 +174,7 @@ export async function generateStaffReportExcel() {
             currentRow++;
         } else {
             const pos = item.data;
-            const assignedUser = users.find(
-                (u) => u.position === pos.position_name && u.unitMain === pos.unit_name,
-            );
+            const assignedUser = holders.get(String(pos.shtat_number ?? '').trim());
 
             const extra = pos.extra_data || {};
             const soldierStatus = assignedUser?.soldierStatus;
@@ -217,10 +223,8 @@ export async function generateStaffReportExcel() {
 
     // ✅ Save Excel
     const buf = await wb.xlsx.writeBuffer();
-    saveAs(
-        new Blob([buf], {
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        }),
+    await downloadFile(
+        buf as ArrayBuffer,
         `staff_report_${new Date().toISOString().split('T')[0]}.xlsx`,
     );
 }

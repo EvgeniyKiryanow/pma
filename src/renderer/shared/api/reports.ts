@@ -46,8 +46,8 @@ export const reportTemplatesApi = {
     },
     readFile: (fileName: string): Promise<ArrayBuffer> =>
         call(bridge().readReportFileBuffer(fileName)),
-    /** PDF preview through LibreOffice; returns the path of the PDF. */
-    convertToPdf: (content: ArrayBuffer, fileName: string): Promise<string> =>
+    /** PDF preview through LibreOffice (when installed); returns the PDF content. */
+    convertToPdf: (content: ArrayBuffer, fileName: string): Promise<Uint8Array> =>
         call(bridge().convertDocxToPdf(content, fileName)),
 };
 

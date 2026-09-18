@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 
+import type { UnitInfo } from '../../../../shared/types/settings';
 import type { User } from '../../../../shared/types/user';
+import { settingsApi } from '../../../shared/api/files';
 import { personnelApi } from '../../../shared/api/personnel';
 import { reportTemplatesApi } from '../../../shared/api/reports';
 
@@ -16,10 +18,8 @@ type SavedTemplate = {
     timestamp: number;
 };
 
-type AdditionalInfo = {
-    unitName: string;
-    commanderName: string;
-};
+/** Unit details for documents; stored in the database so backups carry them. */
+type AdditionalInfo = UnitInfo;
 
 type ReportsState = {
     users: User[];
@@ -29,7 +29,8 @@ type ReportsState = {
     selectedUserId: number | null;
     selectedUserId2: number | null;
     additionalInfo: AdditionalInfo | null;
-    setAdditionalInfo: (info: AdditionalInfo | null) => void;
+    loadAdditionalInfo: () => Promise<void>;
+    setAdditionalInfo: (info: AdditionalInfo | null) => Promise<void>;
     setUsers: (users: User[]) => void;
     setSavedTemplates: (templates: any[]) => void;
     setSelectedTemplate: (id: string | number) => void;
@@ -42,13 +43,33 @@ type ReportsState = {
     loadDefaultTemplates: () => Promise<void>;
 };
 
-// Helper to read from localStorage
-function getInitialAdditionalInfo(): AdditionalInfo | null {
+const LEGACY_STORAGE_KEY = 'reports_additionalInfo';
+
+/**
+ * Older versions kept the unit details in the window's local storage, where backups never
+ * reached them. Read once to move them into the database.
+ */
+function takeLegacyAdditionalInfo(): AdditionalInfo | null {
     try {
-        const raw = localStorage.getItem('reports_additionalInfo');
-        return raw ? JSON.parse(raw) : null;
+        const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object'
+            ? {
+                  unitName: String(parsed.unitName ?? ''),
+                  commanderName: String(parsed.commanderName ?? ''),
+              }
+            : null;
     } catch {
         return null;
+    }
+}
+
+function forgetLegacyAdditionalInfo(): void {
+    try {
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {
+        // storage unavailable: nothing to clean up
     }
 }
 
@@ -60,15 +81,20 @@ export const useReportsStore = create<ReportsState>((set) => ({
     selectedUserId: null,
     selectedUserId2: null,
 
-    additionalInfo: getInitialAdditionalInfo(),
+    additionalInfo: null,
 
-    setAdditionalInfo: (info) => {
-        if (info) {
-            localStorage.setItem('reports_additionalInfo', JSON.stringify(info));
-        } else {
-            localStorage.removeItem('reports_additionalInfo');
+    loadAdditionalInfo: async () => {
+        let info = await settingsApi.getUnitInfo();
+        const legacy = takeLegacyAdditionalInfo();
+        if (legacy) {
+            if (!info) info = await settingsApi.updateUnitInfo(legacy);
+            forgetLegacyAdditionalInfo();
         }
         set({ additionalInfo: info });
+    },
+
+    setAdditionalInfo: async (info) => {
+        set({ additionalInfo: await settingsApi.updateUnitInfo(info) });
     },
 
     setUsers: (users) => set({ users }),

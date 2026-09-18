@@ -4,6 +4,8 @@ import type {
     ExportResult,
     ImportInspection,
     ImportSelection,
+    ResetOptions,
+    ResetResult,
     RestoreResult,
     SnapshotInfo,
 } from '../../../shared/backup/types';
@@ -26,7 +28,8 @@ export const backupApi = {
     listSnapshots: (): Promise<SnapshotInfo[]> => unwrap(bridge().backup.listSnapshots()),
     createSnapshot: (): Promise<string> => unwrap(bridge().backup.createSnapshot()),
     openBackupsFolder: (): Promise<void> => unwrap(bridge().backup.openBackupsFolder()),
-    resetAll: (): Promise<string> => unwrap(bridge().backup.resetAll()),
+    resetAll: (options: ResetOptions = {}): Promise<ResetResult> =>
+        unwrap(bridge().backup.resetAll(options)),
 };
 
 /**

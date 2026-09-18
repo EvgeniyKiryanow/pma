@@ -12,6 +12,7 @@ import type { Transactor } from '../../db/types';
 import type { PasswordHasher, PasswordPolicy } from '../PasswordHasher';
 import type { AccountRepository, AccountRow } from '../repositories/AccountRepository';
 import type { RoleRepository } from '../repositories/RoleRepository';
+import { type DataKeyring, noKeyring } from '../DataKeyring';
 import type { AuthService } from './AuthService';
 import { validateDisplayName, validateId, validateUsername } from './validation';
 
@@ -44,6 +45,8 @@ export class AccountService {
         private readonly policy: PasswordPolicy,
         private readonly auth: AuthService,
         private readonly logger: Logger,
+        /** An account that loses its password stops being able to open the data. */
+        private readonly keyring: DataKeyring = noKeyring,
     ) {}
 
     async list(): Promise<AccountDTO[]> {
@@ -86,6 +89,7 @@ export class AccountService {
         input: UpdateAccountInput,
     ): Promise<AccountDTO> {
         const id = validateId(idInput);
+        let deactivated: string | null = null;
 
         await this.database.transaction(async () => {
             const account = await this.require(id);
@@ -117,10 +121,12 @@ export class AccountService {
                     if (account.role_grants_all) await this.assertNotLastAdmin(account);
                 }
                 patch.is_active = input.isActive ? 1 : 0;
+                if (!input.isActive) deactivated = account.username;
             }
 
             await this.accounts.update(id, patch);
         });
+        if (deactivated) await this.keyring.forget(deactivated);
 
         this.logger.info(`Account #${id} updated by account #${actor.accountId}`);
         await this.auth.refreshSessions((s) => s.accountId === id);
@@ -135,13 +141,15 @@ export class AccountService {
     ): Promise<void> {
         const id = validateId(idInput);
         this.policy.assertValid(temporaryPassword);
-        await this.require(id);
+        const account = await this.require(id);
         await this.accounts.update(id, {
             password_hash: await this.hasher.hash(temporaryPassword),
             must_change_password: 1,
             failed_login_count: 0,
             locked_until: null,
         });
+        // The old password no longer opens the data; the new one will after the next sign-in.
+        await this.keyring.forget(account.username);
         this.logger.warn(`Password of account #${id} reset by account #${actor.accountId}`);
         await this.auth.refreshSessions((s) => s.accountId === id);
     }
@@ -158,11 +166,13 @@ export class AccountService {
         if (id === actor.accountId) {
             throw new AppError('VALIDATION', 'Не можна видалити власний обліковий запис');
         }
-        await this.database.transaction(async () => {
+        const username = await this.database.transaction(async () => {
             const account = await this.require(id);
             if (account.role_grants_all) await this.assertNotLastAdmin(account);
             await this.accounts.delete(id);
+            return account.username;
         });
+        await this.keyring.forget(username);
         this.logger.warn(`Account #${id} deleted by account #${actor.accountId}`);
         await this.auth.refreshSessions((s) => s.accountId === id);
     }

@@ -52,6 +52,45 @@ export async function withTempDir<T>(
     }
 }
 
+const SHRED_CHUNK = 1024 * 1024;
+
+/**
+ * Overwrites every file under `target` with zeros, flushes it to disk and deletes it.
+ * A plain delete only forgets where the bytes are; on a hard drive they stay readable with
+ * recovery tools until overwritten. (On an SSD the drive decides where writes land, so this
+ * is best effort — full-disk encryption is what protects data there.)
+ */
+export async function shred(target: string): Promise<{ files: number; bytes: number }> {
+    const result = { files: 0, bytes: 0 };
+    if (!fs.existsSync(target)) return result;
+    const stat = await fsp.lstat(target);
+    if (stat.isDirectory()) {
+        for (const item of await fsp.readdir(target)) {
+            const nested = await shred(path.join(target, item));
+            result.files += nested.files;
+            result.bytes += nested.bytes;
+        }
+    } else if (stat.isFile()) {
+        if (stat.size > 0) {
+            const zeros = Buffer.alloc(Math.min(SHRED_CHUNK, stat.size));
+            const handle = await fsp.open(target, 'r+');
+            try {
+                for (let offset = 0; offset < stat.size; offset += zeros.length) {
+                    const length = Math.min(zeros.length, stat.size - offset);
+                    await handle.write(zeros, 0, length, offset);
+                }
+                await handle.sync();
+            } finally {
+                await handle.close();
+            }
+        }
+        result.files += 1;
+        result.bytes += stat.size;
+    }
+    await remove(target);
+    return result;
+}
+
 export function timestampForFileName(date = new Date()): string {
     return date.toISOString().replace(/[:.]/g, '-');
 }

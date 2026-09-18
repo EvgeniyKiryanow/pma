@@ -2,8 +2,6 @@ import { randomUUID } from 'crypto';
 import fs from 'fs';
 import fsp from 'fs/promises';
 import path from 'path';
-import { open } from 'sqlite';
-import sqlite3 from 'sqlite3';
 
 import {
     BACKUP_PASSWORD_MIN_LENGTH,
@@ -12,30 +10,40 @@ import {
     type ExportResult,
     type ImportInspection,
     type ImportSelection,
+    type ResetOptions,
+    type ResetResult,
     type RestoreResult,
     type SnapshotInfo,
     type SnapshotKind,
 } from '../../shared/backup/types';
 import { AppError } from '../../shared/ipc/result';
 import type { SessionManager } from '../auth/SessionManager';
-import { directorySize, move, remove, timestampForFileName } from '../core/fsUtils';
+import { directorySize, move, remove, shred, timestampForFileName } from '../core/fsUtils';
 import type { Logger } from '../core/logger';
-import { AppPaths, DATA_DIRECTORIES, resolveInside } from '../core/paths';
+import { AppPaths, DATA_DIRECTORIES, PRIVATE_DATA_DIRECTORIES, resolveInside } from '../core/paths';
 import type { DatabaseManager } from '../db/connection';
+import { isPlainDatabaseFile, openDatabase } from '../db/driver';
+import type { Db } from '../db/types';
 import type { MigrationRunner } from '../db/migrations/runner';
 import type { TemplateInstaller } from '../reports/TemplateInstaller';
+import type { DataEncryptor } from '../security/DataEncryptor';
+import type { DataVault } from '../security/DataVault';
 import { ArchiveWriter, extractEntry, readArchiveIndex, readEntry } from './archive';
 import { decryptLegacyBackup, decryptPackage, detectFormat, encryptFile } from './crypto';
 
 const DB_FILE = 'users.db';
 const DB_SIDE_FILES = ['', '-wal', '-shm'];
 const SAFETY_SNAPSHOTS_TO_KEEP = 10;
+/** The data key inside a package (kept out of the manifest, which is shown in the window). */
+const KEY_ENTRY = 'security/data.key';
 
 type PendingImport = {
     filePath: string;
     selection: ImportSelection;
     workDir?: string;
     inspection?: ImportInspection;
+    /** Key of the encrypted data inside the package (null: unencrypted, older versions). */
+    key?: Buffer | null;
 };
 
 export type BackupServiceDeps = {
@@ -46,6 +54,15 @@ export type BackupServiceDeps = {
     logger: Logger;
     appVersion: () => string;
     instanceId: () => string;
+    /** The live data was replaced (restore, reset): caches of the old data must go. */
+    onDataReplaced?: () => void;
+    /** Removes what the browser part of the app keeps (storage, caches). */
+    clearBrowserData?: () => Promise<void>;
+    /** Overwrites and deletes the log files (when everything is destroyed). */
+    destroyLogs?: () => Promise<number>;
+    /** Key of the data set; without it (tests) data is handled unencrypted. */
+    vault?: DataVault;
+    encryptor?: DataEncryptor;
 };
 
 /**
@@ -75,7 +92,7 @@ export class BackupService {
                 totalBytes += size.bytes;
             }
 
-            const counts = await this.countRecords(dbCopy);
+            const counts = await this.countRecords(dbCopy, this.currentKey());
             const manifest: BackupManifest = {
                 formatVersion: 2,
                 createdAt: new Date().toISOString(),
@@ -91,6 +108,9 @@ export class BackupService {
             await writer.open();
             await writer.addBuffer('manifest.json', Buffer.from(JSON.stringify(manifest, null, 2)));
             await writer.addFile(`database/${DB_FILE}`, dbCopy);
+            // The database and files stay encrypted inside; the package carries their key and
+            // is itself encrypted with the backup password.
+            if (this.deps.vault) await writer.addBuffer(KEY_ENTRY, this.deps.vault.exportKey());
             for (const dir of DATA_DIRECTORIES) {
                 await writer.addDirectory(`files/${dir.name}`, dir.resolve());
             }
@@ -113,7 +133,7 @@ export class BackupService {
             );
             return { fileName: path.basename(targetPath), sizeBytes: size, manifest };
         } finally {
-            await remove(workDir);
+            await shred(workDir);
         }
     }
 
@@ -137,7 +157,8 @@ export class BackupService {
     async inspectImport(senderId: number, password: string): Promise<ImportInspection> {
         const pending = this.pending.get(senderId);
         if (!pending) throw new AppError('NOTHING_SELECTED');
-        if (pending.workDir) await remove(pending.workDir);
+        if (pending.workDir) await shred(pending.workDir);
+        pending.key = null;
 
         const workDir = await this.createWorkDir('import');
         pending.workDir = workDir;
@@ -151,15 +172,17 @@ export class BackupService {
         if (format === 'pmb2') {
             const archivePath = path.join(workDir, 'archive.bin');
             await decryptPackage(pending.filePath, archivePath, password);
-            manifest = await this.extractPackage(archivePath, stagingDir);
-            await remove(archivePath);
+            const extracted = await this.extractPackage(archivePath, stagingDir);
+            manifest = extracted.manifest;
+            pending.key = extracted.key;
+            await shred(archivePath);
         } else if (format === 'legacy-encrypted') {
             await decryptLegacyBackup(pending.filePath, stagedDb, password);
         } else {
             await fsp.copyFile(pending.filePath, stagedDb);
         }
 
-        const dbInfo = await this.validateDatabase(stagedDb);
+        const dbInfo = await this.validateDatabase(stagedDb, pending.key?.toString('hex') ?? null);
         pending.inspection = {
             format,
             manifest,
@@ -181,6 +204,7 @@ export class BackupService {
                 reason: 'pre-restore',
                 stagingDir: path.join(pending.workDir, 'data'),
                 includeFiles: pending.inspection.includesFiles,
+                key: pending.key ?? null,
             });
             this.deps.logger.warn(
                 `Data restored from ${pending.selection.format} backup (schema v${from} -> v${to})`,
@@ -194,19 +218,24 @@ export class BackupService {
         } finally {
             await this.cancelImport(senderId);
             this.deps.sessions.clearAll();
+            this.deps.onDataReplaced?.();
         }
     }
 
     async cancelImport(senderId: number): Promise<void> {
         const pending = this.pending.get(senderId);
         this.pending.delete(senderId);
-        if (pending?.workDir) await remove(pending.workDir);
+        if (pending?.workDir) await shred(pending.workDir);
     }
 
     // ------------------------------------------------------------------ reset
 
-    /** Moves all current data into a safety snapshot and starts with an empty database. */
-    async resetAll(): Promise<string> {
+    /**
+     * Starts over with an empty database. By default the current data is moved into a safety
+     * snapshot (a wrong click can be undone); with `destroyLocalCopies` the data and every
+     * local copy are overwritten and deleted.
+     */
+    async resetAll(options: ResetOptions = {}): Promise<ResetResult> {
         const stagingDir = await this.createWorkDir('reset');
         try {
             const { snapshot } = await this.replaceLiveData({
@@ -214,12 +243,62 @@ export class BackupService {
                 stagingDir,
                 includeFiles: true,
             });
-            this.deps.logger.warn('All data reset; previous data kept in a safety snapshot');
-            return snapshot;
+            await this.clearBrowserData();
+            if (!options.destroyLocalCopies) {
+                this.deps.logger.warn('All data reset; previous data kept in a safety snapshot');
+                return { safetySnapshot: snapshot, destroyedFiles: 0 };
+            }
+
+            // The snapshot just taken, older safety snapshots and automatic copies all hold
+            // the data being destroyed; the log may quote it in error messages.
+            const destroyed = await shred(AppPaths.backupsRoot);
+            const logFiles = (await this.deps.destroyLogs?.().catch(() => 0)) ?? 0;
+            await this.renewKey();
+            this.deps.logger.warn(
+                `All data destroyed together with local copies (${destroyed.files + logFiles} files overwritten)`,
+            );
+            return { safetySnapshot: null, destroyedFiles: destroyed.files + logFiles };
         } finally {
-            await remove(stagingDir);
+            await shred(stagingDir);
             this.deps.sessions.clearAll();
+            this.deps.onDataReplaced?.();
         }
+    }
+
+    /**
+     * After everything was destroyed: the old key goes too (its keystore is overwritten), and
+     * the new empty data set gets a key of its own.
+     */
+    private async renewKey(): Promise<void> {
+        const { vault, database, migrations, templates } = this.deps;
+        if (!vault) return;
+        await database.close();
+        for (const suffix of DB_SIDE_FILES) await shred(`${AppPaths.database}${suffix}`);
+        await vault.destroy();
+        await vault.create();
+        await migrations.run(await database.get());
+        await templates.ensureInstalled();
+    }
+
+    /** Local storage and caches of the window hold nothing of the old data set afterwards. */
+    private async clearBrowserData(): Promise<void> {
+        try {
+            await this.deps.clearBrowserData?.();
+        } catch (err) {
+            this.deps.logger.warn('Clearing browser storage failed', err);
+        }
+    }
+
+    /**
+     * Leftovers of operations interrupted by a crash or power loss: a half-finished export
+     * leaves a decrypted archive of all data here. Called on every start.
+     */
+    async purgeStaging(): Promise<void> {
+        if (!fs.existsSync(AppPaths.staging)) return;
+        const leftovers = await fsp.readdir(AppPaths.staging);
+        if (!leftovers.length) return;
+        const { files } = await shred(AppPaths.staging);
+        this.deps.logger.warn(`Removed ${files} leftover files of an interrupted operation`);
     }
 
     // ------------------------------------------------------------------ snapshots
@@ -294,8 +373,11 @@ export class BackupService {
             await decryptPackage(filePath, archivePath, password);
             const stagingDir = path.join(checkDir, 'data');
             await fsp.mkdir(stagingDir, { recursive: true });
-            await this.extractPackage(archivePath, stagingDir);
-            await this.validateDatabase(path.join(stagingDir, DB_FILE));
+            const { key } = await this.extractPackage(archivePath, stagingDir);
+            await this.validateDatabase(
+                path.join(stagingDir, DB_FILE),
+                key?.toString('hex') ?? null,
+            );
         } catch (err) {
             await remove(filePath);
             this.deps.logger.error(
@@ -307,7 +389,7 @@ export class BackupService {
                 'Копію створено, але перевірка не пройшла, тому файл видалено. Спробуйте зберегти на інший носій.',
             );
         } finally {
-            await remove(checkDir);
+            await shred(checkDir);
         }
     }
 
@@ -318,7 +400,10 @@ export class BackupService {
         return dir;
     }
 
-    private async extractPackage(archivePath: string, stagingDir: string): Promise<BackupManifest> {
+    private async extractPackage(
+        archivePath: string,
+        stagingDir: string,
+    ): Promise<{ manifest: BackupManifest; key: Buffer | null }> {
         const entries = await readArchiveIndex(archivePath);
         const manifestEntry = entries.find((e) => e.path === 'manifest.json');
         const dbEntry = entries.find((e) => e.path === `database/${DB_FILE}`);
@@ -345,19 +430,29 @@ export class BackupService {
             if (root !== 'files' || !knownDirs.has(dirName) || !rest.length) continue;
             await extractEntry(archivePath, entry, resolveInside(stagingDir, dirName, ...rest));
         }
-        return manifest;
+        const keyEntry = entries.find((e) => e.path === KEY_ENTRY);
+        const key = keyEntry ? await readEntry(archivePath, keyEntry) : null;
+        if (key && key.length !== 32) throw new AppError('CORRUPTED', 'Package key is damaged');
+        return { manifest, key };
+    }
+
+    /** Key of the live data set (undefined: unencrypted mode of tests). */
+    private currentKey(): string | null | undefined {
+        return this.deps.vault ? this.deps.vault.databaseKey() : undefined;
+    }
+
+    /** Opens a database copy read-only: unencrypted files as they are, others with `key`. */
+    private openCopy(file: string, key: string | null | undefined): Db {
+        return openDatabase(file, { readonly: true, key: isPlainDatabaseFile(file) ? null : key });
     }
 
     private async validateDatabase(
         file: string,
+        key: string | null | undefined,
     ): Promise<{ schemaVersion: number; personnel: number; accounts: number }> {
-        let db;
+        let db: Db | undefined;
         try {
-            db = await open({
-                filename: file,
-                driver: sqlite3.Database,
-                mode: sqlite3.OPEN_READONLY,
-            });
+            db = this.openCopy(file, key);
             const check = await db.get<{ quick_check: string }>('PRAGMA quick_check');
             if (check?.quick_check !== 'ok') throw new Error('quick_check failed');
             const version =
@@ -379,12 +474,11 @@ export class BackupService {
         }
     }
 
-    private async countRecords(file: string): Promise<{ personnel: number; accounts: number }> {
-        const db = await open({
-            filename: file,
-            driver: sqlite3.Database,
-            mode: sqlite3.OPEN_READONLY,
-        });
+    private async countRecords(
+        file: string,
+        key: string | null | undefined,
+    ): Promise<{ personnel: number; accounts: number }> {
+        const db = this.openCopy(file, key);
         try {
             return await this.countRecordsIn(db);
         } finally {
@@ -416,11 +510,16 @@ export class BackupService {
         reason: string;
         stagingDir: string;
         includeFiles: boolean;
+        /** Key of the incoming data (a package of this version); null: keep the current key. */
+        key?: Buffer | null;
     }): Promise<{ snapshot: string; from: number; to: number }> {
         const { database, migrations, templates, logger } = this.deps;
         const snapshotName = `${timestampForFileName()}__${options.reason}`;
         const snapshotDir = path.join(AppPaths.safetyBackups, snapshotName);
         await fsp.mkdir(snapshotDir, { recursive: true });
+        // The safety copy stays readable: it keeps the key of the data set it holds.
+        await this.deps.vault?.copyTo(path.join(snapshotDir, 'keystore.json'));
+        const vaultBefore = this.deps.vault?.snapshot();
 
         const movedOut: [string, string][] = [];
         const movedIn: string[] = [];
@@ -450,6 +549,7 @@ export class BackupService {
                 }
             }
 
+            await this.takeOverData(options.key ?? null, dataDirs.length > 0);
             const db = await database.get();
             const report = await migrations.run(db);
             await templates.ensureInstalled();
@@ -469,11 +569,31 @@ export class BackupService {
             for (const [original, saved] of movedOut.reverse()) {
                 await move(saved, original).catch((e) => logger.error('Rollback move failed', e));
             }
+            if (vaultBefore) {
+                await this.deps.vault
+                    ?.restore(vaultBefore)
+                    .catch((e) => logger.error('Restoring the data key failed', e));
+            }
             await database
                 .get()
                 .catch((e) => logger.error('Reopening database after rollback failed', e));
             throw err;
         }
+    }
+
+    /**
+     * The data just moved in becomes the live data set: a package of this version brings its
+     * own key; data of older versions (unencrypted) is encrypted with the current key.
+     */
+    private async takeOverData(key: Buffer | null, includesFiles: boolean): Promise<void> {
+        const { vault, encryptor } = this.deps;
+        if (!vault || !encryptor) return;
+        if (key) await vault.adopt(key);
+        if (await encryptor.encryptDatabase(AppPaths.database)) {
+            this.deps.logger.info('Restored database encrypted with the key of this computer');
+        }
+        if (!includesFiles) return;
+        for (const dir of PRIVATE_DATA_DIRECTORIES) await encryptor.encryptFiles(dir.resolve());
     }
 
     private async prune(kind: SnapshotKind, keep: number): Promise<void> {

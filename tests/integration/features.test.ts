@@ -17,6 +17,8 @@ import { HistoryAttachments } from '../../src/main/personnel/HistoryAttachments'
 import { HistoryService } from '../../src/main/personnel/HistoryService';
 import { PersonnelRepository } from '../../src/main/personnel/PersonnelRepository';
 import { PersonnelService } from '../../src/main/personnel/PersonnelService';
+import { SettingsRepository } from '../../src/main/settings/SettingsRepository';
+import { SettingsService } from '../../src/main/settings/SettingsService';
 import { ReportFileStore } from '../../src/main/reports/ReportFileStore';
 import { ReportTemplateRepository } from '../../src/main/reports/ReportTemplateRepository';
 import { ReportTemplateService } from '../../src/main/reports/ReportTemplateService';
@@ -45,17 +47,19 @@ async function createWorld(dir: string) {
     };
     const { transactor, journal } = context;
     const people = new PersonnelRepository(db);
+    const attachments = new HistoryAttachments(() => path.join(dir, 'history_files'), silentLogger);
 
     return {
         dir,
         database,
         journal,
-        personnel: new PersonnelService(transactor, people, journal),
+        personnel: new PersonnelService(transactor, people, journal, attachments),
         history: new HistoryService(
             transactor,
             new EntryListStore<CommentOrHistoryEntry>(people, journal, 'history'),
-            new HistoryAttachments(() => path.join(dir, 'history_files'), silentLogger),
+            attachments,
         ),
+        settings: new SettingsService(new SettingsRepository(db)),
         comments: new CommentService(
             transactor,
             new EntryListStore<CommentOrHistoryEntry>(people, journal, 'comments'),
@@ -204,6 +208,77 @@ describe('history and comments', () => {
         await expect(world.history.remove(11)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
 
+    it('keeps two documents with the same name apart', async () => {
+        const { id } = await world.personnel.create(person('Ткаченко Остап'));
+        const first = `data:application/pdf;base64,${Buffer.from('перший').toString('base64')}`;
+        const second = `data:application/pdf;base64,${Buffer.from('другий').toString('base64')}`;
+        await world.history.add(
+            id,
+            entry(20, {
+                files: [
+                    { ...attachment, name: 'скан.pdf', dataUrl: first },
+                    { ...attachment, name: 'скан.pdf', dataUrl: second },
+                ],
+            }),
+        );
+
+        const [saved] = await world.history.listByRange(id, 'all');
+        expect(saved.files.map((f: { name: string }) => f.name)).toEqual([
+            'скан.pdf',
+            'скан (2).pdf',
+        ]);
+        expect((await world.history.loadFile(id, 20, 'скан.pdf')).dataUrl).toBe(first);
+        expect((await world.history.loadFile(id, 20, 'скан (2).pdf')).dataUrl).toBe(second);
+    });
+
+    it('keeps documents an edit refers to by name and adds the new ones', async () => {
+        const { id } = await world.personnel.create(person('Олійник Максим'));
+        await world.history.add(id, entry(21, { files: [{ ...attachment, dataUrl }] }));
+
+        const extra = `data:image/png;base64,${Buffer.from('фото').toString('base64')}`;
+        await world.history.edit(
+            id,
+            entry(21, {
+                content: 'додано фото',
+                files: [attachment, { name: 'фото.png', type: 'image/png', dataUrl: extra }],
+            }),
+        );
+
+        const [saved] = await world.history.listByRange(id, 'all');
+        expect(saved.files.map((f: { name: string }) => f.name)).toEqual(['наказ.pdf', 'фото.png']);
+        expect((await world.history.loadFile(id, 21, 'наказ.pdf')).dataUrl).toBe(dataUrl);
+        expect((await world.history.loadFile(id, 21, 'фото.png')).dataUrl).toBe(extra);
+    });
+
+    it('saves neither the entry nor any document when one document cannot be written', async () => {
+        const { id } = await world.personnel.create(person('Шевчук Роман'));
+        await expect(
+            world.history.add(
+                id,
+                entry(22, {
+                    files: [
+                        { ...attachment, dataUrl },
+                        { name: 'зламаний.pdf', type: 'application/pdf', dataUrl: 'не-файл' },
+                    ],
+                }),
+            ),
+        ).rejects.toThrow();
+
+        expect(await world.history.listByRange(id, 'all')).toEqual([]);
+        const entryDir = path.join(world.dir, 'history_files', String(id), '22');
+        expect(fs.existsSync(entryDir)).toBe(false);
+    });
+
+    it('deletes the documents of a person together with the person', async () => {
+        const { id } = await world.personnel.create(person('Кравченко Ігор'));
+        await world.history.add(id, entry(23, { files: [{ ...attachment, dataUrl }] }));
+        const personDir = path.join(world.dir, 'history_files', String(id));
+        expect(fs.existsSync(personDir)).toBe(true);
+
+        expect(await world.personnel.remove(id)).toBe(true);
+        expect(fs.existsSync(personDir)).toBe(false);
+    });
+
     it('filters history by period', async () => {
         const { id } = await world.personnel.create(person('Мельник Тарас'));
         const old = new Date();
@@ -249,6 +324,36 @@ describe('history and comments', () => {
         await world.comments.remove(7);
         expect(await world.comments.list(a.id)).toEqual([]);
         expect((await world.comments.list(b.id)).map((c) => c.id)).toEqual([8]);
+    });
+});
+
+describe('settings stored with the data', () => {
+    it('uses a 10-minute idle lock until an administrator changes it', async () => {
+        expect(await world.settings.getSecurity()).toEqual({ idleLockMinutes: 10 });
+        await world.settings.updateSecurity({ idleLockMinutes: 5 });
+
+        // A fresh service (another start of the app) reads it from the database.
+        const reread = new SettingsService(new SettingsRepository(() => world.database.get()));
+        expect(await reread.getSecurity()).toEqual({ idleLockMinutes: 5 });
+    });
+
+    it('accepts only the offered timeouts', async () => {
+        await expect(world.settings.updateSecurity({ idleLockMinutes: 0 })).rejects.toMatchObject({
+            code: 'VALIDATION',
+        });
+        await expect(
+            world.settings.updateSecurity({ idleLockMinutes: 7 as never }),
+        ).rejects.toMatchObject({ code: 'VALIDATION' });
+        expect(await world.settings.getSecurity()).toEqual({ idleLockMinutes: 10 });
+    });
+
+    it('keeps the unit details for documents and removes them on request', async () => {
+        expect(await world.settings.getUnitInfo()).toBeNull();
+        const info = { unitName: '2 мб 3 рота', commanderName: 'Коваль Петро Іванович' };
+        expect(await world.settings.updateUnitInfo(info)).toEqual(info);
+        expect(await world.settings.getUnitInfo()).toEqual(info);
+        await world.settings.updateUnitInfo(null);
+        expect(await world.settings.getUnitInfo()).toBeNull();
     });
 });
 

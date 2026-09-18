@@ -51,13 +51,17 @@ export const BACKUP_CHANNELS = {
 export const APP_CHANNELS = {
     hide: 'hide-app',
     getVersion: 'get-app-version',
+    /** Maximized (or full screen): the title bar shows the "smaller window" button. */
+    isMaximized: 'app:is-maximized',
     checkForUpdates: 'check-for-updates',
+    installUpdate: 'app:install-update',
 } as const;
 
 /** One-way messages from the renderer (`ipcRenderer.send`, no reply). */
 export const APP_EVENTS = {
     close: 'app:close',
-    toggleFullScreen: 'app:toggle-fullscreen',
+    /** Title-bar button: maximized window ⇄ a smaller one. */
+    toggleMaximize: 'app:toggle-maximize',
 } as const;
 
 export const PERSONNEL_CHANNELS = {
@@ -129,4 +133,22 @@ export const REMINDER_CHANNELS = {
 export const SYNC_CHANNELS = {
     exportChanges: 'change-history:export',
     importChanges: 'change-history:import',
+} as const;
+
+/** Application settings kept in the database (they travel with backups). */
+export const SETTINGS_CHANNELS = {
+    getSecurity: 'settings:get-security',
+    updateSecurity: 'settings:update-security',
+    getUnitInfo: 'settings:get-unit-info',
+    updateUnitInfo: 'settings:update-unit-info',
+} as const;
+
+/**
+ * Files in and out of the app. Every file dialog runs in the main process with
+ * "do not add to recent", so Windows keeps no list of what was opened or saved.
+ */
+export const FILE_CHANNELS = {
+    pick: 'files:pick',
+    save: 'files:save',
+    copyText: 'files:copy-text',
 } as const;

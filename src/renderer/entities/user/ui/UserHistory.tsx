@@ -2,8 +2,10 @@ import { History, Plus, ScrollText } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { CommentOrHistoryEntry } from '../../../../shared/types/user';
+import { reportError } from '../../../shared/api/errors';
 import { historyApi } from '../../../shared/api/personnel';
 import FilePreviewModal from '../../../shared/components/FilePreviewModal';
+import { pickFiles, readAsDataUrl, uniqueFileName } from '../../../shared/lib/pickFiles';
 import { Button, EmptyState, SearchInput, Tabs } from '../../../shared/ui';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 import { useI18nStore } from '../../../stores/i18nStore';
@@ -17,7 +19,10 @@ type DateRange = '1d' | '7d' | '30d' | 'all';
 
 type UserHistoryProps = {
     userId: number;
-    onAddHistory: (entry: CommentOrHistoryEntry, maybeNewStatus?: StatusExcel) => void;
+    onAddHistory: (
+        entry: CommentOrHistoryEntry,
+        maybeNewStatus?: StatusExcel,
+    ) => Promise<void> | void;
     onDeleteHistory: (id: number) => void;
     onStatusChange: (status: StatusExcel) => void;
     currentStatus?: string;
@@ -88,6 +93,35 @@ export default function UserHistory({
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [history, searchTerm]);
 
+    /** Adds chosen documents; a name already in the entry gets a suffix instead of replacing it. */
+    const attachFiles = async () => {
+        try {
+            const picked = await pickFiles('documents', { multiple: true });
+            const read = await Promise.all(
+                picked.map(async (file) => ({
+                    name: file.name,
+                    type: file.type,
+                    dataUrl: await readAsDataUrl(file),
+                })),
+            );
+            setFiles((prev) => {
+                const next = [...prev];
+                for (const file of read) {
+                    next.push({
+                        ...file,
+                        name: uniqueFileName(
+                            file.name,
+                            next.map((f) => f.name),
+                        ),
+                    });
+                }
+                return next;
+            });
+        } catch (err) {
+            reportError(err, { context: 'history-attach' });
+        }
+    };
+
     const openAddModal = () => {
         setEditingEntry(null);
         setDescription('');
@@ -117,21 +151,12 @@ export default function UserHistory({
         }
 
         if (editingEntry) {
+            // Documents kept from the saved entry are already on disk: they are sent by name
+            // only, so an edit never rewrites (or, on a read error, loses) them.
             const existingFiles = editingEntry.files || [];
-            const retainedMeta = existingFiles.filter((oldFile) =>
+            const retained = existingFiles.filter((oldFile) =>
                 attachedFiles.some((f) => f.name === oldFile.name && !f.dataUrl),
             );
-
-            const retained: FileWithDataUrl[] = await Promise.all(
-                retainedMeta.map(async (f) => {
-                    try {
-                        const dataUrl = await historyApi.loadFile(userId, editingEntry.id, f.name);
-                        return { ...f, dataUrl };
-                    } catch {
-                        return null;
-                    }
-                }),
-            ).then((r) => r.filter(Boolean) as FileWithDataUrl[]);
 
             const updated: CommentOrHistoryEntry = {
                 ...editingEntry,
@@ -169,7 +194,7 @@ export default function UserHistory({
                 period: period || undefined,
             };
 
-            onAddHistory(newEntry, maybeNewStatus);
+            await onAddHistory(newEntry, maybeNewStatus);
         }
 
         setIsModalOpen(false);
@@ -254,26 +279,7 @@ export default function UserHistory({
                 setFiles={setFiles}
                 removeFile={(idx) => setFiles((f) => f.filter((_, i) => i !== idx))}
                 onSubmit={handleSaveHistory}
-                onFileChange={(e) => {
-                    if (!e.target.files) return;
-                    Array.from(e.target.files).forEach((file) => {
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                            if (typeof reader.result === 'string') {
-                                setFiles((prev) => [
-                                    ...prev,
-                                    {
-                                        name: file.name,
-                                        type: file.type,
-                                        dataUrl: reader.result as string,
-                                    },
-                                ]);
-                            }
-                        };
-                        reader.readAsDataURL(file);
-                    });
-                    e.target.value = '';
-                }}
+                onAttach={() => void attachFiles()}
             />
         </section>
     );

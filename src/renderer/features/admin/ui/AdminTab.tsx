@@ -1,4 +1,4 @@
-import { ScrollText, ShieldCheck, Users } from 'lucide-react';
+import { LockKeyhole, ScrollText, ShieldCheck, Users } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import type { PermissionKey } from '../../../../shared/auth/permissions';
@@ -8,6 +8,7 @@ import { usePermissions } from '../../../stores/sessionStore';
 import AccountsPanel from './AccountsPanel';
 import AuditPanel from './AuditPanel';
 import RolesPanel from './RolesPanel';
+import SecurityPanel from './SecurityPanel';
 
 type Section = {
     key: string;
@@ -42,6 +43,14 @@ const SECTIONS: Section[] = [
         icon: <ScrollText />,
         permission: 'audit.view',
         render: () => <AuditPanel />,
+    },
+    {
+        key: 'policy',
+        labelKey: 'admin.tabs.policy',
+        hintKey: 'admin.tabsHint.policy',
+        icon: <LockKeyhole />,
+        permission: 'security.manage',
+        render: () => <SecurityPanel />,
     },
 ];
 
