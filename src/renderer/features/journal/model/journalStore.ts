@@ -89,17 +89,27 @@ export function bucketOf(entry: JournalEntry, today = new Date()): JournalBucket
 
 const PRIORITY_RANK = { high: 0, normal: 1, low: 2 } as const;
 
-function matches(entry: JournalEntry, filters: JournalFilters, bucket: JournalBucket): boolean {
+function matches(
+    entry: JournalEntry,
+    filters: JournalFilters,
+    bucket: JournalBucket,
+    today: Date,
+): boolean {
     const view = filters.view;
     if (view === 'active' && bucket === 'done') return false;
     if (view === 'done' && bucket !== 'done') return false;
     if (view === 'pinned' && !(entry.pinned && !entry.done)) return false;
     if (view === 'overdue' && bucket !== 'overdue') return false;
-    if (view === 'today' && !['overdue', 'today'].includes(bucketOf({ ...entry, pinned: false })))
+    if (
+        view === 'today' &&
+        !['overdue', 'today'].includes(bucketOf({ ...entry, pinned: false }, today))
+    )
         return false;
     if (
         view === 'week' &&
-        !['overdue', 'today', 'tomorrow', 'week'].includes(bucketOf({ ...entry, pinned: false }))
+        !['overdue', 'today', 'tomorrow', 'week'].includes(
+            bucketOf({ ...entry, pinned: false }, today),
+        )
     )
         return false;
     if (filters.category && entry.category !== filters.category) return false;
@@ -119,7 +129,7 @@ export function groupJournal(
     const groups = new Map<JournalBucket, JournalEntry[]>();
     for (const entry of entries) {
         const bucket = bucketOf(entry, today);
-        if (!matches(entry, filters, bucket)) continue;
+        if (!matches(entry, filters, bucket, today)) continue;
         groups.set(bucket, [...(groups.get(bucket) ?? []), entry]);
     }
     return JOURNAL_BUCKETS.filter((bucket) => groups.get(bucket)?.length).map((bucket) => ({
