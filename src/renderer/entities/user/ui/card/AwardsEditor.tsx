@@ -14,18 +14,24 @@ import {
 import type { AwardRecord, AwardStatus } from '../../../../../shared/types/user';
 import { Button, cn, IconButton } from '../../../../shared/ui';
 import { useI18nStore } from '../../../../stores/i18nStore';
+import { useCustomAwardsVersion } from '../../../award/model/awardTypesStore';
+import AwardFiles from './AwardFiles';
 import AwardIcon from './AwardIcon';
 import AwardPicker, { AwardStatusBadge } from './AwardPicker';
 import { DateInput } from './fields';
 
 /** The awards of a person: add from the catalogue, then track from submission to presentation. */
 export default function AwardsEditor({
+    userId,
     records,
     onChange,
 }: {
+    /** The person being edited; missing while a new card is filled in. */
+    userId?: number;
     records: AwardRecord[];
     onChange: (records: AwardRecord[]) => void;
 }) {
+    useCustomAwardsVersion();
     const { t } = useI18nStore();
     // null: closed; 'new': adding; an id: replacing the award of that record.
     const [picking, setPicking] = useState<string | null>(null);
@@ -84,6 +90,7 @@ export default function AwardsEditor({
                     {records.map((record) => (
                         <AwardRecordCard
                             key={record.id}
+                            userId={userId}
                             record={record}
                             onChange={(patch) => update(record.id, patch)}
                             onReplace={() => setPicking(record.id)}
@@ -99,11 +106,13 @@ export default function AwardsEditor({
 }
 
 function AwardRecordCard({
+    userId,
     record,
     onChange,
     onReplace,
     onRemove,
 }: {
+    userId?: number;
     record: AwardRecord;
     onChange: (patch: Partial<AwardRecord>) => void;
     onReplace: () => void;
@@ -142,6 +151,7 @@ function AwardRecordCard({
                     </p>
                     <p className="mt-0.5 text-xs text-ink-3">
                         {award ? t(`awards.groups.${award.group}`) : t('awards.groups.other')}
+                        {award?.body ? ` · ${award.body}` : ''}
                         {record.posthumous
                             ? ` · ${t('awards.fields.posthumous').toLowerCase()}`
                             : ''}
@@ -294,6 +304,15 @@ function AwardRecordCard({
                     />
                     {t('awards.fields.posthumous')}
                 </label>
+                <div className="col-span-full">
+                    <p className="label">{t('awards.files.title')}</p>
+                    <AwardFiles
+                        userId={userId}
+                        recordId={record.id}
+                        files={record.files ?? []}
+                        onChange={(files) => onChange({ files })}
+                    />
+                </div>
             </div>
         </li>
     );

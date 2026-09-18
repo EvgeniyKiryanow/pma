@@ -1,18 +1,18 @@
 import { Medal } from 'lucide-react';
 import { useMemo } from 'react';
 
-import { AWARD_GROUPS, AWARD_STATUSES } from '../../../../../shared/awards/catalog';
-import AwardIcon from '../../../../entities/user/ui/card/AwardIcon';
-import { AwardStatusBadge } from '../../../../entities/user/ui/card/AwardPicker';
-import { EmptyState, SearchInput } from '../../../../shared/ui';
-import { useI18nStore } from '../../../../stores/i18nStore';
-import { useUserStore } from '../../../../stores/userStore';
+import { AWARD_GROUPS, AWARD_STATUSES } from '../../../../shared/awards/catalog';
+import AwardIcon from '../../../entities/user/ui/card/AwardIcon';
+import { AwardStatusBadge } from '../../../entities/user/ui/card/AwardPicker';
+import { EmptyState, SearchInput } from '../../../shared/ui';
+import { useI18nStore } from '../../../stores/i18nStore';
+import { useUserStore } from '../../../stores/userStore';
 import {
     awardRows,
     type AwardStatusFilter,
     awardTotals,
     useAwardFilters,
-} from '../../model/awardsReport';
+} from '../model/awardsReport';
 
 function openCard(id: number): void {
     const store = useUserStore.getState();

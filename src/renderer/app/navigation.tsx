@@ -3,8 +3,9 @@ import {
     FileText,
     LifeBuoy,
     ListTree,
-    ShieldCheck,
+    Medal,
     Sheet,
+    ShieldCheck,
     Users,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -12,6 +13,7 @@ import type { ReactNode } from 'react';
 import type { PermissionKey } from '../../shared/auth/permissions';
 import AdminTab from '../features/admin/ui/AdminTab';
 import BackupPanel from '../features/backup/ui/BackupPanel';
+import AwardsTab from '../pages/AwardsTab';
 import ImportUsersTab from '../pages/ImportUsersTab';
 import InstructionsTab from '../pages/InstrtuctionsTab';
 import ManagerTab from '../pages/ManagerTab';
@@ -58,6 +60,14 @@ export const TABS: TabDefinition[] = [
         group: 'work',
         requires: ['personnel.view'],
         render: () => <ManagerTab />,
+    },
+    {
+        key: 'awards',
+        label: (t) => t('nav.awards'),
+        icon: <Medal />,
+        group: 'work',
+        requires: ['personnel.view'],
+        render: () => <AwardsTab />,
     },
     {
         key: 'reports',

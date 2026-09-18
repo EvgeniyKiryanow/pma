@@ -3,10 +3,12 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useShtatniStore } from '../renderer/entities/shtatna-posada/model/useShtatniStore';
 import Sidebar from './app/layout/Sidebar';
 import { visibleTabs } from './app/navigation';
+import { useAwardTypesStore } from './entities/award/model/awardTypesStore';
 import CardEditor from './entities/user/ui/card/CardEditor';
 import { installNamedListStatusSync } from './features/report/model/namedListSync';
 import { useNamedListStore } from './features/report/model/useNamedListStore';
 import { startNamedListAutoApply } from './features/report/ui/_components/NamedListTable';
+import GlobalSearch from './features/search/ui/GlobalSearch';
 import { usePermissions } from './stores/sessionStore';
 import { useUserStore } from './stores/userStore';
 
@@ -39,7 +41,10 @@ export default function App() {
 
     // Load only what the current role is allowed to read.
     useEffect(() => {
-        if (canViewPersonnel) void fetchUsers();
+        if (canViewPersonnel) {
+            void fetchUsers();
+            void useAwardTypesStore.getState().load();
+        }
         if (canViewTables) void loadAllTables();
         if (canViewStaffing) void fetchShtatni();
     }, [canViewPersonnel, canViewTables, canViewStaffing]);
@@ -96,6 +101,8 @@ export default function App() {
                     </div>
                 )}
             </main>
+
+            <GlobalSearch />
 
             {isUserFormOpen && (
                 <CardEditor

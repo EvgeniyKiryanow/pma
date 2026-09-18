@@ -1,11 +1,12 @@
 import { FilePlus, FolderOpen } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import UploadReportsTab from '../features/tabs/ui/UploadReportsTab';
 import YourSavedReportsTab from '../features/tabs/ui/YourSavedReportsTab';
 import { Tabs } from '../shared/ui';
 import PageHeader from '../shared/ui/PageHeader';
 import { useI18nStore } from '../stores/i18nStore';
+import { useSearchJump } from '../stores/searchJumpStore';
 
 type ReportsView = 'upload' | 'yourSaved';
 
@@ -17,6 +18,10 @@ type ReportsView = 'upload' | 'yourSaved';
 export default function ReportsTab() {
     const { t } = useI18nStore();
     const [tab, setTab] = useState<ReportsView>('upload');
+    const reportsJump = useSearchJump((s) => s.jumps.reports);
+    useEffect(() => {
+        if (reportsJump) setTab(reportsJump.view);
+    }, [reportsJump]);
 
     return (
         <div className="flex min-h-0 flex-1 flex-col">

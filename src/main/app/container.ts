@@ -2,6 +2,7 @@ import { createAuditModule } from '../audit';
 import { createAuthModule } from '../auth';
 import { IdleLock } from '../auth/IdleLock';
 import { sessionManager } from '../auth/SessionManager';
+import { createAwardsModule } from '../awards';
 import { createBackupModule } from '../backup';
 import { dialogActivity } from '../core/dialogs';
 import { createLogger, destroyLogFiles } from '../core/logger';
@@ -45,6 +46,7 @@ export function createContainer() {
     const auth = createAuthModule(context, sessionManager, dataGate);
     const audit = createAuditModule(context);
     const reports = createReportsModule(context);
+    const personnel = createPersonnelModule(context);
     const backup = createBackupModule(context, {
         database,
         migrations: migrationRunner,
@@ -85,7 +87,8 @@ export function createContainer() {
         settings,
         files,
         backup,
-        createPersonnelModule(context),
+        personnel,
+        createAwardsModule(context, { files: personnel.attachments }),
         createDirectivesModule(context),
         createStaffingModule(context),
         createNamedListModule(context),

@@ -2,14 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import type { AwardRecord } from '../types/user';
 import {
+    allAwards,
     AWARD_GROUPS,
     AWARDS,
     awardsSummary,
     awardTitle,
     compareAwards,
+    customAwardDef,
     defaultAwardedBy,
     findAward,
     newAwardRecord,
+    setCustomAwards,
 } from './catalog';
 
 const record = (awardId: string, extra: Partial<AwardRecord> = {}): AwardRecord => ({
@@ -92,5 +95,36 @@ describe('records', () => {
         );
         expect(awardsSummary(records, false)).toContain('Хрест бойових заслуг');
         expect(awardsSummary(undefined)).toBe('');
+    });
+});
+
+describe('own awards of the unit', () => {
+    it('are found, named, sorted after the catalogue and offered «Від кого»', () => {
+        setCustomAwards([
+            customAwardDef({
+                uuid: 'u-1',
+                name: 'Нагрудний знак «За мужність» бригади',
+                kind: 'badge',
+                awardedBy: 'Командир бригади',
+                degrees: ['I', 'II'],
+                established: '',
+                notes: '',
+                retired: false,
+            }),
+        ]);
+        try {
+            const award = findAward('custom:u-1');
+            expect(award?.group).toBe('unit');
+            expect(awardTitle(record('custom:u-1', { degree: 'II' }))).toBe(
+                'Нагрудний знак «За мужність» бригади II ступеня',
+            );
+            expect(defaultAwardedBy('custom:u-1')).toBe('Командир бригади');
+            expect(defaultAwardedBy('sbu-valor')).toBe('Голова Служби безпеки України');
+            const sorted = [record('custom:u-1'), record('order-courage')].sort(compareAwards);
+            expect(sorted[0].awardId).toBe('order-courage');
+            expect(allAwards().at(-1)?.id).toBe('other');
+        } finally {
+            setCustomAwards([]);
+        }
     });
 });

@@ -1,9 +1,12 @@
 import {
+    AWARD_CHANNELS,
     COMMENT_CHANNELS,
     DIRECTIVE_CHANNELS,
     HISTORY_CHANNELS,
     PERSONNEL_CHANNELS,
 } from '../../shared/ipc/channels';
+import type { Result } from '../../shared/ipc/result';
+import type { AwardType, AwardTypeInput } from '../../shared/types/awards';
 import type { ActionStatus } from '../../shared/types/common';
 import type { DirectiveInput, DirectiveRecord, DirectiveType } from '../../shared/types/directive';
 import type {
@@ -65,4 +68,14 @@ export const directivesApi = {
     delete: (params: { userId: number; date: string }) =>
         invoke<void>(DIRECTIVE_CHANNELS.removeByUserAndDate, params),
     clearByType: (type: DirectiveType) => invoke<void>(DIRECTIVE_CHANNELS.clearByType, type),
+};
+
+/** The awards register: own awards of the unit, documents of the awards in the cards. */
+export const awardsApi = {
+    listTypes: () => invoke<Result<AwardType[]>>(AWARD_CHANNELS.listTypes),
+    saveType: (input: AwardTypeInput) => invoke<Result<AwardType>>(AWARD_CHANNELS.saveType, input),
+    removeType: (uuid: string) => invoke<Result<void>>(AWARD_CHANNELS.removeType, uuid),
+    /** A document of an award as a data URL. */
+    loadFile: (userId: number, recordId: string, fileName: string) =>
+        invoke<Result<string>>(AWARD_CHANNELS.loadFile, userId, recordId, fileName),
 };

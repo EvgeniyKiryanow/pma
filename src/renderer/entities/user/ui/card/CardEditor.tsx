@@ -309,6 +309,7 @@ export default function CardEditor({
                     <>
                         <div className="col-span-full">
                             <AwardsEditor
+                                userId={userToEdit?.id}
                                 records={form.awardRecords ?? []}
                                 onChange={(awardRecords) => set({ awardRecords })}
                             />

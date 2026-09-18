@@ -5,6 +5,8 @@ import AuthScreen from '../features/auth/ui/AuthScreen';
 import ChangePasswordScreen from '../features/auth/ui/ChangePasswordScreen';
 import RecoveryCodeScreen from '../features/auth/ui/RecoveryCodeScreen';
 import { useOpenedBackupStore, watchOpenedBackups } from '../features/backup/model/openedBackup';
+import { useGlobalSearch } from '../features/search/model/searchStore';
+import { GlobalSearchButton } from '../features/search/ui/GlobalSearch';
 import CustomTitleBar from '../shared/components/CustomTitleBar';
 import LogoSvg from '../shared/icons/LogoSvg';
 import { BlockingTaskHost } from '../shared/ui/blockingTask';
@@ -39,6 +41,11 @@ export function Main() {
     }, [openedBackup, status, canImport]);
 
     const inApp = status === 'ready' && !pendingRecoveryCode;
+
+    // What was searched belongs to the session: gone once it ends (lock, sign-out).
+    useEffect(() => {
+        if (status !== 'ready') useGlobalSearch.getState().reset();
+    }, [status]);
 
     let content;
     switch (status) {
@@ -75,7 +82,14 @@ export function Main() {
             <CustomTitleBar
                 brandWidth={inApp ? nav.width : undefined}
                 leading={inApp ? <SectionCrumb /> : null}
-                trailing={inApp ? <ShellAlerts /> : null}
+                trailing={
+                    inApp ? (
+                        <>
+                            <GlobalSearchButton />
+                            <ShellAlerts />
+                        </>
+                    ) : null
+                }
             />
             {content}
             <ToastViewport />

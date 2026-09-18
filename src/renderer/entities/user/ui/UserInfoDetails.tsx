@@ -24,6 +24,7 @@ import { usePermissions } from '../../../stores/sessionStore';
 import { useUserStore } from '../../../stores/userStore';
 import { useShtatniStore } from '../../shtatna-posada/model/useShtatniStore';
 import { isFilled, PAY_GRADE_HEADING, staffExtra, VOS_HEADING } from '../model/cardValues';
+import AwardFiles from './card/AwardFiles';
 import AwardIcon from './card/AwardIcon';
 import { AwardStatusBadge } from './card/AwardPicker';
 import { formatShpkNumber } from './UserCard';
@@ -269,6 +270,7 @@ export default function UserInfoDetails({ user }: { user: User }) {
                                     </div>
                                     <p className="mt-0.5 text-xs text-ink-3">
                                         {award ? t(`awards.groups.${award.group}`) : ''}
+                                        {award?.body ? ` · ${award.body}` : ''}
                                         {record.posthumous
                                             ? ` · ${t('awards.fields.posthumous').toLowerCase()}`
                                             : ''}
@@ -305,6 +307,15 @@ export default function UserInfoDetails({ user }: { user: User }) {
                                             />
                                         )}
                                     </dl>
+                                    {record.files?.length ? (
+                                        <div className="mt-3">
+                                            <AwardFiles
+                                                userId={liveUser.id}
+                                                recordId={record.id}
+                                                files={record.files}
+                                            />
+                                        </div>
+                                    ) : null}
                                 </div>
                             </article>
                         );

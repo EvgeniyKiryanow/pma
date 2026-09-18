@@ -8,6 +8,7 @@ import { Card, cn } from '../../../shared/ui';
 import { confirmAction } from '../../../shared/ui/confirm';
 import { toast } from '../../../shared/ui/toast';
 import { useI18nStore } from '../../../stores/i18nStore';
+import { useSearchJump } from '../../../stores/searchJumpStore';
 import { usePermissions } from '../../../stores/sessionStore';
 import { printDocx } from '../model/docxPrint';
 import { type LibraryTemplate, useTemplateLibrary } from '../model/templateLibrary';
@@ -30,6 +31,16 @@ export default function UploadReportsTab() {
     useEffect(() => {
         load().catch((err) => reportError(err, { context: 'templates.load' }));
     }, [load]);
+
+    // The global search opens a template once the list is there.
+    const reportsJump = useSearchJump((s) => s.jumps.reports);
+    useEffect(() => {
+        if (reportsJump?.view !== 'upload' || !reportsJump.templateId) return;
+        const template = templates.find((item) => item.id === reportsJump.templateId);
+        if (!template) return;
+        setPreview(template);
+        useSearchJump.getState().clear('reports');
+    }, [reportsJump, templates]);
 
     const store = async (files: File[]) => {
         if (!files.length) return;

@@ -84,7 +84,12 @@ export type AwardRecord = {
     presentedAt?: string;
     posthumous?: boolean;
     notes?: string;
+    /** Scans of the decree / order, the certificate: stored with the person's documents. */
+    files?: AwardFile[];
 };
+
+/** A document of an award. `dataUrl` only travels with a new file on its way to be saved. */
+export type AwardFile = { name: string; type?: string; size?: number; dataUrl?: string };
 
 export type User = {
     shtatNumber: string | boolean; // keep as provided

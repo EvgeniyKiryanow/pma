@@ -9,6 +9,7 @@ import { statusNames } from './008_status_names';
 import { attachedPersonnel } from './009_attached_personnel';
 import { personalCard } from './010_personal_card';
 import { reportKinds } from './011_report_kinds';
+import { awardTypes } from './012_award_types';
 import { MigrationRunner } from './runner';
 
 /** Append new migrations to the end. Never reorder, edit or remove released ones. */
@@ -24,6 +25,7 @@ export const MIGRATIONS = [
     attachedPersonnel,
     personalCard,
     reportKinds,
+    awardTypes,
 ];
 
 export const migrationRunner = new MigrationRunner(MIGRATIONS);

@@ -102,6 +102,17 @@ function awardChanges(before: AwardRecord[], after: AwardRecord[], t: Translate)
                 }),
             );
         }
+        const names = (r?: AwardRecord) => new Set((r?.files ?? []).map((f) => f.name));
+        const had = names(previous);
+        const added = [...names(record)].filter((name) => !had.has(name));
+        if (added.length) {
+            changes.push(
+                t('card.history.awardFilesAdded', {
+                    title: awardTitle(record),
+                    files: added.join(', '),
+                }),
+            );
+        }
     }
     const kept = new Set(after.map((record) => record.id));
     for (const record of before) {
