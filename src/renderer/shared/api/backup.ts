@@ -34,6 +34,11 @@ export const backupApi = {
     canUninstall: (): Promise<boolean> => unwrap(bridge().backup.canUninstall()),
     /** Destroys all data and removes the program; the window closes. */
     uninstall: (): Promise<void> => unwrap(bridge().backup.uninstall()),
+    /** Name of the .pmb file the program was opened with (double-click), or null. */
+    openedFileName: (): Promise<string | null> => unwrap(bridge().backup.openedFile()),
+    /** Selects that file for restore (once). */
+    selectOpenedFile: (): Promise<ImportSelection> => unwrap(bridge().backup.selectOpenedFile()),
+    onFileOpened: (callback: () => void): (() => void) => bridge().backup.onFileOpened(callback),
 };
 
 /**

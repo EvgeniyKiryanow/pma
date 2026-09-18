@@ -42,6 +42,16 @@ npmRebuild: false
 electronLanguages: [uk, en, en-US]
 afterPack: scripts/verify-package.cjs
 
+# Double-click on a full backup (.pmb) opens PManager with the restore screen and the file
+# already chosen (src/main/backup/openedFile.ts). The password is still asked.
+fileAssociations:
+  - ext: pmb
+    name: PManager.Backup
+    description: Резервна копія PManager
+    icon: appIcon
+    role: Editor
+    mimeType: application/x-pmanager-backup
+
 win:
   icon: assets/icons/appIcon.ico
   # x64 also runs on Windows 11 on ARM (emulation). Electron 37 needs Windows 10 or 11.

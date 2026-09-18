@@ -1,3 +1,5 @@
+import { ipcRenderer } from 'electron';
+
 import type {
     BackupSettings,
     BackupSettingsPatch,
@@ -9,7 +11,7 @@ import type {
     RestoreResult,
     SnapshotInfo,
 } from '../../shared/backup/types';
-import { BACKUP_CHANNELS, SYNC_CHANNELS } from '../../shared/ipc/channels';
+import { BACKUP_CHANNELS, BACKUP_EVENTS, SYNC_CHANNELS } from '../../shared/ipc/channels';
 import type { Result } from '../../shared/ipc/result';
 import type { ChangeLogExportResult, ChangeLogImportResult } from '../../shared/types/sync';
 import { invoke } from '../invoke';
@@ -31,6 +33,13 @@ export const backupApi = {
         invoke<Result<ResetResult>>(BACKUP_CHANNELS.resetAll, options),
     canUninstall: () => invoke<Result<boolean>>(BACKUP_CHANNELS.canUninstall),
     uninstall: () => invoke<Result<void>>(BACKUP_CHANNELS.uninstall),
+    openedFile: () => invoke<Result<string | null>>(BACKUP_CHANNELS.openedFile),
+    selectOpenedFile: () => invoke<Result<ImportSelection>>(BACKUP_CHANNELS.selectOpenedFile),
+    onFileOpened: (callback: () => void) => {
+        const listener = () => callback();
+        ipcRenderer.on(BACKUP_EVENTS.fileOpened, listener);
+        return () => ipcRenderer.removeListener(BACKUP_EVENTS.fileOpened, listener);
+    },
 };
 
 /** Change-log exchange between computers (offline, encrypted .pmc files). */

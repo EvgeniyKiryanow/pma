@@ -23,7 +23,7 @@ describe('IPC wiring', () => {
     const container = createContainer();
     for (const feature of container.modules) feature.registerIpc();
 
-    const { APP_EVENTS, AUTH_EVENTS, ...invokeGroups } = channels;
+    const { APP_EVENTS, AUTH_EVENTS, BACKUP_EVENTS, ...invokeGroups } = channels;
     const declared: string[] = [
         ...Object.values(invokeGroups).flatMap((group) => Object.values(group)),
         ...Object.values(AUDIT_CHANNELS),
@@ -44,6 +44,7 @@ describe('IPC wiring', () => {
     it('listens to every one-way event of the window', () => {
         expect(Object.values(APP_EVENTS).filter((event) => !listened.includes(event))).toEqual([]);
         expect(AUTH_EVENTS.sessionChanged).toBeTruthy();
+        expect(BACKUP_EVENTS.fileOpened).toBeTruthy();
     });
 
     it('gives every module a unique name', () => {

@@ -1,11 +1,12 @@
 import { FileSearch, FolderOpen, RotateCcw } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 
 import type { ImportInspection, ImportSelection } from '../../../../shared/backup/types';
 import { backupApi } from '../../../shared/api/backup';
 import { ApiError, errorMessage } from '../../../shared/api/call';
 import { Alert, Button, formatBytes, formatDateTime, PasswordField } from '../../../shared/ui';
 import { useI18nStore } from '../../../stores/i18nStore';
+import { useOpenedBackupStore } from '../model/openedBackup';
 
 /**
  * Select → (password) → inspect → confirm → restore.
@@ -43,6 +44,21 @@ export default function RestoreBackupFlow({ onCancel }: { onCancel?: () => void 
                 setInspection(await backupApi.inspect(''));
             }
         });
+
+    // A .pmb file opened with the program (double-click): chosen already, as from the dialog.
+    const openedName = useOpenedBackupStore((s) => s.name);
+    useEffect(() => {
+        if (!openedName) return;
+        useOpenedBackupStore.getState().clear();
+        void run('select', async () => {
+            const selected = await backupApi.selectOpenedFile();
+            setSelection(selected);
+            setInspection(null);
+            setPassword('');
+            if (!selected.requiresPassword) setInspection(await backupApi.inspect(''));
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [openedName]);
 
     const inspect = (event: FormEvent) => {
         event.preventDefault();

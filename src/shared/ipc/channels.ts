@@ -50,6 +50,16 @@ export const BACKUP_CHANNELS = {
     canUninstall: 'system:can-uninstall',
     /** Destroys every piece of data, then removes the program from the computer. */
     uninstall: 'system:uninstall',
+    /** Name of the .pmb file the program was opened with (double-click), or null. */
+    openedFile: 'backup:opened-file',
+    /** Selects that file for restore, as if chosen in the dialog. */
+    selectOpenedFile: 'backup:select-opened-file',
+} as const;
+
+/** Pushes from the main process about backups. */
+export const BACKUP_EVENTS = {
+    /** The program was given a .pmb file while running (a second double-click). */
+    fileOpened: 'backup:file-opened',
 } as const;
 
 export const APP_CHANNELS = {

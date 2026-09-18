@@ -17,6 +17,7 @@ import { AppPaths } from '../core/paths';
 import { access, handleResult } from '../ipc/secureHandle';
 import type { AutoBackupScheduler } from './AutoBackupScheduler';
 import type { BackupService } from './BackupService';
+import { openedBackupFile } from './openedFile';
 import type { Uninstaller } from './Uninstaller';
 
 type Deps = {
@@ -99,6 +100,16 @@ export function registerBackupIpc({
             ],
         });
         if (!filePath) throw new AppError('CANCELED');
+        return backups.selectImport(event.sender.id, filePath);
+    });
+
+    // A .pmb file opened with the program (double-click in Explorer): its name for the
+    // screen, then the same selection as a file chosen in the dialog.
+    handleResult(BACKUP_CHANNELS.openedFile, access.public, () => openedBackupFile.name());
+
+    handleResult(BACKUP_CHANNELS.selectOpenedFile, canImport, async (event) => {
+        const filePath = openedBackupFile.take();
+        if (!filePath) throw new AppError('NOTHING_SELECTED');
         return backups.selectImport(event.sender.id, filePath);
     });
 

@@ -39,6 +39,7 @@ import { toast } from '../../../shared/ui/toast';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { usePermissions } from '../../../stores/sessionStore';
 import { daysSince, useBackupSettingsStore } from '../model/backupReminder';
+import { useOpenedBackupStore } from '../model/openedBackup';
 import RestoreBackupFlow from './RestoreBackupFlow';
 
 type Section = {
@@ -98,6 +99,11 @@ export default function BackupPanel() {
     const sections = SECTIONS.filter((s) => canAny(...s.anyOf));
     const [activeKey, setActiveKey] = useState(sections[0]?.key);
     const active = sections.find((s) => s.key === activeKey) ?? sections[0];
+    // Opened with a backup file: show the restore card.
+    const openedBackup = useOpenedBackupStore((s) => s.name);
+    useEffect(() => {
+        if (openedBackup) setActiveKey('full');
+    }, [openedBackup]);
 
     return (
         <div className="flex min-h-0 flex-1">
