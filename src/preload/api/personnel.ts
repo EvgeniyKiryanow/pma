@@ -6,7 +6,11 @@ import {
 } from '../../shared/ipc/channels';
 import type { ActionStatus } from '../../shared/types/common';
 import type { DirectiveInput, DirectiveRecord, DirectiveType } from '../../shared/types/directive';
-import type { HistoryRange, IncompleteHistoryEntry } from '../../shared/types/history';
+import type {
+    HistoryRange,
+    IncompleteHistoryEntry,
+    StatusPeriodEntry,
+} from '../../shared/types/history';
 import type { CommentOrHistoryEntry, User } from '../../shared/types/user';
 import { invoke } from '../invoke';
 
@@ -41,6 +45,7 @@ export const historyApi = {
     loadHistoryFile: (userId: number, entryId: number, filename: string) =>
         invoke<{ dataUrl: string }>(HISTORY_CHANNELS.loadFile, userId, entryId, filename),
     findIncompleteHistory: () => invoke<IncompleteHistoryEntry[]>(HISTORY_CHANNELS.findIncomplete),
+    getStatusPeriods: () => invoke<StatusPeriodEntry[]>(HISTORY_CHANNELS.statusPeriods),
 };
 
 export const commentsApi = {

@@ -117,6 +117,7 @@ export function registerHistoryIpc(history: HistoryService): void {
     );
 
     handle(HISTORY_CHANNELS.findIncomplete, view, () => history.findIncomplete());
+    handle(HISTORY_CHANNELS.statusPeriods, view, () => history.statusPeriods());
 
     handle(
         HISTORY_CHANNELS.loadFile,

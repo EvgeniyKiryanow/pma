@@ -1,4 +1,8 @@
-import type { HistoryRange, IncompleteHistoryEntry } from '../../../shared/types/history';
+import type {
+    HistoryRange,
+    IncompleteHistoryEntry,
+    StatusPeriodEntry,
+} from '../../../shared/types/history';
 import type { CommentOrHistoryEntry, User } from '../../../shared/types/user';
 import { bridge, call, expectSuccess, isFailure } from './bridge';
 import { ApiError } from './call';
@@ -51,6 +55,8 @@ export const historyApi = {
     loadFile: async (userId: number, entryId: number, fileName: string): Promise<string> =>
         (await call(bridge().loadHistoryFile(userId, entryId, fileName))).dataUrl,
     findIncomplete: (): Promise<IncompleteHistoryEntry[]> => call(bridge().findIncompleteHistory()),
+    /** Status changes with a period, of everyone. */
+    statusPeriods: (): Promise<StatusPeriodEntry[]> => call(bridge().getStatusPeriods()),
 };
 
 export const commentsApi = {

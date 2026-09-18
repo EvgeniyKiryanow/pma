@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useShtatniStore } from '../renderer/entities/shtatna-posada/model/useShtatniStore';
 import Sidebar from './app/layout/Sidebar';
 import { visibleTabs } from './app/navigation';
-import UserFormModalUpdate from './entities/user/ui/userFormModal';
+import CardEditor from './entities/user/ui/card/CardEditor';
+import { installNamedListStatusSync } from './features/report/model/namedListSync';
 import { useNamedListStore } from './features/report/model/useNamedListStore';
 import { startNamedListAutoApply } from './features/report/ui/_components/NamedListTable';
 import { usePermissions } from './stores/sessionStore';
@@ -53,6 +54,12 @@ export default function App() {
         };
     }, [canEditTables, users.length, loadedOnce]);
 
+    // Today's mark in the named list follows a status change made anywhere in the app.
+    useEffect(() => {
+        if (!canEditTables) return;
+        return installNamedListStatusSync();
+    }, [canEditTables]);
+
     useEffect(() => {
         if (selectedUser && !users.find((u) => u.id === selectedUser.id)) {
             setSelectedUser(null);
@@ -89,9 +96,7 @@ export default function App() {
                 )}
             </main>
 
-            {isUserFormOpen && (
-                <UserFormModalUpdate userToEdit={editingUser} onClose={closeUserForm} />
-            )}
+            {isUserFormOpen && <CardEditor userToEdit={editingUser} onClose={closeUserForm} />}
         </div>
     );
 }

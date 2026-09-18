@@ -1,4 +1,4 @@
-import { ListTree, UserPlus, Users } from 'lucide-react';
+import { ListTree, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import type { User } from '../../../../../shared/types/user';
@@ -10,7 +10,7 @@ import {
 } from '../../../../entities/user/model/personnelActions';
 import { reportError } from '../../../../shared/api/errors';
 import { StatusDot } from '../../../../shared/components/StatusBadge';
-import { EmptyState, Modal, SearchInput } from '../../../../shared/ui';
+import { EmptyState, Modal } from '../../../../shared/ui';
 import { toast } from '../../../../shared/ui/toast';
 import { StatusExcel } from '../../../../shared/utils/excelUserStatuses';
 import { usePermissions } from '../../../../stores/sessionStore';
@@ -30,15 +30,6 @@ import {
 export type ReportCellTarget = { row: string; column: number } | 'without-status';
 
 const STATUS_OPTIONS = Object.values(StatusExcel) as string[];
-const MAX_CANDIDATES = 60;
-
-const matchesQuery = (person: ReportPerson, query: string) =>
-    !query ||
-    [person.fullName, person.rank, person.position]
-        .join(' ')
-        .toLowerCase()
-        .includes(query.toLowerCase());
-
 /** Full card of a person from the shared list (the report holds the same objects). */
 function fullUser(id: number): User | undefined {
     return useUserStore.getState().users.find((user) => user.id === id);
@@ -135,73 +126,6 @@ function PeopleTable({ people, canEdit }: { people: ReportPerson[]; canEdit: boo
                 ))}
             </tbody>
         </table>
-    );
-}
-
-/** People of the row who are not in the cell yet: pick one to give them the cell's status. */
-function AddToCell({
-    candidates,
-    statuses,
-}: {
-    candidates: ReportPerson[];
-    statuses: readonly string[];
-}) {
-    const [query, setQuery] = useState('');
-    const [busy, setBusy] = useState<number | null>(null);
-    const shown = candidates.filter((person) => matchesQuery(person, query));
-
-    const add = async (person: ReportPerson, status: string) => {
-        const user = fullUser(person.id);
-        if (!user || !status) return;
-        setBusy(person.id);
-        await run(() => changeStatus(user, status), `${person.fullName}: ${status}`);
-        setBusy(null);
-    };
-
-    return (
-        <section className="border-t border-line p-4">
-            <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-ink">
-                <UserPlus className="size-4 text-ink-3" />
-                Додати сюди
-            </h3>
-            <p className="mb-3 text-[13px] text-ink-3">
-                Людині буде змінено статус — це одразу видно в картці, БЧС і всіх звітах.
-            </p>
-            <SearchInput value={query} onChange={setQuery} placeholder="Пошук за ПІБ…" size="sm" />
-            {shown.length === 0 ? (
-                <p className="mt-3 text-[13px] text-ink-3">Нікого не знайдено.</p>
-            ) : (
-                <ul className="mt-2 max-h-64 divide-y divide-line overflow-y-auto">
-                    {shown.slice(0, MAX_CANDIDATES).map((person) => (
-                        <li key={person.id} className="flex items-center gap-3 py-2">
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium text-ink">
-                                    {person.fullName}
-                                </p>
-                                <p className="truncate text-xs text-ink-3">
-                                    {person.soldierStatus || 'Без статусу'}
-                                </p>
-                            </div>
-                            <select
-                                className="field field-sm max-w-[240px]"
-                                value=""
-                                disabled={busy === person.id}
-                                onChange={(event) => void add(person, event.target.value)}
-                            >
-                                <option value="">
-                                    {statuses.length === 1 ? 'Додати…' : 'Додати зі статусом…'}
-                                </option>
-                                {statuses.map((status) => (
-                                    <option key={status} value={status}>
-                                        {status}
-                                    </option>
-                                ))}
-                            </select>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </section>
     );
 }
 
@@ -308,8 +232,8 @@ function PositionsTable({
 }
 
 /**
- * Who is behind a number of the report, with the changes that move them: another status, a
- * person put into the cell, a vacancy filled. Every change is saved at once and the whole
+ * Who is behind a number of the report, with the changes that move them: another status or a
+ * vacancy filled. Every change is saved at once and the whole
  * report recounts.
  */
 export function ReportCellModal({
@@ -361,12 +285,8 @@ export function ReportCellModal({
         );
     }
 
+    // Only the people of this cell: others are moved in from their own cell or the card.
     const people = peopleIn(report, row, column);
-    const inCell = new Set(people.map((person) => person.id));
-    const candidates =
-        column.kind === 'status' && column.statuses
-            ? row.people.filter((person) => !inCell.has(person.id))
-            : [];
 
     return (
         <Modal
@@ -379,9 +299,6 @@ export function ReportCellModal({
             bodyClassName="p-0"
         >
             <PeopleTable people={people} canEdit={canEdit} />
-            {canEdit && column.statuses && candidates.length > 0 && (
-                <AddToCell candidates={candidates} statuses={column.statuses} />
-            )}
         </Modal>
     );
 }

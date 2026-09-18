@@ -1,10 +1,12 @@
 import fs from 'fs';
 
+import { statusOfEntry } from '../../shared/helpers/statusHistory';
 import { AppError } from '../../shared/ipc/result';
 import type {
     HistoryFilter,
     HistoryRange,
     IncompleteHistoryEntry,
+    StatusPeriodEntry,
 } from '../../shared/types/history';
 import type { CommentOrHistoryEntry } from '../../shared/types/user';
 import type { Transactor } from '../db/types';
@@ -152,6 +154,27 @@ export class HistoryService {
                             : noFiles
                               ? 'missing_file'
                               : 'missing_period',
+                });
+            }
+        }
+        return result;
+    }
+
+    /** Every status change with a period, of everyone (the named list marks them by day). */
+    async statusPeriods(): Promise<StatusPeriodEntry[]> {
+        const result: StatusPeriodEntry[] = [];
+        for (const { userId, entries } of await this.history.all()) {
+            for (const entry of entries) {
+                if (entry?.type !== 'statusChange' || !entry.period?.from) continue;
+                const status = statusOfEntry(entry);
+                if (!status) continue;
+                result.push({
+                    userId,
+                    entryId: entry.id,
+                    date: entry.date,
+                    status,
+                    from: entry.period.from,
+                    to: entry.period.to || null,
                 });
             }
         }
