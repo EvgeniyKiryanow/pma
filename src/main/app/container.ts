@@ -56,6 +56,9 @@ export function createContainer() {
             return session ? auth.accounts.credentials(session.accountId) : null;
         },
         newAdministrator: (input) => auth.auth.prepareAdministrator(input),
+        checkSetup: (input) => auth.auth.checkSetup(input),
+        setup: (sender, input) => auth.auth.setup(sender, input),
+        finishOpening: () => dataGate.finishOpening(),
         onDataReplaced: () => settings.settings.forget(),
         clearBrowserData,
         destroyLogs: destroyLogFiles,

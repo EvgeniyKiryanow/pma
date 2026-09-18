@@ -54,9 +54,7 @@ export class AuthService {
         sender: WebContents,
         input: SetupInput,
     ): Promise<{ session: SessionInfo; recoveryCode: string }> {
-        const username = validateUsername(input?.username);
-        const displayName = validateDisplayName(input?.displayName);
-        this.policy.assertValid(input?.password);
+        const { username, displayName } = this.checkSetup(input);
         const passwordHash = await this.hasher.hash(input.password);
         const recoveryCode = this.recoveryCodes.generate();
         const recoveryHash = await this.hasher.hash(this.recoveryCodes.normalize(recoveryCode));
@@ -81,6 +79,14 @@ export class AuthService {
         await this.keyring.remember(username, input.password);
         const session = await this.startSession(sender, await this.requireAccount(accountId));
         return { session, recoveryCode };
+    }
+
+    /** What `setup` refuses, checked before starting over so nothing moves for a typo. */
+    checkSetup(input: SetupInput): { username: string; displayName: string } {
+        const username = validateUsername(input?.username);
+        const displayName = validateDisplayName(input?.displayName);
+        this.policy.assertValid(input?.password);
+        return { username, displayName };
     }
 
     /**

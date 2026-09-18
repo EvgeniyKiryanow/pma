@@ -45,6 +45,14 @@ export const AppPaths = {
         return path.join(this.backupsRoot, 'safety');
     },
 
+    /**
+     * Whole data sets put away by «Почати з нуля» on the sign-in screen, each with the key that
+     * opens it. Never pruned; only full destruction removes them.
+     */
+    get setAsideData(): string {
+        return path.join(this.backupsRoot, 'set-aside');
+    },
+
     /** Size and place of the window between starts (geometry only). */
     get windowStateFile(): string {
         return path.join(this.userData, 'window-state.json');

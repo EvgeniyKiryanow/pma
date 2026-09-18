@@ -1,5 +1,6 @@
 import { ipcRenderer } from 'electron';
 
+import type { SessionInfo, SetupInput } from '../../shared/auth/types';
 import type {
     BackupSettings,
     BackupSettingsPatch,
@@ -33,6 +34,11 @@ export const backupApi = {
     openBackupsFolder: () => invoke<Result<void>>(BACKUP_CHANNELS.openBackupsFolder),
     resetAll: (options: ResetOptions) =>
         invoke<Result<ResetResult>>(BACKUP_CHANNELS.resetAll, options),
+    startOver: (input: SetupInput) =>
+        invoke<Result<{ session: SessionInfo; recoveryCode: string }>>(
+            BACKUP_CHANNELS.startOver,
+            input,
+        ),
     canUninstall: () => invoke<Result<boolean>>(BACKUP_CHANNELS.canUninstall),
     uninstall: () => invoke<Result<void>>(BACKUP_CHANNELS.uninstall),
     openedFile: () => invoke<Result<string | null>>(BACKUP_CHANNELS.openedFile),

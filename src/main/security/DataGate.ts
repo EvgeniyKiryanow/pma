@@ -29,12 +29,21 @@ export class DataGate implements DataKeyring {
         if (this.vault.isUnlocked) return true;
         if (!(await this.vault.unlockWithPassword(username, password))) return false;
         this.logger.warn('Data opened with a PManager password; Windows got a new copy of the key');
+        await this.finishOpening();
+        return true;
+    }
+
+    /**
+     * The vault got a key some other way (a new data set, a restored backup): the start-up
+     * waiting for the sign-in finishes now. Nothing happens when the data was open at start.
+     */
+    async finishOpening(): Promise<void> {
         // Two sign-ins at the same moment must not open the data twice.
         this.opening ??= (this.opener?.() ?? Promise.resolve()).finally(() => {
             this.opening = null;
         });
         await this.opening;
-        return true;
+        this.opener = null;
     }
 
     remember(username: string, password: string): Promise<void> {

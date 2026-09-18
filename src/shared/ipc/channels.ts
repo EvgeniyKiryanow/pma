@@ -46,6 +46,8 @@ export const BACKUP_CHANNELS = {
     createSnapshot: 'backup:create-snapshot',
     openBackupsFolder: 'backup:open-folder',
     resetAll: 'system:reset-all',
+    /** Sign-in screen: the current data is set aside, a new administrator starts over. */
+    startOver: 'system:start-over',
     /** Whether this installation can remove itself (installed on Windows). */
     canUninstall: 'system:can-uninstall',
     /** Destroys every piece of data, then removes the program from the computer. */

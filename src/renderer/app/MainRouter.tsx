@@ -1,10 +1,9 @@
 import { useEffect } from 'react';
 
 import App from '../App';
+import AuthScreen from '../features/auth/ui/AuthScreen';
 import ChangePasswordScreen from '../features/auth/ui/ChangePasswordScreen';
-import LoginScreen from '../features/auth/ui/LoginScreen';
 import RecoveryCodeScreen from '../features/auth/ui/RecoveryCodeScreen';
-import SetupScreen from '../features/auth/ui/SetupScreen';
 import { useOpenedBackupStore, watchOpenedBackups } from '../features/backup/model/openedBackup';
 import CustomTitleBar from '../shared/components/CustomTitleBar';
 import LogoSvg from '../shared/icons/LogoSvg';
@@ -54,11 +53,10 @@ export function Main() {
                 />
             );
             break;
+        // One screen for both, so its tab stays put while starting over switches the status.
         case 'setup':
-            content = <SetupScreen />;
-            break;
         case 'login':
-            content = <LoginScreen />;
+            content = <AuthScreen />;
             break;
         case 'change-password':
             content = <ChangePasswordScreen />;

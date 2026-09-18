@@ -1,6 +1,7 @@
 import type { WebContents } from 'electron';
 import { shell } from 'electron';
 
+import type { SessionInfo, SetupInput } from '../../shared/auth/types';
 import {
     type AutoBackupSettings,
     BACKUP_REMINDER_OPTIONS,
@@ -25,10 +26,16 @@ type Deps = {
     backups: BackupService;
     settings: JsonStore<BackupSettings>;
     scheduler: AutoBackupScheduler;
-    hasAccounts: () => Promise<boolean>;
     /** The signed-in account of the window (null on a fresh install: nobody to keep). */
     accountToKeep: (sender: WebContents) => Promise<KeptAccount | null>;
     newAdministrator: (input: { username?: unknown; password?: unknown }) => Promise<KeptAccount>;
+    /** Refuses what the first-run setup would refuse (before anything is moved). */
+    checkSetup: (input: SetupInput) => void;
+    /** First-run setup on the empty data set: creates the administrator and signs them in. */
+    setup: (
+        sender: WebContents,
+        input: SetupInput,
+    ) => Promise<{ session: SessionInfo; recoveryCode: string }>;
     uninstaller: Uninstaller;
 };
 
@@ -61,19 +68,20 @@ export function registerBackupIpc({
     backups,
     settings,
     scheduler,
-    hasAccounts,
     accountToKeep,
     newAdministrator,
+    checkSetup,
+    setup,
     uninstaller,
 }: Deps): void {
-    // Restoring is also allowed on a fresh install (no accounts yet), so a new computer can be
-    // set up straight from a backup without creating a throwaway administrator first.
+    // Restoring is also allowed from the sign-in screen (nobody signed in), so a new computer
+    // is set up straight from a backup, and a unit whose passwords are all forgotten gets its
+    // data back. The backup password is the proof: whoever has it can read the copy anyway.
+    // The data replaced is only moved into a safety copy, never shown to the one restoring.
     const canImport = access.custom(
-        async (session) =>
-            (session !== null &&
-                !session.mustChangePassword &&
-                session.permissionSet.has('backup.import')) ||
-            !(await hasAccounts()),
+        (session) =>
+            session === null ||
+            (!session.mustChangePassword && session.permissionSet.has('backup.import')),
     );
 
     handleResult(
@@ -127,11 +135,11 @@ export function registerBackupIpc({
         canImport,
         async (event, request?: RestoreRequest) => {
             let keepAccount = await accountToKeep(event.sender);
-            // A computer without accounts (the setup screen): the person restoring names the
+            // Nobody signed in (the sign-in screen): the person restoring names the
             // administrator. Whoever has the backup password can read all of its data anyway;
             // without this only the logins and passwords of the backup would open it, and a
             // forgotten one would lock the restored data away. Checked before anything changes.
-            if (!keepAccount && !(await hasAccounts())) {
+            if (!keepAccount) {
                 const administrator = request?.administrator;
                 if (!administrator || typeof administrator !== 'object') {
                     throw new AppError('VALIDATION', undefined, { field: 'administrator' });
@@ -141,6 +149,21 @@ export function registerBackupIpc({
             return backups.restoreImport(event.sender.id, { keepAccount });
         },
         { audit: 'backup.restore' },
+    );
+
+    // Nobody can sign in any more (passwords and recovery codes forgotten): from the sign-in
+    // screen a new administrator starts with an empty data set. Nothing of the current data is
+    // shown or deleted — it moves, with the key that reads it, into backups/set-aside — so this
+    // gives a stranger at the keyboard nothing that deleting the data folder would not.
+    handleResult(
+        BACKUP_CHANNELS.startOver,
+        access.custom((session) => session === null),
+        async (event, input: SetupInput) => {
+            checkSetup(input);
+            await backups.startOver();
+            return setup(event.sender, input);
+        },
+        { audit: 'system.start-over' },
     );
 
     handleResult(BACKUP_CHANNELS.getSettings, access.any('backup.export', 'backup.import'), () =>

@@ -52,7 +52,7 @@ function fakeWindows() {
 }
 
 /** What `main.ts` builds for the data set, on a temporary data folder. */
-function dataSet(protector: KeyProtector) {
+function dataSet(protector: KeyProtector, options: { finishOpening?: () => Promise<void> } = {}) {
     const vault = new DataVault(() => AppPaths.keystoreFile, protector);
     const cipher = new FileCipher(() => vault.fileKey());
     const encryptor = new DataEncryptor(() => vault.databaseKey(), cipher, silentLogger);
@@ -72,6 +72,7 @@ function dataSet(protector: KeyProtector) {
         instanceId: () => 'test-instance',
         vault,
         encryptor,
+        finishOpening: options.finishOpening,
     });
     const container = {
         vault,
@@ -506,5 +507,119 @@ describe('backups: the cases a unit runs into', () => {
         await set.database.close();
         const nextStart = dataSet(fakeWindows().protector);
         expect((await start(nextStart)).state).toBe('unlocked');
+    });
+});
+
+describe('nobody can sign in any more', () => {
+    async function seeded(protector: KeyProtector) {
+        const set = dataSet(protector);
+        await start(set);
+        await set.vault.rememberAccount(LOGIN, LOGIN_PASSWORD);
+        await (
+            await set.database.get()
+        ).run(
+            `INSERT INTO users (fullName, dateOfBirth, taxId) VALUES (?, ?, ?)`,
+            SOLDIER,
+            '1990-03-09',
+            TAX_ID,
+        );
+        await set.backups.createAutoSnapshot(5);
+        return set;
+    }
+
+    /** A start where Windows cannot open the key: the data waits for a sign-in (main.ts). */
+    async function lockedStart(protector: KeyProtector) {
+        const gate: { current?: DataGate } = {};
+        const set = dataSet(protector, { finishOpening: () => gate.current!.finishOpening() });
+        expect(await start(set)).toEqual({ state: 'locked' });
+        gate.current = new DataGate(set.vault, silentLogger);
+        const opener = vi.fn(async () => {
+            await openDataSet(set.container, silentLogger);
+        });
+        gate.current.onUnlock(opener);
+        return { set, gate: gate.current, opener };
+    }
+
+    it('starts over with a new key; the old data and its key are set aside, not deleted', async () => {
+        const windows = fakeWindows();
+        const set = await seeded(windows.protector);
+        const oldKey = set.vault.exportKey();
+
+        const name = await set.backups.startOver();
+        const folder = path.join(AppPaths.setAsideData, name);
+
+        expect(set.vault.exportKey().equals(oldKey)).toBe(false);
+        const db = await set.database.get();
+        expect((await db.get(`SELECT COUNT(*) AS n FROM users`)).n).toBe(0);
+        expect((await db.get(`SELECT COUNT(*) AS n FROM accounts`)).n).toBe(0);
+        expect(fs.existsSync(AppPaths.autoBackups)).toBe(false);
+        expect(fs.readdirSync(path.join(folder, 'backups', 'auto'))).toHaveLength(1);
+        await set.database.close();
+        expect(await filesContaining(AppPaths.userData, SOLDIER)).toEqual([]);
+
+        // The old data still opens with the key that was moved next to it.
+        const oldVault = new DataVault(() => path.join(folder, 'keystore.json'), windows.protector);
+        expect(await oldVault.load()).toBe('unlocked');
+        expect(oldVault.exportKey().equals(oldKey)).toBe(true);
+        const aside = openDatabase(path.join(folder, 'users.db'), {
+            readonly: true,
+            key: oldKey.toString('hex'),
+        });
+        expect(await aside.get(`SELECT fullName FROM users`)).toEqual({ fullName: SOLDIER });
+        await aside.close();
+
+        // The next start opens the new, empty data set by itself.
+        const nextStart = dataSet(windows.protector);
+        expect(await start(nextStart)).toEqual({ state: 'unlocked', setAside: null });
+    });
+
+    it('starts over while Windows cannot open the key, and finishes the start-up', async () => {
+        const windows = fakeWindows();
+        await (await seeded(windows.protector)).database.close();
+        windows.state.broken = true;
+        const { set, gate, opener } = await lockedStart(windows.protector);
+
+        const name = await set.backups.startOver();
+
+        expect(opener).toHaveBeenCalledTimes(1);
+        expect(gate.isLocked()).toBe(false);
+        const db = await set.database.get();
+        expect((await db.get(`SELECT COUNT(*) AS n FROM users`)).n).toBe(0);
+        // Whoever remembers the old password later can still open the data set aside.
+        const oldVault = new DataVault(
+            () => path.join(AppPaths.setAsideData, name, 'keystore.json'),
+            windows.protector,
+        );
+        expect(await oldVault.load()).toBe('locked');
+        expect(await oldVault.unlockWithPassword(LOGIN, LOGIN_PASSWORD)).toBe(true);
+    });
+
+    it('restores a backup while Windows cannot open the key', async () => {
+        const windows = fakeWindows();
+        const first = await seeded(windows.protector);
+        const target = path.join(root, 'flash-drive', 'rota.pmb');
+        await fsp.mkdir(path.dirname(target), { recursive: true });
+        await first.backups.exportPackage(target, BACKUP_PASSWORD);
+        const key = first.vault.exportKey();
+        await first.database.close();
+        windows.state.broken = true;
+        const { set, opener } = await lockedStart(windows.protector);
+
+        await set.backups.selectImport(1, target);
+        expect((await set.backups.inspectImport(1, BACKUP_PASSWORD)).personnelCount).toBe(1);
+        await set.backups.restoreImport(1, {
+            keepAccount: {
+                username: 'novyi',
+                displayName: 'novyi',
+                passwordHash: 'hash-of-novyi',
+                recoveryCodeHash: null,
+            },
+        });
+
+        expect(opener).toHaveBeenCalledTimes(1);
+        expect(set.vault.exportKey().equals(key)).toBe(true);
+        const db = await set.database.get();
+        expect(await db.get(`SELECT fullName FROM users`)).toEqual({ fullName: SOLDIER });
+        expect(await db.all(`SELECT username FROM accounts`)).toEqual([{ username: 'novyi' }]);
     });
 });

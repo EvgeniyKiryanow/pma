@@ -73,9 +73,29 @@ export const foundationEn: typeof foundationUa = {
             password: 'Password',
             confirmPassword: 'Repeat password',
             submit: 'Create administrator',
-            orRestore: 'Moving data from another computer?',
-            restoreButton: 'Restore from backup',
-            back: 'Back to administrator setup',
+        },
+        tabs: {
+            login: 'Sign in',
+            create: 'New account',
+            restore: 'Restore from backup',
+        },
+        startOver: {
+            title: 'New account',
+            subtitle:
+                'If nobody remembers the password or the recovery code, create a new administrator and start with an empty database.',
+            warningTitle: 'The current data is set aside, not deleted',
+            warning:
+                'The whole current database, documents and local copies move together with their key into a separate backup folder. They cannot be used without the old password. To get the data back, restore a backup (.pmb) on the «Restore from backup» tab.',
+            submit: 'Create and start with an empty database',
+            confirmTitle: 'Start with an empty database?',
+            confirmMessage:
+                'The current data leaves the app (it is moved into the backup folder) and an empty database opens with the new administrator «{{login}}». Continue?',
+            confirm: 'Yes, start over',
+        },
+        restoreTab: {
+            title: 'Restore from backup',
+            subtitle:
+                'Choose a backup file (.pmb) and enter its password. Only the backup password is needed — not the account password.',
         },
         login: {
             title: 'Sign in',
@@ -84,6 +104,11 @@ export const foundationEn: typeof foundationUa = {
             password: 'Password',
             submit: 'Sign in',
             forgot: 'Forgot password?',
+            forgotAll:
+                'Remember neither the password nor the recovery code? Restore the data from a backup or create a new account.',
+            noAccountsTitle: 'No accounts yet',
+            noAccounts:
+                'Nobody has worked on this computer yet. Create an account or restore the data from a backup.',
         },
         recover: {
             title: 'Password recovery',
@@ -207,7 +232,11 @@ export const foundationEn: typeof foundationUa = {
             'create-snapshot': 'Local copy',
         },
         sync: { export: 'Change log export', import: 'Change log import' },
-        system: { 'reset-all': 'All data erased', update: 'Application update installed' },
+        system: {
+            'reset-all': 'All data erased',
+            'start-over': 'Started over from the sign-in screen',
+            update: 'Application update installed',
+        },
         files: { export: 'File saved from the app' },
         settings: {
             'update-security': 'Security settings',

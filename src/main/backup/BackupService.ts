@@ -65,6 +65,11 @@ export type BackupServiceDeps = {
     /** Key of the data set; without it (tests) data is handled unencrypted. */
     vault?: DataVault;
     encryptor?: DataEncryptor;
+    /**
+     * The data was locked at start (Windows could not open the key) and now has a key again:
+     * finishes the start-up that waited for a sign-in (security/DataGate).
+     */
+    finishOpening?: () => Promise<void>;
 };
 
 /**
@@ -213,6 +218,7 @@ export class BackupService {
         const pending = this.pending.get(senderId);
         if (!pending?.inspection || !pending.workDir) throw new AppError('NOTHING_SELECTED');
         const keep = options.keepAccount ?? null;
+        const wasLocked = this.isLocked();
 
         try {
             const { snapshot, from, to } = await this.replaceLiveData({
@@ -225,6 +231,7 @@ export class BackupService {
             this.deps.logger.warn(
                 `Data restored from ${pending.selection.format} backup (schema v${from} -> v${to})`,
             );
+            if (wasLocked) await this.deps.finishOpening?.();
             return {
                 format: pending.selection.format,
                 safetySnapshot: snapshot,
@@ -242,6 +249,68 @@ export class BackupService {
         const pending = this.pending.get(senderId);
         this.pending.delete(senderId);
         if (pending?.workDir) await shred(pending.workDir);
+    }
+
+    // ------------------------------------------------------------------ start over
+
+    /**
+     * An empty data set with a new key, for a computer where nobody can sign in any more
+     * (forgotten passwords, no recovery code). Nothing is deleted or opened: the database,
+     * files, local copies and the key that reads them move together into
+     * `backups/set-aside/<time>__start-over/`. Returns that folder's name.
+     */
+    async startOver(): Promise<string> {
+        const { database, vault, migrations, templates, logger } = this.deps;
+        const wasLocked = this.isLocked();
+        const name = `${timestampForFileName()}__start-over`;
+        const folder = path.join(AppPaths.setAsideData, name);
+        const moved: [string, string][] = [];
+        const setAside = async (from: string, to: string) => {
+            if (await move(from, to)) moved.push([from, to]);
+        };
+
+        await database.close();
+        try {
+            for (const suffix of DB_SIDE_FILES) {
+                await setAside(
+                    `${AppPaths.database}${suffix}`,
+                    path.join(folder, `${DB_FILE}${suffix}`),
+                );
+            }
+            for (const dir of DATA_DIRECTORIES) {
+                await setAside(dir.resolve(), path.join(folder, dir.name));
+            }
+            await setAside(AppPaths.autoBackups, path.join(folder, 'backups', 'auto'));
+            await setAside(AppPaths.safetyBackups, path.join(folder, 'backups', 'safety'));
+            await setAside(AppPaths.keystoreFile, path.join(folder, 'keystore.json'));
+        } catch (err) {
+            logger.error('Setting the data aside failed, moving it back', err);
+            for (const [original, saved] of moved.reverse()) {
+                await move(saved, original).catch((e) => logger.error('Rollback move failed', e));
+            }
+            if (!wasLocked) {
+                await database
+                    .get()
+                    .catch((e) => logger.error('Reopening database after rollback failed', e));
+            }
+            throw err;
+        }
+
+        try {
+            await vault?.create();
+            if (wasLocked) {
+                await this.deps.finishOpening?.();
+            } else {
+                await migrations.run(await database.get());
+                await templates.ensureInstalled();
+            }
+            await this.clearBrowserData();
+            logger.warn(`Started over with an empty data set; previous data set aside as ${name}`);
+            return name;
+        } finally {
+            this.deps.sessions.clearAll();
+            this.deps.onDataReplaced?.();
+        }
     }
 
     // ------------------------------------------------------------------ reset
@@ -452,6 +521,11 @@ export class BackupService {
         return { manifest, key };
     }
 
+    /** Windows could not open the key at start and nobody has signed in yet. */
+    private isLocked(): boolean {
+        return Boolean(this.deps.vault && !this.deps.vault.isUnlocked);
+    }
+
     /** Key of the live data set (undefined: unencrypted mode of tests). */
     private currentKey(): string | null | undefined {
         return this.deps.vault ? this.deps.vault.databaseKey() : undefined;
@@ -659,6 +733,9 @@ export class BackupService {
         const { vault, encryptor } = this.deps;
         if (!vault || !encryptor) return;
         if (key) await vault.adopt(key);
+        // Locked data was moved into the safety copy with its keystore; data of an older
+        // version needs a key of its own here.
+        else if (!vault.isUnlocked) await vault.create();
         if (await encryptor.encryptDatabase(AppPaths.database)) {
             this.deps.logger.info('Restored database encrypted with the key of this computer');
         }

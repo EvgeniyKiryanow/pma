@@ -1,6 +1,7 @@
 import { app, type WebContents } from 'electron';
 import path from 'path';
 
+import type { SessionInfo, SetupInput } from '../../shared/auth/types';
 import type { BackupSettings } from '../../shared/backup/types';
 import { AppError } from '../../shared/ipc/result';
 import { defineModule, type ModuleContext } from '../app/module';
@@ -37,6 +38,14 @@ type BackupModuleDeps = {
     accountToKeep?: (sender: WebContents) => Promise<KeptAccount | null>;
     /** Checks the administrator named on a restore of a computer without accounts. */
     newAdministrator?: (input: { username?: unknown; password?: unknown }) => Promise<KeptAccount>;
+    /** «Почати з нуля» on the sign-in screen: checks and runs the first-run setup. */
+    checkSetup?: (input: SetupInput) => void;
+    setup?: (
+        sender: WebContents,
+        input: SetupInput,
+    ) => Promise<{ session: SessionInfo; recoveryCode: string }>;
+    /** Finishes a start-up that waited for a sign-in to open the data. */
+    finishOpening?: () => Promise<void>;
     onDataReplaced?: () => void;
     clearBrowserData?: () => Promise<void>;
     destroyLogs?: () => Promise<number>;
@@ -60,6 +69,7 @@ export function createBackupModule(context: ModuleContext, deps: BackupModuleDep
         destroyLogs: deps.destroyLogs,
         vault: deps.vault,
         encryptor: deps.encryptor,
+        finishOpening: deps.finishOpening,
     });
     const scheduler = new AutoBackupScheduler(
         backups,
@@ -84,12 +94,21 @@ export function createBackupModule(context: ModuleContext, deps: BackupModuleDep
                 backups,
                 settings,
                 scheduler,
-                hasAccounts: deps.hasAccounts,
                 accountToKeep: deps.accountToKeep ?? (async () => null),
                 newAdministrator:
                     deps.newAdministrator ??
                     (async () => {
                         throw new AppError('INTERNAL', 'No administrator factory');
+                    }),
+                checkSetup:
+                    deps.checkSetup ??
+                    (() => {
+                        throw new AppError('INTERNAL', 'No setup');
+                    }),
+                setup:
+                    deps.setup ??
+                    (async () => {
+                        throw new AppError('INTERNAL', 'No setup');
                     }),
                 uninstaller,
             }),

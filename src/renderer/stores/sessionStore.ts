@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import type { PermissionKey } from '../../shared/auth/permissions';
 import type { AuthState, SessionInfo, SessionLock, SetupInput } from '../../shared/auth/types';
+import { backupApi } from '../shared/api/backup';
 import { authApi } from '../shared/api/security';
 
 export type AuthStatus = 'loading' | 'setup' | 'login' | 'change-password' | 'ready';
@@ -19,6 +20,8 @@ type SessionStore = {
     init: () => Promise<void>;
     refresh: () => Promise<void>;
     setup: (input: SetupInput) => Promise<void>;
+    /** Nobody can sign in: the current data is set aside, `input` starts a new data set. */
+    startOver: (input: SetupInput) => Promise<void>;
     login: (username: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -81,6 +84,17 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     setup: async (input) => {
         const { session, recoveryCode } = await authApi.setup(input);
         set({ session, status: 'ready', pendingRecoveryCode: recoveryCode, lock: null });
+    },
+
+    startOver: async (input) => {
+        const { session, recoveryCode } = await backupApi.startOver(input);
+        set({
+            session,
+            status: 'ready',
+            pendingRecoveryCode: recoveryCode,
+            lock: null,
+            dataLocked: false,
+        });
     },
 
     login: async (username, password) => {
