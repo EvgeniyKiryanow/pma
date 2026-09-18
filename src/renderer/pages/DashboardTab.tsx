@@ -81,6 +81,7 @@ export default function DashboardTab() {
     const [changes, setChanges] = useState<RecentStatusChange[]>([]);
     const [files, setFiles] = useState<RecentFile[]>([]);
     const canPeople = can('personnel.view');
+    const canOrders = can('directives.view');
 
     useEffect(() => {
         useJournalStore
@@ -95,12 +96,13 @@ export default function DashboardTab() {
         historyApi.statusPeriods().then(setPeriods).catch(quiet);
         historyApi.recentStatusChanges(40).then(setChanges).catch(quiet);
         documentsApi.recent(25).then(setFiles).catch(quiet);
-        if (can('directives.view')) {
+        if (canOrders) {
             Promise.all(DIRECTIVE_TYPES.map((type) => directivesApi.list(type)))
                 .then((lists) => setOrders(lists.flat()))
                 .catch(quiet);
         }
-    }, [canPeople, can, historyVersion, users]);
+        // Booleans only: `can` is a new function on every render and would reload endlessly.
+    }, [canPeople, canOrders, historyVersion, users]);
 
     const events = useMemo(
         () => upcomingEvents({ users: canPeople ? users : [], periods, orders, journal }),

@@ -29,6 +29,14 @@ export function runSearchAction(action: SearchAction, { edit = false } = {}): vo
             jump({ staffing: action.shtatNumber });
             store.setCurrentTab('shtatni');
             return;
+        case 'file':
+            if (action.file.ref.journalUuid) {
+                jump({ journal: action.file.ref.journalUuid });
+                store.setCurrentTab('journal');
+            } else if (action.file.userId) {
+                openPerson(action.file.userId);
+            }
+            return;
         case 'journal':
             jump({ journal: action.uuid });
             store.setCurrentTab('journal');

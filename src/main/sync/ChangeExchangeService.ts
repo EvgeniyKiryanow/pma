@@ -2,6 +2,7 @@ import type { ChangeLogExportResult, ChangeLogImportResult } from '../../shared/
 import type { Logger } from '../core/logger';
 import type { Transactor } from '../db/types';
 import { ChangeApplier } from './ChangeApplier';
+import type { ChangeFiles } from './ChangeFiles';
 import type { ChangeJournal, ChangeRow } from './ChangeJournal';
 import { type ChangeLogFile, InvalidChangeLogPassword } from './ChangeLogFile';
 
@@ -20,6 +21,8 @@ export class ChangeExchangeService {
         private readonly journal: ChangeJournal,
         private readonly file: ChangeLogFile,
         private readonly logger: Logger,
+        /** Files that travel with the changes (documents, journal, awards, history). */
+        private readonly files?: ChangeFiles,
     ) {}
 
     async exportChanges(
@@ -35,7 +38,8 @@ export class ChangeExchangeService {
         const filePath = await chooseTarget();
         if (!filePath) return { exported: 0, canceled: true };
 
-        await this.file.write(filePath, changes, password);
+        const withFiles = this.files ? await this.files.attach(changes) : changes;
+        await this.file.write(filePath, withFiles, password);
         // Only entries that were actually written are removed from the local journal.
         await this.journal.removeLocalUpTo(changes[changes.length - 1].id);
         this.logger.info(`Exported ${changes.length} change(s)`);
@@ -71,7 +75,9 @@ export class ChangeExchangeService {
             for (const [index, change] of changes.entries()) {
                 await db.exec(`SAVEPOINT change_${index}`);
                 try {
-                    stats[await applier.apply(change)] += 1;
+                    const outcome = await applier.apply(change);
+                    if (outcome === 'imported') await this.files?.restore(db, change);
+                    stats[outcome] += 1;
                     await db.exec(`RELEASE change_${index}`);
                 } catch (err) {
                     await db.exec(`ROLLBACK TO change_${index}`);

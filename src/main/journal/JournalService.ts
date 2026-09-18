@@ -10,6 +10,7 @@ import {
 } from '../../shared/types/journal';
 import type { DbProvider, Transactor } from '../db/types';
 import type { HistoryAttachments } from '../personnel/HistoryAttachments';
+import type { ChangeJournal } from '../sync/ChangeJournal';
 
 type Row = {
     uuid: string;
@@ -97,13 +98,15 @@ function clean(input: JournalEntryInput) {
 
 /**
  * The working journal: notes and tasks with a date, priority, category, pin and files
- * (<data>/history_files/journal/<uuid>/). Local to this computer, carried by full backups.
+ * (<data>/history_files/journal/<uuid>/). Carried by full backups and, with the files, by the
+ * change log (.pmc).
  */
 export class JournalService {
     constructor(
         private readonly transactor: Transactor,
         private readonly db: DbProvider,
         private readonly files: FileStore,
+        private readonly journal?: ChangeJournal,
     ) {}
 
     async list(): Promise<JournalEntry[]> {
@@ -154,6 +157,7 @@ export class JournalService {
                     values.userId,
                     uuid,
                 );
+                await this.journal?.recordByUuid('journal_entries', uuid, 'update');
             } else {
                 await conn.run(
                     `INSERT INTO journal_entries (uuid, title, body, due_date, due_time, priority,
@@ -172,6 +176,7 @@ export class JournalService {
                     JSON.stringify(stored),
                     values.userId,
                 );
+                await this.journal?.recordByUuid('journal_entries', uuid, 'insert');
             }
         });
         await this.files.keepOnly(dir, stored);
@@ -180,31 +185,37 @@ export class JournalService {
 
     /** Ticks an entry done or open again (the checkbox in the lists). */
     async setDone(uuid: string, done: boolean): Promise<JournalEntry> {
-        const row = await this.byUuid(uuid);
-        if (!row) throw new AppError('NOT_FOUND');
-        await (
-            await this.db()
-        ).run(
-            'UPDATE journal_entries SET done = ?, done_at = ? WHERE uuid = ?',
+        return this.change(uuid, 'done = ?, done_at = ?', [
             done ? 1 : 0,
             done ? new Date().toISOString() : null,
-            uuid,
-        );
-        return toEntry((await this.byUuid(uuid))!);
+        ]);
     }
 
     async setPinned(uuid: string, pinned: boolean): Promise<JournalEntry> {
-        const row = await this.byUuid(uuid);
-        if (!row) throw new AppError('NOT_FOUND');
-        await (
-            await this.db()
-        ).run('UPDATE journal_entries SET pinned = ? WHERE uuid = ?', pinned ? 1 : 0, uuid);
+        return this.change(uuid, 'pinned = ?', [pinned ? 1 : 0]);
+    }
+
+    /** One small change of an entry, journaled with it. */
+    private async change(uuid: string, set: string, values: unknown[]): Promise<JournalEntry> {
+        if (!(await this.byUuid(uuid))) throw new AppError('NOT_FOUND');
+        await this.transactor.transaction(async () => {
+            await (
+                await this.db()
+            ).run(`UPDATE journal_entries SET ${set} WHERE uuid = ?`, ...values, uuid);
+            await this.journal?.recordByUuid('journal_entries', uuid, 'update');
+        });
         return toEntry((await this.byUuid(uuid))!);
     }
 
     async remove(uuid: string): Promise<void> {
-        if (!(await this.byUuid(uuid))) throw new AppError('NOT_FOUND');
-        await (await this.db()).run('DELETE FROM journal_entries WHERE uuid = ?', uuid);
+        const row = await (
+            await this.db()
+        ).get<{ id: number }>('SELECT * FROM journal_entries WHERE uuid = ?', uuid);
+        if (!row) throw new AppError('NOT_FOUND');
+        await this.transactor.transaction(async () => {
+            await (await this.db()).run('DELETE FROM journal_entries WHERE uuid = ?', uuid);
+            await this.journal?.record('journal_entries', row.id, 'delete', row);
+        });
         await this.files.removeDir(this.files.journalDir(uuid));
     }
 

@@ -9,6 +9,7 @@ import type {
 } from '../../shared/types/documents';
 import type { DbProvider, Transactor } from '../db/types';
 import type { HistoryAttachments } from '../personnel/HistoryAttachments';
+import type { ChangeJournal } from '../sync/ChangeJournal';
 import type { DocumentRepository, DocumentRow } from './DocumentRepository';
 
 type FileStore = Pick<
@@ -48,7 +49,16 @@ export class DocumentService {
         private readonly documents: DocumentRepository,
         private readonly files: FileStore,
         private readonly db: DbProvider,
+        private readonly journal?: ChangeJournal,
     ) {}
+
+    private async log(
+        table: 'document_categories' | 'person_documents',
+        uuid: string,
+        operation: 'insert' | 'update',
+    ) {
+        await this.journal?.recordByUuid(table, uuid, operation);
+    }
 
     // ------------------------------------------------------------ categories
 
@@ -67,15 +77,23 @@ export class DocumentService {
             (c) => c.name.toLowerCase() === title.toLowerCase(),
         );
         if (existing) throw new AppError('CONFLICT', 'Category exists', { field: 'name' });
-        const id = await this.documents.insertCategory(title);
-        const row = (await this.documents.categories()).find((c) => c.id === id);
-        if (!row) throw new AppError('INTERNAL');
+        const row = await this.transactor.transaction(async () => {
+            const id = await this.documents.insertCategory(title);
+            const created = (await this.documents.categories()).find((c) => c.id === id);
+            if (!created) throw new AppError('INTERNAL');
+            await this.log('document_categories', created.uuid, 'insert');
+            return created;
+        });
         return { uuid: row.uuid, name: row.name, sort: row.sort, count: 0 };
     }
 
     async renameCategory(uuid: string, input: unknown): Promise<void> {
-        if (!(await this.documents.categoryByUuid(uuid))) throw new AppError('NOT_FOUND');
-        await this.documents.renameCategory(uuid, name(input, 'name', 80));
+        const title = name(input, 'name', 80);
+        await this.transactor.transaction(async () => {
+            if (!(await this.documents.categoryByUuid(uuid))) throw new AppError('NOT_FOUND');
+            await this.documents.renameCategory(uuid, title);
+            await this.log('document_categories', uuid, 'update');
+        });
     }
 
     /** Only an empty category can go (CONFLICT with `count` otherwise). */
@@ -84,7 +102,9 @@ export class DocumentService {
             if (!(await this.documents.categoryByUuid(uuid))) throw new AppError('NOT_FOUND');
             const count = await this.documents.countInCategory(uuid);
             if (count) throw new AppError('CONFLICT', 'Category is not empty', { count });
+            const row = await this.documents.categoryByUuid(uuid);
             await this.documents.deleteCategory(uuid);
+            await this.journal?.record('document_categories', row!.id, 'delete', row);
         });
     }
 
@@ -131,6 +151,7 @@ export class DocumentService {
                         size: file.size,
                         note: String(input.note ?? '').slice(0, 2000),
                     });
+                    await this.log('person_documents', file.uuid, 'insert');
                 }
             });
         } catch (err) {
@@ -157,10 +178,13 @@ export class DocumentService {
         if (categoryUuid && !(await this.documents.categoryByUuid(categoryUuid))) {
             throw new AppError('VALIDATION', undefined, { field: 'categoryUuid' });
         }
-        await this.documents.update(uuid, {
-            name: patch.name === undefined ? row.name : name(patch.name, 'name', 200),
-            category_uuid: categoryUuid,
-            note: patch.note === undefined ? row.note : String(patch.note ?? '').slice(0, 2000),
+        await this.transactor.transaction(async () => {
+            await this.documents.update(uuid, {
+                name: patch.name === undefined ? row.name : name(patch.name, 'name', 200),
+                category_uuid: categoryUuid,
+                note: patch.note === undefined ? row.note : String(patch.note ?? '').slice(0, 2000),
+            });
+            await this.log('person_documents', uuid, 'update');
         });
         return toDocument((await this.documents.byUuid(uuid))!);
     }
@@ -168,7 +192,10 @@ export class DocumentService {
     async remove(uuid: string): Promise<void> {
         const row = await this.documents.byUuid(uuid);
         if (!row) throw new AppError('NOT_FOUND');
-        await this.documents.delete(uuid);
+        await this.transactor.transaction(async () => {
+            await this.documents.delete(uuid);
+            await this.journal?.record('person_documents', row.id, 'delete', row);
+        });
         await this.files.removeDir(this.files.documentDir(row.user_id, uuid));
     }
 

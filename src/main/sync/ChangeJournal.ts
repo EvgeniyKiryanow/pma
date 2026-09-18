@@ -14,11 +14,24 @@ export const SYNCABLE_TABLES = [
     'named_list_tables',
     'user_directives',
     'award_types',
+    'journal_entries',
+    'document_categories',
+    'person_documents',
 ] as const;
 
 export type SyncableTable = (typeof SYNCABLE_TABLES)[number];
 
 export type ChangeOperation = 'insert' | 'update' | 'delete';
+
+/** A file carried by an exported change (only inside the .pmc, never in the journal). */
+export type ChangeFile = {
+    /** Which folder: a person's document, a journal entry, an award, a history entry. */
+    kind: 'document' | 'journal' | 'award' | 'history';
+    /** uuid of the document / journal entry, id of the award record / history entry. */
+    key: string;
+    name: string;
+    dataUrl: string;
+};
 
 export type ChangeRow = {
     id?: number;
@@ -27,6 +40,7 @@ export type ChangeRow = {
     operation: ChangeOperation;
     data: unknown;
     timestamp?: string;
+    files?: ChangeFile[];
 };
 
 /**
@@ -63,6 +77,16 @@ export class ChangeJournal {
     ): Promise<void> {
         const row = await (await this.db()).get(`SELECT * FROM "${table}" WHERE id = ?`, id);
         await this.record(table, id, operation, row);
+    }
+
+    /** Records an insert or update of the row with this uuid (tables keyed by uuid). */
+    async recordByUuid(
+        table: SyncableTable,
+        uuid: string,
+        operation: Exclude<ChangeOperation, 'delete'>,
+    ): Promise<void> {
+        const row = await (await this.db()).get(`SELECT * FROM "${table}" WHERE uuid = ?`, uuid);
+        if (row) await this.record(table, row.id, operation, row);
     }
 
     /** Changes made on this computer that have not been exported yet, oldest first. */

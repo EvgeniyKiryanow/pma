@@ -184,3 +184,49 @@ describe('the journal', () => {
         await old.close();
     });
 });
+
+describe('update from 2.3', () => {
+    it('gives the default categories the same uuid everywhere and people uuids to the rows', async () => {
+        const other = path.join(dir, 'v13');
+        await fsp.mkdir(other);
+        const old = new DatabaseManager(() => path.join(other, 'users.db'));
+        const conn = await old.get();
+        const Runner = migrationRunner.constructor as unknown as new (
+            m: unknown[],
+        ) => typeof migrationRunner;
+        const { MIGRATIONS } = await import('../../src/main/db/migrations');
+        const { DEFAULT_DOCUMENT_CATEGORIES } = await import(
+            '../../src/main/db/migrations/014_exchange_identity'
+        );
+        await new Runner(MIGRATIONS.filter((m) => m.version < 14)).run(conn);
+        await conn.run(`INSERT INTO users (fullName) VALUES ('Бондар Олег')`);
+        const passport = await conn.get(
+            `SELECT uuid FROM document_categories WHERE name = 'Паспорт та ІПН'`,
+        );
+        await conn.run(
+            `INSERT INTO person_documents (user_id, category_uuid, name, file_name) VALUES (1, ?, 'п.pdf', 'п.pdf')`,
+            passport.uuid,
+        );
+        await conn.run(`INSERT INTO journal_entries (title, user_id) VALUES ('Про Бондаря', 1)`);
+
+        await migrationRunner.run(conn);
+        const person = await conn.get(`SELECT uuid FROM users WHERE id = 1`);
+        expect(await conn.get(`SELECT category_uuid, user_uuid FROM person_documents`)).toEqual({
+            category_uuid: DEFAULT_DOCUMENT_CATEGORIES[0].uuid,
+            user_uuid: person.uuid,
+        });
+        expect((await conn.get(`SELECT user_uuid FROM journal_entries`)).user_uuid).toBe(
+            person.uuid,
+        );
+        const uuids = await conn.all(`SELECT uuid FROM document_categories ORDER BY sort`);
+        expect(uuids.map((c: { uuid: string }) => c.uuid)).toEqual(
+            DEFAULT_DOCUMENT_CATEGORIES.map((c) => c.uuid),
+        );
+        // A new row gets the person's uuid by itself.
+        await conn.run(`INSERT INTO journal_entries (title, user_id) VALUES ('Ще', 1)`);
+        expect(
+            (await conn.get(`SELECT user_uuid FROM journal_entries WHERE title = 'Ще'`)).user_uuid,
+        ).toBe(person.uuid);
+        await old.close();
+    });
+});

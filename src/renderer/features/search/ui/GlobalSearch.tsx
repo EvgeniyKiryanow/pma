@@ -8,6 +8,7 @@ import {
     ListTree,
     Medal,
     NotebookPen,
+    Paperclip,
     ScrollText,
     Search,
     UserPlus,
@@ -19,11 +20,13 @@ import { createPortal } from 'react-dom';
 
 import { allAwards, awardTitle } from '../../../../shared/awards/catalog';
 import { DIRECTIVE_TYPES, type DirectiveRecord } from '../../../../shared/types/directive';
+import type { RecentFile } from '../../../../shared/types/documents';
 import { visibleTabs } from '../../../app/navigation';
 import { useAwardTypesStore } from '../../../entities/award/model/awardTypesStore';
 import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
 import AwardIcon from '../../../entities/user/ui/card/AwardIcon';
 import { directivesApi } from '../../../shared/api/directives';
+import { documentsApi } from '../../../shared/api/documents';
 import { Avatar, cn } from '../../../shared/ui';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { usePermissions } from '../../../stores/sessionStore';
@@ -49,6 +52,7 @@ const CATEGORY_ICONS: Record<SearchCategory, ReactNode> = {
     awards: <Medal />,
     orders: <ScrollText />,
     journal: <NotebookPen />,
+    files: <Paperclip />,
     reports: <FolderOpen />,
     templates: <FileText />,
     sections: <LayoutGrid />,
@@ -110,7 +114,8 @@ export default function GlobalSearch() {
 
 function SearchWindow() {
     const { t } = useI18nStore();
-    const { can, canAny } = usePermissions();
+    const { can, canAny, session } = usePermissions();
+    const permissionsKey = (session?.permissions ?? []).join(',');
     const { query, category, recent, hide, setQuery, setCategory, remember } = useGlobalSearch();
 
     const users = useUserStore((s) => s.users);
@@ -120,6 +125,7 @@ function SearchWindow() {
     const templates = useTemplateLibrary((s) => s.templates);
     const awardsVersion = useAwardTypesStore((s) => s.version);
     const [orders, setOrders] = useState<DirectiveRecord[]>([]);
+    const [files, setFiles] = useState<RecentFile[]>([]);
 
     const canPeople = can('personnel.view');
     const canStaffing = can('staffing.view');
@@ -146,12 +152,18 @@ function SearchWindow() {
                 .load()
                 .catch(() => undefined);
         }
+        if (canPeople) {
+            documentsApi
+                .recent(500)
+                .then(setFiles)
+                .catch(() => undefined);
+        }
         if (canOrders) {
             Promise.all(DIRECTIVE_TYPES.map((type) => directivesApi.list(type)))
                 .then((lists) => setOrders(lists.flat()))
                 .catch(() => undefined);
         }
-    }, [canReports, canOrders]);
+    }, [canReports, canOrders, canPeople]);
 
     const sections = useMemo((): SearchSection[] => {
         const tabs = visibleTabs({ canAny, hasStaffingTable: positions.length > 0 });
@@ -170,7 +182,9 @@ function SearchWindow() {
             });
         }
         return list;
-    }, [t, canAny, can, positions.length]);
+        // The permissions as text: `can`/`canAny` are new functions on every render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [t, permissionsKey, positions.length]);
 
     const awards = useMemo(() => {
         if (!canPeople) return [];
@@ -197,6 +211,7 @@ function SearchWindow() {
                 awards,
                 orders: canOrders ? orders : [],
                 journal,
+                files: canPeople ? files : [],
                 reports: canReports ? reports : [],
                 templates: canReports ? templates : [],
                 sections,
@@ -205,6 +220,7 @@ function SearchWindow() {
                 fieldLabel,
                 awardTitles: (user) => (user.awardRecords ?? []).map(awardTitle),
                 orderTypeLabel: (type) => t(`search.orderTypes.${type}`),
+                fileSourceLabel: (source) => t(`dashboard.files.sources.${source}`),
             },
         );
     }, [
@@ -214,6 +230,7 @@ function SearchWindow() {
         awards,
         orders,
         journal,
+        files,
         reports,
         templates,
         sections,

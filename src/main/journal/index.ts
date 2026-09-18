@@ -10,7 +10,7 @@ const uuidOf = (value: unknown) => requireString(value, 'uuid', { maxLength: 64 
 
 /** The working journal: notes and tasks with dates, priorities, categories and files. */
 export function createJournalModule(context: ModuleContext, deps: { files: HistoryAttachments }) {
-    const journal = new JournalService(context.transactor, context.db, deps.files);
+    const journal = new JournalService(context.transactor, context.db, deps.files, context.journal);
     const rule = access.authenticated;
 
     return defineModule({

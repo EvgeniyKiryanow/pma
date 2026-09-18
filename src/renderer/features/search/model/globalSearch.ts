@@ -1,5 +1,6 @@
 import type { AwardDef } from '../../../../shared/awards/catalog';
 import type { DirectiveRecord } from '../../../../shared/types/directive';
+import type { RecentFile } from '../../../../shared/types/documents';
 import type { JournalEntry } from '../../../../shared/types/journal';
 import type { ReportTemplateRecord } from '../../../../shared/types/reports';
 import type { ShtatnaPosada } from '../../../../shared/types/shtatnaPosada';
@@ -18,6 +19,7 @@ export const SEARCH_CATEGORIES = [
     'awards',
     'orders',
     'journal',
+    'files',
     'reports',
     'templates',
     'sections',
@@ -31,6 +33,7 @@ export type SearchAction =
     | { type: 'award'; awardId: string }
     | { type: 'order'; userId: number }
     | { type: 'journal'; uuid: string }
+    | { type: 'file'; file: RecentFile }
     | { type: 'report'; recordId: number; name: string }
     | { type: 'template'; templateId: string; name: string }
     | { type: 'tab'; tab: TabKey }
@@ -64,6 +67,7 @@ export type SearchSources = {
     awards?: { award: AwardDef; holders: number }[];
     orders?: DirectiveRecord[];
     journal?: JournalEntry[];
+    files?: RecentFile[];
     reports?: ReportTemplateRecord[];
     templates?: { id: string; name: string; source: 'bundled' | 'uploaded' }[];
     sections?: SearchSection[];
@@ -283,6 +287,7 @@ export function globalSearch(
         fieldLabel: FieldLabel;
         awardTitles?: (user: User) => string[];
         orderTypeLabel?: (type: DirectiveRecord['type']) => string;
+        fileSourceLabel?: (source: RecentFile['source']) => string;
         limit?: number;
     },
 ): SearchHit[] {
@@ -440,6 +445,37 @@ export function globalSearch(
                 },
             ];
         }),
+    );
+
+    // Files anywhere: documents of people, history, journal (reports have their own list)
+    push(
+        (sources.files ?? [])
+            .filter((file) => file.source !== 'report')
+            .flatMap((file): SearchHit[] => {
+                const scored = bestOf(queries, [
+                    { name: 'name', value: file.name, weight: 4 },
+                    { name: 'person', value: file.userName, weight: 2 },
+                    { name: 'context', value: file.context, weight: 1 },
+                ]);
+                if (!scored) return [];
+                return [
+                    {
+                        key: `file:${file.key}`,
+                        category: 'files',
+                        title: file.name,
+                        subtitle: [
+                            options.fileSourceLabel?.(file.source),
+                            file.userName,
+                            file.date ? new Date(file.date).toLocaleDateString('uk-UA') : '',
+                        ]
+                            .filter(Boolean)
+                            .join(' · '),
+                        score: scored.score,
+                        action: { type: 'file', file },
+                        userId: file.userId,
+                    },
+                ];
+            }),
     );
 
     // Saved reports
