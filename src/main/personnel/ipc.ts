@@ -118,6 +118,11 @@ export function registerHistoryIpc(history: HistoryService): void {
 
     handle(HISTORY_CHANNELS.findIncomplete, view, () => history.findIncomplete());
     handle(HISTORY_CHANNELS.statusPeriods, view, () => history.statusPeriods());
+    handle(HISTORY_CHANNELS.recentStatusChanges, view, (_event, limit: unknown) =>
+        history.recentStatusChanges(
+            limit === undefined ? 40 : requireInt(limit, 'limit', { max: 500 }),
+        ),
+    );
 
     handle(
         HISTORY_CHANNELS.loadFile,

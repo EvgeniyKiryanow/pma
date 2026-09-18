@@ -106,6 +106,7 @@ export const en = {
         selectPrompt: 'Select a user to see details',
         edit: 'Edit',
         comments: 'Comments',
+        documents: 'Documents',
         delete: 'Delete',
         confirmDelete: 'Are you sure you want to delete',
         basicInfo: 'Basic Info',

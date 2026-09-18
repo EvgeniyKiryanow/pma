@@ -13,6 +13,18 @@ export type IncompleteHistoryEntry = {
     reason: IncompleteHistoryReason;
 };
 
+/** A status change of anyone (the desktop «Останні зміни статусів»). */
+export type RecentStatusChange = {
+    userId: number;
+    entryId: number;
+    /** When it was written (ISO). */
+    date: string;
+    from: string | null;
+    to: string;
+    period: { from: string; to?: string | null } | null;
+    hasFiles: boolean;
+};
+
 /** A status change with a period (відпустка з … по …): what the named list marks by day. */
 export type StatusPeriodEntry = {
     userId: number;

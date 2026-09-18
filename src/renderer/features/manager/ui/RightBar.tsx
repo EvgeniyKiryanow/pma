@@ -1,6 +1,6 @@
 import {
     BarChart2,
-    MessageSquareText,
+    FolderOpen,
     MousePointerClick,
     Pencil,
     RotateCcw,
@@ -11,7 +11,7 @@ import {
 import { useState } from 'react';
 
 import type { CommentOrHistoryEntry } from '../../../../shared/types/user';
-import CommentsModal from '../../../entities/user/ui/CommentsModal';
+import DocumentsModal from '../../../entities/user/ui/DocumentsModal';
 import UserCard from '../../../entities/user/ui/UserCard';
 import UserHistory from '../../../entities/user/ui/UserHistory';
 import UserInfoDetails from '../../../entities/user/ui/UserInfoDetails';
@@ -31,7 +31,7 @@ import VyklyuchennyaModal from './VyklyuchennyaModal';
 
 /** Dossier of the selected service member: identity, actions, data and history. */
 export default function RightBar() {
-    const [showComments, setShowComments] = useState(false);
+    const [showDocuments, setShowDocuments] = useState(false);
     const { t } = useI18nStore();
     const { can } = usePermissions();
 
@@ -157,10 +157,10 @@ export default function RightBar() {
                     <Button
                         variant="secondary"
                         size="sm"
-                        icon={<MessageSquareText className="size-3.5" />}
-                        onClick={() => setShowComments(true)}
+                        icon={<FolderOpen className="size-3.5" />}
+                        onClick={() => setShowDocuments(true)}
                     >
-                        {t('rightBar.comments')}
+                        {t('rightBar.documents')}
                     </Button>
                 </>
             )}
@@ -240,8 +240,12 @@ export default function RightBar() {
             {showStatistics && (
                 <UserStatisticsDrawer user={user} onClose={() => setShowStatistics(false)} />
             )}
-            {showComments && (
-                <CommentsModal userId={user.id} onClose={() => setShowComments(false)} />
+            {showDocuments && (
+                <DocumentsModal
+                    userId={user.id}
+                    userName={user.fullName}
+                    onClose={() => setShowDocuments(false)}
+                />
             )}
             {showOrderModal && <RozporyadzhennyaModal onClose={() => setShowOrderModal(false)} />}
             {showExcludeModal && <VyklyuchennyaModal onClose={() => setShowExcludeModal(false)} />}

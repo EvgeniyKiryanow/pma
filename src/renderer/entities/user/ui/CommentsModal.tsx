@@ -224,7 +224,7 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
                                             <IconButton
                                                 label={t('comments.delete')}
                                                 size="xs"
-                                                className="ml-auto opacity-0 transition-opacity hover:bg-danger-soft hover:text-danger-ink focus:opacity-100 group-hover:opacity-100"
+                                                className="ml-auto hover:bg-danger-soft hover:text-danger-ink"
                                                 onClick={() => void handleDeleteComment(c.id)}
                                                 icon={<Trash2 className="size-3.5" />}
                                             />

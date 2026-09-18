@@ -1,9 +1,11 @@
-import { Phone } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Phone, X } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import type { User } from '../../../../shared/types/user';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
-import { Avatar } from '../../../shared/ui';
+import { Avatar, IconButton } from '../../../shared/ui';
+import { useI18nStore } from '../../../stores/i18nStore';
 
 /** Human-readable staffing number (the stored value also encodes order/excluded states). */
 export function formatShpkNumber(value: string | null | undefined): string | null {
@@ -17,16 +19,34 @@ export function formatShpkNumber(value: string | null | undefined): string | nul
 /** Identity block of the dossier: photo, name, rank/position/unit and the current status. */
 export default function UserCard({ user, actions }: { user: User; actions?: ReactNode }) {
     const meta = [user.rank, user.position, user.unitMain].filter(Boolean);
+    const { t } = useI18nStore();
+    const [photoOpen, setPhotoOpen] = useState(false);
+
+    const avatar = (
+        <Avatar
+            name={user.fullName}
+            src={user.photo}
+            size={76}
+            rounded="rounded-2xl"
+            className="shadow-card ring-4 ring-surface"
+        />
+    );
 
     return (
-        <div className="flex flex-wrap items-start gap-x-5 gap-y-4">
-            <Avatar
-                name={user.fullName}
-                src={user.photo}
-                size={76}
-                rounded="rounded-2xl"
-                className="shadow-card ring-4 ring-surface"
-            />
+        <div className="flex flex-wrap items-start gap-x-5 gap-y-4 @6xl:flex-nowrap">
+            {user.photo ? (
+                <button
+                    type="button"
+                    onClick={() => setPhotoOpen(true)}
+                    title={t('userCard.openPhoto')}
+                    aria-label={t('userCard.openPhoto')}
+                    className="shrink-0 cursor-zoom-in rounded-2xl transition-transform hover:scale-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                    {avatar}
+                </button>
+            ) : (
+                avatar
+            )}
             <div className="min-w-[240px] flex-1">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <h2 className="text-[22px] font-semibold leading-tight text-ink">
@@ -63,7 +83,42 @@ export default function UserCard({ user, actions }: { user: User; actions?: Reac
                     )}
                 </div>
             </div>
-            {actions && <div className="flex w-full flex-wrap items-center gap-2">{actions}</div>}
+            {actions && (
+                <div className="flex w-full flex-wrap items-center gap-2 @6xl:w-auto @6xl:max-w-[60%] @6xl:flex-none @6xl:justify-end @6xl:self-center">
+                    {actions}
+                </div>
+            )}
+            {photoOpen &&
+                user.photo &&
+                createPortal(
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={user.fullName}
+                        className="fixed inset-x-0 bottom-0 top-10 z-[80] flex animate-fade-in items-center justify-center bg-black/80 p-6"
+                        onClick={() => setPhotoOpen(false)}
+                        onKeyDown={(e) => e.key === 'Escape' && setPhotoOpen(false)}
+                        tabIndex={-1}
+                        ref={(node) => node?.focus()}
+                    >
+                        <img
+                            src={user.photo}
+                            alt={user.fullName}
+                            className="max-h-full max-w-full rounded-2xl object-contain shadow-pop"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                        <p className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1.5 text-sm text-white">
+                            {user.fullName}
+                        </p>
+                        <IconButton
+                            label={t('common.close')}
+                            className="absolute right-5 top-5 bg-black/50 text-white hover:bg-black/70"
+                            onClick={() => setPhotoOpen(false)}
+                            icon={<X className="size-5" />}
+                        />
+                    </div>,
+                    document.body,
+                )}
         </div>
     );
 }

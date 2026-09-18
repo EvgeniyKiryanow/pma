@@ -1,5 +1,6 @@
 import type { AwardDef } from '../../../../shared/awards/catalog';
 import type { DirectiveRecord } from '../../../../shared/types/directive';
+import type { JournalEntry } from '../../../../shared/types/journal';
 import type { ReportTemplateRecord } from '../../../../shared/types/reports';
 import type { ShtatnaPosada } from '../../../../shared/types/shtatnaPosada';
 import type { User } from '../../../../shared/types/user';
@@ -16,6 +17,7 @@ export const SEARCH_CATEGORIES = [
     'positions',
     'awards',
     'orders',
+    'journal',
     'reports',
     'templates',
     'sections',
@@ -28,6 +30,7 @@ export type SearchAction =
     | { type: 'position'; shtatNumber: string; holderId?: number }
     | { type: 'award'; awardId: string }
     | { type: 'order'; userId: number }
+    | { type: 'journal'; uuid: string }
     | { type: 'report'; recordId: number; name: string }
     | { type: 'template'; templateId: string; name: string }
     | { type: 'tab'; tab: TabKey }
@@ -60,6 +63,7 @@ export type SearchSources = {
     positions?: ShtatnaPosada[];
     awards?: { award: AwardDef; holders: number }[];
     orders?: DirectiveRecord[];
+    journal?: JournalEntry[];
     reports?: ReportTemplateRecord[];
     templates?: { id: string; name: string; source: 'bundled' | 'uploaded' }[];
     sections?: SearchSection[];
@@ -408,6 +412,31 @@ export function globalSearch(
                     score: scored.score,
                     action: { type: 'order', userId: order.userId },
                     userId: order.userId,
+                },
+            ];
+        }),
+    );
+
+    // Journal entries
+    push(
+        (sources.journal ?? []).flatMap((entry): SearchHit[] => {
+            const scored = bestOf(queries, [
+                { name: 'title', value: entry.title, weight: 4 },
+                { name: 'category', value: entry.category, weight: 2 },
+                { name: 'body', value: entry.body, weight: 1 },
+                { name: 'files', value: entry.files.map((f) => f.name).join(' '), weight: 1 },
+                { name: 'dueDate', value: entry.dueDate, weight: 2, digits: true },
+            ]);
+            if (!scored) return [];
+            return [
+                {
+                    key: `journal:${entry.uuid}`,
+                    category: 'journal',
+                    title: entry.title,
+                    subtitle: [entry.dueDate, entry.category].filter(Boolean).join(' · '),
+                    // Open tasks before the done ones.
+                    score: scored.score * (entry.done ? 0.7 : 1),
+                    action: { type: 'journal', uuid: entry.uuid },
                 },
             ];
         }),

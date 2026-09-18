@@ -10,8 +10,10 @@ import { database } from '../db/connection';
 import { migrationRunner } from '../db/migrations';
 import type { DbProvider } from '../db/types';
 import { createDirectivesModule } from '../directives';
+import { createDocumentsModule } from '../documents';
 import { createFilesModule } from '../files';
 import { callActivity } from '../ipc/secureHandle';
+import { createJournalModule } from '../journal';
 import { createNamedListModule } from '../named-list';
 import { createPersonnelModule } from '../personnel';
 import { createRemindersModule } from '../reminders';
@@ -89,6 +91,8 @@ export function createContainer() {
         backup,
         personnel,
         createAwardsModule(context, { files: personnel.attachments }),
+        createDocumentsModule(context, { files: personnel.attachments }),
+        createJournalModule(context, { files: personnel.attachments }),
         createDirectivesModule(context),
         createStaffingModule(context),
         createNamedListModule(context),

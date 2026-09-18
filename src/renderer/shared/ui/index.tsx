@@ -516,7 +516,7 @@ export function Badge({
 /** Pill button placed on the dark title bar (alerts that need attention). */
 export function railChipClass(tone: 'brass' | 'danger'): string {
     return cn(
-        'inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium transition-colors',
+        'inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium transition-colors',
         tone === 'brass'
             ? 'bg-[oklch(79%_0.12_82/0.16)] text-[oklch(86%_0.11_85)] hover:bg-[oklch(79%_0.12_82/0.26)]'
             : 'bg-[oklch(60%_0.19_27/0.22)] text-[oklch(85%_0.09_25)] hover:bg-[oklch(60%_0.19_27/0.32)]',

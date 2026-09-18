@@ -104,6 +104,32 @@ export const HISTORY_CHANNELS = {
     findIncomplete: 'history:find-incomplete',
     /** Status changes with a period, of everyone (the named list). */
     statusPeriods: 'history:status-periods',
+    /** The latest status changes of everyone (the desktop). */
+    recentStatusChanges: 'history:recent-status-changes',
+} as const;
+
+/** «Документи» of a person, their categories, and the files added lately anywhere. */
+export const DOCUMENT_CHANNELS = {
+    categories: 'documents:categories',
+    addCategory: 'documents:add-category',
+    renameCategory: 'documents:rename-category',
+    removeCategory: 'documents:remove-category',
+    list: 'documents:list',
+    add: 'documents:add',
+    update: 'documents:update',
+    remove: 'documents:remove',
+    load: 'documents:load',
+    recent: 'documents:recent',
+} as const;
+
+/** The working journal (planner). */
+export const JOURNAL_CHANNELS = {
+    list: 'journal:list',
+    save: 'journal:save',
+    setDone: 'journal:set-done',
+    setPinned: 'journal:set-pinned',
+    remove: 'journal:remove',
+    loadFile: 'journal:load-file',
 } as const;
 
 /** The awards register: the unit's own awards and the documents of awards in the cards. */

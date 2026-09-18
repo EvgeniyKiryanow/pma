@@ -2,7 +2,9 @@ import {
     AWARD_CHANNELS,
     COMMENT_CHANNELS,
     DIRECTIVE_CHANNELS,
+    DOCUMENT_CHANNELS,
     HISTORY_CHANNELS,
+    JOURNAL_CHANNELS,
     PERSONNEL_CHANNELS,
 } from '../../shared/ipc/channels';
 import type { Result } from '../../shared/ipc/result';
@@ -10,10 +12,18 @@ import type { AwardType, AwardTypeInput } from '../../shared/types/awards';
 import type { ActionStatus } from '../../shared/types/common';
 import type { DirectiveInput, DirectiveRecord, DirectiveType } from '../../shared/types/directive';
 import type {
+    DocumentCategory,
+    NewDocumentsInput,
+    PersonDocument,
+    RecentFile,
+} from '../../shared/types/documents';
+import type {
     HistoryRange,
     IncompleteHistoryEntry,
+    RecentStatusChange,
     StatusPeriodEntry,
 } from '../../shared/types/history';
+import type { JournalEntry, JournalEntryInput } from '../../shared/types/journal';
 import type { CommentOrHistoryEntry, User } from '../../shared/types/user';
 import { invoke } from '../invoke';
 
@@ -49,6 +59,8 @@ export const historyApi = {
         invoke<{ dataUrl: string }>(HISTORY_CHANNELS.loadFile, userId, entryId, filename),
     findIncompleteHistory: () => invoke<IncompleteHistoryEntry[]>(HISTORY_CHANNELS.findIncomplete),
     getStatusPeriods: () => invoke<StatusPeriodEntry[]>(HISTORY_CHANNELS.statusPeriods),
+    getRecentStatusChanges: (limit?: number) =>
+        invoke<RecentStatusChange[]>(HISTORY_CHANNELS.recentStatusChanges, limit),
 };
 
 export const commentsApi = {
@@ -78,4 +90,36 @@ export const awardsApi = {
     /** A document of an award as a data URL. */
     loadFile: (userId: number, recordId: string, fileName: string) =>
         invoke<Result<string>>(AWARD_CHANNELS.loadFile, userId, recordId, fileName),
+};
+
+/** «Документи» of a person in categories; the files added lately anywhere. */
+export const documentsApi = {
+    categories: (userId?: number) =>
+        invoke<Result<DocumentCategory[]>>(DOCUMENT_CHANNELS.categories, userId),
+    addCategory: (name: string) =>
+        invoke<Result<DocumentCategory>>(DOCUMENT_CHANNELS.addCategory, name),
+    renameCategory: (uuid: string, name: string) =>
+        invoke<Result<void>>(DOCUMENT_CHANNELS.renameCategory, uuid, name),
+    removeCategory: (uuid: string) => invoke<Result<void>>(DOCUMENT_CHANNELS.removeCategory, uuid),
+    list: (userId: number) => invoke<Result<PersonDocument[]>>(DOCUMENT_CHANNELS.list, userId),
+    add: (input: NewDocumentsInput) =>
+        invoke<Result<PersonDocument[]>>(DOCUMENT_CHANNELS.add, input),
+    update: (uuid: string, patch: { name?: string; categoryUuid?: string | null; note?: string }) =>
+        invoke<Result<PersonDocument>>(DOCUMENT_CHANNELS.update, uuid, patch),
+    remove: (uuid: string) => invoke<Result<void>>(DOCUMENT_CHANNELS.remove, uuid),
+    load: (uuid: string) => invoke<Result<string>>(DOCUMENT_CHANNELS.load, uuid),
+    recent: (limit?: number) => invoke<Result<RecentFile[]>>(DOCUMENT_CHANNELS.recent, limit),
+};
+
+/** The working journal (planner). */
+export const journalApi = {
+    list: () => invoke<Result<JournalEntry[]>>(JOURNAL_CHANNELS.list),
+    save: (entry: JournalEntryInput) => invoke<Result<JournalEntry>>(JOURNAL_CHANNELS.save, entry),
+    setDone: (uuid: string, done: boolean) =>
+        invoke<Result<JournalEntry>>(JOURNAL_CHANNELS.setDone, uuid, done),
+    setPinned: (uuid: string, pinned: boolean) =>
+        invoke<Result<JournalEntry>>(JOURNAL_CHANNELS.setPinned, uuid, pinned),
+    remove: (uuid: string) => invoke<Result<void>>(JOURNAL_CHANNELS.remove, uuid),
+    loadFile: (uuid: string, fileName: string) =>
+        invoke<Result<string>>(JOURNAL_CHANNELS.loadFile, uuid, fileName),
 };
