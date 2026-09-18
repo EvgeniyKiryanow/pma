@@ -102,6 +102,8 @@ export const HISTORY_CHANNELS = {
     remove: 'deleteUserHistory',
     loadFile: 'history:load-file',
     findIncomplete: 'history:find-incomplete',
+    /** Status changes with a period, of everyone (the named list). */
+    statusPeriods: 'history:status-periods',
 } as const;
 
 export const COMMENT_CHANNELS = {

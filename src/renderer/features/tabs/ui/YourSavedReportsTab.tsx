@@ -1,4 +1,4 @@
-import { Download, FileSpreadsheet, FolderOpen, Trash2, UploadCloud } from 'lucide-react';
+import { Download, FileDown, FileSpreadsheet, FolderOpen, Trash2, UploadCloud } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { reportError } from '../../../shared/api/errors';
@@ -9,6 +9,7 @@ import { cn, EmptyState, formatDateTime, IconButton, SearchInput } from '../../.
 import { confirmAction } from '../../../shared/ui/confirm';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useReportFilesStore } from '../../report/model/reportFilesStore';
+import { printDocx } from '../model/docxPrint';
 
 export default function YourSavedReportsTab() {
     const { t } = useI18nStore();
@@ -40,6 +41,16 @@ export default function YourSavedReportsTab() {
     // A failure reaches the global handler, which shows a translated notification.
     const handleDownload = async (filePath: string, name: string) => {
         await downloadFile(await reportTemplatesApi.readFile(filePath), name || filePath);
+    };
+
+    // A .docx as PDF, drawn by the program (no Word or LibreOffice needed).
+    const handlePdf = async (filePath: string, name: string) => {
+        try {
+            const title = name.replace(/\.docx$/i, '');
+            await printDocx(await reportTemplatesApi.readFile(filePath), title, 'pdf');
+        } catch (err) {
+            reportError(err, { context: 'saved-reports-pdf' });
+        }
     };
 
     const handleDelete = async (id: number, name: string) => {
@@ -131,6 +142,14 @@ export default function YourSavedReportsTab() {
                                             {formatDateTime(file.createdAt)}
                                         </p>
                                     </div>
+                                    {/\.docx$/i.test(file.name) && (
+                                        <IconButton
+                                            label={t('reports.savePdf')}
+                                            size="sm"
+                                            onClick={() => void handlePdf(file.filePath, file.name)}
+                                            icon={<FileDown className="size-4" />}
+                                        />
+                                    )}
                                     <IconButton
                                         label={t('reports.download')}
                                         size="sm"

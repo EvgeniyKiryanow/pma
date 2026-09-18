@@ -9,7 +9,10 @@ import {
     USER_UPDATE_FIELDS,
     type UserRow,
 } from './PersonnelRepository';
-import { parseUserRow, userToRow } from './userFields';
+import { parseUserRow, safeJsonArray, userToRow } from './userFields';
+
+/** Lists added in v2.1: screens and imports that do not know them must not empty them. */
+const KEPT_LISTS = ['educationList', 'awardRecords'] as const;
 
 const toUser = (row: UserRow) => parseUserRow(row) as unknown as User;
 
@@ -27,7 +30,11 @@ export class PersonnelService {
     async list(): Promise<User[]> {
         return (await this.people.list()).map(
             ({ history: _history, comments: _comments, ...rest }) =>
-                parseUserRow(rest, ['relatives']) as unknown as User,
+                parseUserRow(rest, [
+                    'relatives',
+                    'educationList',
+                    'awardRecords',
+                ]) as unknown as User,
         );
     }
 
@@ -44,11 +51,19 @@ export class PersonnelService {
         });
     }
 
-    /** Updates everything except history and comments. Throws NOT_FOUND. */
+    /**
+     * Updates everything except history and comments. The lists of the card (education,
+     * awards) stay as they are when the caller does not send them. Throws NOT_FOUND.
+     */
     async update(id: number, user: Record<string, unknown>): Promise<User> {
         return this.transactor.transaction(async () => {
-            if (!(await this.people.exists(id))) throw new AppError('NOT_FOUND', 'User not found');
-            await this.people.update(id, userToRow(user, USER_UPDATE_FIELDS));
+            const current = await this.people.findById(id);
+            if (!current) throw new AppError('NOT_FOUND', 'User not found');
+            const complete: Record<string, unknown> = { ...user };
+            for (const field of KEPT_LISTS) {
+                if (!(field in user)) complete[field] = safeJsonArray(current[field]);
+            }
+            await this.people.update(id, userToRow(complete, USER_UPDATE_FIELDS));
             await this.journal.recordRow('users', id, 'update');
             return toUser(await this.people.findById(id));
         });

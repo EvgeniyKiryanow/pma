@@ -3,9 +3,15 @@ import { BrowserWindow, type WebContents } from 'electron';
 import type { PrintableDocument } from '../../shared/types/files';
 
 /** A4 landscape or portrait with narrow margins; colours of the form are kept. */
-function pageCss(landscape: boolean): string {
+function pageCss(landscape: boolean, document = false): string {
+    // A generated document brings its own margins (the padding of each page).
+    const pages = document
+        ? `
+section.docx { margin: 0 !important; box-shadow: none !important; min-height: 0 !important; break-after: page; }
+section.docx:last-of-type { break-after: auto; }`
+        : '';
     return `
-@page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 8mm; }
+@page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: ${document ? '0' : '8mm'}; }${pages}
 html, body { background: #fff !important; color: #000; margin: 0; }
 body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: Arial, sans-serif; }
 .print-title { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
@@ -33,9 +39,9 @@ export function documentHtml(doc: PrintableDocument): string {
         '<head><meta charset="utf-8">',
         `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:">`,
         `<title>${escapeHtml(doc.title)}</title>`,
-        `<style>${css}</style><style>${pageCss(doc.landscape)}</style>`,
+        `<style>${css}</style><style>${pageCss(doc.landscape, doc.document)}</style>`,
         '</head><body>',
-        `<p class="print-title">${escapeHtml(doc.title)}</p>`,
+        doc.document ? '' : `<p class="print-title">${escapeHtml(doc.title)}</p>`,
         doc.html,
         '</body></html>',
     ].join('');
@@ -83,7 +89,9 @@ export class DocumentPrinter {
                 pageSize: 'A4',
                 printBackground: true,
                 scale: clampScale(doc.scale),
-                margins: { top: 0.3, bottom: 0.3, left: 0.3, right: 0.3 },
+                margins: doc.document
+                    ? { top: 0, bottom: 0, left: 0, right: 0 }
+                    : { top: 0.3, bottom: 0.3, left: 0.3, right: 0.3 },
             }),
         );
     }
@@ -101,6 +109,7 @@ export class DocumentPrinter {
                             landscape: doc.landscape,
                             pageSize: 'A4',
                             scaleFactor: Math.round(clampScale(doc.scale) * 100),
+                            ...(doc.document ? { margins: { marginType: 'none' as const } } : {}),
                         },
                         (success, reason) => {
                             if (success) resolve(true);

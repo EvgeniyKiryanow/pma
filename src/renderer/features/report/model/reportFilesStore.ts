@@ -11,9 +11,15 @@ type ReportFilesStore = {
     removeFileById: (id: number) => Promise<void>;
 };
 
-/** Report templates uploaded by users. */
+/** Saved reports: files the unit keeps (generated documents, tables, scans). */
 export const useReportFilesStore = create<ReportFilesStore>((set) => {
-    const reload = async () => set({ files: await reportTemplatesApi.listUploaded() });
+    // Templates live in the template library; this list is the unit's saved reports.
+    const reload = async () =>
+        set({
+            files: (await reportTemplatesApi.listUploaded()).filter(
+                (file) => file.kind !== 'template',
+            ),
+        });
 
     return {
         files: [],

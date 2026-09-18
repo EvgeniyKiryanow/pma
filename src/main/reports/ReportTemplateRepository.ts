@@ -1,4 +1,4 @@
-import type { ReportTemplateRecord } from '../../shared/types/reports';
+import type { ReportFileKind, ReportTemplateRecord } from '../../shared/types/reports';
 import type { DbProvider } from '../db/types';
 
 export class ReportTemplateRepository {
@@ -17,10 +17,15 @@ export class ReportTemplateRepository {
         );
     }
 
-    async insert(name: string, filePath: string): Promise<number> {
+    async insert(name: string, filePath: string, kind: ReportFileKind): Promise<number> {
         const result = await (
             await this.db()
-        ).run('INSERT INTO report_templates (name, filePath) VALUES (?, ?)', name, filePath);
+        ).run(
+            'INSERT INTO report_templates (name, filePath, kind) VALUES (?, ?, ?)',
+            name,
+            filePath,
+            kind,
+        );
         return Number(result.lastID);
     }
 

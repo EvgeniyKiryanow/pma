@@ -14,6 +14,7 @@ import {
     impulseDocument,
     impulseDriverLicence,
     impulseEducationRow,
+    impulseEducationRows,
     impulseGender,
     impulseOrder,
     impulsePassport,
@@ -233,6 +234,100 @@ describe('who and what goes into the file', () => {
         expect(summary.filled.taxId).toBe(1);
         expect(summary.gaps).toHaveLength(1);
         expect(summary.gaps[0].missing).toContain('name');
+    });
+});
+
+describe('fields of the Impulse card', () => {
+    it('are taken as they are, and win over the free text', () => {
+        const row = impulseRow(
+            person({
+                passportData: 'КН 123456 виданий Шевченківським РВ ГУ 12.03.2005',
+                passportType: 'ID - картка',
+                passportNumber: '001234567',
+                passportIssuer: '8031',
+                passportIssueDate: '01.02.2020',
+                regRegion: 'Київська область',
+                regSettlement: 'Буча',
+                registeredAddress: 'Львівська обл., м. Львів',
+                citizenship: 'Україна',
+                birthCountry: 'Нарнія',
+                oathDate: '15.03.2022',
+                iban: 'UA21 3223 1300 0002 6007 2335 6600 1',
+                driverLicenseCategories: 'B,C1,Z',
+            }),
+        );
+        const passport = 'Внутрішній паспорт';
+        expect(row[at('Тип', passport)]).toBe('ID - картка');
+        expect(row[at('Номер', passport)]).toBe('001234567');
+        // The document's own fields are used alone: no series from the older text.
+        expect(row[at('Серія', passport)]).toBeNull();
+        expect(row[at('Дата видачі', passport)]).toEqual(day(2020, 2, 1));
+        expect(row[at('Область', 'Місце реєстрації')]).toBe('Київська область');
+        expect(row[at('Населений пункт', 'Місце реєстрації')]).toBe('Буча');
+        expect(row[at('Громадянство')]).toBe('Україна');
+        // Only values of the Impulse dictionary go into a dictionary column.
+        expect(row[at('Країна народження')]).toBeNull();
+        expect(row[at('Дата прийняття присяги')]).toEqual(day(2022, 3, 15));
+        expect(row[at('IBAN')]).toBe('UA213223130000026007233566001');
+        expect(row[at('Категорія +', 'Посвідчення водія')]).toBe('B,C1');
+    });
+
+    it('puts the orders of the card into their own columns', () => {
+        const row = impulseRow(
+            person({
+                appointmentOrder: 'стройовий наказ № 45 від 03.03.2024',
+                appointmentOrderNumber: '77/ос',
+                appointmentOrderDate: '05.03.2024',
+            }),
+        );
+        const staff = 'Наказ на призначення на посаду (по особовому складу)';
+        const drill = 'Наказ на призначення на посаду (по стройовій частині)';
+        expect(row[at('Номер наказу', staff)]).toBe('77/ос');
+        expect(row[at('Номер наказу', drill)]).toBeNull();
+    });
+
+    it('writes one line of «Освіта і курси» per school or course', () => {
+        const rows = impulseEducationRows(
+            person({
+                educationDetails: 'Вища, КПІ, 2012',
+                educationList: [
+                    {
+                        id: 'e1',
+                        type: 'Цивільна',
+                        level: 'Вища',
+                        institution: 'КПІ',
+                        institutionType: 'Навчальний заклад',
+                        endYear: '2012',
+                    },
+                    {
+                        id: 'e2',
+                        type: 'Військова',
+                        level: 'Тактичний',
+                        courses: 'L1A - Базовий курс',
+                        institution: 'НАСВ',
+                        endYear: '2023',
+                    },
+                ],
+            }),
+        );
+        expect(rows).toHaveLength(2);
+        expect(rows[0].slice(2, 4)).toEqual(['Цивільна', 'Вища']);
+        expect(rows[1][3]).toBe('Тактичний');
+        expect(rows[1][5]).toBe('L1A - Базовий курс');
+        // Without entries the free text still gives its line.
+        expect(impulseEducationRows(person({ education: 'Середня школа' }))).toHaveLength(1);
+    });
+
+    it('keeps the granted awards in the information columns', () => {
+        const row = impulseRow(
+            person({
+                awardRecords: [
+                    { id: 'a', awardId: 'order-courage', degree: 'III', status: 'awarded' },
+                    { id: 'b', awardId: 'mod-iron-cross', status: 'submitted' },
+                ],
+            }),
+        );
+        expect(row[row.length - 1]).toBe('Орден «За мужність» III ступеня');
     });
 });
 

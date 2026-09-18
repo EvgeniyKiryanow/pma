@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { awardsSummary } from '../../../../../shared/awards/catalog';
 import classifyStatusForReport from '../../../../../shared/helpers/classifyStatusForReport';
 import { CommentOrHistoryEntry } from '../../../../../shared/types/user';
 import {
@@ -21,6 +22,7 @@ const STAFF_COLUMNS = [
     { key: 'dateFrom', label: 'дата з', background: '#f8ccb0' },
     { key: 'dateTo', label: 'дата по', background: '#f8ccb0' },
     { key: 'statusNote', label: 'помилка статусів', background: '#f7c7c7' },
+    { key: 'awards', label: 'Нагороди', background: '#fff2cc' },
 ];
 
 export function StaffReportTable() {
@@ -102,6 +104,7 @@ export function StaffReportTable() {
                 dateFrom,
                 dateTo,
                 statusNote: extra.statusNote || '',
+                awards: awardsSummary(assignedUser?.awardRecords),
             };
         });
     }, [sorted, users, userHistories]);

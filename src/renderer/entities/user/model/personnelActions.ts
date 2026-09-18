@@ -1,5 +1,6 @@
 import type { CommentOrHistoryEntry, User } from '../../../../shared/types/user';
 import { historyApi } from '../../../shared/api/personnel';
+import { personnelEvents } from '../../../shared/lib/personnelEvents';
 import { useUserStore } from '../../../stores/userStore';
 import type { ShtatnaPosada } from '../../shtatna-posada/model/useShtatniStore';
 
@@ -43,14 +44,20 @@ async function saveWithHistory(user: User, entry: CommentOrHistoryEntry): Promis
 export async function changeStatus(user: User, status: string): Promise<User> {
     const previous = user.soldierStatus || 'Без статусу';
     const updated: User = { ...user, soldierStatus: status };
-    await saveWithHistory(
-        updated,
-        record(
+    await saveWithHistory(updated, {
+        ...record(
             'statusChange',
             `Статус змінено з "${previous}" → "${status}"`,
             `Статус змінено з "${previous}" на "${status}"`,
         ),
-    );
+        status,
+        previousStatus: previous,
+    });
+    await personnelEvents.statusChanged({
+        user: updated,
+        from: user.soldierStatus ?? '',
+        to: status,
+    });
     return updated;
 }
 

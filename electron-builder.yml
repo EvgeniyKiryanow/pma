@@ -48,7 +48,9 @@ fileAssociations:
   - ext: pmb
     name: PManager.Backup
     description: Резервна копія PManager
-    icon: appIcon
+    # Its own icon (the shield in steel blue with a restore badge): a backup is told apart from
+    # the program at a glance. Source: assets/icons/backupFile.svg.
+    icon: backupFile
     role: Editor
     mimeType: application/x-pmanager-backup
 

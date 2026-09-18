@@ -1,8 +1,9 @@
 import { REPORT_CHANNELS } from '../../shared/ipc/channels';
+import { REPORT_FILE_KINDS } from '../../shared/types/reports';
 import { safeFileName } from '../core/paths';
 import { toStatus } from '../ipc/legacy';
 import { access, handle } from '../ipc/secureHandle';
-import { requireBuffer, requireInt, requireString } from '../ipc/validate';
+import { requireBuffer, requireInt, requireOneOf, requireString } from '../ipc/validate';
 import type { BundledTemplateCatalog } from './BundledTemplateCatalog';
 import type { DocxPdfConverter } from './DocxPdfConverter';
 import type { ReportTemplateService } from './ReportTemplateService';
@@ -48,10 +49,11 @@ export function registerReportIpc({ templates, bundled, pdf }: Deps): void {
     handle(
         REPORT_CHANNELS.addTemplate,
         manage,
-        async (_event, name: unknown, filePath: unknown) => {
+        async (_event, name: unknown, filePath: unknown, kind: unknown) => {
             await templates.add(
                 requireString(name, 'name', { maxLength: 200 }),
                 safeFileName(requireString(filePath, 'filePath', { maxLength: 200 })),
+                kind === undefined ? 'report' : requireOneOf(kind, 'kind', REPORT_FILE_KINDS),
             );
             return { success: true };
         },

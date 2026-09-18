@@ -1,3 +1,5 @@
+import { useI18nStore } from '../../stores/i18nStore';
+
 // src/utils/headerMap.ts
 
 export const HEADER_MAP: Record<string, string> = {
@@ -106,6 +108,45 @@ export const HEADER_MAP: Record<string, string> = {
 
     // ✅ Extra Excel-only
     't.': 'tDotData',
+
+    // ✅ Особова картка as in Impulse (columns a unit may add to its Excel)
+    Позивний: 'callsign',
+    'Тип паспорта': 'passportType',
+    'Серія паспорта': 'passportSeries',
+    'Номер паспорта': 'passportNumber',
+    'Паспорт ким виданий': 'passportIssuer',
+    'Дата видачі паспорта': 'passportIssueDate',
+    'Закордонний паспорт': 'foreignPassportNumber',
+    'Серія військового квитка': 'militaryTicketSeries',
+    'Номер військового квитка': 'militaryTicketNumber',
+    'Військовий квиток ким виданий': 'militaryTicketIssuer',
+    'Дата видачі військового квитка': 'militaryTicketIssueDate',
+    'Серія посвідчення УБД': 'ubdSeries',
+    'Номер посвідчення УБД': 'ubdNumber',
+    'Посвідчення УБД ким видане': 'ubdIssuer',
+    'Дата видачі посвідчення УБД': 'ubdIssueDate',
+    'Категорії водія': 'driverLicenseCategories',
+    IBAN: 'iban',
+    'Банківська картка': 'bankCard',
+    'Назва банку': 'bankName',
+    'Додатковий телефон': 'extraPhone',
+    Громадянство: 'citizenship',
+    'Країна народження': 'birthCountry',
+    Національність: 'nationality',
+    Теги: 'tags',
+    'Номер наказу про присвоєння звання': 'rankOrderNumber',
+    'Ким присвоєно звання': 'rankOrderIssuer',
+    'Дата наказу про призначення': 'appointmentOrderDate',
+    'Номер наказу про призначення': 'appointmentOrderNumber',
+    'Дата призову': 'conscriptionDate',
+    'Дата прийняття присяги': 'oathDate',
+    'Дата наказу на зарахування': 'enlistmentOrderDate',
+    'Номер наказу на зарахування': 'enlistmentOrderNumber',
+    'БЗВП з': 'bzvpFrom',
+    'БЗВП по': 'bzvpTo',
+    'Місце проходження БЗВП': 'bzvpPlace',
+    Вислуга: 'serviceLength',
+    'Вчене звання': 'academicTitle',
 };
 
 export const DB_LABELS: Record<string, string> = Object.entries(HEADER_MAP).reduce(
@@ -116,7 +157,9 @@ export const DB_LABELS: Record<string, string> = Object.entries(HEADER_MAP).redu
     {} as Record<string, string>,
 );
 
-// ✅ For any unmapped field → show raw key
+/** Label of a database column: the card's own label, the Excel heading, or the column name. */
 export const getFieldLabel = (key: string): string => {
+    const cardLabel = useI18nStore.getState().t(`card.fields.${key}`);
+    if (cardLabel !== `card.fields.${key}`) return cardLabel;
     return DB_LABELS[key] || key;
 };

@@ -7,6 +7,8 @@ import { relaxUserConstraints } from './006_relax_user_constraints';
 import { appSettings } from './007_app_settings';
 import { statusNames } from './008_status_names';
 import { attachedPersonnel } from './009_attached_personnel';
+import { personalCard } from './010_personal_card';
+import { reportKinds } from './011_report_kinds';
 import { MigrationRunner } from './runner';
 
 /** Append new migrations to the end. Never reorder, edit or remove released ones. */
@@ -20,6 +22,8 @@ export const MIGRATIONS = [
     appSettings,
     statusNames,
     attachedPersonnel,
+    personalCard,
+    reportKinds,
 ];
 
 export const migrationRunner = new MigrationRunner(MIGRATIONS);

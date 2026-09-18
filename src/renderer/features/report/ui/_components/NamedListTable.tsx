@@ -1,13 +1,16 @@
 import { CalendarDays, CalendarPlus, ListChecks, Trash2 } from 'lucide-react';
 import React, { JSX, useEffect, useMemo, useRef, useState } from 'react';
 
+import type { StatusPeriodEntry } from '../../../../../shared/types/history';
+import { reportError } from '../../../../shared/api/errors';
+import { historyApi } from '../../../../shared/api/personnel';
 import { Button, cn, EmptyState, IconButton } from '../../../../shared/ui';
 import { confirmAction } from '../../../../shared/ui/confirm';
 import { toast } from '../../../../shared/ui/toast';
-import { StatusExcel } from '../../../../shared/utils/excelUserStatuses';
 import { useUserStore } from '../../../../stores/userStore';
 import { useRozporyadzhennyaStore } from '../../../manager/model/useRozporyadzhennyaStore';
 import { useVyklyuchennyaStore } from '../../../manager/model/useVyklyuchennyaStore';
+import { periodCodes, type RowClosure, rowClosure, statusCode } from '../../model/namedListDays';
 import { AttendanceRow, useNamedListStore } from '../../model/useNamedListStore';
 
 const ROWS_PER_TABLE = 14;
@@ -31,35 +34,6 @@ function normStr(s: string) {
 function keyByNameRank(fullName?: string, rank?: string) {
     return `${normStr(fullName || '')}|${normStr(rank || '')}`;
 }
-
-const statusToShort: Record<StatusExcel, string> = {
-    [StatusExcel.ABSENT_REHAB]: 'вп',
-    [StatusExcel.ABSENT_REHAB_LEAVE]: 'вп',
-    [StatusExcel.ABSENT_BUSINESS_TRIP]: 'вд',
-    [StatusExcel.ABSENT_HOSPITALIZED]: 'гп',
-    [StatusExcel.ABSENT_MEDICAL_COMPANY]: '+',
-    [StatusExcel.ABSENT_WOUNDED]: '300',
-    [StatusExcel.ABSENT_SZO]: 'сзч',
-    [StatusExcel.ABSENT_KIA]: '200',
-    [StatusExcel.ABSENT_MIA]: '500',
-    [StatusExcel.ABSENT_VLK]: 'влк',
-    [StatusExcel.MANAGEMENT]: 'воп',
-    [StatusExcel.SUPPLY_COMBAT]: 'воп',
-    [StatusExcel.SUPPLY_GENERAL]: 'воп',
-    [StatusExcel.NON_COMBAT_NEWCOMERS]: '+',
-    [StatusExcel.NON_COMBAT_LIMITED_FITNESS]: '+',
-    [StatusExcel.NON_COMBAT_LIMITED_FITNESS_IN_COMBAT]: '+',
-    [StatusExcel.HAVE_OFFER_TO_HOS]: '+',
-    [StatusExcel.ABSENT_REHABED_ON]: 'зв',
-    [StatusExcel.POSITIONS_INFANTRY]: 'воп',
-    [StatusExcel.POSITIONS_UAV]: 'воп',
-    [StatusExcel.POSITIONS_BRONEGROUP]: 'бч',
-    [StatusExcel.POSITIONS_CREW]: 'воп',
-    [StatusExcel.POSITIONS_CALCULATION]: 'воп',
-    [StatusExcel.POSITIONS_RESERVE_INFANTRY]: 'воп',
-    [StatusExcel.NO_STATUS]: '',
-    [StatusExcel.NON_COMBAT_REFUSERS]: '',
-};
 
 type MonthKey = `${number}-${number}`; // "2025-08"
 
@@ -128,7 +102,7 @@ export function startNamedListAutoApply() {
             const u = byShpk.get(String(row.shpkNumber));
             if (!u) continue;
 
-            const short = statusToShort[u.soldierStatus as StatusExcel] ?? '';
+            const short = statusCode(u.soldierStatus);
             if (!short) continue;
 
             if (!row.attendance[dayIndex]) {
@@ -235,46 +209,56 @@ export function NamedListTable() {
         return m;
     }, [users]);
 
-    // Об’єднана мапа виключень (vyklyuchennya/rozporyadzhennya) -> перший день застосування в активному місяці
+    // From the day an exclusion or an order starts, the row is closed with its description.
     const exclusionsByUserId = useMemo(() => {
-        const m = new Map<
-            number,
-            { description: string; periodFrom: string; startIndex: number }
-        >();
-
-        const calcStartIndex = (from: string) => {
-            for (let i = 0; i < daysInActiveMonth; i++) {
-                const dayDate = new Date(activeYear, activeMonthIndex, i + 1);
-                if (dayDate >= new Date(from)) return i;
-            }
-            return -1;
-        };
-
+        const m = new Map<number, RowClosure>();
         for (const v of vyklyuchennyaList) {
-            const start = calcStartIndex(v.periodFrom);
-            if (start >= 0) {
-                m.set(v.userId, {
-                    description: v.description ?? '',
-                    periodFrom: v.periodFrom,
-                    startIndex: start,
-                });
-            }
+            const closure = rowClosure(
+                'excluded',
+                v.periodFrom,
+                v.description,
+                activeYear,
+                activeMonthIndex,
+                daysInActiveMonth,
+            );
+            if (closure) m.set(v.userId, closure);
         }
         for (const o of ordersList) {
-            if (!o.period?.from) continue;
-            // не перетираємо вже існуюче виключення з vyklyuchennya
+            // An exclusion is final: it is not replaced by an older order.
             if (m.has(o.userId)) continue;
-            const start = calcStartIndex(o.period.from);
-            if (start >= 0) {
-                m.set(o.userId, {
-                    description: o.description ?? o.title ?? '',
-                    periodFrom: o.period.from,
-                    startIndex: start,
-                });
-            }
+            const closure = rowClosure(
+                'order',
+                o.period?.from,
+                o.description ?? o.title,
+                activeYear,
+                activeMonthIndex,
+                daysInActiveMonth,
+            );
+            if (closure) m.set(o.userId, closure);
         }
         return m;
     }, [ordersList, vyklyuchennyaList, activeYear, activeMonthIndex, daysInActiveMonth]);
+
+    // Status periods from the history (відпустка з … по …): marks of the days they cover.
+    const historyVersion = useUserStore((s) => s.historyVersion);
+    const [periods, setPeriods] = useState<StatusPeriodEntry[]>([]);
+    useEffect(() => {
+        historyApi
+            .statusPeriods()
+            .then(setPeriods)
+            .catch((error) => reportError(error, { context: 'named-list.periods' }));
+    }, [historyVersion, users]);
+    const plannedByUserId = useMemo(() => {
+        const byUser = new Map<number, StatusPeriodEntry[]>();
+        for (const period of periods) {
+            byUser.set(period.userId, [...(byUser.get(period.userId) ?? []), period]);
+        }
+        const codes = new Map<number, string[]>();
+        for (const [userId, list] of byUser) {
+            codes.set(userId, periodCodes(list, activeYear, activeMonthIndex, daysInActiveMonth));
+        }
+        return codes;
+    }, [periods, activeYear, activeMonthIndex, daysInActiveMonth]);
 
     const currentRows = useMemo<AttendanceRow[]>(() => {
         return activeKey && tables[activeKey] ? tables[activeKey] : [];
@@ -343,24 +327,13 @@ export function NamedListTable() {
                 }
             }
 
-            // попередня підготовка exclusion ( лише стартовий індекс — нам цього досить )
-            let exclusion: AttendanceRow['exclusion'] | undefined;
-            const uExcluded = exclusionsByUserId.get(u.id);
-            if (uExcluded) {
-                exclusion = {
-                    description: uExcluded.description,
-                    periodFrom: uExcluded.periodFrom,
-                    startIndex: uExcluded.startIndex,
-                };
-            }
-
+            // Orders and exclusions are drawn from the live lists, not stored in the table.
             return {
                 id: i + 1,
                 rank: u.rank || '',
                 shpkNumber: u.shpkNumber ?? '',
                 fullName: u.fullName || '',
                 attendance,
-                exclusion,
             };
         });
 
@@ -416,7 +389,7 @@ export function NamedListTable() {
                 .users.find((x) => keyByNameRank(x.fullName, x.rank) === uKey);
             if (!u) continue;
 
-            const short = statusToShort[u.soldierStatus as StatusExcel] ?? '';
+            const short = statusCode(u.soldierStatus);
             if (!short) continue;
 
             if (!row.attendance[dayIndex]) {
@@ -622,6 +595,9 @@ export function NamedListTable() {
                                         const exclusion = matchedUser
                                             ? exclusionsByUserId.get(matchedUser.id)
                                             : undefined;
+                                        const planned = matchedUser
+                                            ? plannedByUserId.get(matchedUser.id)
+                                            : undefined;
 
                                         const cells: JSX.Element[] = [];
                                         for (let di = 0; di < daysInActiveMonth; di++) {
@@ -633,8 +609,7 @@ export function NamedListTable() {
                                                         colSpan={colSpan}
                                                         className="whitespace-pre-line border border-gray-400 bg-gray-50 p-1 text-left align-top text-[11px] text-gray-700"
                                                     >
-                                                        {exclusion.description}{' '}
-                                                        {exclusion.periodFrom}
+                                                        {exclusion.label}
                                                     </td>,
                                                 );
                                                 break;
@@ -647,6 +622,7 @@ export function NamedListTable() {
                                                 <AttendanceCell
                                                     key={di}
                                                     value={row.attendance[di]}
+                                                    planned={planned?.[di]}
                                                     highlight={
                                                         isCurrentMonth && di === todayDay - 1
                                                     }
@@ -676,6 +652,11 @@ export function NamedListTable() {
                             </table>
                         </div>
                     ))}
+                    <p className="text-xs text-gray-600">
+                        <span className="font-semibold text-sky-700">Сині позначки</span> — з
+                        історії статусів (відпустка, відрядження… з періодом «з … по …»). Введене
+                        вручну має перевагу.
+                    </p>
                 </div>
             )}
         </div>
@@ -685,10 +666,13 @@ export function NamedListTable() {
 /** Окрема клітинка з локальним станом і дебаунсом збереження */
 function AttendanceCell({
     value,
+    planned,
     onChange,
     highlight = false,
 }: {
     value: string;
+    /** The mark of a status period covering the day (shown while nothing is typed). */
+    planned?: string;
     onChange: (val: string) => void | Promise<void>;
     highlight?: boolean;
 }) {
@@ -708,12 +692,14 @@ function AttendanceCell({
                 type="text"
                 maxLength={3}
                 value={local}
+                placeholder={planned || undefined}
+                title={planned && !local ? 'З історії статусів (період)' : undefined}
                 onChange={(e) => {
                     const v = normToken(e.target.value);
                     setLocal(v);
                     debouncedSave(v);
                 }}
-                className="w-full rounded-sm border-none bg-transparent text-center text-xs text-gray-900 outline-none focus:bg-lime-100"
+                className="w-full rounded-sm border-none bg-transparent text-center text-xs text-gray-900 outline-none placeholder:font-semibold placeholder:text-sky-700 focus:bg-lime-100"
             />
         </td>
     );

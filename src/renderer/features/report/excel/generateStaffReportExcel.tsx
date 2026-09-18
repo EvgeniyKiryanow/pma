@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 
+import { awardsSummary } from '../../../../shared/awards/catalog';
 import classifyStatusForReport from '../../../../shared/helpers/classifyStatusForReport';
 import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
 import { downloadFile } from '../../../shared/lib/download';
@@ -62,6 +63,8 @@ export async function generateStaffReportExcel() {
         { header: 'дата з', key: 'dateFrom', width: 15, headerBg: 'f8ccb0' },
         { header: 'дата по', key: 'dateTo', width: 15, headerBg: 'f8ccb0' },
         { header: 'помилка статусів', key: 'statusNote', width: 25, headerBg: 'f7c7c7' },
+        // Granted awards of the holder (the «Нагороди» category of the card).
+        { header: 'Нагороди', key: 'awards', width: 45, headerBg: 'fff2cc' },
     ];
 
     ws.columns = HEADER_COLUMNS.map((c) => ({
@@ -193,6 +196,7 @@ export async function generateStaffReportExcel() {
                 dateFrom: extra.dateFrom || '',
                 dateTo: extra.dateTo || '',
                 statusNote: extra.statusNote || '',
+                awards: awardsSummary(assignedUser?.awardRecords),
             };
 
             const row = ws.addRow(rowData);

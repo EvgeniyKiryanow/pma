@@ -7,6 +7,7 @@ import {
     generateUserKey,
     needsUpdate,
 } from '../../../../shared/helpers/csvImports';
+import { CARD_FIELDS } from '../../../../shared/personnel/cardSchema';
 import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
 import { errorMessage } from '../../../shared/api/call';
 import { reportError } from '../../../shared/api/errors';
@@ -18,6 +19,10 @@ import { HEADER_MAP } from '../../../shared/utils/headerMap';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useUserStore } from '../../../stores/userStore';
 
+/** Date columns of the card: Excel gives them as serial numbers. */
+const CARD_DATE_FIELDS = new Set<string>(
+    CARD_FIELDS.filter((field) => field.kind === 'date').map((field) => field.key),
+);
 export default function ImportUsersTabContent() {
     const [parsedSheets, setParsedSheets] = useState<Record<string, any[]>>({});
     const [dbColumns, setDbColumns] = useState<string[]>([]);
@@ -307,13 +312,7 @@ export default function ImportUsersTabContent() {
                 let v = strVal;
 
                 // ✅ Only convert Excel date serials if it's a valid > 0 number
-                if (dbField === 'dateOfBirth') {
-                    const numVal = Number(value);
-                    if (!isNaN(numVal) && numVal > 0) {
-                        v = excelSerialToDate(numVal);
-                    }
-                }
-                if (dbField === 'rankAssignmentDate') {
+                if (dbField === 'dateOfBirth' || CARD_DATE_FIELDS.has(dbField)) {
                     const numVal = Number(value);
                     if (!isNaN(numVal) && numVal > 0) {
                         v = excelSerialToDate(numVal);

@@ -1,10 +1,12 @@
 import ExcelJS from 'exceljs';
 
+import { historyApi } from '../../../shared/api/personnel';
 import { downloadFile } from '../../../shared/lib/download';
 import { toast } from '../../../shared/ui/toast';
 import { useUserStore } from '../../../stores/userStore';
 import { useRozporyadzhennyaStore } from '../../manager/model/useRozporyadzhennyaStore';
 import { useVyklyuchennyaStore } from '../../manager/model/useVyklyuchennyaStore';
+import { periodCodes, rowClosure } from '../model/namedListDays';
 import { useNamedListStore } from '../model/useNamedListStore';
 export async function exportNamedListTable() {
     const { activeKey, tables } = useNamedListStore.getState();
@@ -16,6 +18,8 @@ export async function exportNamedListTable() {
     const { entries: rozporyadzhennyaList } = useRozporyadzhennyaStore.getState();
 
     const users = useUserStore.getState().users;
+    // Status periods (відпустка з … по …) mark the days nobody typed anything into.
+    const periods = await historyApi.statusPeriods().catch(() => []);
     const tableData = tables[activeKey];
     const [year, monthStr] = activeKey.split('-');
     const month = parseInt(monthStr, 10);
@@ -140,13 +144,13 @@ export async function exportNamedListTable() {
 
                 for (let i = 0; i < dayCount; i++) {
                     if (i === startIndex) {
-                        attendanceValues.push(
-                            `${row.exclusion.description}${row.exclusion.periodFrom}`,
-                        );
+                        attendanceValues.push(row.exclusion.label);
                     } else if (i > startIndex) {
                         attendanceValues.push(null);
                     } else {
-                        attendanceValues.push(row.attendance[i]?.toUpperCase() || '');
+                        attendanceValues.push(
+                            (row.attendance[i] || row.planned?.[i] || '').toUpperCase(),
+                        );
                     }
                 }
 
@@ -198,7 +202,9 @@ export async function exportNamedListTable() {
                 row.id,
                 row.rank,
                 row.fullName,
-                ...row.attendance.slice(0, dayCount).map((v: any) => v.toUpperCase()),
+                ...Array.from({ length: dayCount }, (_, i) =>
+                    (row.attendance[i] || row.planned?.[i] || '').toUpperCase(),
+                ),
             ];
             const newRow = sheet.addRow(values);
             newRow.height = 22;
@@ -233,53 +239,40 @@ export async function exportNamedListTable() {
             const matchedUser = users.find(
                 (u) => u.fullName === row.fullName && u.rank && u.rank === row.rank,
             );
-            if (!matchedUser) return row;
-
-            // First, check vyklyuchennya (regular)
-            const exclusion = vyklyuchennyaList.find((v) => v.userId === matchedUser.id);
-            if (exclusion) {
-                const exclusionDate = new Date(exclusion.periodFrom);
-                const exclusionStartIndex = Array.from({ length: dayCount }, (_, i) => {
-                    const d = new Date(Number(year), month - 1, i + 1);
-                    return d >= exclusionDate;
-                }).findIndex(Boolean);
-
-                if (exclusionStartIndex !== -1) {
-                    return {
-                        ...row,
-                        exclusion: {
-                            description: exclusion.description,
-                            periodFrom: exclusion.periodFrom,
-                            startIndex: exclusionStartIndex,
-                        },
-                    };
-                }
-            }
-
-            // Then check RozporyadzhennyaStore
-            const orderExclusion = rozporyadzhennyaList.find(
-                (o: any) => o.userId === matchedUser.id,
+            if (!matchedUser) return { ...row, exclusion: undefined };
+            const planned = periodCodes(
+                periods.filter((period) => period.userId === matchedUser.id),
+                Number(year),
+                month - 1,
+                dayCount,
             );
-            if (orderExclusion) {
-                const orderStart = new Date(orderExclusion.period.from);
-                const exclusionStartIndex = Array.from({ length: dayCount }, (_, i) => {
-                    const d = new Date(Number(year), month - 1, i + 1);
-                    return d >= orderStart;
-                }).findIndex(Boolean);
 
-                if (exclusionStartIndex !== -1) {
-                    return {
-                        ...row,
-                        exclusion: {
-                            description: orderExclusion.description,
-                            periodFrom: orderExclusion.period.from,
-                            startIndex: exclusionStartIndex,
-                        },
-                    };
-                }
-            }
+            // An exclusion first, then an order: the row is closed from the day it starts.
+            const exclusion = vyklyuchennyaList.find((v) => v.userId === matchedUser.id);
+            const order = rozporyadzhennyaList.find((o: any) => o.userId === matchedUser.id);
+            const closure =
+                (exclusion &&
+                    rowClosure(
+                        'excluded',
+                        exclusion.periodFrom,
+                        exclusion.description,
+                        Number(year),
+                        month - 1,
+                        dayCount,
+                    )) ||
+                (order &&
+                    rowClosure(
+                        'order',
+                        order.period?.from,
+                        order.description ?? order.title,
+                        Number(year),
+                        month - 1,
+                        dayCount,
+                    )) ||
+                null;
 
-            return row;
+            // Tables of older versions stored the exclusion; only the live lists count now.
+            return { ...row, planned, exclusion: closure ?? undefined };
         });
 
         if (chunkIndex !== 0) {

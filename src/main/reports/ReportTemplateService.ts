@@ -1,5 +1,5 @@
 import { AppError } from '../../shared/ipc/result';
-import type { ReportTemplateRecord } from '../../shared/types/reports';
+import type { ReportFileKind, ReportTemplateRecord } from '../../shared/types/reports';
 import type { Transactor } from '../db/types';
 import type { ChangeJournal } from '../sync/ChangeJournal';
 import type { ReportFileStore } from './ReportFileStore';
@@ -26,9 +26,9 @@ export class ReportTemplateService {
         return this.files.read(fileName);
     }
 
-    async add(name: string, fileName: string): Promise<void> {
+    async add(name: string, fileName: string, kind: ReportFileKind = 'report'): Promise<void> {
         await this.transactor.transaction(async () => {
-            const id = await this.templates.insert(name, fileName);
+            const id = await this.templates.insert(name, fileName, kind);
             await this.journal.recordRow('report_templates', id, 'insert');
         });
     }

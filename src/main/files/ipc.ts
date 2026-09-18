@@ -21,7 +21,14 @@ function requirePrintable(input: unknown): PrintableDocument {
     if (!Number.isFinite(scale) || scale <= 0 || scale > 1) {
         throw new AppError('VALIDATION', undefined, { field: 'scale' });
     }
-    return { title, html, css, landscape: doc.landscape !== false, scale };
+    return {
+        title,
+        html,
+        css,
+        landscape: doc.landscape !== false,
+        scale,
+        document: doc.document === true,
+    };
 }
 
 export function registerFileIpc(

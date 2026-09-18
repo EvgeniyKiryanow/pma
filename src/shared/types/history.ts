@@ -12,3 +12,15 @@ export type IncompleteHistoryEntry = {
     entryId: number;
     reason: IncompleteHistoryReason;
 };
+
+/** A status change with a period (відпустка з … по …): what the named list marks by day. */
+export type StatusPeriodEntry = {
+    userId: number;
+    entryId: number;
+    /** When the entry was written (ISO). */
+    date: string;
+    status: string;
+    /** "YYYY-MM-DD" or "ДД.ММ.РРРР", as the history window stored it. */
+    from: string;
+    to: string | null;
+};

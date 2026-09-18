@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Icon of a PManager backup (.pmb): the PManager shield in steel blue instead of field
+       green, with a brass «restore» badge. Source of backupFile.png / .ico / .icns
+       (electron-builder.yml → fileAssociations). -->
+  <defs>
+    <linearGradient id="shield" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#5B8BC6"/>
+      <stop offset="0.55" stop-color="#325C92"/>
+      <stop offset="1" stop-color="#1B355A"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6DD98"/>
+      <stop offset="0.5" stop-color="#E0B458"/>
+      <stop offset="1" stop-color="#B7852F"/>
+    </linearGradient>
+    <linearGradient id="badge" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#FBE7A8"/>
+      <stop offset="0.55" stop-color="#E2B654"/>
+      <stop offset="1" stop-color="#B07D26"/>
+    </linearGradient>
+  </defs>
+  <path d="M32 3.2 54.6 10v19.4c0 15.2-9.4 25.9-22.6 31.4C18.8 55.3 9.4 44.6 9.4 29.4V10Z" fill="url(#shield)"/>
+  <path d="M32 3.2 54.6 10v19.4c0 15.2-9.4 25.9-22.6 31.4C18.8 55.3 9.4 44.6 9.4 29.4V10Z" fill="url(#sheen)"/>
+  <path d="M32 7.4 50.8 13v16.4c0 12.9-7.8 22.1-18.8 27.1-11-5-18.8-14.2-18.8-27.1V13Z" fill="none" stroke="url(#brass)" stroke-opacity="0.5" stroke-width="1.1"/>
+  <path d="m20.5 26.4 11.5-7.7 11.5 7.7" fill="none" stroke="url(#brass)" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m20.5 34.6 11.5-7.7 11.5 7.7" fill="none" stroke="url(#brass)" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.72"/>
+  <path d="M24.2 42.3h15.6M27.3 48.1h9.4" fill="none" stroke="#E4ECF7" stroke-opacity="0.85" stroke-width="2.6" stroke-linecap="round"/>
+  <!-- restore badge -->
+  <circle cx="47.5" cy="47.5" r="13.2" fill="#12243D"/>
+  <circle cx="47.5" cy="47.5" r="11.4" fill="url(#badge)"/>
+  <g transform="translate(40 40) scale(0.625)" fill="none" stroke="#12243D" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+    <path d="M3 3v5h5"/>
+  </g>
+</svg>

@@ -9,6 +9,7 @@ import type { Reminder } from '../../shared/types/reminder';
 import type {
     BundledReportTemplate,
     NamedListRecord,
+    ReportFileKind,
     ReportTemplateRecord,
 } from '../../shared/types/reports';
 import type { ShtatnaPosada } from '../../shared/types/shtatnaPosada';
@@ -35,8 +36,8 @@ export const reportsApi = {
         invoke<Uint8Array>(REPORT_CHANNELS.convertDocxToPdf, buffer, fileName),
     saveReportFileToDisk: (buffer: ArrayBuffer, name: string) =>
         invoke<string>(REPORT_CHANNELS.saveFile, buffer, name),
-    addReportTemplateToDb: (name: string, filePath: string) =>
-        invoke<{ success: boolean }>(REPORT_CHANNELS.addTemplate, name, filePath),
+    addReportTemplateToDb: (name: string, filePath: string, kind?: ReportFileKind) =>
+        invoke<{ success: boolean }>(REPORT_CHANNELS.addTemplate, name, filePath, kind),
     deleteReportTemplateFromDb: (id: number) =>
         invoke<ActionStatus>(REPORT_CHANNELS.removeTemplate, id),
     getReportTemplatesFromDb: () => invoke<ReportTemplateRecord[]>(REPORT_CHANNELS.listTemplates),

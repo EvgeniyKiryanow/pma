@@ -1,7 +1,16 @@
-import { List, ListTree, Loader2, PanelLeftClose, PanelLeftOpen, SearchX } from 'lucide-react';
+import {
+    List,
+    ListTree,
+    Loader2,
+    Medal,
+    PanelLeftClose,
+    PanelLeftOpen,
+    SearchX,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import type { User } from '../../../../shared/types/user';
+import { awardTitle, isGranted } from '../../../../shared/awards/catalog';
+import type { AwardRecord, User } from '../../../../shared/types/user';
 import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
 import { personnelApi } from '../../../shared/api/personnel';
 import { StatusDot } from '../../../shared/components/StatusBadge';
@@ -50,6 +59,7 @@ function matchesSearch(user: User, search: string): boolean {
         user.notes,
         user.callsign,
         user.soldierStatus,
+        ...(user.awardRecords ?? []).map(awardTitle),
     ];
     const relativesText =
         user.relatives
@@ -59,6 +69,21 @@ function matchesSearch(user: User, search: string): boolean {
     return (
         fields.some((field) => field?.toLowerCase().includes(search)) ||
         relativesText.includes(search)
+    );
+}
+
+/** A medal and the number of granted awards (nothing when there are none). */
+function GrantedAwards({ records }: { records?: AwardRecord[] }) {
+    const granted = (records ?? []).filter(isGranted);
+    if (!granted.length) return null;
+    return (
+        <span
+            title={granted.map(awardTitle).join('\n')}
+            className="inline-flex items-center gap-0.5 rounded-full bg-brass-soft px-1.5 py-px text-[10px] font-semibold tabular-nums text-brass-ink"
+        >
+            <Medal className="size-3" />
+            {granted.length}
+        </span>
     );
 }
 
@@ -259,8 +284,11 @@ export default function LeftBar({ users }: Props) {
                                                 </span>
                                             </span>
                                         </span>
-                                        <span className="self-start pt-0.5 font-mono text-[10px] tabular-nums text-ink-3">
-                                            {index + 1}
+                                        <span className="flex flex-col items-end gap-1 self-start pt-0.5">
+                                            <span className="font-mono text-[10px] tabular-nums text-ink-3">
+                                                {index + 1}
+                                            </span>
+                                            <GrantedAwards records={user.awardRecords} />
                                         </span>
                                     </button>
                                 </li>

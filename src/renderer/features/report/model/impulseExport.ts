@@ -1,4 +1,60 @@
-import type { RelativeContact, User } from '../../../../shared/types/user';
+import { awardsSummary } from '../../../../shared/awards/catalog';
+import {
+    IMPULSE_ACADEMIC_TITLES,
+    IMPULSE_CITIZENSHIPS,
+    IMPULSE_CIVIL_EDUCATION_LEVELS,
+    IMPULSE_COUNTRIES,
+    IMPULSE_DRIVER_CATEGORIES,
+    IMPULSE_EDUCATION_TYPES,
+    IMPULSE_FITNESS,
+    IMPULSE_INSTITUTION_TYPES,
+    IMPULSE_MARITAL_STATUSES,
+    IMPULSE_MILITARY_COURSES,
+    IMPULSE_MILITARY_EDUCATION_LEVELS,
+    IMPULSE_PASSPORT_TYPES,
+    IMPULSE_RANKS,
+    IMPULSE_SERVICE_TYPES,
+    IMPULSE_STUDY_FORMS,
+    IMPULSE_TRACTOR_CATEGORIES,
+} from '../../../../shared/personnel/impulseDictionaries';
+import {
+    clean,
+    dictionaryValue,
+    firstMatch,
+    FITNESS,
+    impulseAddress,
+    impulseBloodType,
+    impulseDocument,
+    impulseDriverLicence,
+    impulseGender,
+    impulseOrder,
+    impulsePassport,
+    impulseRank,
+    impulseTaxId,
+    isDrillOrder,
+    MARITAL,
+    orNull,
+    parseDate,
+    SERVICE_TYPES,
+    splitFullName,
+} from '../../../../shared/personnel/recognize';
+import type { EducationEntry, RelativeContact, User } from '../../../../shared/types/user';
+
+// The recognisers are shared with the card («Розпізнати»); the export and its tests use them.
+export {
+    impulseAddress,
+    impulseBloodType,
+    impulseDocument,
+    impulseDriverLicence,
+    impulseGender,
+    impulseOrder,
+    impulsePassport,
+    impulseRank,
+    impulseTaxId,
+    parseDate,
+    splitFullName,
+};
+export { IMPULSE_RANKS };
 
 /**
  * «Імпульс» export: the personnel import form of Impulse Toolkit (Додаток 1 «Особовий склад»,
@@ -6,9 +62,10 @@ import type { RelativeContact, User } from '../../../../shared/types/user';
  *
  * Impulse finds a card by surname + first name (+ patronymic + РНОКПП) and then OVERWRITES its
  * fields with what the file holds. A wrong value would spoil a correct card there, so a column
- * is filled only when the value is recognised for sure (a date, a document number, a value of
- * Impulse's own dictionary). Everything else stays empty in the form and goes, as written in
- * PManager, into the information columns at the end, which Impulse ignores on import.
+ * is filled only when the value is sure: a field of the Impulse card filled in PManager, or a
+ * value recognised for sure in the free text older cards hold (a date, a document number, a
+ * value of Impulse's own dictionary). Everything else stays empty in the form and goes, as
+ * written in PManager, into the information columns at the end, which Impulse ignores.
  */
 
 export type ImpulseValue = string | Date | null;
@@ -160,6 +217,7 @@ export const IMPULSE_INFO_COLUMNS: ImpulseColumn[] = [
     col(IMPULSE_INFO_GROUP, 'Призовні дані (як у PManager)', 20),
     col(IMPULSE_INFO_GROUP, 'БЗВП (як у PManager)', 14),
     col(IMPULSE_INFO_GROUP, 'Родина (як у PManager)', 24),
+    col(IMPULSE_INFO_GROUP, 'Нагороди (як у PManager)', 40),
 ];
 
 /** Додаток 2 «Освіта і курси». */
@@ -178,414 +236,65 @@ export const IMPULSE_EDUCATION_COLUMNS: ImpulseColumn[] = [
     col('', 'Коментар', 36),
 ];
 
-// ---------------------------------------------------------------- Impulse dictionaries
-
-export const IMPULSE_RANKS = [
-    'рекрут',
-    'працівник ЗСУ',
-    'матрос',
-    'солдат',
-    'рядовий',
-    'старший матрос',
-    'старший солдат',
-    'старшина 2 статті',
-    'молодший сержант',
-    'старшина 1 статті',
-    'сержант',
-    'головний старшина',
-    'старший сержант',
-    'старшина',
-    'головний корабельний старшина',
-    'головний сержант',
-    'прапорщик',
-    'мічман',
-    'штаб-старшина',
-    'штаб-сержант',
-    'майстер-старшина',
-    'старший мічман',
-    'старший прапорщик',
-    'майстер-сержант',
-    'старший майстер-старшина',
-    'старший майстер-сержант',
-    'головний майстер-старшина',
-    'головний майстер-сержант',
-    'молодший лейтенант медичної служби',
-    'молодший лейтенант капеланської служби',
-    'молодший лейтенант юстиції',
-    'молодший лейтенант',
-    'лейтенант медичної служби',
-    'лейтенант капеланської служби',
-    'лейтенант юстиції',
-    'лейтенант',
-    'старший лейтенант юстиції',
-    'старший лейтенант медичної служби',
-    'старший лейтенант капеланської служби',
-    'старший лейтенант',
-    'капітан юстиції',
-    'капітан медичної служби',
-    'капітан капеланської служби',
-    'капітан-лейтенант',
-    'капітан',
-    'майор юстиції',
-    'майор медичної служби',
-    'майор капеланської служби',
-    'капітан 3 рангу',
-    'майор',
-    'підполковник юстиції',
-    'підполковник медичної служби',
-    'підполковник капеланської служби',
-    'капітан 2 рангу',
-    'підполковник',
-    'полковник юстиції',
-    'полковник медичної служби',
-    'полковник капеланської служби',
-    'капітан 1 рангу',
-    'полковник',
-    'бригадний генерал',
-    'коммодор',
-    'бригадний генерал юстиції',
-    'бригадний генерал медичної служби',
-    'генерал-майор',
-    'генерал-майор медичної служби',
-    'генерал-майор юстиції',
-    'контр-адмірал',
-    'генерал-лейтенант',
-    'віце-адмірал',
-    'генерал',
-    'адмірал',
-];
-
-const BLOOD_GROUPS = ['О(I)', 'A(II)', 'B(III)', 'AB(IV)'];
-
-const MARITAL: [RegExp, string][] = [
-    [/неодруж|незаміж|холост/i, 'Неодружений / Незаміжня'],
-    [/цивільн/i, 'В цивільному шлюбі'],
-    [/розлуч/i, 'Розлучений / Розлучена'],
-    [/вдів|вдова/i, 'Вдівець / Вдова'],
-    [/одруж|заміж/i, 'Одружений / Заміжня'],
-];
-
-const FITNESS: [RegExp, string][] = [
-    [/тимчасово/i, 'Тимчасово непридатний'],
-    [/обмежено/i, 'Обмежено придатний'],
-    [/забезпеч/i, 'Придатний до підрозділів забезпечення'],
-    [/не\s*придат/i, 'Не придатний'],
-    [/не\s*проход/i, 'Не проходив ВЛК'],
-    [/придат/i, 'Придатний'],
-];
-
-const SERVICE_TYPES: [RegExp, string][] = [
-    [/резерв/i, 'За призовом осіб із числа резервістів в особливий період'],
-    [/офіцер/i, 'За призовом осіб офіцерського складу'],
-    [/мобіл|призов/i, 'За призовом під час мобілізації на особливий період'],
-    [/контракт/i, 'За контрактом'],
-    [/строков/i, 'Строкова військова служба'],
-];
-
 // ---------------------------------------------------------------- helpers
 
-const clean = (value: unknown): string =>
-    typeof value === 'string'
-        ? value.replace(/\s+/g, ' ').trim()
-        : value == null
-          ? ''
-          : String(value).trim();
+const filled = (...values: unknown[]) => values.some((value) => clean(value) !== '');
 
-const orNull = (value: string | null | undefined): string | null => {
-    const text = clean(value);
-    return text ? text : null;
-};
-
-const firstMatch = (text: string, table: [RegExp, string][]): string | null =>
-    table.find(([pattern]) => pattern.test(text))?.[1] ?? null;
-
-/** A calendar date from "12.03.2005", "12/03/2005", "2005-03-12" or an ISO time stamp. */
-export function parseDate(value: unknown): Date | null {
-    const text = clean(value);
-    if (!text) return null;
-    let d: number, m: number, y: number;
-    const dotted = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/.exec(text);
-    const iso = /^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$/.exec(text);
-    if (dotted) [d, m, y] = [Number(dotted[1]), Number(dotted[2]), Number(dotted[3])];
-    else if (iso) [y, m, d] = [Number(iso[1]), Number(iso[2]), Number(iso[3])];
-    else return null;
-    const date = new Date(Date.UTC(y, m - 1, d));
-    const valid =
-        date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
-    return valid && y > 1900 && y < 2100 ? date : null;
+/** Several dictionary values separated by commas («B,C1»): only the known ones, in order. */
+function multiValue(value: unknown, dictionary: readonly string[]): string | null {
+    const known = clean(value)
+        .toUpperCase()
+        .split(/[\s,;]+/)
+        .filter((token) => dictionary.includes(token))
+        .filter((token, index, all) => all.indexOf(token) === index);
+    return known.length ? known.join(',') : null;
 }
 
-/** The first date written inside a text ("… від 12.03.2005 …"). */
-function dateIn(text: string): Date | null {
-    const match = /\b(\d{1,2}\.\d{1,2}\.\d{4})\b/.exec(text);
-    return match ? parseDate(match[1]) : null;
-}
-
-/** "Прізвище Ім'я По батькові": the first word is the surname, the second the name. */
-export function splitFullName(fullName: string): { last: string; first: string; middle: string } {
-    const parts = clean(fullName).split(' ').filter(Boolean);
-    return { last: parts[0] ?? '', first: parts[1] ?? '', middle: parts.slice(2).join(' ') };
-}
-
-export function impulseGender(user: Pick<User, 'gender' | 'fullName'>): string | null {
-    if (user.gender === 'male') return 'Ч';
-    if (user.gender === 'female') return 'Ж';
-    const middle = splitFullName(user.fullName).middle.toLowerCase();
-    if (/(ович|евич|йович)$/.test(middle)) return 'Ч';
-    if (/(івна|ївна|овна|евна)$/.test(middle)) return 'Ж';
-    return null;
-}
-
-/** РНОКПП: exactly 10 digits. */
-export function impulseTaxId(user: Pick<User, 'taxId' | 'identificationNumber'>): string | null {
-    for (const candidate of [user.taxId, user.identificationNumber]) {
-        const digits = clean(candidate).replace(/\s/g, '');
-        if (/^\d{10}$/.test(digits)) return digits;
-    }
-    return null;
-}
-
-// \b does not see Cyrillic letters: word edges are spelled out.
-const RANK_WORDS: [RegExp, string][] = [
-    [/(^|\s)ст\.\s*/g, '$1старший '],
-    [/(^|\s)мол\.\s*/g, '$1молодший '],
-    [/(^|\s)гол\.\s*/g, '$1головний '],
-    [/(^|\s)серж\.?(?=\s|$)/g, '$1сержант'],
-    [/(^|\s)лейт\.?(?=\s|$)/g, '$1лейтенант'],
-    [/(^|\s)солд\.?(?=\s|$)/g, '$1солдат'],
-];
-
-/** A rank of Impulse's dictionary ("ст. солдат" → "старший солдат"), or null. */
-export function impulseRank(rank: unknown): string | null {
-    let text = clean(rank).toLowerCase();
-    if (!text) return null;
-    for (const [pattern, full] of RANK_WORDS) text = text.replace(pattern, full);
-    text = text.replace(/\s+/g, ' ').trim();
-    return IMPULSE_RANKS.find((known) => known.toLowerCase() === text) ?? null;
-}
-
-/** "О(I)+" … "AB(IV)-" from "1+", "I (+)", "0(I) Rh+", "A(II) резус негативний"… */
-export function impulseBloodType(value: unknown): string | null {
-    const upper = clean(value).toUpperCase();
-    if (!upper) return null;
-    // The Rh sign first: words like «позитивний» must be read before letters are converted.
-    const negative = /-|−|НЕГАТ|NEG/.test(upper);
-    const positive = /\+|ПОЗИТ|POS/.test(upper);
-    if (negative === positive) return null;
-    const text = upper.replace(/[АВО]/g, (c) => ({ А: 'A', В: 'B', О: 'O' })[c] ?? c);
-    let group: number | null = null;
-    const roman = /\b(IV|III|II|I)\b|\((IV|III|II|I)\)/.exec(text);
-    if (roman) group = ['I', 'II', 'III', 'IV'].indexOf(roman[1] ?? roman[2]);
-    else if (/^\s*([1-4])/.test(text)) group = Number(/^\s*([1-4])/.exec(text)![1]) - 1;
-    else if (/^\s*AB/.test(text)) group = 3;
-    else if (/^\s*(O|0)/.test(text)) group = 0;
-    else if (/^\s*A/.test(text)) group = 1;
-    else if (/^\s*B/.test(text)) group = 2;
-    if (group === null || group < 0) return null;
-    return `${BLOOD_GROUPS[group]}${positive ? '+' : '-'}`;
-}
-
-type Document = {
+type Doc = {
     series: string | null;
     number: string | null;
     date: Date | null;
     issuer: string | null;
 };
-
-const LETTERS = 'А-ЯІЇЄҐA-Z';
-
-/** Issuer after "виданий"/"видав"/"орган" up to a date or the end. */
-function issuerIn(text: string): string | null {
-    const match =
-        /(?:видан\S*|видав|орган\S*)\s*:?\s*(.+?)(?=,?\s*(?:від\s*)?\d{1,2}\.\d{1,2}\.\d{4}|$)/i.exec(
-            text,
-        );
-    const issuer = match ? match[1].replace(/[,;.\s]+$/, '').trim() : '';
-    return issuer.length >= 3 ? issuer : null;
-}
-
-/** Series of 2–3 capital letters and a number of 6–7 digits ("АА 123456", "АА№1234567"). */
-function seriesAndNumber(text: string, series = '2,3'): { series: string; number: string } | null {
-    const match = new RegExp(
-        `(?:^|[^${LETTERS}])([${LETTERS}]{${series}})\\s*№?\\s*(\\d{6,7})(?!\\d)`,
-    ).exec(text.toUpperCase());
-    return match ? { series: match[1], number: match[2] } : null;
-}
-
-export type Passport = Document & { type: 'Паперовий' | 'ID - картка' | null };
-
-/** Internal passport: paper "КН 123456" or an ID card of 9 digits. */
-export function impulsePassport(value: unknown): Passport {
-    const text = clean(value);
-    const empty: Passport = { series: null, number: null, date: null, issuer: null, type: null };
-    if (!text) return empty;
-    const paper = seriesAndNumber(text, '2');
-    const card = /(?<!\d)(\d{9})(?!\d)/.exec(text);
-    const date = dateIn(text);
-    if (paper) return { ...paper, date, issuer: issuerIn(text), type: 'Паперовий' };
-    if (card) {
-        const authority = /(?:орган\S*|видав\S*|видан\S*)\D{0,12}(\d{4})(?!\d)/i.exec(text);
-        return {
-            series: null,
-            number: card[1],
-            date,
-            issuer: authority ? authority[1] : null,
-            type: 'ID - картка',
-        };
-    }
-    return empty;
-}
-
-/** Military ticket, officer's certificate or УБД certificate: series + number, date, issuer. */
-export function impulseDocument(value: unknown): Document {
-    const text = clean(value);
-    const found = text ? seriesAndNumber(text) : null;
-    if (!found) return { series: null, number: null, date: null, issuer: null };
-    return { ...found, date: dateIn(text), issuer: issuerIn(text) };
-}
-
-const DRIVER_CATEGORIES = [
-    'C1E',
-    'D1E',
-    'BE',
-    'CE',
-    'DE',
-    'A1',
-    'B1',
-    'C1',
-    'D1',
-    'A',
-    'B',
-    'C',
-    'D',
-    'T',
-];
-
-/** Driver licence categories ("B, C" / "кат. В,С") and the licence series + number. */
-export function impulseDriverLicence(value: unknown): {
-    categories: string | null;
-    series: string | null;
-    number: string | null;
-} {
-    const text = clean(value);
-    if (!text) return { categories: null, series: null, number: null };
-    const doc = /([А-ЯІЇЄҐA-Z]{3})\s*№?\s*(\d{6})(?!\d)/.exec(text.toUpperCase());
-    const rest = (doc ? text.toUpperCase().replace(doc[0], ' ') : text.toUpperCase()).trim();
-    // "кат. B, C" or nothing but categories.
-    const labelled = /КАТ[А-ЯІЇЄҐ.]*\s*:?\s*(.+)$/.exec(rest);
-    // Categories are Latin letters in Impulse; people type Cyrillic look-alikes.
-    const latin = (labelled ? labelled[1] : rest).replace(
-        /[АВСЕТ]/g,
-        (c) => ({ А: 'A', В: 'B', С: 'C', Е: 'E', Т: 'T' })[c] ?? c,
-    );
-    const source = labelled || /^[A-Z0-9 ,;]+$/.test(latin) ? latin : null;
-    const categories = source
-        ? source
-              .split(/[\s,;.]+/)
-              .filter((token) => DRIVER_CATEGORIES.includes(token))
-              .filter((token, index, all) => all.indexOf(token) === index)
-        : [];
-    return {
-        categories: categories.length ? categories.join(',') : null,
-        series: doc ? doc[1] : null,
-        number: doc ? doc[2] : null,
-    };
-}
-
-export type Address = {
-    region: string | null;
-    district: string | null;
-    settlement: string | null;
-    cityDistrict: string | null;
-    streetType: string | null;
-    street: string | null;
-    house: string | null;
-    flat: string | null;
-};
-
-const STREET_TYPES: [RegExp, string][] = [
-    [/^(вул\.?|вулиця)\s*/i, 'вулиця'],
-    [/^(просп\.?|пр-т|проспект)\s*/i, 'проспект'],
-    [/^(пров\.?|провулок)\s*/i, 'провулок'],
-    [/^(бульв\.?|б-р|бульвар)\s*/i, 'бульвар'],
-    [/^(пл\.|площа)\s*/i, 'площа'],
-    [/^(узвіз)\s*/i, 'узвіз'],
-    [/^(тупик)\s*/i, 'тупик'],
-    [/^(шосе)\s*/i, 'шосе'],
-    [/^(набережна)\s*/i, 'набережна'],
-];
 
 /**
- * "Київська обл., Бучанський р-н, м. Буча, вул. Шевченка, буд. 5, кв. 12" → parts. Only parts
- * with a clear mark (обл., р-н, м./с./смт, вул., буд., кв.) are taken.
+ * A document of the card: its own fields when any of them is filled, otherwise what the free
+ * text says. Never a mix of the two — they may describe different documents.
  */
-export function impulseAddress(value: unknown): Address {
-    const result: Address = {
-        region: null,
-        district: null,
-        settlement: null,
-        cityDistrict: null,
-        streetType: null,
-        street: null,
-        house: null,
-        flat: null,
+function documentOf(fields: Record<keyof Doc, unknown>, fallback: () => Doc): Doc {
+    if (!filled(...Object.values(fields))) return fallback();
+    return {
+        series: orNull(clean(fields.series)),
+        number: orNull(clean(fields.number)),
+        date: parseDate(fields.date),
+        issuer: orNull(clean(fields.issuer)),
     };
-    const text = clean(value);
-    if (!text) return result;
-    const parts = text
-        .split(/[,;]/)
-        .map((p) => p.trim())
-        .filter(Boolean);
-    for (const part of parts) {
-        let match: RegExpExecArray | null;
-        if (!result.region && (match = /^(.+?)\s+(обл\.?|область)$/i.exec(part))) {
-            result.region = `${match[1]} область`;
-        } else if (/^(м\.|місто)\s*київ$/i.test(part) && !result.region) {
-            result.region = 'Київ';
-            result.settlement = 'Київ';
-        } else if ((match = /^(.+?)\s+(р-н|район)$/i.exec(part))) {
-            if (result.settlement) result.cityDistrict ??= `${match[1]} район`;
-            else result.district ??= `${match[1]} район`;
-        } else if (
-            !result.settlement &&
-            (match = /^(м\.|місто|с\.|село|смт\.?|сел\.|селище)\s*(.+)$/i.exec(part))
-        ) {
-            result.settlement = match[2].trim();
-        } else if (!result.street && STREET_TYPES.some(([pattern]) => pattern.test(part))) {
-            const [pattern, type] = STREET_TYPES.find(([p]) => p.test(part))!;
-            const rest = part.replace(pattern, '');
-            const withHouse = /^(.+?)\s+(\d+[\p{L}]?(?:\/\d+)?)$/u.exec(rest);
-            result.streetType = type;
-            result.street = withHouse ? withHouse[1] : rest;
-            if (withHouse) result.house ??= withHouse[2];
-        } else if ((match = /^(буд\.?|будинок|б\.)\s*(.+)$/i.exec(part))) {
-            result.house = match[2].trim();
-        } else if ((match = /^(кв\.?|квартира)\s*(.+)$/i.exec(part))) {
-            result.flat = match[2].trim();
-        }
-    }
-    return result;
 }
 
-/** Order text "наказ командира в/ч А0000 № 123 від 01.02.2024" → date, number, issuer. */
-export function impulseOrder(value: unknown): {
-    date: Date | null;
-    number: string | null;
-    issuer: string | null;
-} {
-    const text = clean(value);
-    if (!text) return { date: null, number: null, issuer: null };
-    const number = /№\s*([\p{L}\d\-/]*\d[\p{L}\d\-/]*)/u.exec(text);
-    const issuer = text
-        .replace(/№\s*[\p{L}\d\-/]*\d[\p{L}\d\-/]*/u, ' ')
-        .replace(/(від\s*)?\d{1,2}\.\d{1,2}\.\d{4}\s*(р\.?|року)?/, ' ')
-        .replace(/\s+/g, ' ')
-        .replace(/^[\s,;.]+|[\s,;]+$/g, '')
-        .trim();
+type Address = ReturnType<typeof impulseAddress>;
+
+function addressOf(user: User, prefix: 'reg' | 'live', text: unknown): Address {
+    const part = (name: string) => (user as Record<string, unknown>)[`${prefix}${name}`];
+    const parts = [
+        'Region',
+        'District',
+        'Settlement',
+        'CityDistrict',
+        'StreetType',
+        'Street',
+        'House',
+        'Flat',
+    ];
+    if (!filled(...parts.map(part))) return impulseAddress(text);
     return {
-        date: dateIn(text),
-        number: number ? number[1].replace(/[-/]+$/, '') : null,
-        issuer: issuer.length >= 3 ? issuer : null,
+        region: orNull(clean(part('Region'))),
+        district: orNull(clean(part('District'))),
+        settlement: orNull(clean(part('Settlement'))),
+        cityDistrict: orNull(clean(part('CityDistrict'))),
+        streetType: orNull(clean(part('StreetType'))),
+        street: orNull(clean(part('Street'))),
+        house: orNull(clean(part('House'))),
+        flat: orNull(clean(part('Flat'))),
     };
 }
 
@@ -618,19 +327,94 @@ function family(user: User): {
 /** One row of Додаток 1 plus the information columns, in column order. */
 export function impulseRow(user: User, context: { unit?: string | null } = {}): ImpulseValue[] {
     const name = splitFullName(user.fullName);
-    const passport = impulsePassport(user.passportData);
-    const ticket = impulseDocument(user.militaryTicketInfo);
-    const ubd = impulseDocument(user.participantNumber || user.ubdStatus);
-    const driver = impulseDriverLicence(user.driverLicenses);
-    const registered = impulseAddress(user.registeredAddress);
-    const living = impulseAddress(user.residenceAddress);
-    const rankOrder = impulseOrder(user.rankAssignedBy);
-    const appointment = impulseOrder(user.appointmentOrder);
-    const drill = /стройов|по\s*с\/ч|\bс\/ч\b/i.test(clean(user.appointmentOrder));
+    const passportText = impulsePassport(user.passportData);
+    const passportOwn = filled(
+        user.passportType,
+        user.passportSeries,
+        user.passportNumber,
+        user.passportIssuer,
+        user.passportIssueDate,
+    );
+    const passport = passportOwn
+        ? {
+              issuer: orNull(user.passportIssuer),
+              date: parseDate(user.passportIssueDate),
+              series: orNull(user.passportSeries),
+              number: orNull(user.passportNumber),
+              type: dictionaryValue(user.passportType, IMPULSE_PASSPORT_TYPES),
+          }
+        : passportText;
+    const ticket = documentOf(
+        {
+            series: user.militaryTicketSeries,
+            number: user.militaryTicketNumber,
+            date: user.militaryTicketIssueDate,
+            issuer: user.militaryTicketIssuer,
+        },
+        () => impulseDocument(user.militaryTicketInfo),
+    );
+    const ubd = documentOf(
+        {
+            series: user.ubdSeries,
+            number: user.ubdNumber,
+            date: user.ubdIssueDate,
+            issuer: user.ubdIssuer,
+        },
+        () => impulseDocument(user.participantNumber || user.ubdStatus),
+    );
+    const driverOwn = filled(
+        user.driverLicenseCategories,
+        user.driverLicenseSeries,
+        user.driverLicenseNumber,
+        user.driverLicenseIssuer,
+        user.driverLicenseIssueDate,
+        user.driverLicenseValidUntil,
+        user.drivingExperience,
+    );
+    const driverText = impulseDriverLicence(user.driverLicenses);
+    const registered = addressOf(user, 'reg', user.registeredAddress);
+    const living = addressOf(user, 'live', user.residenceAddress);
+
+    const rankOwn = filled(user.rankOrderNumber, user.rankOrderIssuer);
+    const rankOrder = rankOwn
+        ? { date: null, number: orNull(user.rankOrderNumber), issuer: orNull(user.rankOrderIssuer) }
+        : impulseOrder(user.rankAssignedBy);
+    const ordersOwn = filled(
+        user.appointmentOrderDate,
+        user.appointmentOrderNumber,
+        user.appointmentOrderIssuer,
+        user.drillOrderDate,
+        user.drillOrderNumber,
+        user.drillOrderIssuer,
+    );
+    const legacyOrder = impulseOrder(user.appointmentOrder);
+    const drill = isDrillOrder(user.appointmentOrder);
+    const staffOrder = ordersOwn
+        ? {
+              date: parseDate(user.appointmentOrderDate),
+              number: orNull(user.appointmentOrderNumber),
+              issuer: orNull(user.appointmentOrderIssuer),
+          }
+        : drill
+          ? { date: null, number: null, issuer: null }
+          : legacyOrder;
+    const drillOrder = ordersOwn
+        ? {
+              date: parseDate(user.drillOrderDate),
+              number: orNull(user.drillOrderNumber),
+              issuer: orNull(user.drillOrderIssuer),
+          }
+        : drill
+          ? legacyOrder
+          : { date: null, number: null, issuer: null };
+
     const relatives = family(user);
-    const phone = orNull(user.phoneNumber);
-    const serviceType = firstMatch(clean(user.serviceType), SERVICE_TYPES);
-    const recruitedBy = orNull(user.recruitmentOfficeDetails) ?? orNull(user.recruitingOffice);
+    // «Призов» is where the person was called up; «облік» where they are registered. Older
+    // cards have only one office: it is the one that called them up.
+    const calledUpBy = orNull(user.recruitmentOfficeDetails) ?? orNull(user.recruitingOffice);
+    const registeredAt = orNull(user.recruitmentOfficeDetails)
+        ? orNull(user.recruitingOffice)
+        : null;
 
     const form: ImpulseValue[] = [
         orNull(name.last),
@@ -647,9 +431,9 @@ export function impulseRow(user: User, context: { unit?: string | null } = {}): 
         passport.number,
         passport.type,
         // Закордонний паспорт
-        null,
-        null,
-        null,
+        orNull(user.foreignPassportIssuer),
+        parseDate(user.foreignPassportIssueDate),
+        orNull(user.foreignPassportNumber),
         // Військовий квиток
         orNull(user.vosCode),
         ticket.issuer,
@@ -662,25 +446,27 @@ export function impulseRow(user: User, context: { unit?: string | null } = {}): 
         ubd.series,
         ubd.number,
         // Фінансові дані
-        null,
-        null,
-        null,
+        orNull(user.iban)?.replace(/\s+/g, '') ?? null,
+        orNull(user.bankCard)?.replace(/\s+/g, '') ?? null,
+        orNull(user.bankName),
         // Посвідчення водія
-        null,
-        driver.categories,
-        null,
-        null,
-        null,
-        driver.series,
-        driver.number,
+        driverOwn ? orNull(user.driverLicenseIssuer) : null,
+        driverOwn
+            ? multiValue(user.driverLicenseCategories, IMPULSE_DRIVER_CATEGORIES)
+            : driverText.categories,
+        driverOwn ? parseDate(user.driverLicenseValidUntil) : null,
+        driverOwn ? parseDate(user.driverLicenseIssueDate) : null,
+        driverOwn ? orNull(user.drivingExperience) : null,
+        driverOwn ? orNull(user.driverLicenseSeries) : driverText.series,
+        driverOwn ? orNull(user.driverLicenseNumber) : driverText.number,
         // Посвідчення тракториста-машиніста
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
+        orNull(user.tractorLicenseIssuer),
+        multiValue(user.tractorLicenseCategories, IMPULSE_TRACTOR_CATEGORIES),
+        parseDate(user.tractorLicenseValidUntil),
+        parseDate(user.tractorLicenseIssueDate),
+        orNull(user.tractorExperience),
+        orNull(user.tractorLicenseSeries),
+        orNull(user.tractorLicenseNumber),
         // Місце реєстрації
         registered.region,
         registered.district,
@@ -700,8 +486,8 @@ export function impulseRow(user: User, context: { unit?: string | null } = {}): 
         living.house,
         living.flat,
         // Контактні дані
-        phone,
-        null,
+        orNull(user.phoneNumber),
+        orNull(user.extraPhone),
         orNull(user.email),
         // Наказ на присвоєння звання
         impulseRank(user.rank),
@@ -709,54 +495,54 @@ export function impulseRow(user: User, context: { unit?: string | null } = {}): 
         rankOrder.number,
         rankOrder.issuer,
         // Наказ на призначення (по особовому складу)
-        drill ? null : appointment.date,
-        drill ? null : appointment.number,
-        drill ? null : appointment.issuer,
+        staffOrder.date,
+        staffOrder.number,
+        staffOrder.issuer,
         // Наказ на призначення (по стройовій частині)
-        drill ? appointment.date : null,
-        drill ? appointment.number : null,
-        drill ? appointment.issuer : null,
+        drillOrder.date,
+        drillOrder.number,
+        drillOrder.issuer,
         // БЗВП
-        null,
-        null,
-        null,
-        null,
-        null,
+        parseDate(user.bzvpFrom),
+        parseDate(user.bzvpTo),
+        orNull(user.bzvpPlace),
+        orNull(user.bzvpCommander),
+        orNull(user.bzvpComment),
         // Персональна інформація
-        null,
-        null,
+        dictionaryValue(user.citizenship, IMPULSE_CITIZENSHIPS),
+        dictionaryValue(user.birthCountry, IMPULSE_COUNTRIES),
         orNull(user.placeOfBirth),
-        firstMatch(clean(user.maritalStatus), MARITAL),
-        null,
+        dictionaryValue(user.maritalStatus, IMPULSE_MARITAL_STATUSES, MARITAL),
+        orNull(user.nationality),
         orNull(user.religion),
-        null,
+        orNull(user.tags),
         // Вчене звання
-        null,
-        null,
-        null,
-        null,
+        dictionaryValue(user.academicTitle, IMPULSE_ACADEMIC_TITLES),
+        orNull(user.academicTitleAssignedBy),
+        parseDate(user.academicTitleDate),
+        orNull(user.scientificWorks),
         // Виборчі органи
-        null,
-        null,
-        null,
-        null,
+        orNull(user.electedBody),
+        parseDate(user.electedDate),
+        parseDate(user.electedUntil),
+        orNull(user.electedPosition),
         // Медична інформація
         impulseBloodType(user.bloodType),
         // Проходження служби
-        firstMatch(clean(user.fitnessCategory), FITNESS),
-        null,
+        dictionaryValue(user.fitnessCategory, IMPULSE_FITNESS, FITNESS),
+        parseDate(user.oathDate),
         orNull(user.militaryServiceHistory),
-        serviceType,
-        null,
-        null,
-        null,
-        recruitedBy,
-        null,
+        dictionaryValue(user.serviceType, IMPULSE_SERVICE_TYPES, SERVICE_TYPES),
+        parseDate(user.conscriptionDate),
+        parseDate(user.enlistmentOrderDate),
+        orNull(user.enlistmentOrderNumber),
+        calledUpBy,
+        registeredAt,
         // Вислуга
-        null,
-        null,
-        null,
-        null,
+        parseDate(user.serviceLengthDate),
+        orNull(user.serviceLength),
+        parseDate(user.preferentialServiceLengthDate),
+        orNull(user.preferentialServiceLength),
         // Додатково
         null,
         // Склад сім'ї
@@ -783,6 +569,7 @@ export function impulseRow(user: User, context: { unit?: string | null } = {}): 
         orNull(user.conscriptionInfo),
         orNull(user.bzvpStatus),
         orNull(user.familyInfo),
+        orNull(awardsSummary(user.awardRecords)) ?? orNull(user.awards),
     ];
     return [...form, ...info];
 }
@@ -794,7 +581,45 @@ const EDUCATION_LEVELS: [RegExp, string][] = [
     [/середн|школ|загальн/i, 'Середня загальна'],
 ];
 
-/** A row of Додаток 2 for a person whose card has education, or null. */
+/** One line of Додаток 2 from an education entry of the card. */
+function educationEntryRow(user: User, entry: EducationEntry): ImpulseValue[] {
+    const type = dictionaryValue(entry.type, IMPULSE_EDUCATION_TYPES);
+    const levels =
+        type === 'Військова' ? IMPULSE_MILITARY_EDUCATION_LEVELS : IMPULSE_CIVIL_EDUCATION_LEVELS;
+    return [
+        clean(user.fullName),
+        impulseTaxId(user),
+        type,
+        dictionaryValue(entry.level, levels),
+        dictionaryValue(entry.form, IMPULSE_STUDY_FORMS),
+        dictionaryValue(entry.courses, IMPULSE_MILITARY_COURSES),
+        orNull(entry.institution),
+        dictionaryValue(entry.institutionType, IMPULSE_INSTITUTION_TYPES),
+        orNull(entry.specialty),
+        orNull(entry.startYear),
+        orNull(entry.endYear),
+        orNull(entry.comment),
+    ];
+}
+
+/** Lines of Додаток 2: the education entries of the card, or what its free text says. */
+export function impulseEducationRows(user: User): ImpulseValue[][] {
+    const entries = (Array.isArray(user.educationList) ? user.educationList : []).filter((entry) =>
+        filled(
+            entry.type,
+            entry.level,
+            entry.institution,
+            entry.specialty,
+            entry.endYear,
+            entry.courses,
+        ),
+    );
+    if (entries.length) return entries.map((entry) => educationEntryRow(user, entry));
+    const legacy = impulseEducationRow(user);
+    return legacy ? [legacy] : [];
+}
+
+/** A row of Додаток 2 from the free text of older cards, or null. */
 export function impulseEducationRow(user: User): ImpulseValue[] | null {
     const text = clean(user.educationDetails) || clean(user.education);
     if (!text) return null;
@@ -846,7 +671,7 @@ export type ImpulseSummary = {
 
 export function impulseSummary(users: User[]): ImpulseSummary {
     const people = impulsePeople(users);
-    const filled = Object.fromEntries(IMPULSE_CHECKS.map((c) => [c.key, 0])) as Record<
+    const filledCount = Object.fromEntries(IMPULSE_CHECKS.map((c) => [c.key, 0])) as Record<
         ImpulseCheckKey,
         number
     >;
@@ -858,10 +683,10 @@ export function impulseSummary(users: User[]): ImpulseSummary {
                 check.key === 'name'
                     ? row[0] !== null && row[1] !== null
                     : row[check.column] !== null;
-            if (ok) filled[check.key]++;
+            if (ok) filledCount[check.key]++;
             return !ok;
         }).map((check) => check.key);
         if (missing.length) gaps.push({ user, missing });
     }
-    return { people: people.length, filled, gaps };
+    return { people: people.length, filled: filledCount, gaps };
 }

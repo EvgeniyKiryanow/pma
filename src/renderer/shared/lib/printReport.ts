@@ -27,14 +27,26 @@ export async function printReport(
     element: HTMLElement,
     title: string,
     mode: 'print' | 'pdf',
+    options: { document?: boolean } = {},
 ): Promise<void> {
-    const document = {
-        title,
-        html: element.outerHTML,
-        css: collectCss(),
-        landscape: true,
-        scale: Math.min(1, Math.max(0.1, PAGE_WIDTH_PX / Math.max(1, element.scrollWidth))),
-    };
+    // A generated document (DOCX pages) is portrait and exactly as drawn; a report table is
+    // landscape and shrunk to the page width.
+    const document = options.document
+        ? {
+              title,
+              html: element.outerHTML,
+              css: collectCss(),
+              landscape: false,
+              scale: 1,
+              document: true,
+          }
+        : {
+              title,
+              html: element.outerHTML,
+              css: collectCss(),
+              landscape: true,
+              scale: Math.min(1, Math.max(0.1, PAGE_WIDTH_PX / Math.max(1, element.scrollWidth))),
+          };
     try {
         if (mode === 'print') {
             await filesApi.print(document);

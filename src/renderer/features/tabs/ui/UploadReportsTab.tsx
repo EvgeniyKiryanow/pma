@@ -1,123 +1,150 @@
-import { FileUp, Save } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { DatabaseBackup, FileUp } from 'lucide-react';
+import { type DragEvent, useEffect, useState } from 'react';
 
 import { reportError } from '../../../shared/api/errors';
-import { reportTemplatesApi } from '../../../shared/api/reports';
-import { pickFile } from '../../../shared/lib/pickFiles';
-import { Alert, Button, Card } from '../../../shared/ui';
+import { downloadFile } from '../../../shared/lib/download';
+import { pickFiles } from '../../../shared/lib/pickFiles';
+import { Card, cn } from '../../../shared/ui';
+import { confirmAction } from '../../../shared/ui/confirm';
 import { toast } from '../../../shared/ui/toast';
 import { useI18nStore } from '../../../stores/i18nStore';
-import { useReportsStore } from '../../report/model/reportsStore';
+import { usePermissions } from '../../../stores/sessionStore';
+import { printDocx } from '../model/docxPrint';
+import { type LibraryTemplate, useTemplateLibrary } from '../model/templateLibrary';
+import DocxPreviewModal from './_components/DocxPreviewModal';
+import TemplateGrid from './_components/TemplateGrid';
 
+/**
+ * Templates of reports: the ones shipped with the program and the unit's own .docx files.
+ * Uploaded templates are stored in the data folder — backups and restores carry them.
+ */
 export default function UploadReportsTab() {
-    const { addSavedTemplate } = useReportsStore();
     const { t } = useI18nStore();
-    const [previewBuffer, setPreviewBuffer] = useState<ArrayBuffer | null>(null);
-    const [uploadedTemplateName, setUploadedTemplateName] = useState<string>('');
-    // The PDF is kept in memory only (a blob URL), nothing is written to disk for the preview.
-    const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+    const { can } = usePermissions();
+    const canManage = can('reports.templates');
+    const { templates, load, upload, remove, contentOf } = useTemplateLibrary();
+    const [busy, setBusy] = useState(false);
+    const [dragOver, setDragOver] = useState(false);
+    const [preview, setPreview] = useState<LibraryTemplate | null>(null);
 
-    const chooseTemplate = async () => {
+    useEffect(() => {
+        load().catch((err) => reportError(err, { context: 'templates.load' }));
+    }, [load]);
+
+    const store = async (files: File[]) => {
+        if (!files.length) return;
+        setBusy(true);
         try {
-            const file = await pickFile('docx');
-            if (!file) return;
-            setPreviewBuffer(await file.arrayBuffer());
-            setUploadedTemplateName(file.name);
+            const added = await upload(files);
+            if (added) toast.success(t('reports.templatesAdded', { count: added }));
+            if (added < files.length) toast.warning(t('reports.onlyDocx'));
         } catch (err) {
-            reportError(err, { context: 'template-upload' });
+            reportError(err, { context: 'templates.upload' });
+        } finally {
+            setBusy(false);
         }
     };
 
-    useEffect(() => {
-        if (!previewBuffer || !uploadedTemplateName) return;
-        let url: string | null = null;
-        const convertToPdf = async () => {
-            try {
-                const pdf = await reportTemplatesApi.convertToPdf(
-                    previewBuffer,
-                    uploadedTemplateName,
-                );
-                url = URL.createObjectURL(new Blob([pdf], { type: 'application/pdf' }));
-                setPdfUrl(url);
-            } catch (err) {
-                console.error('PDF conversion failed:', err);
-            }
-        };
-        void convertToPdf();
-        return () => {
-            if (url) URL.revokeObjectURL(url);
-        };
-    }, [previewBuffer, uploadedTemplateName]);
+    const choose = async () => {
+        try {
+            await store(await pickFiles('docx', { multiple: true }));
+        } catch (err) {
+            reportError(err, { context: 'templates.pick' });
+        }
+    };
 
-    const handleSaveTemplate = () => {
-        if (!previewBuffer || !uploadedTemplateName) return;
+    const drop = (event: DragEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        setDragOver(false);
+        void store(Array.from(event.dataTransfer.files));
+    };
 
-        const saved = {
-            id: `${Date.now()}`,
-            name: `${uploadedTemplateName} - Copy`,
-            content: previewBuffer,
-            timestamp: Date.now(),
-        };
+    const removeTemplate = async (template: LibraryTemplate) => {
+        const confirmed = await confirmAction({
+            title: t('reports.removeTemplate'),
+            message: t('reports.removeTemplateConfirm', { name: template.name }),
+            confirmLabel: t('common.delete'),
+            tone: 'danger',
+        });
+        if (!confirmed) return;
+        try {
+            await remove(template);
+        } catch (err) {
+            reportError(err, { context: 'templates.remove' });
+        }
+    };
 
-        addSavedTemplate(saved);
-        toast.success(t('reports.savedSuccessfully'));
+    const download = async (template: LibraryTemplate) =>
+        downloadFile(await contentOf(template), `${template.name}.docx`);
 
-        setPreviewBuffer(null);
-        setUploadedTemplateName('');
-        setPdfUrl(null);
+    const savePdf = async (template: LibraryTemplate) => {
+        try {
+            await printDocx(await contentOf(template), template.name, 'pdf');
+        } catch (err) {
+            reportError(err, { context: 'templates.pdf' });
+        }
     };
 
     return (
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
-            <div className="mx-auto max-w-4xl space-y-5">
-                <Card
-                    title={t('reports.uploadTitle')}
-                    description="Шаблон — це документ Word (.docx) з полями для автоматичного заповнення даними військовослужбовця."
-                    icon={<FileUp />}
-                >
-                    <button
-                        type="button"
-                        onClick={() => void chooseTemplate()}
-                        className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line-strong px-6 py-10 text-center transition-colors hover:border-primary hover:bg-primary-soft"
+            <div className="mx-auto max-w-6xl space-y-5">
+                {canManage && (
+                    <Card
+                        title={t('reports.uploadTitle')}
+                        description={t('reports.uploadDescription')}
+                        icon={<FileUp />}
                     >
-                        <span className="grid size-12 place-items-center rounded-2xl bg-primary-soft text-primary-ink">
-                            <FileUp className="size-6" />
-                        </span>
-                        <span className="text-sm font-semibold text-ink">
-                            {uploadedTemplateName || t('reports.uploadTemplate')}
-                        </span>
-                        <span className="text-xs text-ink-3">
-                            {uploadedTemplateName
-                                ? 'Натисніть, щоб обрати інший файл'
-                                : 'Лише файли .docx'}
-                        </span>
-                    </button>
-
-                    <div className="mt-4 flex justify-end">
-                        <Button
-                            onClick={handleSaveTemplate}
-                            disabled={!previewBuffer}
-                            icon={<Save className="size-4" />}
+                        <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void choose()}
+                            onDrop={drop}
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                setDragOver(true);
+                            }}
+                            onDragLeave={() => setDragOver(false)}
+                            className={cn(
+                                'flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-8 text-center transition-colors disabled:cursor-wait disabled:opacity-60',
+                                dragOver
+                                    ? 'border-primary bg-primary-soft'
+                                    : 'border-line-strong hover:border-primary hover:bg-primary-soft',
+                            )}
                         >
-                            {t('reports.saveTemplate')}
-                        </Button>
-                    </div>
-                </Card>
-
-                {uploadedTemplateName && !pdfUrl && (
-                    <Alert tone="info">Готуємо попередній перегляд…</Alert>
-                )}
-
-                {pdfUrl && (
-                    <Card title={`${t('reports.previewTitle')}: ${uploadedTemplateName}`}>
-                        <iframe
-                            src={pdfUrl}
-                            className="h-[640px] w-full rounded-lg border border-line bg-surface-2"
-                            title="PDF Preview"
-                        />
+                            <span className="grid size-12 place-items-center rounded-2xl bg-primary-soft text-primary-ink">
+                                <FileUp className="size-6" />
+                            </span>
+                            <span className="text-sm font-semibold text-ink">
+                                {busy ? t('reports.uploading') : t('reports.uploadTemplates')}
+                            </span>
+                            <span className="text-xs text-ink-3">{t('reports.uploadHint')}</span>
+                        </button>
+                        <p className="mt-3 flex items-center gap-2 text-xs text-ink-3">
+                            <DatabaseBackup className="size-4 shrink-0" />
+                            {t('reports.inBackups')}
+                        </p>
                     </Card>
                 )}
+
+                <Card title={t('reports.templatesTitle')}>
+                    <TemplateGrid
+                        templates={templates}
+                        onPreview={setPreview}
+                        onDownload={(tpl) => void download(tpl)}
+                        onPdf={(tpl) => void savePdf(tpl)}
+                        onRemove={canManage ? (tpl) => void removeTemplate(tpl) : undefined}
+                    />
+                </Card>
             </div>
+
+            {preview && (
+                <DocxPreviewModal
+                    open
+                    title={preview.name}
+                    load={() => contentOf(preview)}
+                    onClose={() => setPreview(null)}
+                />
+            )}
         </div>
     );
 }
