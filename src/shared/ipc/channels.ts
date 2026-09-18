@@ -169,4 +169,8 @@ export const FILE_CHANNELS = {
     pick: 'files:pick',
     save: 'files:save',
     copyText: 'files:copy-text',
+    /** A report on paper: the Windows print dialog. */
+    print: 'files:print',
+    /** A report as PDF, saved where the person chooses. */
+    savePdf: 'files:save-pdf',
 } as const;
