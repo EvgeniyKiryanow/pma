@@ -11,9 +11,9 @@ export type { TabKey };
 function readLastTab(): TabKey {
     try {
         const saved = localStorage.getItem('lastTab');
-        return isTabKey(saved) ? saved : 'manager';
+        return isTabKey(saved) ? saved : 'dashboard';
     } catch {
-        return 'manager';
+        return 'dashboard';
     }
 }
 

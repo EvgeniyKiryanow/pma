@@ -195,7 +195,7 @@ export default function HistoryItem({
                         </p>
                     </div>
                     {canEdit && (
-                        <div className="flex gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/item:opacity-100">
+                        <div className="flex gap-0.5">
                             <IconButton
                                 label="Редагувати запис"
                                 size="xs"

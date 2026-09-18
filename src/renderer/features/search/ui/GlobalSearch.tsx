@@ -7,6 +7,7 @@ import {
     LayoutGrid,
     ListTree,
     Medal,
+    NotebookPen,
     ScrollText,
     Search,
     UserPlus,
@@ -28,6 +29,7 @@ import { useI18nStore } from '../../../stores/i18nStore';
 import { usePermissions } from '../../../stores/sessionStore';
 import { useUserStore } from '../../../stores/userStore';
 import { countAwards } from '../../awards/model/registry';
+import { useJournalStore } from '../../journal/model/journalStore';
 import { useReportFilesStore } from '../../report/model/reportFilesStore';
 import { useTemplateLibrary } from '../../tabs/model/templateLibrary';
 import {
@@ -46,6 +48,7 @@ const CATEGORY_ICONS: Record<SearchCategory, ReactNode> = {
     positions: <ListTree />,
     awards: <Medal />,
     orders: <ScrollText />,
+    journal: <NotebookPen />,
     reports: <FolderOpen />,
     templates: <FileText />,
     sections: <LayoutGrid />,
@@ -113,6 +116,7 @@ function SearchWindow() {
     const users = useUserStore((s) => s.users);
     const positions = useShtatniStore((s) => s.shtatniPosady);
     const reports = useReportFilesStore((s) => s.files);
+    const journal = useJournalStore((s) => s.entries);
     const templates = useTemplateLibrary((s) => s.templates);
     const awardsVersion = useAwardTypesStore((s) => s.version);
     const [orders, setOrders] = useState<DirectiveRecord[]>([]);
@@ -135,6 +139,12 @@ function SearchWindow() {
                     .load()
                     .catch(() => undefined);
             }
+        }
+        if (!useJournalStore.getState().loaded) {
+            void useJournalStore
+                .getState()
+                .load()
+                .catch(() => undefined);
         }
         if (canOrders) {
             Promise.all(DIRECTIVE_TYPES.map((type) => directivesApi.list(type)))
@@ -186,6 +196,7 @@ function SearchWindow() {
                 positions: canStaffing ? positions : [],
                 awards,
                 orders: canOrders ? orders : [],
+                journal,
                 reports: canReports ? reports : [],
                 templates: canReports ? templates : [],
                 sections,
@@ -202,6 +213,7 @@ function SearchWindow() {
         positions,
         awards,
         orders,
+        journal,
         reports,
         templates,
         sections,
@@ -556,9 +568,9 @@ export function GlobalSearchButton() {
             type="button"
             onClick={() => show()}
             title={t('search.buttonTitle')}
-            className="mr-1 flex h-7 w-56 max-w-[30vw] items-center gap-2 rounded-lg bg-rail-2/70 px-2.5 text-[12px] text-rail-ink-2 transition-colors hover:bg-rail-2 hover:text-rail-ink"
+            className="mr-2 flex h-8 w-80 max-w-[36vw] items-center gap-2.5 rounded-lg border border-rail-ink-2/20 bg-rail-2/70 px-3 text-[13px] text-rail-ink-2 transition-colors hover:border-rail-ink-2/40 hover:bg-rail-2 hover:text-rail-ink"
         >
-            <Search className="size-3.5 shrink-0" />
+            <Search className="size-4 shrink-0" />
             <span className="min-w-0 flex-1 truncate text-left">{t('search.button')}</span>
             <kbd className="hidden shrink-0 rounded border border-rail-ink-2/30 px-1 font-mono text-[10px] md:inline">
                 Ctrl K

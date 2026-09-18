@@ -182,7 +182,7 @@ export default function ShtatniPosadyTable({
 
                                 {canEditStaffing && (
                                     <td>
-                                        <div className="flex justify-end gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
+                                        <div className="flex justify-end gap-0.5">
                                             <IconButton
                                                 label="Редагувати посаду"
                                                 size="xs"

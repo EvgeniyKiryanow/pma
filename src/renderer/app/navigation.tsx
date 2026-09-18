@@ -1,9 +1,11 @@
 import {
     DatabaseBackup,
     FileText,
+    LayoutDashboard,
     LifeBuoy,
     ListTree,
     Medal,
+    NotebookPen,
     Sheet,
     ShieldCheck,
     Users,
@@ -14,8 +16,10 @@ import type { PermissionKey } from '../../shared/auth/permissions';
 import AdminTab from '../features/admin/ui/AdminTab';
 import BackupPanel from '../features/backup/ui/BackupPanel';
 import AwardsTab from '../pages/AwardsTab';
+import DashboardTab from '../pages/DashboardTab';
 import ImportUsersTab from '../pages/ImportUsersTab';
 import InstructionsTab from '../pages/InstrtuctionsTab';
+import JournalTab from '../pages/JournalTab';
 import ManagerTab from '../pages/ManagerTab';
 import ReportsTab from '../pages/ReportsTab';
 import ShtatniPosadyTab from '../pages/ShtatniPosadyTab';
@@ -53,6 +57,22 @@ export const TAB_GROUPS: { key: TabGroup; labelKey: string }[] = [
  * here, so adding a section (and its access rule) is one entry.
  */
 export const TABS: TabDefinition[] = [
+    {
+        key: 'dashboard',
+        label: (t) => t('nav.dashboard'),
+        icon: <LayoutDashboard />,
+        group: 'work',
+        requires: null,
+        render: () => <DashboardTab />,
+    },
+    {
+        key: 'journal',
+        label: (t) => t('nav.journal'),
+        icon: <NotebookPen />,
+        group: 'work',
+        requires: null,
+        render: () => <JournalTab />,
+    },
     {
         key: 'manager',
         label: (t) => t('nav.personnel'),

@@ -9,6 +9,8 @@ export type SearchJumps = {
     awards?: string;
     reports?: { view: 'upload' | 'yourSaved'; query?: string; templateId?: string };
     staffing?: string;
+    /** A journal entry to open, or 'new'. */
+    journal?: string;
 };
 
 type SearchJumpState = {

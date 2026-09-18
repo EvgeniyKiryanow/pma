@@ -29,6 +29,10 @@ export function runSearchAction(action: SearchAction, { edit = false } = {}): vo
             jump({ staffing: action.shtatNumber });
             store.setCurrentTab('shtatni');
             return;
+        case 'journal':
+            jump({ journal: action.uuid });
+            store.setCurrentTab('journal');
+            return;
         case 'award':
             jump({ awards: findAward(action.awardId)?.name ?? '' });
             store.setCurrentTab('awards');

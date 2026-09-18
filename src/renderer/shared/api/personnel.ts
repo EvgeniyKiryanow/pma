@@ -1,6 +1,7 @@
 import type {
     HistoryRange,
     IncompleteHistoryEntry,
+    RecentStatusChange,
     StatusPeriodEntry,
 } from '../../../shared/types/history';
 import type { CommentOrHistoryEntry, User } from '../../../shared/types/user';
@@ -57,6 +58,9 @@ export const historyApi = {
     findIncomplete: (): Promise<IncompleteHistoryEntry[]> => call(bridge().findIncompleteHistory()),
     /** Status changes with a period, of everyone. */
     statusPeriods: (): Promise<StatusPeriodEntry[]> => call(bridge().getStatusPeriods()),
+    /** The latest status changes of everyone, newest first. */
+    recentStatusChanges: (limit?: number): Promise<RecentStatusChange[]> =>
+        call(bridge().getRecentStatusChanges(limit)),
 };
 
 export const commentsApi = {

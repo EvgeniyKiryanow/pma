@@ -6,6 +6,7 @@ import type {
     HistoryFilter,
     HistoryRange,
     IncompleteHistoryEntry,
+    RecentStatusChange,
     StatusPeriodEntry,
 } from '../../shared/types/history';
 import type { CommentOrHistoryEntry } from '../../shared/types/user';
@@ -179,6 +180,32 @@ export class HistoryService {
             }
         }
         return result;
+    }
+
+    /** The latest status changes of everyone, newest first. */
+    async recentStatusChanges(limit = 40): Promise<RecentStatusChange[]> {
+        const result: RecentStatusChange[] = [];
+        for (const { userId, entries } of await this.history.all()) {
+            for (const entry of entries) {
+                if (entry?.type !== 'statusChange') continue;
+                const to = statusOfEntry(entry);
+                if (!to) continue;
+                const previous =
+                    entry.previousStatus?.trim() ||
+                    /з\s*"([^"]+)"\s*→/.exec(`${entry.description ?? ''}`)?.[1] ||
+                    null;
+                result.push({
+                    userId,
+                    entryId: entry.id,
+                    date: entry.date,
+                    from: previous && previous !== '—' ? previous : null,
+                    to,
+                    period: entry.period?.from ? entry.period : null,
+                    hasFiles: Boolean(entry.files?.length),
+                });
+            }
+        }
+        return result.sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, limit);
     }
 
     private async requireEntries(userId: number): Promise<CommentOrHistoryEntry[]> {

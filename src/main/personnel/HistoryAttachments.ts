@@ -156,8 +156,44 @@ export class HistoryAttachments {
     }
 
     /** Throws NOT_FOUND when the file is not on this computer (e.g. the card came by exchange). */
-    async readAwardFile(userId: number, recordId: string, fileName: string): Promise<string> {
-        const target = resolveInside(this.awardDir(userId, recordId), safeFileName(fileName));
+    readAwardFile(userId: number, recordId: string, fileName: string): Promise<string> {
+        return this.readFromDir(this.awardDir(userId, recordId), fileName);
+    }
+
+    /** Deletes files of an award that are no longer listed in it. */
+    removeAwardFilesExcept(userId: number, recordId: string, keep: AttachmentMeta[]) {
+        return this.keepOnly(this.awardDir(userId, recordId), keep);
+    }
+
+    // ------------------------------------------------------------ documents of a person
+    // <root>/<userId>/documents/<documentUuid>/<file>
+
+    documentDir(userId: number, documentUuid: string): string {
+        return resolveInside(
+            this.root(),
+            safeFileName(String(userId)),
+            'documents',
+            safeFileName(documentUuid),
+        );
+    }
+
+    // ------------------------------------------------------------ files of the journal
+    // <root>/journal/<entryUuid>/<file> (no person: never removed with one)
+
+    journalDir(entryUuid: string): string {
+        return resolveInside(this.root(), 'journal', safeFileName(entryUuid));
+    }
+
+    // ------------------------------------------------------------ any folder of the above
+
+    /** Writes the files that carry content into `dir` (all or nothing). */
+    saveToDir(dir: string, files: IncomingAttachment[], owner: string): Promise<AttachmentMeta[]> {
+        return this.saveInto(dir, files, owner);
+    }
+
+    /** A file of `dir` as a data URL; NOT_FOUND when it is not on this computer. */
+    async readFromDir(dir: string, fileName: string): Promise<string> {
+        const target = resolveInside(dir, safeFileName(fileName));
         try {
             return await this.readFile(target, fileName);
         } catch {
@@ -165,19 +201,23 @@ export class HistoryAttachments {
         }
     }
 
-    /** Deletes files of an award that are no longer listed in it. */
-    async removeAwardFilesExcept(userId: number, recordId: string, keep: AttachmentMeta[]) {
-        const dir = this.awardDir(userId, recordId);
+    /** Deletes the files of `dir` not listed in `keep`; the folder too when nothing is kept. */
+    async keepOnly(dir: string, keep: AttachmentMeta[]): Promise<void> {
         const kept = new Set(keep.map((file) => file.name.toLowerCase()));
         const names = await fsp.readdir(dir).catch(() => [] as string[]);
         for (const name of names) {
             if (kept.has(name.toLowerCase())) continue;
             await fsp
                 .rm(resolveInside(dir, name), { force: true })
-                .catch((err) => this.logger.warn('Failed to delete a removed award file', err));
+                .catch((err) => this.logger.warn('Failed to delete a removed file', err));
         }
-        if (!keep.length)
-            await fsp.rm(dir, { recursive: true, force: true }).catch(() => undefined);
+        if (!keep.length) await this.removeDir(dir);
+    }
+
+    async removeDir(dir: string): Promise<void> {
+        await fsp
+            .rm(dir, { recursive: true, force: true })
+            .catch((err) => this.logger.warn('Failed to delete a folder of files', err));
     }
 
     /** Deletes files of the entry that are not in `keep`. */
