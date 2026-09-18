@@ -1,9 +1,101 @@
-import { useEffect, useState } from 'react';
+import { Camera, Plus, Trash2, UserPlus, UserRoundPen } from 'lucide-react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
+import type { RelativeContact, User } from '../../../../shared/types/user';
+import { reportError } from '../../../shared/api/errors';
+import { useAsyncAction } from '../../../shared/hooks/useAsyncAction';
+import { pickFile, readAsDataUrl } from '../../../shared/lib/pickFiles';
+import { Avatar, Button, cn, IconButton, Modal } from '../../../shared/ui';
+import { toast } from '../../../shared/ui/toast';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useUserStore } from '../../../stores/userStore';
-import type { RelativeContact, User } from '../../../../shared/types/user';
+
+const EMPTY_FORM: Partial<User> = {
+    fullName: '',
+    dateOfBirth: '',
+    position: '',
+    rank: '',
+    rights: '',
+    conscriptionInfo: '',
+    notes: '',
+    email: '',
+    phoneNumber: '',
+    education: '',
+    awards: '',
+    photo: '',
+    relatives: [],
+    comments: [],
+    history: [],
+    callsign: '',
+    passportData: '',
+    participantNumber: '',
+    identificationNumber: '',
+    fitnessCategory: 'Придатний',
+    unitNumber: '',
+    hasCriminalRecord: false,
+    criminalRecordDetails: '',
+    militaryTicketInfo: '',
+    militaryServiceHistory: '',
+    civilProfession: '',
+    educationDetails: '',
+    residenceAddress: '',
+    registeredAddress: '',
+    healthConditions: '',
+    maritalStatus: '',
+    familyInfo: '',
+    religion: '',
+    recruitingOffice: '',
+    driverLicenses: '',
+    bloodType: '',
+
+    // hierarchy
+    unitMain: '',
+    unitLevel1: '',
+    unitLevel2: '',
+    platoon: '',
+    squad: '',
+    subordination: '',
+
+    // military specialization
+    vosCode: '',
+    shpkCode: '',
+    shpkNumber: '',
+    category: '',
+    kshp: '',
+
+    // rank / appointment
+    rankAssignedBy: '',
+    rankAssignmentDate: '',
+    appointmentOrder: '',
+    previousStatus: '',
+
+    // personal details
+    placeOfBirth: '',
+    taxId: '',
+    serviceType: '',
+    recruitmentOfficeDetails: '',
+    ubdStatus: '',
+    childrenInfo: '',
+
+    // absence / status
+    bzvpStatus: '',
+    rvbzPresence: '',
+    absenceReason: '',
+    absenceFromDate: '',
+    absenceToDate: '',
+
+    // Excel specific
+    personalPrisonFileExists: '',
+    tDotData: '',
+    positionNominative: '',
+    positionGenitive: '',
+    positionDative: '',
+    positionInstrumental: '',
+    soldierStatus: '',
+};
+
+type SectionDef = { id: string; title: string };
 
 export default function UserFormModalUpdate({
     userToEdit,
@@ -16,123 +108,45 @@ export default function UserFormModalUpdate({
     const updateUser = useUserStore((s) => s.updateUser);
     const { t } = useI18nStore();
     const isEditing = !!userToEdit;
+    const scrollRef = useRef<HTMLDivElement>(null);
 
-    const [form, setForm] = useState<Partial<User>>({
-        fullName: '',
-        dateOfBirth: '',
-        position: '',
-        rank: '',
-        rights: '',
-        conscriptionInfo: '',
-        notes: '',
-        email: '',
-        phoneNumber: '',
-        education: '',
-        awards: '',
-        photo: '',
-        relatives: [],
-        comments: [],
-        history: [],
-        callsign: '',
-        passportData: '',
-        participantNumber: '',
-        identificationNumber: '',
-        fitnessCategory: 'Придатний',
-        unitNumber: '',
-        hasCriminalRecord: false,
-        criminalRecordDetails: '',
-        militaryTicketInfo: '',
-        militaryServiceHistory: '',
-        civilProfession: '',
-        educationDetails: '',
-        residenceAddress: '',
-        registeredAddress: '',
-        healthConditions: '',
-        maritalStatus: '',
-        familyInfo: '',
-        religion: '',
-        recruitingOffice: '',
-        driverLicenses: '',
-        bloodType: '',
-
-        // ✅ new hierarchy defaults
-        unitMain: '',
-        unitLevel1: '',
-        unitLevel2: '',
-        platoon: '',
-        squad: '',
-        subordination: '',
-
-        // ✅ military specialization defaults
-        vosCode: '',
-        shpkCode: '',
-        shpkNumber: '',
-        category: '',
-        kshp: '',
-
-        // ✅ rank/appointment
-        rankAssignedBy: '',
-        rankAssignmentDate: '',
-        appointmentOrder: '',
-        previousStatus: '',
-
-        // ✅ personal details
-        placeOfBirth: '',
-        taxId: '',
-        serviceType: '',
-        recruitmentOfficeDetails: '',
-        ubdStatus: '',
-        childrenInfo: '',
-
-        // ✅ absence/status
-        bzvpStatus: '',
-        rvbzPresence: '',
-        absenceReason: '',
-        absenceFromDate: '',
-        absenceToDate: '',
-
-        // ✅ excel specific
-        personalPrisonFileExists: '',
-        tDotData: '',
-        positionNominative: '',
-        positionGenitive: '',
-        positionDative: '',
-        positionInstrumental: '',
-        soldierStatus: '',
-    });
-
+    const [form, setForm] = useState<Partial<User>>(EMPTY_FORM);
     const [photoPreview, setPhotoPreview] = useState<string>('');
+    const [activeSection, setActiveSection] = useState('basic');
 
     useEffect(() => {
         if (userToEdit) {
             setForm(userToEdit);
             setPhotoPreview(userToEdit.photo || '');
         } else {
-            setForm({
-                ...form,
-                fitnessCategory: 'Придатний',
-            });
+            setForm({ ...EMPTY_FORM, fitnessCategory: 'Придатний' });
             setPhotoPreview('');
         }
     }, [userToEdit]);
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-            if (reader.result) {
-                setForm((f) => ({ ...f, photo: reader.result as string }));
-                setPhotoPreview(reader.result as string);
-            }
-        };
-        reader.readAsDataURL(file);
+    const choosePhoto = async () => {
+        try {
+            const file = await pickFile('images');
+            if (!file) return;
+            const photo = await readAsDataUrl(file);
+            setForm((f) => ({ ...f, photo }));
+            setPhotoPreview(photo);
+        } catch (err) {
+            reportError(err, { context: 'photo-upload' });
+        }
     };
 
     const handleAddRelative = () => {
         setForm((prev) => ({
             ...prev,
             relatives: [...(prev.relatives || []), { name: '', relationship: '' }],
+        }));
+    };
+
+    const handleRemoveRelative = (index: number) => {
+        setForm((prev) => ({
+            ...prev,
+            relatives: (prev.relatives || []).filter((_, i) => i !== index),
         }));
     };
 
@@ -146,6 +160,13 @@ export default function UserFormModalUpdate({
         setForm((prev) => ({ ...prev, [key]: value }));
     };
     const allUsers = useUserStore((s) => s.users);
+    // The form closes only after the person is saved; on failure it stays open with the data.
+    const save = useAsyncAction((user: User) => (isEditing ? updateUser(user) : addUser(user)), {
+        success: isEditing ? 'Зміни збережено' : 'Військовослужбовця додано',
+        onSuccess: onClose,
+        context: 'user-form',
+    });
+
     const handleSubmit = () => {
         const finalUser: User = {
             id: userToEdit?.id ?? Date.now(),
@@ -160,27 +181,67 @@ export default function UserFormModalUpdate({
         );
 
         if (duplicate) {
-            alert(
-                `❗ Користувач "${duplicate.fullName}" вже має цей номер по штату (${finalUser.shpkNumber}).\n\nБудь ласка, виберіть інший.`,
+            toast.error(
+                `«${duplicate.fullName}» вже має номер по штату ${finalUser.shpkNumber}. Оберіть інший номер.`,
             );
             return;
         }
 
-        isEditing ? updateUser(finalUser) : addUser(finalUser);
-        onClose();
+        void save.run(finalUser);
+    };
+
+    const sections: SectionDef[] = [
+        { id: 'basic', title: t('sections.basic') },
+        { id: 'personal', title: t('sections.personalDetails') },
+        { id: 'positionCases', title: t('sections.positionCases') },
+        { id: 'military', title: t('sections.military') },
+        { id: 'rank', title: t('sections.rankAndAppointment') },
+        { id: 'hierarchy', title: t('sections.hierarchy') },
+        { id: 'absence', title: t('sections.absenceStatus') },
+        { id: 'specialization', title: t('sections.militarySpecialization') },
+        { id: 'legal', title: t('sections.legal') },
+        { id: 'health', title: t('sections.health') },
+        { id: 'background', title: t('sections.background') },
+        { id: 'relatives', title: t('user.relatives') },
+    ];
+
+    const scrollTo = (id: string) => {
+        setActiveSection(id);
+        const container = scrollRef.current;
+        const target = container?.querySelector<HTMLElement>(`[data-section="${id}"]`);
+        if (container && target) {
+            container.scrollTo({ top: target.offsetTop - 12, behavior: 'smooth' });
+        }
+    };
+
+    // Highlight the section being read while scrolling.
+    const onScroll = () => {
+        const container = scrollRef.current;
+        if (!container) return;
+        const top = container.scrollTop + 40;
+        let current = sections[0].id;
+        container.querySelectorAll<HTMLElement>('[data-section]').forEach((el) => {
+            if (el.offsetTop <= top) current = el.dataset.section ?? current;
+        });
+        if (current !== activeSection) setActiveSection(current);
     };
 
     const renderField = (key: keyof User, isTextarea = false) => {
+        const id = `user-field-${String(key)}`;
         if (key === 'hasCriminalRecord') {
             return (
-                <div key={key} className="col-span-1 flex items-center gap-2">
+                <label
+                    key={key}
+                    className="flex items-center gap-2.5 self-end rounded-lg border border-line px-3 py-2.5 text-sm text-ink"
+                >
                     <input
                         type="checkbox"
+                        className="size-4"
                         checked={!!form.hasCriminalRecord}
                         onChange={(e) => handleChange('hasCriminalRecord', e.target.checked)}
                     />
-                    <label className="text-sm text-gray-700">{t(`user.${key}`)}</label>
-                </div>
+                    {t(`user.${key}`)}
+                </label>
             );
         }
 
@@ -188,10 +249,13 @@ export default function UserFormModalUpdate({
 
         if (key === 'fitnessCategory') {
             return (
-                <div key={key} className="col-span-1">
-                    <label className="text-sm text-gray-700 block mb-1">{t(`user.${key}`)}</label>
+                <div key={key}>
+                    <label htmlFor={id} className="label">
+                        {t(`user.${key}`)}
+                    </label>
                     <select
-                        className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
+                        id={id}
+                        className="field"
                         value={form.fitnessCategory || ''}
                         onChange={(e) => handleChange('fitnessCategory', e.target.value)}
                     >
@@ -205,18 +269,22 @@ export default function UserFormModalUpdate({
         }
 
         return (
-            <div key={key} className="col-span-1">
-                <label className="text-sm text-gray-700 block mb-1">{t(`user.${key}`)}</label>
+            <div key={key} className={cn(isTextarea && '@2xl:col-span-2')}>
+                <label htmlFor={id} className="label">
+                    {t(`user.${key}`)}
+                </label>
                 {isTextarea ? (
                     <textarea
-                        className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
+                        id={id}
+                        className="field"
                         rows={2}
                         value={String(form[key] || '')}
                         onChange={(e) => handleChange(key, e.target.value)}
                     />
                 ) : (
                     <input
-                        className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
+                        id={id}
+                        className="field"
                         value={String(form[key] || '')}
                         onChange={(e) => handleChange(key, e.target.value)}
                     />
@@ -225,297 +293,318 @@ export default function UserFormModalUpdate({
         );
     };
 
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white w-full max-w-4xl rounded-lg shadow-2xl border overflow-y-auto max-h-[90vh]">
-                <div className="px-6 py-5 border-b bg-gray-100 flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-gray-800 uppercase tracking-wide">
-                        {isEditing ? t('user.editUser') : t('user.addUser')}
-                    </h2>
-                    <button onClick={onClose} className="text-sm text-gray-500 hover:text-red-600">
-                        ✕
-                    </button>
-                </div>
-
-                <div className="px-6 py-4 space-y-6">
-                    {/* Photo Upload */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {t('user.photo')}
-                        </label>
-                        <div className="relative group">
-                            <label
-                                htmlFor="photo-upload"
-                                className="flex items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer"
-                            >
-                                {photoPreview ? (
-                                    <img
-                                        src={photoPreview}
-                                        alt="Preview"
-                                        className="w-full h-full object-cover rounded-lg"
-                                    />
-                                ) : (
-                                    <div className="text-center text-sm text-gray-500">
-                                        <span>{t('user.uploadPhoto')}</span>
-                                        <span className="text-xs text-gray-400">JPG/PNG</span>
-                                    </div>
-                                )}
-                            </label>
-                            <input
-                                id="photo-upload"
-                                type="file"
-                                accept="image/*"
-                                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                                onChange={handlePhotoUpload}
-                            />
-                        </div>
-                    </div>
-
-                    {/* ✅ 1. Basic Info */}
-                    <section>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                            {t('sections.basic')}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            {renderField('fullName')}
-                            {renderField('callsign')}
-                            {renderField('dateOfBirth')}
-                            {renderField('email')}
-                            {renderField('phoneNumber')}
-                            {renderField('notes', true)}
-                            {renderField('familyInfo')}
-                        </div>
-                    </section>
-
-                    {/* Soldier Status dropdown */}
-                    <div className="col-span-1">
-                        <label className="text-sm text-gray-700 block mb-1">
-                            {t('user.soldierStatus')}
-                        </label>
-                        <select
-                            className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
-                            value={form.soldierStatus || ''} // ✅ Controlled
-                            onChange={(e) => handleChange('soldierStatus', e.target.value)} // ✅ Updates form
-                        >
-                            <option value="">-- Оберіть статус --</option>
-                            {Object.values(StatusExcel).map((status) => (
-                                <option key={status} value={status}>
-                                    {status}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* ✅ 2. Personal Details */}
-                    <section>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                            {t('sections.personalDetails')}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            {renderField('placeOfBirth')}
-                            {renderField('gender')}
-                            {renderField('maritalStatus')}
-                            {renderField('childrenInfo')}
-                            {renderField('familyInfo', true)}
-                            {renderField('religion')}
-                        </div>
-                    </section>
-
-                    {/* ✅ 3. Position & Grammar Cases */}
-                    <section>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                            {t('sections.positionCases')}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            {renderField('position')}
-                            {renderField('positionNominative')}
-                            {renderField('positionGenitive')}
-                            {renderField('positionDative')}
-                            {renderField('positionInstrumental')}
-                            {renderField('tDotData')}
-                            {renderField('personalPrisonFileExists')}
-                        </div>
-                    </section>
-
-                    {/* ✅ 4. Military Info */}
-                    <section>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                            {t('sections.military')}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            {renderField('rights')}
-                            {renderField('recruitingOffice')}
-                            {renderField('militaryTicketInfo', true)}
-                            {renderField('militaryServiceHistory', true)}
-                            {renderField('conscriptionInfo', true)}
-                            {renderField('ubdStatus')}
-                        </div>
-                    </section>
-
-                    {/* ✅ 5. Rank & Appointment */}
-                    <section>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                            {t('sections.rankAndAppointment')}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            {renderField('rank')}
-                            {renderField('rankAssignedBy')}
-                            {renderField('rankAssignmentDate')}
-                            {renderField('appointmentOrder')}
-                            {renderField('previousStatus')}
-                        </div>
-                    </section>
-
-                    {/* ✅ 6. Unit Hierarchy */}
-                    <section>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                            {t('sections.hierarchy')}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            {renderField('unitMain')}
-                            {renderField('unitLevel1')}
-                            {renderField('unitLevel2')}
-                            {renderField('platoon')}
-                            {renderField('squad')}
-                            {renderField('subordination')}
-                            {renderField('unitNumber')}
-                        </div>
-                    </section>
-
-                    {/* ✅ 7. Absence & Status */}
-                    <section>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                            {t('sections.absenceStatus')}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            {renderField('bzvpStatus')}
-                            {renderField('rvbzPresence')}
-                            {renderField('absenceReason')}
-                            {renderField('absenceFromDate')}
-                            {renderField('absenceToDate')}
-                        </div>
-                    </section>
-
-                    {/* ✅ 8. Military Specialization */}
-                    <section>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                            {t('sections.militarySpecialization')}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            {renderField('vosCode')}
-                            {renderField('shpkCode')}
-                            {renderField('shpkNumber')}
-                            {renderField('category')}
-                            {renderField('kshp')}
-                        </div>
-                    </section>
-
-                    {/* ✅ 9. Legal & Identification */}
-                    <section>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                            {t('sections.legal')}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            {renderField('passportData')}
-                            {renderField('identificationNumber')}
-                            {renderField('participantNumber')}
-                            {renderField('taxId')}
-                            {renderField('hasCriminalRecord')}
-                            {renderField('criminalRecordDetails', true)}
-                        </div>
-                    </section>
-
-                    {/* ✅ 10. Health */}
-                    <section>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                            {t('sections.health')}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            {renderField('healthConditions', true)}
-                            {renderField('fitnessCategory')}
-                            {renderField('bloodType')}
-                        </div>
-                    </section>
-
-                    {/* ✅ 11. Civil Background */}
-                    <section>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                            {t('sections.background')}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            {renderField('civilProfession')}
-                            {renderField('education')}
-                            {renderField('educationDetails', true)}
-                            {renderField('awards')}
-                            {renderField('driverLicenses')}
-                            {renderField('residenceAddress')}
-                            {renderField('registeredAddress')}
-                        </div>
-                    </section>
-
-                    {/* Relatives */}
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <h3 className="text-lg font-semibold text-gray-800">
-                                {t('user.relatives')}
-                            </h3>
-                            <button
-                                type="button"
-                                onClick={handleAddRelative}
-                                className="text-sm text-blue-600 hover:underline"
-                            >
-                                + {t('user.addRelative')}
-                            </button>
-                        </div>
-                        {(form.relatives || []).map((rel, idx) => (
-                            <div
-                                key={idx}
-                                className="grid grid-cols-3 gap-4 mb-2 border p-3 rounded-md"
-                            >
-                                <input
-                                    className="border px-2 py-1 text-sm"
-                                    placeholder={t('user.relativeName')}
-                                    value={rel.name || ''}
-                                    onChange={(e) =>
-                                        handleRelativeChange(idx, 'name', e.target.value)
-                                    }
-                                />
-                                <input
-                                    className="border px-2 py-1 text-sm"
-                                    placeholder={t('user.relativeRelation')}
-                                    value={rel.relationship || ''}
-                                    onChange={(e) =>
-                                        handleRelativeChange(idx, 'relationship', e.target.value)
-                                    }
-                                />
-                                <input
-                                    className="border px-2 py-1 text-sm"
-                                    placeholder={t('user.relativePhone')}
-                                    value={rel.phone || ''}
-                                    onChange={(e) =>
-                                        handleRelativeChange(idx, 'phone', e.target.value)
-                                    }
-                                />
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="flex justify-end pt-4 border-t mt-4 gap-4">
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-2 text-gray-600 border rounded hover:bg-gray-50"
-                        >
-                            {t('user.cancel')}
-                        </button>
-                        <button
-                            onClick={handleSubmit}
-                            className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded shadow"
-                        >
-                            {isEditing ? t('user.save') : t('user.add')}
-                        </button>
-                    </div>
-                </div>
+    // A plain function, not a component: a component declared here would remount its inputs
+    // on every keystroke and drop the focus.
+    const section = (id: string, children: ReactNode) => (
+        <section data-section={id} className="scroll-mt-4">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink">
+                <span className="h-4 w-1 rounded-full bg-primary" />
+                {sections.find((s) => s.id === id)?.title}
+            </h3>
+            <div className="grid grid-cols-1 gap-4 @xl:grid-cols-2 @3xl:grid-cols-3">
+                {children}
             </div>
-        </div>
+        </section>
+    );
+
+    return (
+        <Modal
+            open
+            onClose={onClose}
+            title={isEditing ? t('user.editUser') : t('user.addUser')}
+            description={
+                isEditing ? form.fullName : 'Заповніть основні дані — решту можна додати пізніше'
+            }
+            icon={isEditing ? <UserRoundPen /> : <UserPlus />}
+            width="max-w-6xl"
+            closeOnBackdrop={false}
+            bodyClassName="p-0 flex min-h-0"
+            footer={
+                <>
+                    <Button variant="secondary" onClick={onClose} disabled={save.pending}>
+                        {t('user.cancel')}
+                    </Button>
+                    <Button
+                        onClick={handleSubmit}
+                        loading={save.pending}
+                        disabled={!String(form.fullName || '').trim()}
+                    >
+                        {isEditing ? t('user.save') : t('user.add')}
+                    </Button>
+                </>
+            }
+        >
+            <nav className="hidden w-56 shrink-0 overflow-y-auto border-r border-line bg-surface-2 p-3 lg:block">
+                <ul className="space-y-0.5">
+                    {sections.map((section) => (
+                        <li key={section.id}>
+                            <button
+                                onClick={() => scrollTo(section.id)}
+                                className={cn(
+                                    'w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors',
+                                    activeSection === section.id
+                                        ? 'bg-surface font-medium text-ink shadow-card'
+                                        : 'text-ink-3 hover:bg-surface hover:text-ink',
+                                )}
+                            >
+                                {section.title}
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            </nav>
+
+            <div
+                ref={scrollRef}
+                onScroll={onScroll}
+                className="@container relative min-h-0 flex-1 space-y-8 overflow-y-auto px-6 py-5"
+            >
+                {/* Photo + status */}
+                <div className="flex flex-wrap items-center gap-5 rounded-2xl border border-line bg-surface-2 p-4">
+                    <button
+                        type="button"
+                        onClick={() => void choosePhoto()}
+                        aria-label={t('user.photo')}
+                        className="group relative cursor-pointer rounded-2xl"
+                    >
+                        {photoPreview ? (
+                            <img
+                                src={photoPreview}
+                                alt=""
+                                className="size-24 rounded-2xl object-cover shadow-card"
+                            />
+                        ) : (
+                            <Avatar name={form.fullName || '?'} size={96} rounded="rounded-2xl" />
+                        )}
+                        <span className="absolute inset-0 grid place-items-center rounded-2xl bg-[oklch(15%_0.02_130/0.55)] text-[oklch(98%_0_0)] opacity-0 transition-opacity group-hover:opacity-100">
+                            <Camera className="size-6" />
+                        </span>
+                    </button>
+                    <div className="min-w-[220px] flex-1 space-y-3">
+                        <div>
+                            <p className="text-sm font-medium text-ink">{t('user.photo')}</p>
+                            <p className="text-xs text-ink-3">
+                                Натисніть на фото, щоб {photoPreview ? 'замінити' : 'завантажити'}{' '}
+                                (JPG / PNG)
+                            </p>
+                        </div>
+                        <div className="max-w-md">
+                            <label htmlFor="user-field-status" className="label">
+                                {t('user.soldierStatus')}
+                            </label>
+                            <select
+                                id="user-field-status"
+                                className="field"
+                                value={form.soldierStatus || ''}
+                                onChange={(e) => handleChange('soldierStatus', e.target.value)}
+                            >
+                                <option value="">— Оберіть статус —</option>
+                                {Object.values(StatusExcel).map((status) => (
+                                    <option key={status} value={status}>
+                                        {status}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {section(
+                    'basic',
+                    <>
+                        {renderField('fullName')}
+                        {renderField('callsign')}
+                        {renderField('dateOfBirth')}
+                        {renderField('email')}
+                        {renderField('phoneNumber')}
+                        {renderField('notes', true)}
+                    </>,
+                )}
+
+                {section(
+                    'personal',
+                    <>
+                        {renderField('placeOfBirth')}
+                        {renderField('gender')}
+                        {renderField('maritalStatus')}
+                        {renderField('childrenInfo')}
+                        {renderField('religion')}
+                        {renderField('familyInfo', true)}
+                    </>,
+                )}
+
+                {section(
+                    'positionCases',
+                    <>
+                        {renderField('position')}
+                        {renderField('positionNominative')}
+                        {renderField('positionGenitive')}
+                        {renderField('positionDative')}
+                        {renderField('positionInstrumental')}
+                        {renderField('tDotData')}
+                        {renderField('personalPrisonFileExists')}
+                    </>,
+                )}
+
+                {section(
+                    'military',
+                    <>
+                        {renderField('rights')}
+                        {renderField('recruitingOffice')}
+                        {renderField('ubdStatus')}
+                        {renderField('militaryTicketInfo', true)}
+                        {renderField('militaryServiceHistory', true)}
+                        {renderField('conscriptionInfo', true)}
+                    </>,
+                )}
+
+                {section(
+                    'rank',
+                    <>
+                        {renderField('rank')}
+                        {renderField('rankAssignedBy')}
+                        {renderField('rankAssignmentDate')}
+                        {renderField('appointmentOrder')}
+                        {renderField('previousStatus')}
+                    </>,
+                )}
+
+                {section(
+                    'hierarchy',
+                    <>
+                        {renderField('unitMain')}
+                        {renderField('unitLevel1')}
+                        {renderField('unitLevel2')}
+                        {renderField('platoon')}
+                        {renderField('squad')}
+                        {renderField('subordination')}
+                        {renderField('unitNumber')}
+                    </>,
+                )}
+
+                {section(
+                    'absence',
+                    <>
+                        {renderField('bzvpStatus')}
+                        {renderField('rvbzPresence')}
+                        {renderField('absenceReason')}
+                        {renderField('absenceFromDate')}
+                        {renderField('absenceToDate')}
+                    </>,
+                )}
+
+                {section(
+                    'specialization',
+                    <>
+                        {renderField('vosCode')}
+                        {renderField('shpkCode')}
+                        {renderField('shpkNumber')}
+                        {renderField('category')}
+                        {renderField('kshp')}
+                    </>,
+                )}
+
+                {section(
+                    'legal',
+                    <>
+                        {renderField('passportData')}
+                        {renderField('identificationNumber')}
+                        {renderField('participantNumber')}
+                        {renderField('taxId')}
+                        {renderField('hasCriminalRecord')}
+                        {renderField('criminalRecordDetails', true)}
+                    </>,
+                )}
+
+                {section(
+                    'health',
+                    <>
+                        {renderField('fitnessCategory')}
+                        {renderField('bloodType')}
+                        {renderField('healthConditions', true)}
+                    </>,
+                )}
+
+                {section(
+                    'background',
+                    <>
+                        {renderField('civilProfession')}
+                        {renderField('education')}
+                        {renderField('awards')}
+                        {renderField('driverLicenses')}
+                        {renderField('residenceAddress')}
+                        {renderField('registeredAddress')}
+                        {renderField('educationDetails', true)}
+                    </>,
+                )}
+
+                <section data-section="relatives" className="pb-2">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <h3 className="flex items-center gap-2 text-sm font-semibold text-ink">
+                            <span className="h-4 w-1 rounded-full bg-primary" />
+                            {t('user.relatives')}
+                        </h3>
+                        <Button
+                            variant="soft"
+                            size="xs"
+                            icon={<Plus className="size-3.5" />}
+                            onClick={handleAddRelative}
+                        >
+                            {t('user.addRelative')}
+                        </Button>
+                    </div>
+                    {(form.relatives || []).length === 0 ? (
+                        <p className="rounded-xl border border-dashed border-line-strong px-4 py-4 text-center text-sm text-ink-3">
+                            Родичів ще не додано
+                        </p>
+                    ) : (
+                        <ul className="space-y-2">
+                            {(form.relatives || []).map((rel, idx) => (
+                                <li
+                                    key={idx}
+                                    className="grid grid-cols-1 items-center gap-2 rounded-xl border border-line p-2.5 @xl:grid-cols-[1fr_1fr_1fr_auto]"
+                                >
+                                    <input
+                                        className="field field-sm"
+                                        placeholder={t('user.relativeName')}
+                                        value={rel.name || ''}
+                                        onChange={(e) =>
+                                            handleRelativeChange(idx, 'name', e.target.value)
+                                        }
+                                    />
+                                    <input
+                                        className="field field-sm"
+                                        placeholder={t('user.relativeRelation')}
+                                        value={rel.relationship || ''}
+                                        onChange={(e) =>
+                                            handleRelativeChange(
+                                                idx,
+                                                'relationship',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <input
+                                        className="field field-sm"
+                                        placeholder={t('user.relativePhone')}
+                                        value={rel.phone || ''}
+                                        onChange={(e) =>
+                                            handleRelativeChange(idx, 'phone', e.target.value)
+                                        }
+                                    />
+                                    <IconButton
+                                        label="Прибрати"
+                                        size="sm"
+                                        className="hover:bg-danger-soft hover:text-danger-ink"
+                                        onClick={() => handleRemoveRelative(idx)}
+                                        icon={<Trash2 className="size-4" />}
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+            </div>
+        </Modal>
     );
 }

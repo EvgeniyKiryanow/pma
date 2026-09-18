@@ -1,36 +1,33 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "commonjs",
-    "allowJs": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "noImplicitAny": true,
-    "sourceMap": true,
-    "baseUrl": ".",
-    "outDir": "dist",
-    "moduleResolution": "node",
     "resolveJsonModule": true,
-    "jsx": "react-jsx",
+    "isolatedModules": true,
+    "noImplicitAny": true,
+    "strictNullChecks": false,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@pages/*": ["src/Pages/*"],
-      "@components/*": ["src/components/*"],
-      "@shared/*": ["src/shared/*"],
-      "@stores/*": ["src/stores/*"],
-      "@features/*": ["src/features/*"],
-      "@utils/*": ["src/utils/*"],
-      "@styles/*": ["src/styles/*"],
-      "@layouts/*": ["src/layout/*"],
-      "@hooks/*": ["src/hooks/*"],
-      "@icons/*": ["src/icons/*"],
-      "@types/*": ["src/types/*"],
-      "@locales/*": ["src/locales/*"],
-      "@ipc/*": ["src/ipc/*"],
-      "@db/*": ["src/database/*"],
-      "@assets/*": ["assets/*"],
-      "@excel/*": ["src/components/ExcelTables/*"],
-      "@defaultAdmin/*": ["src/components/defaultAdmin/*"]
+      "better-sqlite3-multiple-ciphers": ["node_modules/better-sqlite3-multiple-ciphers/index.d.ts"]
     }
-  }
+  },
+  "include": [
+    "src",
+    "tests",
+    "vite.main.ts",
+    "vite.preload.ts",
+    "vite.renderer.ts",
+    "vitest.config.ts"
+  ],
+  "exclude": ["node_modules", ".vite", "renderer_dist", "dist", "src/assets"]
 }

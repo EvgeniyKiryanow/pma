@@ -273,10 +273,10 @@ function AlternateCombatReportHeadDetails() {
         { label: 'ПОЗИЦІЇ БПЛА', backgroundColor: '#eab38a', bold: true },
         { label: 'РЕЗЕРВ ПІХОТА', backgroundColor: '#eab38a', bold: true },
         { label: 'УПРАВЛІННЯ', backgroundColor: '#eab38a', bold: true },
-        { label: 'БОЙОВЕ ЗАБЕСПЕЧЕННЯ', backgroundColor: '#eab38a', bold: true },
-        { label: 'ЗАБЕСПЕЧЕННЯ', backgroundColor: '#eab38a', bold: true },
+        { label: 'БОЙОВЕ ЗАБЕЗПЕЧЕННЯ', backgroundColor: '#eab38a', bold: true },
+        { label: 'ЗАБЕЗПЕЧЕННЯ', backgroundColor: '#eab38a', bold: true },
         {
-            label: 'НОВОПРИБУЛІ НАВЧАННЯ В ПІДЗОЗДІЛІ',
+            label: 'НОВОПРИБУЛІ НАВЧАННЯ В ПІДРОЗДІЛІ',
             backgroundColor: '#eab38a',
             rightBorder: true,
             bold: true,
@@ -284,7 +284,7 @@ function AlternateCombatReportHeadDetails() {
         { label: 'Обмежено придатні', backgroundColor: '#f9da77' },
         { label: 'Хворі в підрозділі', backgroundColor: '#f9da77' },
         { label: 'Відмовники', backgroundColor: '#f9da77' },
-        { label: 'Звільнються', backgroundColor: '#f9da77' },
+        { label: 'Звільняються', backgroundColor: '#f9da77' },
         { label: 'Мають направлення на лік / обслід/ конс/ влк', backgroundColor: '#f9da77' },
 
         // ВІДСУТНІ
@@ -303,7 +303,7 @@ function AlternateCombatReportHeadDetails() {
     const labelWithBreaks: Record<string, string> = {
         'Мають направлення на лік / обслід/ конс/ влк':
             'Мають направлення<br/>на лік / обслід/ конс/ влк',
-        'НОВОПРИБУЛІ НАВЧАННЯ В ПІДЗОЗДІЛІ': 'НОВОПРИБУЛІ <br/> НАВЧАННЯ В ПІДЗОЗДІЛІ',
+        'НОВОПРИБУЛІ НАВЧАННЯ В ПІДРОЗДІЛІ': 'НОВОПРИБУЛІ <br/> НАВЧАННЯ В ПІДРОЗДІЛІ',
     };
     return (
         <tr>
@@ -322,13 +322,13 @@ function AlternateCombatReportHeadDetails() {
                     'ПОЗИЦІЇ РОЗРАХУНОК',
                     'ПОЗИЦІЇ БПЛА',
                     'УПРАВЛІННЯ',
-                    'БОЙОВЕ ЗАБЕСПЕЧЕННЯ',
-                    'ЗАБЕСПЕЧЕННЯ',
-                    'НОВОПРИБУЛІ НАВЧАННЯ В ПІДЗОЗДІЛІ',
+                    'БОЙОВЕ ЗАБЕЗПЕЧЕННЯ',
+                    'ЗАБЕЗПЕЧЕННЯ',
+                    'НОВОПРИБУЛІ НАВЧАННЯ В ПІДРОЗДІЛІ',
                     'Обмежено придатні',
                     'Хворі в підрозділі',
                     'Відмовники',
-                    'Звільнються',
+                    'Звільняються',
                     'Мають направлення на лік / обслід/ конс/ влк',
                     'ВЛК',
                     'Шпиталь / Лікарня',

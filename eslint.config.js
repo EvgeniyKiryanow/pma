@@ -49,20 +49,20 @@ export default tseslint.config(
             'simple-import-sort/imports': 'warn',
             'simple-import-sort/exports': 'warn',
 
-            // Невикор. імпорти/змінні
+            // Невикор. імпорти/змінні. Змінні перевіряє правило typescript-eslint: воно розуміє
+            // parameter properties (`private readonly db`) та імена параметрів у типах функцій.
             'unused-imports/no-unused-imports': 'warn',
-            'unused-imports/no-unused-vars': [
+            'unused-imports/no-unused-vars': 'off',
+            '@typescript-eslint/no-unused-vars': [
                 'warn',
                 {
                     vars: 'all',
                     varsIgnorePattern: '^_',
                     args: 'after-used',
                     argsIgnorePattern: '^_',
+                    ignoreRestSiblings: true,
                 },
             ],
-
-            // TS-послаблення (заміщені unused-imports)
-            '@typescript-eslint/no-unused-vars': 'off',
             '@typescript-eslint/no-explicit-any': 'warn',
             '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
             '@typescript-eslint/no-inferrable-types': 'off',
@@ -130,6 +130,24 @@ export default tseslint.config(
         },
         rules: {
             'no-console': ['warn', { allow: ['warn', 'error', 'info', 'log'] }],
+        },
+    },
+
+    // Renderer: only src/renderer/shared/api talks to the preload bridge. Screens and stores
+    // use the typed clients there, which check every reply and throw ApiError on failure.
+    {
+        files: ['src/renderer/**/*.{ts,tsx}'],
+        ignores: ['src/renderer/shared/api/**', 'src/renderer/renderer.ts'],
+        rules: {
+            'no-restricted-properties': [
+                'error',
+                {
+                    object: 'window',
+                    property: 'electronAPI',
+                    message:
+                        'Use the clients in src/renderer/shared/api (personnelApi, backupApi...) instead of window.electronAPI.',
+                },
+            ],
         },
     },
 

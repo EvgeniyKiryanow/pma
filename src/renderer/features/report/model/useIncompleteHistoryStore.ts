@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { historyApi } from '../../../shared/api/personnel';
+
 type IncompleteEntry = {
     userId: number;
     entryId: number;
@@ -8,12 +10,17 @@ type IncompleteEntry = {
 
 type IncompleteHistoryStore = {
     entries: IncompleteEntry[];
+    /** Recomputed in the main process from the stored history. */
+    load: () => Promise<void>;
     addIncomplete: (userId: number, entryId: number, reason: IncompleteEntry['reason']) => void;
     clearAll: () => void;
 };
 
 export const useIncompleteHistoryStore = create<IncompleteHistoryStore>((set) => ({
     entries: [],
+    load: async () => {
+        set({ entries: await historyApi.findIncomplete() });
+    },
     addIncomplete: (userId, entryId, reason) =>
         set((state) => ({
             entries: [

@@ -1,9 +1,12 @@
-import { Trash2 } from 'lucide-react';
+import { LayoutList, Paperclip, Table2, Trash2, UserX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { useVyklyuchennyaStore } from '../model/useVyklyuchennyaStore';
 import FilePreviewModal, { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
+import { Button, EmptyState, formatDate, IconButton, Tabs } from '../../../shared/ui';
+import { confirmAction } from '../../../shared/ui/confirm';
+import { usePermissions } from '../../../stores/sessionStore';
 import { useUserStore } from '../../../stores/userStore';
+import { useVyklyuchennyaStore } from '../model/useVyklyuchennyaStore';
 import LeftBar from './LeftBar';
 import RightBar from './RightBar';
 
@@ -13,150 +16,174 @@ export default function VyklyucheniTab() {
     const excludedUsers = users.filter((u) => u.shpkNumber === 'excluded');
     const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
     const [activeView, setActiveView] = useState<'table' | 'bars'>('table');
+    const { can } = usePermissions();
+    const canEdit = can('directives.edit');
 
     useEffect(() => {
-        fetchAll();
+        void fetchAll();
     }, []);
 
     const handleDeleteAll = async () => {
-        if (confirm('Ви впевнені, що хочете видалити всі записи?')) {
-            await clearAllVyklyuchennya();
-            await fetchAll();
-        }
+        const confirmed = await confirmAction({
+            title: 'Очистити список виключень?',
+            message: 'Усі записи про виключення буде видалено з цього списку.',
+            confirmLabel: 'Очистити',
+            tone: 'danger',
+        });
+        if (!confirmed) return;
+        await clearAllVyklyuchennya();
+        await fetchAll();
+    };
+
+    const handleDeleteOne = async (id: number) => {
+        const confirmed = await confirmAction({
+            title: 'Видалити цей запис?',
+            message: 'Запис про виключення буде прибрано зі списку.',
+            confirmLabel: 'Видалити',
+            tone: 'danger',
+        });
+        if (!confirmed) return;
+        await removeVyklyuchennya(id);
+        await fetchAll();
     };
 
     return (
-        <div className="flex flex-col h-full p-4 space-y-4 overflow-hidden">
-            {/* Tab Header */}
-            <div className="flex items-center border-b border-gray-200">
-                <div className="flex space-x-2">
-                    <button
-                        onClick={() => setActiveView('table')}
-                        className={`px-4 py-2 text-sm font-medium rounded-t-md ${
-                            activeView === 'table'
-                                ? 'bg-red-200 text-red-900 border border-b-transparent'
-                                : 'text-gray-600 hover:bg-gray-100'
-                        }`}
+        <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-3 pt-4">
+                <Tabs
+                    variant="pills"
+                    value={activeView}
+                    onChange={setActiveView}
+                    items={[
+                        {
+                            value: 'table',
+                            label: 'Список виключень',
+                            icon: <Table2 />,
+                            count: list.length,
+                        },
+                        {
+                            value: 'bars',
+                            label: 'Картки виключених',
+                            icon: <LayoutList />,
+                            count: excludedUsers.length,
+                        },
+                    ]}
+                />
+                {activeView === 'table' && list.length > 0 && canEdit && (
+                    <Button
+                        variant="danger-soft"
+                        size="sm"
+                        icon={<Trash2 className="size-3.5" />}
+                        onClick={() => void handleDeleteAll()}
                     >
-                        📋 Таблиця
-                    </button>
-                    <button
-                        onClick={() => setActiveView('bars')}
-                        className={`px-4 py-2 text-sm font-medium rounded-t-md ${
-                            activeView === 'bars'
-                                ? 'bg-red-200 text-red-900 border border-b-transparent'
-                                : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                    >
-                        🧾 Штат / виключенний
-                    </button>
-                </div>
+                        Очистити список
+                    </Button>
+                )}
             </div>
 
-            {/* Active View: Table */}
             {activeView === 'table' && (
-                <>
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-lg font-semibold text-red-800">Список виключень</h2>
-                        {list.length > 0 && (
-                            <button
-                                onClick={handleDeleteAll}
-                                className="px-4 py-1.5 text-sm rounded-md bg-red-100 hover:bg-red-200 text-red-700 border border-red-300"
-                            >
-                                🗑 Очистити таблицю
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="max-h-[320px] overflow-auto border rounded-lg shadow-sm bg-white">
-                        <table className="min-w-full text-sm text-left border-collapse">
-                            <thead className="sticky top-0 bg-red-100 text-red-900 font-semibold z-10">
-                                <tr>
-                                    <th className="px-4 py-2 border">#</th>
-                                    <th className="px-4 py-2 border">Користувач</th>
-                                    <th className="px-4 py-2 border">Підрозділ</th>
-                                    <th className="px-4 py-2 border">Посада</th>
-                                    <th className="px-4 py-2 border">Назва</th>
-                                    <th className="px-4 py-2 border">Опис</th>
-                                    <th className="px-4 py-2 border">Дата виключення</th>
-                                    <th className="px-4 py-2 border">Період (від)</th>
-                                    <th className="px-4 py-2 border">Файл</th>
-                                    <th className="px-4 py-2 border">Дія</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {list.map((entry, index) => {
-                                    const user = users.find((u) => u.id === entry.userId);
-                                    return (
-                                        <tr key={entry.id} className="hover:bg-red-50">
-                                            <td className="px-4 py-2 border">{index + 1}</td>
-                                            <td className="px-4 py-2 border font-medium text-gray-900">
-                                                {user?.fullName || '—'}
-                                            </td>
-                                            <td className="px-4 py-2 border">
-                                                {user?.unitMain || '—'}
-                                            </td>
-                                            <td className="px-4 py-2 border">
-                                                {user?.position || '—'}
-                                            </td>
-                                            <td className="px-4 py-2 border">{entry.title}</td>
-                                            <td className="px-4 py-2 border whitespace-pre-wrap">
-                                                {entry.description || '—'}
-                                            </td>
-                                            <td className="px-4 py-2 border">
-                                                {new Date(entry.date).toLocaleDateString()}
-                                            </td>
-                                            <td className="px-4 py-2 border">
-                                                {entry.periodFrom
-                                                    ? new Date(
-                                                          entry.periodFrom,
-                                                      ).toLocaleDateString()
-                                                    : '—'}
-                                            </td>
-                                            <td className="px-4 py-2 border">
-                                                {entry.file ? (
-                                                    <button
-                                                        onClick={() => setPreviewFile(entry.file)}
-                                                        className="text-blue-600 underline hover:text-blue-800"
-                                                    >
-                                                        {entry.file.name}
-                                                    </button>
-                                                ) : (
-                                                    '—'
+                <div className="min-h-0 flex-1 px-5 pb-5">
+                    {list.length === 0 ? (
+                        <div className="card">
+                            <EmptyState
+                                icon={<UserX />}
+                                title="Виключених немає"
+                                description="Виключити військовослужбовця можна з його картки у вкладці «Штат / за списком»."
+                            />
+                        </div>
+                    ) : (
+                        <div className="card h-full overflow-auto">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th className="w-10">#</th>
+                                        <th>Військовослужбовець</th>
+                                        <th>Підрозділ</th>
+                                        <th>Посада</th>
+                                        <th>Назва</th>
+                                        <th>Опис</th>
+                                        <th>Дата запису</th>
+                                        <th>Дата виключення</th>
+                                        <th>Файл</th>
+                                        {canEdit && <th className="w-12" />}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {list.map((entry, index) => {
+                                        const user = users.find((u) => u.id === entry.userId);
+                                        return (
+                                            <tr key={entry.id}>
+                                                <td className="font-mono text-xs text-ink-3">
+                                                    {index + 1}
+                                                </td>
+                                                <td className="font-medium">
+                                                    {user?.fullName || '—'}
+                                                </td>
+                                                <td className="text-ink-2">
+                                                    {user?.unitMain || '—'}
+                                                </td>
+                                                <td className="text-ink-2">
+                                                    {user?.position || '—'}
+                                                </td>
+                                                <td>{entry.title}</td>
+                                                <td className="max-w-[280px] whitespace-pre-wrap text-ink-2">
+                                                    {entry.description || '—'}
+                                                </td>
+                                                <td className="whitespace-nowrap">
+                                                    {formatDate(entry.date)}
+                                                </td>
+                                                <td className="whitespace-nowrap">
+                                                    {entry.periodFrom
+                                                        ? formatDate(entry.periodFrom)
+                                                        : '—'}
+                                                </td>
+                                                <td>
+                                                    {entry.file ? (
+                                                        <button
+                                                            onClick={() =>
+                                                                setPreviewFile(entry.file)
+                                                            }
+                                                            className="inline-flex max-w-[180px] items-center gap-1.5 text-primary-ink hover:underline"
+                                                        >
+                                                            <Paperclip className="size-3.5 shrink-0" />
+                                                            <span className="truncate">
+                                                                {entry.file.name}
+                                                            </span>
+                                                        </button>
+                                                    ) : (
+                                                        '—'
+                                                    )}
+                                                </td>
+                                                {canEdit && (
+                                                    <td className="text-right">
+                                                        <IconButton
+                                                            label="Видалити запис"
+                                                            size="xs"
+                                                            className="hover:bg-danger-soft hover:text-danger-ink"
+                                                            onClick={() =>
+                                                                void handleDeleteOne(entry.id)
+                                                            }
+                                                            icon={<Trash2 className="size-3.5" />}
+                                                        />
+                                                    </td>
                                                 )}
-                                            </td>
-                                            <td className="px-4 py-2 border text-center">
-                                                <button
-                                                    onClick={async () => {
-                                                        if (confirm('Видалити цей запис?')) {
-                                                            await removeVyklyuchennya(entry.id);
-                                                            await fetchAll();
-                                                        }
-                                                    }}
-                                                    className="text-red-600 hover:text-red-800"
-                                                    title="Видалити запис"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             )}
 
-            {/* Active View: Bars */}
             {activeView === 'bars' && (
-                <div className="flex flex-1 overflow-hidden border rounded-xl shadow bg-white">
+                <div className="flex min-h-0 flex-1 border-t border-line">
                     <LeftBar users={excludedUsers} />
                     <RightBar />
                 </div>
             )}
 
-            {/* Preview */}
             {previewFile && (
                 <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
             )}

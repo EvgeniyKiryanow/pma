@@ -1,53 +1,71 @@
 // helpers/csvImports.ts
 
-/** ✅ Convert Excel serial date → YYYY-MM-DD */
-export function excelSerialToDate(serial: number): string {
-    if (!serial || isNaN(serial)) return '';
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})/;
 
-    // Excel's base date (Dec 30, 1899)
-    const excelEpoch = new Date(1899, 11, 30);
-    const result = new Date(excelEpoch.getTime() + serial * 86400000);
-
-    if (isNaN(result.getTime())) return '';
-
-    return result.toISOString().split('T')[0]; // YYYY-MM-DD
+/** Formats a date as YYYY-MM-DD from its UTC parts (no timezone shift). */
+function formatUtc(year: number, month: number, day: number): string {
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (isNaN(date.getTime())) return '';
+    // Reject overflowed values like month 15 or day 32.
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+        return '';
+    }
+    return date.toISOString().slice(0, 10);
 }
 
-/** ✅ Normalize various Excel date formats → YYYY-MM-DD */
+/**
+ * Excel serial date → YYYY-MM-DD.
+ * Calculated in UTC on purpose: using local time shifted every imported date one day back
+ * in timezones east of UTC (Kyiv is UTC+2/+3).
+ */
+export function excelSerialToDate(serial: number): string {
+    const value = Number(serial);
+    if (!value || isNaN(value) || value < 1) return '';
+
+    // Excel counts days from 30.12.1899; fractional part is the time of day and is dropped.
+    const date = new Date(Date.UTC(1899, 11, 30) + Math.floor(value) * 86400000);
+    if (isNaN(date.getTime())) return '';
+    return date.toISOString().slice(0, 10);
+}
+
+function expandTwoDigitYear(year: number): number {
+    return year <= 30 ? 2000 + year : 1900 + year;
+}
+
+/**
+ * Normalizes what Excel can give for a date → YYYY-MM-DD: serial numbers, Date objects,
+ * ISO strings and day-first strings ("15.03.2023", "15/03/23").
+ * Unrecognized input is returned unchanged so nothing is silently corrupted.
+ */
 export function normalizeExcelDate(raw: any): string {
-    if (!raw) return '';
+    if (raw === null || raw === undefined || raw === '') return '';
 
-    // Case 1: Excel serial number
-    if (!isNaN(Number(raw)) && Number(raw) > 10000 && Number(raw) < 60000) {
-        return excelSerialToDate(Number(raw));
-    }
-
-    // Case 2: Already JS Date
     if (raw instanceof Date) {
-        return raw.toISOString().split('T')[0];
+        return isNaN(raw.getTime())
+            ? ''
+            : formatUtc(raw.getFullYear(), raw.getMonth() + 1, raw.getDate());
     }
+
+    const numeric = Number(raw);
+    if (!isNaN(numeric) && numeric > 10000 && numeric < 60000) return excelSerialToDate(numeric);
 
     const str = String(raw).trim();
 
-    // Case 3: dd/MM/yy → try parse
-    const parts = str.split(/[./-]/).map((p) => p.trim());
-    if (parts.length >= 3) {
-        // eslint-disable-next-line prefer-const
-        let [dd, mm, yy] = parts;
+    const iso = ISO_DATE.exec(str);
+    if (iso) return formatUtc(Number(iso[1]), Number(iso[2]), Number(iso[3])) || str;
 
-        if (parseInt(dd) > 12 && parseInt(mm) <= 12) [dd, mm] = [mm, dd];
+    const parts = str.split(/[./\-\s]+/).filter(Boolean);
+    if (parts.length >= 3 && parts.every((part) => /^\d+$/.test(part))) {
+        let [first, second] = parts.map(Number);
+        const third = Number(parts[2]);
 
-        let fullYear = parseInt(yy, 10);
-        if (yy.length === 2) {
-            fullYear = parseInt(yy, 10) <= 30 ? 2000 + parseInt(yy) : 1900 + parseInt(yy);
-        }
+        // Decide which number is the day: 13+ can only be a day, otherwise assume day-first.
+        if (first <= 12 && second > 12) [first, second] = [second, first];
 
-        const d = new Date(fullYear, parseInt(mm) - 1, parseInt(dd));
-        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+        const year = parts[2].length <= 2 ? expandTwoDigitYear(third) : third;
+        const formatted = formatUtc(year, second, first);
+        if (formatted) return formatted;
     }
-
-    // Case 4: already YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
 
     return str;
 }

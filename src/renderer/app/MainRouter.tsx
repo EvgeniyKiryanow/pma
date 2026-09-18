@@ -1,87 +1,75 @@
-import { useEffect, useState } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-
-import DefaultAdminPanel from '@/renderer/pages/DefaultAdminPanel';
+import { useEffect } from 'react';
 
 import App from '../App';
-import ForgotPasswordPage from '../pages/ForgotPasswordPage';
-import LoginPage from '../pages/LogIn';
-import RegisterPage from '../pages/RegisterPage';
+import ChangePasswordScreen from '../features/auth/ui/ChangePasswordScreen';
+import LoginScreen from '../features/auth/ui/LoginScreen';
+import RecoveryCodeScreen from '../features/auth/ui/RecoveryCodeScreen';
+import SetupScreen from '../features/auth/ui/SetupScreen';
 import CustomTitleBar from '../shared/components/CustomTitleBar';
-import { useI18nStore } from '../stores/i18nStore';
+import LogoSvg from '../shared/icons/LogoSvg';
+import { BlockingTaskHost } from '../shared/ui/blockingTask';
+import { ConfirmHost } from '../shared/ui/confirm';
+import { PageLoader } from '../shared/ui/loader';
+import { ToastViewport } from '../shared/ui/toast';
+import { useSessionStore } from '../stores/sessionStore';
+import { useNavLayout } from '../stores/uiStore';
+import { SectionCrumb, ShellAlerts } from './layout/ShellChrome';
 
+/** Chooses what to show from the session state held by the main process. */
 export function Main() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
-    const { t } = useI18nStore();
-    const location = useLocation();
+    const status = useSessionStore((s) => s.status);
+    const pendingRecoveryCode = useSessionStore((s) => s.pendingRecoveryCode);
+    const init = useSessionStore((s) => s.init);
+    const nav = useNavLayout();
 
     useEffect(() => {
-        const token =
-            localStorage.getItem('authToken') || sessionStorage.getItem('restoredAuthToken');
-        if (token) {
-            localStorage.setItem('authToken', token);
-            sessionStorage.removeItem('restoredAuthToken');
-            setIsLoggedIn(true);
-        }
+        void init();
+    }, [init]);
 
-        window.electronAPI.onClearToken(() => {
-            localStorage.removeItem('authToken');
-            setIsLoggedIn(false);
-            setMode('login');
-        });
-    }, []);
+    const inApp = status === 'ready' && !pendingRecoveryCode;
+
+    let content;
+    switch (status) {
+        case 'loading':
+            // No delay: this is the first thing the window shows, it must never be blank.
+            content = (
+                <PageLoader
+                    fullScreen
+                    delay={0}
+                    className="pt-10"
+                    emblem={<LogoSvg className="size-14" />}
+                />
+            );
+            break;
+        case 'setup':
+            content = <SetupScreen />;
+            break;
+        case 'login':
+            content = <LoginScreen />;
+            break;
+        case 'change-password':
+            content = <ChangePasswordScreen />;
+            break;
+        case 'ready':
+            content = pendingRecoveryCode ? (
+                <RecoveryCodeScreen code={pendingRecoveryCode} />
+            ) : (
+                <App />
+            );
+            break;
+    }
 
     return (
         <>
-            <CustomTitleBar />
-
-            <Routes>
-                {!isLoggedIn ? (
-                    <>
-                        <Route
-                            path="/login"
-                            element={
-                                <LoginPage
-                                    onLoginSuccess={() => {
-                                        localStorage.setItem('authToken', crypto.randomUUID());
-                                        setIsLoggedIn(true);
-                                    }}
-                                    onForgotPassword={() => setMode('forgot')}
-                                    onSwitchToRegister={() => setMode('register')}
-                                />
-                            }
-                        />
-                        <Route
-                            path="/register"
-                            element={
-                                <RegisterPage
-                                    onRegisterSuccess={() => {
-                                        localStorage.setItem('authToken', crypto.randomUUID());
-                                        setIsLoggedIn(true);
-                                    }}
-                                    onSwitchToLogin={() => setMode('login')}
-                                />
-                            }
-                        />
-                        <Route
-                            path="/forgot"
-                            element={
-                                <ForgotPasswordPage
-                                    onReset={() => setMode('login')}
-                                    onBackToLogin={() => setMode('login')}
-                                />
-                            }
-                        />
-                        <Route path="*" element={<Navigate to="/login" />} />
-                    </>
-                ) : (
-                    <>
-                        <Route path="/default-admin" element={<DefaultAdminPanel />} />
-                        <Route path="/*" element={<App />} />
-                    </>
-                )}
-            </Routes>
+            <CustomTitleBar
+                brandWidth={inApp ? nav.width : undefined}
+                leading={inApp ? <SectionCrumb /> : null}
+                trailing={inApp ? <ShellAlerts /> : null}
+            />
+            {content}
+            <ToastViewport />
+            <ConfirmHost />
+            <BlockingTaskHost />
         </>
     );
 }

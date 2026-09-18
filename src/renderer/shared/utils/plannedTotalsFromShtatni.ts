@@ -44,7 +44,7 @@ function shouldCountUnit(unit: string) {
 }
 
 /** Canonicalize any unit string to our report keys ("Управління роти", "1-й взвод", ...) */
-function canonicalUnit(raw: string): string {
+export function canonicalUnit(raw: string): string {
     const n = normalizeUnit(raw);
 
     // direct map first

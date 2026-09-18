@@ -1,10 +1,14 @@
+import { CalendarDays, CalendarPlus, ListChecks, Trash2 } from 'lucide-react';
 import React, { JSX, useEffect, useMemo, useRef, useState } from 'react';
 
-import { AttendanceRow, useNamedListStore } from '../../model/useNamedListStore';
-import { useRozporyadzhennyaStore } from '../../../manager/model/useRozporyadzhennyaStore';
-import { useVyklyuchennyaStore } from '../../../manager/model/useVyklyuchennyaStore';
+import { Button, cn, EmptyState, IconButton } from '../../../../shared/ui';
+import { confirmAction } from '../../../../shared/ui/confirm';
+import { toast } from '../../../../shared/ui/toast';
 import { StatusExcel } from '../../../../shared/utils/excelUserStatuses';
 import { useUserStore } from '../../../../stores/userStore';
+import { useRozporyadzhennyaStore } from '../../../manager/model/useRozporyadzhennyaStore';
+import { useVyklyuchennyaStore } from '../../../manager/model/useVyklyuchennyaStore';
+import { AttendanceRow, useNamedListStore } from '../../model/useNamedListStore';
 
 const ROWS_PER_TABLE = 14;
 const months = [
@@ -385,10 +389,12 @@ export function NamedListTable() {
         const ak = useNamedListStore.getState().activeKey;
         if (!ak) {
             console.warn('🚫 applyTodayStatuses: немає activeKey');
+            toast.info('Спочатку створіть або відкрийте таблицю поточного місяця');
             return;
         }
         if (ak !== key) {
             console.warn(`🚫 applyTodayStatuses: активна таблиця не за сьогодні (${ak} ≠ ${key})`);
+            toast.info('Статуси підставляються лише в таблицю поточного місяця');
             return;
         }
 
@@ -420,26 +426,30 @@ export function NamedListTable() {
         }
 
         if (appliedCount > 0) {
-            alert(`✅ Підставлено статусів: ${appliedCount}`);
+            toast.success(`Підставлено статусів: ${appliedCount}`);
         } else {
             console.log('ℹ️ applyTodayStatuses: нічого не підставлено — вже заповнено');
+            toast.info('Сьогоднішня колонка вже заповнена');
         }
     };
 
+    const now = new Date();
+    const isCurrentMonth = activeYear === now.getFullYear() && activeMonthIndex === now.getMonth();
+    const todayDay = now.getDate();
+
     return (
-        <div className="space-y-8">
-            {/* Header */}
-            <div className="bg-white border rounded-xl p-6 shadow-md space-y-6 md:space-y-0 md:flex md:items-center md:justify-between">
-                {/* Left block: Create table */}
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <span className="text-gray-700 font-semibold text-sm flex items-center gap-1">
-                            📅 <span>Місяць</span>
-                        </span>
+        <div className="space-y-5">
+            <div className="card flex flex-wrap items-end justify-between gap-4 p-4">
+                <div className="flex flex-wrap items-end gap-3">
+                    <div>
+                        <label htmlFor="named-month" className="label">
+                            Місяць
+                        </label>
                         <select
+                            id="named-month"
                             value={selMonth}
                             onChange={(e) => setSelMonth(Number(e.target.value))}
-                            className="px-3 py-2 border rounded-md text-sm w-[140px] bg-gray-50 hover:bg-gray-100 transition"
+                            className="field w-[150px]"
                         >
                             {months.map((m, i) => (
                                 <option key={i} value={i}>
@@ -448,38 +458,36 @@ export function NamedListTable() {
                             ))}
                         </select>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-gray-700 font-semibold text-sm flex items-center gap-1">
-                            🗓 <span>Рік</span>
-                        </span>
+                    <div>
+                        <label htmlFor="named-year" className="label">
+                            Рік
+                        </label>
                         <input
+                            id="named-year"
                             type="number"
                             value={selYear}
                             onChange={(e) => setSelYear(Number(e.target.value))}
-                            className="w-[100px] px-3 py-2 border rounded-md text-sm bg-gray-50 hover:bg-gray-100 transition"
+                            className="field w-[100px]"
                         />
                     </div>
-                    <button
-                        onClick={handleCreate}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition"
-                    >
-                        ➕ Створити / Перейти
-                    </button>
+                    <Button icon={<CalendarPlus className="size-4" />} onClick={handleCreate}>
+                        Створити / відкрити
+                    </Button>
                 </div>
 
-                {/* Right block: Existing tables + actions */}
-                <div className="flex flex-wrap items-center gap-4 justify-end">
-                    <div className="flex items-center gap-2">
-                        <span className="text-gray-700 font-semibold text-sm flex items-center gap-1">
-                            📂 <span>Таблиця</span>
-                        </span>
+                <div className="flex flex-wrap items-end gap-3">
+                    <div>
+                        <label htmlFor="named-table" className="label">
+                            Таблиця
+                        </label>
                         <select
+                            id="named-table"
                             value={activeKey || ''}
                             onChange={(e) => setActiveKey(e.target.value as MonthKey)}
-                            className="px-3 py-2 border rounded-md text-sm w-[160px] bg-gray-50 hover:bg-gray-100 transition"
+                            className="field w-[180px]"
                         >
                             <option disabled value="">
-                                — виберіть —
+                                — оберіть —
                             </option>
                             {Object.keys(tables).map((key) => {
                                 const [y, m] = key.split('-').map(Number);
@@ -492,78 +500,97 @@ export function NamedListTable() {
                         </select>
                     </div>
 
+                    <Button
+                        variant="soft"
+                        icon={<ListChecks className="size-4" />}
+                        onClick={() => void applyTodayStatuses()}
+                    >
+                        Підставити статуси
+                    </Button>
+
                     {activeKey && (
-                        <button
+                        <IconButton
+                            label="Видалити таблицю"
+                            variant="secondary"
+                            className="text-danger-ink hover:bg-danger-soft"
                             onClick={async () => {
-                                if (
-                                    !window.confirm(
-                                        `Видалити таблицю ${activeKey}? Дію не можна скасувати.`,
-                                    )
-                                )
-                                    return;
+                                const confirmed = await confirmAction({
+                                    title: 'Видалити таблицю?',
+                                    message: `Іменний список ${activeKey} буде видалено. Цю дію не можна скасувати.`,
+                                    confirmLabel: 'Видалити',
+                                    tone: 'danger',
+                                });
+                                if (!confirmed) return;
                                 await deleteTable(activeKey);
                                 setActiveKey(null);
                             }}
-                            className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition"
-                        >
-                            🗑 Видалити
-                        </button>
+                            icon={<Trash2 className="size-4" />}
+                        />
                     )}
-
-                    <button
-                        onClick={applyTodayStatuses}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition"
-                    >
-                        📌 Підставити статуси
-                    </button>
                 </div>
             </div>
 
             {!activeKey && (
-                <div className="text-center text-gray-500 italic">Створіть або оберіть таблицю</div>
+                <div className="card">
+                    <EmptyState
+                        icon={<CalendarDays />}
+                        title="Створіть або оберіть таблицю"
+                        description="Оберіть місяць і рік та натисніть «Створити / відкрити»."
+                    />
+                </div>
             )}
 
-            {/* Таблиці по 14 рядків */}
-            {activeKey &&
-                tableChunks.map((group, gi) => (
-                    <div key={gi} className="space-y-4">
-                        {gi > 0 && (
-                            <p className="text-center text-gray-600">Продовження Додатка 4</p>
-                        )}
-                        {gi === 0 && (
-                            <div className="text-center text-gray-800">
-                                <h1 className="text-xl font-bold uppercase">ІМЕННИЙ СПИСОК</h1>
-                                <p className="text-sm">для проведення вечірньої повірки</p>
-                                <p className="text-sm font-medium">
-                                    3 МЕХАНІЗОВАНА РОТА 1 МЕХАНІЗОВАНОГО БАТАЛЬЙОНУ
+            {/* Tables of 14 rows, as on the printed form */}
+            {activeKey && (
+                <div className="paper space-y-6 overflow-x-auto p-6">
+                    {tableChunks.map((group, gi) => (
+                        <div key={gi} className="space-y-3">
+                            {gi > 0 && (
+                                <p className="text-center text-sm text-gray-600">
+                                    Продовження Додатка 4
                                 </p>
-                            </div>
-                        )}
+                            )}
+                            {gi === 0 && (
+                                <div className="text-center text-gray-900">
+                                    <h1 className="text-lg font-bold uppercase tracking-wide">
+                                        Іменний список
+                                    </h1>
+                                    <p className="text-sm">для проведення вечірньої повірки</p>
+                                    <p className="text-sm font-medium">
+                                        3 МЕХАНІЗОВАНА РОТА 1 МЕХАНІЗОВАНОГО БАТАЛЬЙОНУ
+                                    </p>
+                                </div>
+                            )}
 
-                        <div className="overflow-auto border rounded-lg shadow">
-                            <table className="min-w-[1000px] border border-gray-300 text-sm text-center">
+                            <table className="min-w-[1000px] border-collapse border border-gray-400 text-center text-sm text-gray-900">
                                 <thead className="bg-gray-100 text-gray-700">
                                     <tr>
-                                        <th rowSpan={3} className="border p-1 w-12">
+                                        <th rowSpan={3} className="w-12 border border-gray-400 p-1">
                                             №<br />
                                             з/п
                                         </th>
-                                        <th rowSpan={3} className="border p-1 w-28">
+                                        <th rowSpan={3} className="w-28 border border-gray-400 p-1">
                                             Військове
                                             <br />
                                             звання
                                         </th>
-                                        <th rowSpan={3} className="border p-1 w-40">
+                                        <th rowSpan={3} className="w-40 border border-gray-400 p-1">
                                             Прізвище,
                                             <br />
-                                            власне ім’я
+                                            власне імʼя
                                         </th>
-                                        <th colSpan={daysInActiveMonth} className="border p-1">
+                                        <th
+                                            colSpan={daysInActiveMonth}
+                                            className="border border-gray-400 p-1"
+                                        >
                                             {months[activeMonthIndex]}
                                         </th>
                                     </tr>
                                     <tr>
-                                        <th colSpan={daysInActiveMonth} className="border p-1">
+                                        <th
+                                            colSpan={daysInActiveMonth}
+                                            className="border border-gray-400 p-1"
+                                        >
                                             Дні місяця
                                         </th>
                                     </tr>
@@ -572,7 +599,15 @@ export function NamedListTable() {
                                             { length: daysInActiveMonth },
                                             (_, i) => i + 1,
                                         ).map((day) => (
-                                            <th key={day} className="border p-1 w-8">
+                                            <th
+                                                key={day}
+                                                className={cn(
+                                                    'w-8 border border-gray-400 p-1 tabular-nums',
+                                                    isCurrentMonth &&
+                                                        day === todayDay &&
+                                                        'bg-lime-200 text-gray-900',
+                                                )}
+                                            >
                                                 {day}
                                             </th>
                                         ))}
@@ -580,12 +615,10 @@ export function NamedListTable() {
                                 </thead>
                                 <tbody>
                                     {group.map((row) => {
-                                        // знаходимо користувача по shpkNumber (стабільний ключ)
                                         const matchedUser = usersByNameRank.get(
                                             keyByNameRank(row.fullName, row.rank),
                                         );
 
-                                        // готове виключення по userId (якщо є)
                                         const exclusion = matchedUser
                                             ? exclusionsByUserId.get(matchedUser.id)
                                             : undefined;
@@ -598,7 +631,7 @@ export function NamedListTable() {
                                                     <td
                                                         key={`excl-${di}`}
                                                         colSpan={colSpan}
-                                                        className="border p-1 text-[11px] text-left align-top whitespace-pre-line"
+                                                        className="whitespace-pre-line border border-gray-400 bg-gray-50 p-1 text-left align-top text-[11px] text-gray-700"
                                                     >
                                                         {exclusion.description}{' '}
                                                         {exclusion.periodFrom}
@@ -614,6 +647,9 @@ export function NamedListTable() {
                                                 <AttendanceCell
                                                     key={di}
                                                     value={row.attendance[di]}
+                                                    highlight={
+                                                        isCurrentMonth && di === todayDay - 1
+                                                    }
                                                     onChange={(val) =>
                                                         updateCell(activeKey!, row.id, di, val)
                                                     }
@@ -623,9 +659,13 @@ export function NamedListTable() {
 
                                         return (
                                             <tr key={row.id} className="hover:bg-gray-50">
-                                                <td className="border p-1">{row.id}</td>
-                                                <td className="border p-1">{row.rank}</td>
-                                                <td className="border p-1 text-left">
+                                                <td className="border border-gray-400 p-1 tabular-nums">
+                                                    {row.id}
+                                                </td>
+                                                <td className="border border-gray-400 p-1">
+                                                    {row.rank}
+                                                </td>
+                                                <td className="border border-gray-400 p-1 text-left">
                                                     {row.fullName}
                                                 </td>
                                                 {cells}
@@ -635,8 +675,9 @@ export function NamedListTable() {
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -645,9 +686,11 @@ export function NamedListTable() {
 function AttendanceCell({
     value,
     onChange,
+    highlight = false,
 }: {
     value: string;
     onChange: (val: string) => void | Promise<void>;
+    highlight?: boolean;
 }) {
     const [local, setLocal] = useState(value ?? '');
     useEffect(() => {
@@ -660,7 +703,7 @@ function AttendanceCell({
     }, 180);
 
     return (
-        <td className="border p-0.5">
+        <td className={cn('border border-gray-400 p-0.5', highlight && 'bg-lime-50')}>
             <input
                 type="text"
                 maxLength={3}
@@ -670,7 +713,7 @@ function AttendanceCell({
                     setLocal(v);
                     debouncedSave(v);
                 }}
-                className="w-full text-center text-xs bg-transparent outline-none border-none"
+                className="w-full rounded-sm border-none bg-transparent text-center text-xs text-gray-900 outline-none focus:bg-lime-100"
             />
         </td>
     );

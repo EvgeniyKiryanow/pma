@@ -1,14 +1,15 @@
 import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
 
-import { useNamedListStore } from '../model/useNamedListStore';
+import { downloadFile } from '../../../shared/lib/download';
+import { toast } from '../../../shared/ui/toast';
+import { useUserStore } from '../../../stores/userStore';
 import { useRozporyadzhennyaStore } from '../../manager/model/useRozporyadzhennyaStore';
 import { useVyklyuchennyaStore } from '../../manager/model/useVyklyuchennyaStore';
-import { useUserStore } from '../../../stores/userStore';
+import { useNamedListStore } from '../model/useNamedListStore';
 export async function exportNamedListTable() {
     const { activeKey, tables } = useNamedListStore.getState();
     if (!activeKey || !tables[activeKey]) {
-        alert('⚠️ Немає активної таблиці для експорту.');
+        toast.warning('Немає активної таблиці для експорту.');
         return;
     }
     const { list: vyklyuchennyaList } = useVyklyuchennyaStore.getState();
@@ -329,8 +330,5 @@ export async function exportNamedListTable() {
 
     // Generate file
     const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    saveAs(blob, `Іменний_список_${year}_${monthStr}.xlsx`);
+    await downloadFile(buffer as ArrayBuffer, `Іменний_список_${year}_${monthStr}.xlsx`);
 }

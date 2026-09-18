@@ -1,22 +1,21 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { renderAsync } from 'docx-preview';
-import Docxtemplater from 'docxtemplater';
-import PizZip from 'pizzip';
 import { useEffect, useRef, useState } from 'react';
 
 import { useDocxGenerator } from '../../../../renderer/shared/hooks/useDocxGenerator';
 import type { User } from '../../../../shared/types/user';
-import { useI18nStore } from '../../../stores/i18nStore';
+import { reportError } from '../../../shared/api/errors';
+import { personnelApi } from '../../../shared/api/personnel';
+import { reportTemplatesApi } from '../../../shared/api/reports';
+import { downloadFile } from '../../../shared/lib/download';
+import { toast } from '../../../shared/ui/toast';
 import { useReportsStore } from '../../report/model/reportsStore';
 import DocxPreviewModal from './_components/DocxPreviewModal';
 import SavedTemplatesPanel from './_components/SavedTemplatesPanel';
 import UserFieldsModal from './_components/UserFieldsModal';
-// @ts-ignore
 import UserList from './_components/UserList';
 
+/** Fill a DOCX template with a person's data: pick the person, the template, generate. */
 export default function SavedReportsTab() {
-    const { t } = useI18nStore();
-    // TODO update this file because did not work
     const [includedFields, setIncludedFields] = useState<Record<string, boolean>>({});
     const [includedFields2, setIncludedFields2] = useState<Record<string, boolean>>({});
     const [searchQuery, setSearchQuery] = useState('');
@@ -25,16 +24,24 @@ export default function SavedReportsTab() {
     const [searchUser1, setSearchUser1] = useState('');
     const [searchUser2, setSearchUser2] = useState('');
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [generating, setGenerating] = useState(false);
     const { generateDocx } = useDocxGenerator();
 
-    const { savedTemplates, selectedUserId, setSelectedUser, setSelectedTemplate } =
-        useReportsStore();
+    const { savedTemplates, selectedUserId } = useReportsStore();
     const selectedTemplateId = useReportsStore((s) => s.selectedTemplateId);
     const [users, setUsers] = useState<User[]>([]);
     const [previewBuffer, setPreviewBuffer] = useState<ArrayBuffer | null>(null);
     const previewRef = useRef<HTMLDivElement>(null);
-    const additionalFields = useReportsStore.getState().additionalInfo;
+    const additionalFields = useReportsStore((s) => s.additionalInfo);
     const selectedUser2 = users.find((u) => u.id === useReportsStore.getState().selectedUserId2);
+
+    // Unit details for the documents live in the database (they travel with backups).
+    useEffect(() => {
+        useReportsStore
+            .getState()
+            .loadAdditionalInfo()
+            .catch((error) => reportError(error, { context: 'reports.unit-info' }));
+    }, []);
     useEffect(() => {
         if (selectedUser2) {
             const defaultFields = Object.keys(selectedUser2).reduce(
@@ -50,24 +57,27 @@ export default function SavedReportsTab() {
 
     useEffect(() => {
         const loadUsers = async () => {
-            const data = await window.electronAPI.fetchUsersMetadata();
-            setUsers(data);
+            try {
+                setUsers(await personnelApi.list());
+            } catch (error) {
+                reportError(error, { context: 'reports.users' });
+            }
         };
-        loadUsers();
+        void loadUsers();
     }, []);
 
     useEffect(() => {
         const loadDefault = async () => {
             try {
-                const template = await window.electronAPI.getAllReportTemplates();
-                useReportsStore.getState().setSavedTemplates([...template]);
-            } catch (e) {
-                console.error('Failed to load default template:', e);
+                const templates = await reportTemplatesApi.listBundled();
+                useReportsStore.getState().setSavedTemplates([...templates]);
+            } catch (error) {
+                reportError(error, { context: 'reports.bundled-templates' });
             }
         };
 
         if (savedTemplates.length === 0) {
-            loadDefault();
+            void loadDefault();
         }
     }, []);
 
@@ -92,74 +102,56 @@ export default function SavedReportsTab() {
     useEffect(() => {
         setPreviewBuffer(null);
     }, [selectedTemplateId]);
+
     const handlePreview = (tpl: any) => {
+        // DocxPreviewModal renders the template itself.
         setPreviewTpl(tpl);
         setShowPreview(true);
-
-        setTimeout(() => {
-            const container = document.getElementById('docx-preview-container');
-            if (container && tpl?.content) {
-                container.innerHTML = 'Loading preview...';
-                const zip = new PizZip(tpl.content);
-                const doc = new Docxtemplater(zip);
-                try {
-                    doc.render();
-                    const buffer = doc.getZip().generate({ type: 'arraybuffer' });
-                    renderAsync(buffer, container);
-                } catch (err) {
-                    container.innerHTML =
-                        '<p class="text-red-500">⚠️ Не вдалося відобразити шаблон.</p>';
-                }
-            }
-        }, 0);
     };
 
     const handleGenerate = async () => {
-        const buffer = await generateDocx({
-            selectedUser,
-            includedFields,
-            selectedUser2,
-            includedFields2,
-            selectedTemplate,
-            additionalFields,
-        });
+        setGenerating(true);
+        try {
+            const buffer = await generateDocx({
+                selectedUser,
+                includedFields,
+                selectedUser2,
+                includedFields2,
+                selectedTemplate,
+                additionalFields,
+            });
 
-        if (!buffer) return;
+            if (!buffer) return;
 
-        setPreviewBuffer(buffer);
+            setPreviewBuffer(buffer);
 
-        if (previewRef.current) {
-            previewRef.current.innerHTML = 'Loading preview...';
-            try {
-                await renderAsync(buffer, previewRef.current);
-                console.log('✅ DOCX preview rendered');
-                alert('✅ Шаблон успішно згенеровано!');
-            } catch (err) {
-                console.error('❌ Preview render failed:', err);
-                previewRef.current.innerHTML = '❌ Не вдалося показати попередній перегляд.';
-                alert('⚠️ Помилка під час відображення попереднього перегляду.');
+            if (previewRef.current) {
+                previewRef.current.innerHTML = '';
+                try {
+                    await renderAsync(buffer, previewRef.current);
+                    toast.success('Рапорт сформовано — перевірте й завантажте');
+                } catch (err) {
+                    console.error('Preview render failed:', err);
+                    previewRef.current.innerHTML = '';
+                    toast.warning(
+                        'Рапорт сформовано, але попередній перегляд недоступний. Його можна завантажити.',
+                    );
+                }
             }
+        } finally {
+            setGenerating(false);
         }
     };
 
     const handleDownload = () => {
         if (!previewBuffer) return;
 
-        const blob = new Blob([previewBuffer], {
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${selectedTemplate?.name || 'document'}.docx`;
-        link.click();
-        URL.revokeObjectURL(url);
+        void downloadFile(previewBuffer, `${selectedTemplate?.name || 'document'}.docx`);
     };
 
     return (
-        <div className="flex h-full">
-            {/* User List */}
-            <aside className="w-1/4 border-r p-4 overflow-y-auto bg-gray-50 space-y-6">
+        <div className="flex min-h-0 flex-1">
+            <aside className="flex w-[280px] shrink-0 flex-col border-r border-line bg-surface xl:w-[300px]">
                 <UserList
                     users={users}
                     selectedUserId={selectedUserId}
@@ -170,29 +162,25 @@ export default function SavedReportsTab() {
                 />
             </aside>
 
-            {/* Fields Section */}
             {showAdvanced && (
-                <div className="flex flex-col gap-6 p-4 w-[280px] max-w-[300px] overflow-y-auto border-r bg-white">
-                    <UserFieldsModal
-                        open={showAdvanced}
-                        onClose={() => setShowAdvanced(false)}
-                        usersConfig={[
-                            selectedUser && {
-                                user: selectedUser,
-                                includedFields,
-                                setIncludedFields,
-                            },
-                            selectedUser2 && {
-                                user: selectedUser2,
-                                includedFields: includedFields2,
-                                setIncludedFields: setIncludedFields2,
-                            },
-                        ].filter(Boolean)}
-                    />
-                </div>
+                <UserFieldsModal
+                    open={showAdvanced}
+                    onClose={() => setShowAdvanced(false)}
+                    usersConfig={[
+                        selectedUser && {
+                            user: selectedUser,
+                            includedFields,
+                            setIncludedFields,
+                        },
+                        selectedUser2 && {
+                            user: selectedUser2,
+                            includedFields: includedFields2,
+                            setIncludedFields: setIncludedFields2,
+                        },
+                    ].filter(Boolean)}
+                />
             )}
 
-            {/* Saved Templates */}
             <SavedTemplatesPanel
                 savedTemplates={savedTemplates}
                 selectedTemplateId={selectedTemplateId}
@@ -204,6 +192,8 @@ export default function SavedReportsTab() {
                 showAdvanced={showAdvanced}
                 setShowAdvanced={setShowAdvanced}
                 previewBuffer={previewBuffer}
+                previewRef={previewRef}
+                generating={generating}
                 selectedTemplate={selectedTemplate}
                 selectedUser={selectedUser}
                 selectedUser2={selectedUser2}

@@ -1,21 +1,63 @@
-// components/ShtatniPosadyHeader.tsx
+import { ListTree, Trash2 } from 'lucide-react';
+
+import { Button, SearchInput } from '../../../shared/ui';
+import PageHeader from '../../../shared/ui/PageHeader';
+
 type Props = {
     total: number;
-    onDeleteAll: () => void;
+    assigned: number;
+    query: string;
+    onQueryChange: (value: string) => void;
+    onDeleteAll?: () => void;
 };
 
-export default function ShtatniPosadyHeader({ total, onDeleteAll }: Props) {
+/** Staffing table header: counters, search and the bulk delete. */
+export default function ShtatniPosadyHeader({
+    total,
+    assigned,
+    query,
+    onQueryChange,
+    onDeleteAll,
+}: Props) {
+    const vacant = total - assigned;
     return (
-        <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold">📋 БЧС</h2>
-            {total > 0 && (
-                <button
-                    className="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600"
-                    onClick={onDeleteAll}
-                >
-                    ❌ Видалити всі
-                </button>
-            )}
-        </div>
+        <PageHeader
+            title="БЧС — штатні посади"
+            description={
+                <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span>Усього: {total}</span>
+                    <span className="inline-flex items-center gap-1.5">
+                        <span className="size-2 rounded-full bg-success" />
+                        Призначено: {assigned}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                        <span className="size-2 rounded-full bg-warning" />
+                        Вакантно: {vacant}
+                    </span>
+                </span>
+            }
+            icon={<ListTree />}
+            actions={
+                <>
+                    <SearchInput
+                        value={query}
+                        onChange={onQueryChange}
+                        placeholder="Пошук: номер, посада, людина…"
+                        size="sm"
+                        className="w-64"
+                    />
+                    {total > 0 && onDeleteAll && (
+                        <Button
+                            variant="danger-soft"
+                            size="sm"
+                            icon={<Trash2 className="size-3.5" />}
+                            onClick={onDeleteAll}
+                        >
+                            Видалити всі
+                        </Button>
+                    )}
+                </>
+            }
+        />
     );
 }

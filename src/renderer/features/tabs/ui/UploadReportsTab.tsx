@@ -1,47 +1,52 @@
+import { FileUp, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { reportError } from '../../../shared/api/errors';
+import { reportTemplatesApi } from '../../../shared/api/reports';
+import { pickFile } from '../../../shared/lib/pickFiles';
+import { Alert, Button, Card } from '../../../shared/ui';
+import { toast } from '../../../shared/ui/toast';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useReportsStore } from '../../report/model/reportsStore';
 
 export default function UploadReportsTab() {
-    const { templates, addTemplate, addSavedTemplate } = useReportsStore();
+    const { addSavedTemplate } = useReportsStore();
     const { t } = useI18nStore();
     const [previewBuffer, setPreviewBuffer] = useState<ArrayBuffer | null>(null);
     const [uploadedTemplateName, setUploadedTemplateName] = useState<string>('');
-    const [pdfPath, setPdfPath] = useState<string | null>(null);
-    const [showSuccess, setShowSuccess] = useState(false);
+    // The PDF is kept in memory only (a blob URL), nothing is written to disk for the preview.
+    const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
-    const handleTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async () => {
-            const result = reader.result;
-            if (!result || typeof result === 'string') return;
-
-            setPreviewBuffer(result);
+    const chooseTemplate = async () => {
+        try {
+            const file = await pickFile('docx');
+            if (!file) return;
+            setPreviewBuffer(await file.arrayBuffer());
             setUploadedTemplateName(file.name);
-        };
-
-        reader.readAsArrayBuffer(file);
+        } catch (err) {
+            reportError(err, { context: 'template-upload' });
+        }
     };
 
     useEffect(() => {
-        if (previewBuffer && uploadedTemplateName) {
-            const convertToPdf = async () => {
-                try {
-                    const pdfPath = await window.electronAPI.convertDocxToPdf(
-                        previewBuffer,
-                        uploadedTemplateName,
-                    );
-                    setPdfPath(pdfPath);
-                } catch (err) {
-                    console.error('PDF conversion failed:', err);
-                }
-            };
-            convertToPdf();
-        }
+        if (!previewBuffer || !uploadedTemplateName) return;
+        let url: string | null = null;
+        const convertToPdf = async () => {
+            try {
+                const pdf = await reportTemplatesApi.convertToPdf(
+                    previewBuffer,
+                    uploadedTemplateName,
+                );
+                url = URL.createObjectURL(new Blob([pdf], { type: 'application/pdf' }));
+                setPdfUrl(url);
+            } catch (err) {
+                console.error('PDF conversion failed:', err);
+            }
+        };
+        void convertToPdf();
+        return () => {
+            if (url) URL.revokeObjectURL(url);
+        };
     }, [previewBuffer, uploadedTemplateName]);
 
     const handleSaveTemplate = () => {
@@ -55,93 +60,64 @@ export default function UploadReportsTab() {
         };
 
         addSavedTemplate(saved);
-        setShowSuccess(true);
+        toast.success(t('reports.savedSuccessfully'));
 
-        // Clear preview, buffer, and name
         setPreviewBuffer(null);
         setUploadedTemplateName('');
-        setPdfPath(null);
-
-        setTimeout(() => setShowSuccess(false), 3000);
+        setPdfUrl(null);
     };
 
     return (
-        <div>
-            {/* Upload Template */}
-            <div className="mb-6 flex items-center justify-center pt-[15px]">
-                <div className="mb-6">
-                    <label
-                        htmlFor="upload-template"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700 cursor-pointer transition"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12"
-                            />
-                        </svg>
-                        {t('reports.uploadTemplate')}
-                    </label>
-
-                    <input
-                        id="upload-template"
-                        type="file"
-                        accept=".docx"
-                        onChange={handleTemplateUpload}
-                        className="hidden"
-                    />
-                </div>
-                <div className="flex justify-end mb-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+            <div className="mx-auto max-w-4xl space-y-5">
+                <Card
+                    title={t('reports.uploadTitle')}
+                    description="Шаблон — це документ Word (.docx) з полями для автоматичного заповнення даними військовослужбовця."
+                    icon={<FileUp />}
+                >
                     <button
-                        onClick={handleSaveTemplate}
-                        disabled={!previewBuffer}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md shadow hover:bg-green-700 transition disabled:opacity-50"
+                        type="button"
+                        onClick={() => void chooseTemplate()}
+                        className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line-strong px-6 py-10 text-center transition-colors hover:border-primary hover:bg-primary-soft"
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M17 16l4-4m0 0l-4-4m4 4H7"
-                            />
-                        </svg>
-                        {t('reports.saveTemplate')}
+                        <span className="grid size-12 place-items-center rounded-2xl bg-primary-soft text-primary-ink">
+                            <FileUp className="size-6" />
+                        </span>
+                        <span className="text-sm font-semibold text-ink">
+                            {uploadedTemplateName || t('reports.uploadTemplate')}
+                        </span>
+                        <span className="text-xs text-ink-3">
+                            {uploadedTemplateName
+                                ? 'Натисніть, щоб обрати інший файл'
+                                : 'Лише файли .docx'}
+                        </span>
                     </button>
-                </div>
-            </div>
-            {showSuccess && (
-                <div className="mt-4 px-4 py-2 bg-green-100 text-green-700 border border-green-300 rounded text-sm shadow-sm">
-                    ✅ {t('reports.savedSuccessfully')}
-                </div>
-            )}
 
-            {/* PDF Preview */}
-            {pdfPath && (
-                <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-2 text-gray-700">
-                        {t('reports.previewTitle')}: {uploadedTemplateName}
-                    </h3>
-                    <iframe
-                        src={`file://${pdfPath}`}
-                        className="w-full h-[600px] border rounded shadow"
-                        title="PDF Preview"
-                    />
-                </div>
-            )}
+                    <div className="mt-4 flex justify-end">
+                        <Button
+                            onClick={handleSaveTemplate}
+                            disabled={!previewBuffer}
+                            icon={<Save className="size-4" />}
+                        >
+                            {t('reports.saveTemplate')}
+                        </Button>
+                    </div>
+                </Card>
+
+                {uploadedTemplateName && !pdfUrl && (
+                    <Alert tone="info">Готуємо попередній перегляд…</Alert>
+                )}
+
+                {pdfUrl && (
+                    <Card title={`${t('reports.previewTitle')}: ${uploadedTemplateName}`}>
+                        <iframe
+                            src={pdfUrl}
+                            className="h-[640px] w-full rounded-lg border border-line bg-surface-2"
+                            title="PDF Preview"
+                        />
+                    </Card>
+                )}
+            </div>
         </div>
     );
 }

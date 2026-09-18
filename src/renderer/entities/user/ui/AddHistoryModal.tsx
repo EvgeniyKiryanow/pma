@@ -1,7 +1,10 @@
-import { FileText, Image as ImageIcon, Paperclip, ShieldCheck, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { ArrowRight, FilePlus2, FileText, Paperclip, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
+import { reportError } from '../../../shared/api/errors';
 import FilePreviewModal from '../../../shared/components/FilePreviewModal';
+import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { Alert, Button, FieldShell, Modal } from '../../../shared/ui';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 import { useI18nStore } from '../../../stores/i18nStore';
 
@@ -13,6 +16,7 @@ type FileWithDataUrl = {
 
 type AddHistoryModalProps = {
     isOpen: boolean;
+    isEditing?: boolean;
     onClose: () => void;
     description: string;
     setDescription: (val: string) => void;
@@ -24,25 +28,26 @@ type AddHistoryModalProps = {
         files: FileWithDataUrl[],
         maybeNewStatus?: StatusExcel,
         period?: { from: string; to: string },
-    ) => void; // ✅ always returns 3 values
-    onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    ) => Promise<void> | void;
+    /** Opens the file dialog and adds the chosen documents to `files`. */
+    onAttach: () => void;
     currentStatus?: string;
     initialPeriod?: { from: string; to: string };
 };
 
 export default function AddHistoryModal({
     isOpen,
+    isEditing = false,
     onClose,
     description,
     setDescription,
     files,
     removeFile,
     onSubmit,
-    onFileChange,
+    onAttach,
     currentStatus = '',
     initialPeriod,
 }: AddHistoryModalProps) {
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const { t } = useI18nStore();
     const [newStatus, setNewStatus] = useState<string>('');
     const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
@@ -56,193 +61,175 @@ export default function AddHistoryModal({
 
     if (!isOpen) return null;
 
-    const handleSave = () => {
-        onSubmit(description, files, newStatus ? (newStatus as StatusExcel) : undefined, period);
-        setNewStatus('');
-        setPeriod(initialPeriod || { from: '', to: '' });
+    // The form is cleared only after a successful save: if the entry or its documents could
+    // not be stored, everything the user entered stays in place for another attempt.
+    const handleSave = async () => {
+        try {
+            await onSubmit(
+                description,
+                files,
+                newStatus ? (newStatus as StatusExcel) : undefined,
+                period,
+            );
+            setNewStatus('');
+            setPeriod(initialPeriod || { from: '', to: '' });
+        } catch (err) {
+            reportError(err, { context: 'history-save' });
+        }
     };
 
+    const missingForStatus =
+        newStatus !== '' && (files.length === 0 || !period.from)
+            ? [files.length === 0 && 'файл-підставу', !period.from && 'період'].filter(Boolean)
+            : [];
+
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="relative w-full max-w-3xl max-h-screen bg-white rounded-xl shadow-2xl animate-fade-in flex flex-col">
-                {/* === HEADER === */}
-                <div className="flex justify-between items-center px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-blue-100">
-                    <h2 className="text-xl font-bold text-gray-800">{t('historyModal.title')}</h2>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-red-500 transition"
-                        title={t('historyModal.close')}
-                    >
-                        <X className="w-6 h-6" />
-                    </button>
-                </div>
-
-                {/* === CONTENT === */}
-                <div className="p-6 space-y-6 overflow-y-auto flex-1">
-                    {/* ✅ STATUS DROPDOWN */}
-                    <div>
-                        <label className="block mb-2 text-sm font-semibold text-gray-700 flex items-center gap-2">
-                            Зміна статусу
-                        </label>
-                        <select
-                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm hover:border-blue-400 focus:border-blue-500 focus:ring focus:ring-blue-200 transition"
-                            value={newStatus || ''}
-                            onChange={(e) => setNewStatus(e.target.value)}
-                        >
-                            <option value="">
-                                {currentStatus || t('historyItem.changeStatus')}
-                            </option>
-                            {Object.values(StatusExcel).map((status) => (
-                                <option key={status} value={status}>
-                                    {status}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    {/* ✅ PERIOD RANGE */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {/* FROM DATE */}
-                        <div className="flex flex-col">
-                            <label
-                                htmlFor="period-from"
-                                className="mb-1 text-sm font-medium text-gray-600"
-                            >
-                                📅 Період з
-                            </label>
-                            <input
-                                id="period-from"
-                                type="date"
-                                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200/50 transition"
-                                value={period.from}
-                                onChange={(e) => setPeriod((p) => ({ ...p, from: e.target.value }))}
-                            />
-                        </div>
-
-                        {/* TO DATE */}
-                        <div className="flex flex-col">
-                            <label
-                                htmlFor="period-to"
-                                className="mb-1 text-sm font-medium text-gray-600"
-                            >
-                                🗓️ Період по
-                            </label>
-                            <input
-                                id="period-to"
-                                type="date"
-                                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200/50 transition"
-                                value={period.to}
-                                onChange={(e) => setPeriod((p) => ({ ...p, to: e.target.value }))}
-                            />
-                        </div>
-                    </div>
-
-                    {/* ✅ DESCRIPTION */}
-                    <div>
-                        <label className="block mb-2 text-sm font-semibold text-gray-700">
-                            {t('historyModal.description')}
-                        </label>
-                        <textarea
-                            rows={4}
-                            className="border border-gray-300 rounded-lg px-4 py-3 w-full resize-none text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder={t('historyModal.descriptionPlaceholder')}
-                        />
-                    </div>
-
-                    {/* ✅ FILE UPLOAD */}
-                    <div>
-                        <button
-                            type="button"
-                            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-md shadow transition"
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <Paperclip className="w-4 h-4" />
-                            {t('historyModal.attach')}
-                        </button>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            multiple
-                            onChange={onFileChange}
-                            accept=".doc,.docx,.xls,.xlsx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf,image/*"
-                            className="hidden"
-                        />
-                    </div>
-
-                    {/* ✅ FILE PREVIEW */}
-                    {files.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                            {files.map((file, i) => (
-                                <div
-                                    key={i}
-                                    className="relative border rounded-lg overflow-hidden bg-gray-50 shadow hover:shadow-md transition"
-                                >
-                                    {file.type.startsWith('image/') ? (
-                                        <img
-                                            src={file.dataUrl}
-                                            alt={file.name}
-                                            className="w-full h-32 object-cover cursor-pointer"
-                                            onClick={() => setPreviewFile(file)}
-                                        />
-                                    ) : (
-                                        <button
-                                            onClick={() => setPreviewFile(file)}
-                                            className="flex flex-col items-center justify-center h-32 w-full text-gray-600 text-sm p-2 hover:bg-gray-100 transition"
-                                            title="Переглянути файл"
-                                        >
-                                            {file.type === 'application/pdf' ? (
-                                                <FileText className="w-6 h-6 mb-1" />
-                                            ) : (
-                                                <ImageIcon className="w-6 h-6 mb-1" />
-                                            )}
-                                            <span className="truncate max-w-[90%]">
-                                                {file.name}
-                                            </span>
-                                        </button>
-                                    )}
-
-                                    <button
-                                        onClick={() => removeFile(i)}
-                                        className="absolute top-2 right-2 bg-white/70 hover:bg-red-100 text-red-600 rounded-full p-1 shadow"
-                                        title={t('historyModal.remove')}
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-                {previewFile && (
-                    <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
-                )}
-
-                {/* === FOOTER === */}
-                <div className="flex justify-between items-center px-6 py-4 border-t bg-gray-50">
+        <Modal
+            open
+            onClose={onClose}
+            title={isEditing ? 'Редагувати запис історії' : t('historyModal.title')}
+            description="Зміна статусу, період, опис і документи-підстави"
+            icon={<FilePlus2 />}
+            width="max-w-2xl"
+            closeOnBackdrop={false}
+            footer={
+                <>
                     {newStatus && (
-                        <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
-                            <ShieldCheck className="w-3 h-3" />
-                            {t('historyModal.statusWillChange')} з {currentStatus} → {newStatus}
+                        <span className="mr-auto hidden min-w-0 items-center gap-1.5 text-xs text-ink-3 md:flex">
+                            <span className="truncate">{currentStatus || '—'}</span>
+                            <ArrowRight className="size-3.5 shrink-0" />
+                            <span className="truncate font-medium text-ink">{newStatus}</span>
                         </span>
                     )}
-
-                    <div className="flex gap-3">
-                        <button
-                            onClick={onClose}
-                            className="px-5 py-2 rounded-lg text-gray-600 hover:bg-gray-200 transition"
-                        >
-                            {t('historyModal.cancel')}
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow font-medium transition"
-                        >
-                            {t('historyModal.save')}
-                        </button>
+                    <Button variant="secondary" onClick={onClose}>
+                        {t('common.cancel')}
+                    </Button>
+                    <Button onClick={handleSave}>{t('historyModal.save')}</Button>
+                </>
+            }
+        >
+            <div className="space-y-5">
+                <FieldShell
+                    label="Зміна статусу"
+                    htmlFor="history-status"
+                    hint="Залиште «без змін», якщо це звичайний запис історії."
+                >
+                    <div className="mb-2 flex items-center gap-2 text-xs text-ink-3">
+                        Поточний:
+                        <StatusBadge status={currentStatus} />
                     </div>
+                    <select
+                        id="history-status"
+                        className="field"
+                        value={newStatus || ''}
+                        onChange={(e) => setNewStatus(e.target.value)}
+                    >
+                        <option value="">— без змін —</option>
+                        {Object.values(StatusExcel).map((status) => (
+                            <option key={status} value={status}>
+                                {status}
+                            </option>
+                        ))}
+                    </select>
+                </FieldShell>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <FieldShell label="Період з" htmlFor="period-from">
+                        <input
+                            id="period-from"
+                            type="date"
+                            className="field"
+                            value={period.from}
+                            onChange={(e) => setPeriod((p) => ({ ...p, from: e.target.value }))}
+                        />
+                    </FieldShell>
+                    <FieldShell label="Період по" htmlFor="period-to">
+                        <input
+                            id="period-to"
+                            type="date"
+                            className="field"
+                            value={period.to}
+                            onChange={(e) => setPeriod((p) => ({ ...p, to: e.target.value }))}
+                        />
+                    </FieldShell>
                 </div>
+
+                <FieldShell label={t('historyModal.description')} htmlFor="history-description">
+                    <textarea
+                        id="history-description"
+                        rows={4}
+                        className="field"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder={t('historyModal.descriptionPlaceholder')}
+                    />
+                </FieldShell>
+
+                <div>
+                    <p className="label">Документи</p>
+                    <button
+                        type="button"
+                        onClick={onAttach}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line-strong px-4 py-4 text-sm font-medium text-ink-2 transition-colors hover:border-primary hover:bg-primary-soft hover:text-primary-ink"
+                    >
+                        <Paperclip className="size-4" />
+                        {t('historyModal.attach')}
+                        <span className="font-normal text-ink-3">
+                            · PDF, Word, Excel, зображення
+                        </span>
+                    </button>
+
+                    {files.length > 0 && (
+                        <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
+                            {files.map((file, i) => (
+                                <li
+                                    key={i}
+                                    className="group relative overflow-hidden rounded-lg border border-line bg-surface-2"
+                                >
+                                    <button
+                                        onClick={() => setPreviewFile(file)}
+                                        className="block w-full"
+                                        title="Переглянути файл"
+                                    >
+                                        {file.type?.startsWith('image/') && file.dataUrl ? (
+                                            <img
+                                                src={file.dataUrl}
+                                                alt={file.name}
+                                                className="h-24 w-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="flex h-24 flex-col items-center justify-center gap-1.5 px-2 text-center">
+                                                <FileText className="size-6 text-ink-3" />
+                                                <span className="line-clamp-2 break-all text-xs text-ink-2">
+                                                    {file.name}
+                                                </span>
+                                            </span>
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={() => removeFile(i)}
+                                        className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-surface/90 text-danger-ink shadow-card transition-colors hover:bg-danger-soft"
+                                        title={t('historyModal.remove')}
+                                    >
+                                        <X className="size-3.5" />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+
+                {missingForStatus.length > 0 && (
+                    <Alert tone="warning">
+                        Для зміни статусу бажано додати {missingForStatus.join(' та ')} — інакше
+                        запис буде позначено як «без файлу або періоду».
+                    </Alert>
+                )}
             </div>
-        </div>
+
+            {previewFile && (
+                <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
+            )}
+        </Modal>
     );
 }

@@ -7,35 +7,47 @@ export default defineConfig({
     root: '.',
     plugins: [
         react(),
-        visualizer({
-            open: true,
-            filename: 'dist/stats.html',
-            gzipSize: true,
-            brotliSize: true,
-        }),
+        // Content Security Policy for the packaged app only: the page may load its own files,
+        // inline styles (docx preview) and data/blob images, and nothing from the network.
+        // Not applied in development, where Vite injects its own inline scripts.
+        {
+            name: 'content-security-policy',
+            apply: 'build',
+            transformIndexHtml(html: string) {
+                const policy = [
+                    "default-src 'none'",
+                    "script-src 'self'",
+                    "style-src 'self' 'unsafe-inline'",
+                    "img-src 'self' data: blob:",
+                    "font-src 'self' data:",
+                    "media-src 'self' data: blob:",
+                    "connect-src 'self' data: blob:",
+                    "worker-src 'self' blob:",
+                    "object-src 'none'",
+                    // PDF documents are shown from in-memory blobs by the built-in viewer.
+                    "frame-src blob:",
+                    "base-uri 'none'",
+                    "form-action 'none'",
+                ].join('; ');
+                return html.replace(
+                    '<head>',
+                    `<head>\n    <meta http-equiv="Content-Security-Policy" content="${policy}" />`,
+                );
+            },
+        },
+        // Bundle analysis only on demand: `npm run analyze`
+        process.env.ANALYZE &&
+            visualizer({
+                open: true,
+                filename: 'dist/stats.html',
+                gzipSize: true,
+                brotliSize: true,
+            }),
     ],
     base: './',
     resolve: {
         alias: {
             '@': path.resolve(__dirname, 'src'),
-            '@pages': path.resolve(__dirname, 'src/Pages'),
-            '@components': path.resolve(__dirname, 'src/components'),
-            '@shared': path.resolve(__dirname, 'src/shared'),
-            '@stores': path.resolve(__dirname, 'src/stores'),
-            '@features': path.resolve(__dirname, 'src/features'),
-            '@utils': path.resolve(__dirname, 'src/utils'),
-            '@styles': path.resolve(__dirname, 'src/styles'),
-            '@layouts': path.resolve(__dirname, 'src/layout'),
-            '@hooks': path.resolve(__dirname, 'src/hooks'),
-            '@icons': path.resolve(__dirname, 'src/icons'),
-            '@types': path.resolve(__dirname, 'src/types'),
-            '@locales': path.resolve(__dirname, 'src/locales'),
-            '@ipc': path.resolve(__dirname, 'src/ipc'),
-            '@db': path.resolve(__dirname, 'src/database'),
-            '@assets': path.resolve(__dirname, 'assets'), // у тебе assets в корені
-            // опційні корисні шорткати
-            '@excel': path.resolve(__dirname, 'src/components/ExcelTables'),
-            '@defaultAdmin': path.resolve(__dirname, 'src/components/defaultAdmin'),
         },
     },
     build: {

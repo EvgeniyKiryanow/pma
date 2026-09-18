@@ -1,4 +1,4 @@
-import { Search, UploadCloud } from 'lucide-react';
+import { FileSpreadsheet, ListTree, Sheet, UploadCloud, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 
@@ -7,19 +7,38 @@ import {
     generateUserKey,
     needsUpdate,
 } from '../../../../shared/helpers/csvImports';
+import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
+import { errorMessage } from '../../../shared/api/call';
+import { reportError } from '../../../shared/api/errors';
+import { personnelApi } from '../../../shared/api/personnel';
+import { pickFile } from '../../../shared/lib/pickFiles';
+import { Badge, Button, cn, SearchInput } from '../../../shared/ui';
+import { toast } from '../../../shared/ui/toast';
 import { HEADER_MAP } from '../../../shared/utils/headerMap';
+import { useI18nStore } from '../../../stores/i18nStore';
+import { useUserStore } from '../../../stores/userStore';
 
 export default function ImportUsersTabContent() {
     const [parsedSheets, setParsedSheets] = useState<Record<string, any[]>>({});
     const [dbColumns, setDbColumns] = useState<string[]>([]);
     const [existingUsers, setExistingUsers] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [fileName, setFileName] = useState('');
+    const [dragOver, setDragOver] = useState(false);
+    const [busySheet, setBusySheet] = useState<string | null>(null);
 
     const lowerSearch = searchTerm.toLowerCase();
 
     useEffect(() => {
-        window.electronAPI.getDbColums().then((cols: string[]) => setDbColumns(cols));
-        window.electronAPI.fetchUsersMetadata().then((users: any[]) => setExistingUsers(users));
+        // Import of staffing positions only does not require access to personnel data.
+        personnelApi
+            .columns()
+            .then(setDbColumns)
+            .catch(() => setDbColumns([]));
+        personnelApi
+            .list()
+            .then(setExistingUsers)
+            .catch(() => setExistingUsers([]));
     }, []);
 
     const findBestDbColumn = (excelHeader: string, dbCols: string[]): string => {
@@ -41,11 +60,36 @@ export default function ImportUsersTabContent() {
         return excelHeader;
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const chooseWorkbook = async () => {
+        try {
+            const file = await pickFile('excel');
+            if (file) await loadWorkbook(file);
+        } catch (err) {
+            reportError(err, { context: 'excel-import' });
+        }
+    };
 
-        const dbCols = await window.electronAPI.getDbColums();
+    const handleDrop = (e: React.DragEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        setDragOver(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file && /\.xlsx?$/i.test(file.name)) void loadWorkbook(file);
+        else if (file) toast.warning('Підтримуються лише файли Excel (.xlsx, .xls)');
+    };
+
+    /** Runs a sheet import with a busy indicator on its button. */
+    const runImport = async (sheetName: string, work: () => Promise<void>) => {
+        setBusySheet(sheetName);
+        try {
+            await work();
+        } finally {
+            setBusySheet(null);
+        }
+    };
+
+    const loadWorkbook = async (file: File) => {
+        setFileName(file.name);
+        const dbCols = await personnelApi.columns();
         setDbColumns(dbCols);
 
         const reader = new FileReader();
@@ -100,13 +144,17 @@ export default function ImportUsersTabContent() {
                 h.includes("ім'я"),
         );
 
-        const hasDob = headers.some(
-            (h) =>
-                h.includes('Дата народ') ||
-                h.includes('date of birth') ||
-                h.includes('дн') ||
-                h.includes('dob'),
-        );
+        // Headers are already lower-cased here, so comparing against "Дата народ" never
+        // matched and a normal table with "ПІБ" + "Дата народження" was not recognized.
+        const hasDob = headers.some((h) => {
+            const compact = h.replace(/[\s.]+/g, '');
+            return (
+                compact.includes('датанарод') ||
+                compact.includes('dateofbirth') ||
+                compact.includes('dob') ||
+                compact === 'дн'
+            );
+        });
 
         // ✅ Якщо є fullname і дата народження
         if (hasFullname && hasDob) return true;
@@ -216,14 +264,21 @@ export default function ImportUsersTabContent() {
             .filter(Boolean);
 
         if (!positions.length) {
-            alert('⚠️ Не знайдено валідних рядків з номером по штату!');
+            toast.warning('Не знайдено рядків з номером по штату');
             return;
         }
 
-        const result = await window.electronAPI.shtatni.import(positions);
-        alert(
-            `✅ Імпортовано ${result.added} нових позицій\nПропущено ${result.skipped} (вже існували в БД)`,
-        );
+        try {
+            // Through the store, so the БЧС tab and tables update without reloading the window.
+            const result = await useShtatniStore.getState().importFromExcel(positions);
+            toast.success(
+                `БЧС імпортовано: нових позицій ${result.added}\nПропущено ${result.skipped} (вже були в базі)`,
+            );
+        } catch (err) {
+            toast.error(
+                `Не вдалося імпортувати БЧС: ${errorMessage(err, useI18nStore.getState().t)}`,
+            );
+        }
     };
 
     /** Import USERS sheet (classic logic) */
@@ -233,7 +288,9 @@ export default function ImportUsersTabContent() {
         let skippedCount = 0;
         let failedCount = 0;
 
-        const userLookup = new Map(existingUsers.map((u) => [generateUserKey(u), u]));
+        // Fresh list: people created by an earlier import in this session must be matched too.
+        const currentUsers: any[] = await personnelApi.list().catch(() => existingUsers);
+        const userLookup = new Map(currentUsers.map((u) => [generateUserKey(u), u]));
 
         for (const row of rows) {
             const mappedRow: any = {};
@@ -287,7 +344,7 @@ export default function ImportUsersTabContent() {
             if (existing) {
                 if (needsUpdate(existing, mappedRow)) {
                     try {
-                        const updatedUser = await window.electronAPI.updateUser({
+                        const updatedUser = await personnelApi.update({
                             ...existing,
                             ...mappedRow,
                             id: existing.id,
@@ -303,7 +360,7 @@ export default function ImportUsersTabContent() {
                 }
             } else {
                 try {
-                    const createdUser = await window.electronAPI.addUser(mappedRow);
+                    const createdUser = await personnelApi.create(mappedRow);
                     userLookup.set(key, createdUser);
                     createdCount++;
                 } catch (err) {
@@ -313,153 +370,178 @@ export default function ImportUsersTabContent() {
             }
         }
 
-        alert(
-            `✅ Імпорт завершено!\n\nСтворено: ${createdCount}\nОновлено: ${updatedCount}\nПропущено: ${skippedCount}`,
-        );
+        await useUserStore.getState().fetchUsers();
+        const summary =
+            `Імпорт завершено.\nСтворено: ${createdCount} · Оновлено: ${updatedCount} · Пропущено: ${skippedCount}` +
+            (failedCount ? `\nПомилки: ${failedCount} (немає прав або некоректні дані)` : '');
+        if (failedCount) toast.warning(summary);
+        else toast.success(summary);
     };
 
     const hasData = Object.keys(parsedSheets).length > 0;
 
     return (
-        <div className="flex flex-col items-center justify-start h-full w-full p-8 bg-gray-50">
-            {/* Заголовок + опис */}
-            <div className="text-center mb-8 max-w-2xl">
-                <h1 className="text-3xl font-bold text-gray-800">📊 Завантаження даних із Excel</h1>
-                <p className="text-gray-600 mt-2 text-sm">
-                    Імпортуйте персональні дані або штатні посади з усіх листів{' '}
-                    <strong>Excel</strong>. Для кожного листа доступна окрема кнопка імпорту.
-                </p>
-            </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+            <div className="mx-auto max-w-6xl space-y-5">
+                <button
+                    type="button"
+                    onClick={() => void chooseWorkbook()}
+                    onDrop={handleDrop}
+                    onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragOver(true);
+                    }}
+                    onDragLeave={() => setDragOver(false)}
+                    className={cn(
+                        'relative flex w-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors',
+                        dragOver
+                            ? 'border-primary bg-primary-soft'
+                            : 'border-line-strong bg-surface hover:border-primary hover:bg-primary-soft',
+                    )}
+                >
+                    <div className="topo absolute inset-0 text-primary opacity-[0.06]" />
+                    <span className="relative grid size-14 place-items-center rounded-2xl bg-primary-soft text-primary-ink">
+                        <UploadCloud className="size-7" />
+                    </span>
+                    <span className="relative text-[15px] font-semibold text-ink">
+                        {fileName || 'Перетягніть файл Excel сюди або натисніть, щоб обрати'}
+                    </span>
+                    <span className="relative max-w-xl text-[13px] leading-relaxed text-ink-3">
+                        Система прочитає всі листи й сама визначить їх тип. Для кожного листа —
+                        окрема кнопка імпорту.
+                    </span>
+                    <span className="relative mt-2 flex flex-wrap justify-center gap-2 text-xs">
+                        <Badge tone="olive">
+                            <Users className="size-3.5" /> ПІБ + дата народження → особовий склад
+                        </Badge>
+                        <Badge tone="brass">
+                            <ListTree className="size-3.5" /> № по штату, підрозділ, посада, кат,
+                            ШПК → БЧС
+                        </Badge>
+                    </span>
+                </button>
 
-            {/* Зона завантаження файлу */}
-            <div className="w-full max-w-xl bg-white border-2 border-dashed border-blue-300 hover:border-blue-500 transition rounded-xl p-8 text-center shadow-sm">
-                <p className="text-gray-700 mb-3">Перетягніть сюди файл або оберіть його вручну</p>
-                <label className="inline-flex items-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-medium shadow transition">
-                    <UploadCloud className="w-5 h-5" />
-                    Завантажити Excel
-                    <input
-                        type="file"
-                        accept=".xlsx, .xls"
-                        className="hidden"
-                        onChange={handleFileUpload}
-                    />
-                </label>
-            </div>
-
-            {/* Глобальний пошук */}
-            {hasData && (
-                <div className="relative w-full md:w-72 my-6">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                        type="text"
-                        placeholder="Пошук по всіх листах..."
+                {hasData && (
+                    <SearchInput
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 focus:border-blue-400 focus:ring focus:ring-blue-100 text-sm"
+                        onChange={setSearchTerm}
+                        placeholder="Пошук по всіх листах…"
+                        className="max-w-sm"
                     />
-                </div>
-            )}
+                )}
 
-            {Object.entries(parsedSheets).map(([sheetName, rows]) => {
-                const sheetIsStaff = isShtatniPosadySheet(rows);
-                const sheetIsUsers = isUsersSheet(rows);
+                {Object.entries(parsedSheets).map(([sheetName, rows]) => {
+                    const sheetIsStaff = isShtatniPosadySheet(rows);
+                    const sheetIsUsers = isUsersSheet(rows);
+                    const staffKey = `${sheetName}:staff`;
+                    const usersKey = `${sheetName}:users`;
 
-                const visibleColumns =
-                    rows.length > 0
-                        ? Object.keys(rows[0]).filter((header) =>
-                              searchTerm.trim() === ''
-                                  ? true
-                                  : header.toLowerCase().includes(lowerSearch),
-                          )
-                        : [];
+                    const visibleColumns =
+                        rows.length > 0
+                            ? Object.keys(rows[0]).filter((header) =>
+                                  searchTerm.trim() === ''
+                                      ? true
+                                      : header.toLowerCase().includes(lowerSearch),
+                              )
+                            : [];
 
-                const filteredData =
-                    rows.length > 0
-                        ? rows.filter((row) =>
-                              Object.entries(row).some(
-                                  ([header, val]) =>
-                                      visibleColumns.includes(header) &&
-                                      String(val).toLowerCase().includes(lowerSearch),
-                              ),
-                          )
-                        : [];
+                    const filteredData =
+                        rows.length > 0
+                            ? rows.filter((row) =>
+                                  Object.entries(row).some(
+                                      ([header, val]) =>
+                                          visibleColumns.includes(header) &&
+                                          String(val).toLowerCase().includes(lowerSearch),
+                                  ),
+                              )
+                            : [];
 
-                return (
-                    <div
-                        key={sheetName}
-                        className="mt-8 w-full bg-white rounded-xl shadow-lg border overflow-hidden"
-                    >
-                        <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
-                            <h2 className="text-lg font-semibold text-gray-800">
-                                📄 Лист: {sheetName} ({filteredData.length}/{rows.length} рядків)
-                            </h2>
-
-                            <div className="flex gap-3">
-                                {sheetIsStaff && (
-                                    <button
-                                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow-md transition"
-                                        onClick={() => handleImportShtatniPosady(rows)}
-                                    >
-                                        ✅ Імпортувати БЧС
-                                    </button>
-                                )}
-
-                                {sheetIsUsers && (
-                                    <button
-                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition"
-                                        onClick={() => handleImportUsersSheet(rows)}
-                                    >
-                                        ✅ Імпортувати користувачів
-                                    </button>
-                                )}
-
-                                {!sheetIsStaff && !sheetIsUsers && (
-                                    <span className="text-gray-400 italic text-sm">
-                                        ❌ Цей лист не підтримується для імпорту
+                    return (
+                        <section key={sheetName} className="card overflow-hidden">
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-success-soft text-success-ink">
+                                        <Sheet className="size-[18px]" />
                                     </span>
-                                )}
-                            </div>
-                        </div>
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-semibold text-ink">
+                                            {sheetName}
+                                        </p>
+                                        <p className="text-xs text-ink-3">
+                                            {filteredData.length} з {rows.length} рядків
+                                        </p>
+                                    </div>
+                                    {sheetIsUsers && <Badge tone="olive">Особовий склад</Badge>}
+                                    {sheetIsStaff && <Badge tone="brass">БЧС</Badge>}
+                                </div>
 
-                        {/* Попередній перегляд */}
-                        <div className="overflow-auto max-h-[60vh]">
-                            <table className="w-full text-sm border-collapse">
-                                <thead className="sticky top-0 bg-gray-100 shadow-sm">
-                                    <tr>
-                                        {visibleColumns.map((key) => (
-                                            <th
-                                                key={key}
-                                                className="border border-gray-300 px-3 py-2 text-left text-gray-700 font-medium"
-                                            >
-                                                {key}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredData.map((row, idx) => (
-                                        <tr
-                                            key={idx}
-                                            className={`transition ${
-                                                idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                                            } hover:bg-blue-50`}
+                                <div className="flex flex-wrap gap-2">
+                                    {sheetIsStaff && (
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            loading={busySheet === staffKey}
+                                            disabled={busySheet !== null}
+                                            icon={<ListTree className="size-4" />}
+                                            onClick={() =>
+                                                void runImport(staffKey, () =>
+                                                    handleImportShtatniPosady(rows),
+                                                )
+                                            }
                                         >
-                                            {visibleColumns.map((colKey) => (
-                                                <td
-                                                    key={colKey}
-                                                    className="border border-gray-200 px-3 py-2 text-gray-800 whitespace-nowrap"
-                                                >
-                                                    {row[colKey] as string}
-                                                </td>
+                                            Імпортувати БЧС
+                                        </Button>
+                                    )}
+                                    {sheetIsUsers && (
+                                        <Button
+                                            size="sm"
+                                            loading={busySheet === usersKey}
+                                            disabled={busySheet !== null}
+                                            icon={<Users className="size-4" />}
+                                            onClick={() =>
+                                                void runImport(usersKey, () =>
+                                                    handleImportUsersSheet(rows),
+                                                )
+                                            }
+                                        >
+                                            Імпортувати особовий склад
+                                        </Button>
+                                    )}
+                                    {!sheetIsStaff && !sheetIsUsers && (
+                                        <span className="inline-flex items-center gap-1.5 text-xs text-ink-3">
+                                            <FileSpreadsheet className="size-4" />
+                                            Цей лист не підтримується для імпорту
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="max-h-[60vh] overflow-auto">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            {visibleColumns.map((key) => (
+                                                <th key={key}>{key}</th>
                                             ))}
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                );
-            })}
+                                    </thead>
+                                    <tbody>
+                                        {filteredData.map((row, idx) => (
+                                            <tr key={idx}>
+                                                {visibleColumns.map((colKey) => (
+                                                    <td key={colKey} className="whitespace-nowrap">
+                                                        {row[colKey] as string}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    );
+                })}
+            </div>
         </div>
     );
 }

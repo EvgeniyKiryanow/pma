@@ -1,12 +1,19 @@
-import { AlternateCombatReportHeader } from './AlternateCombatReportHeader';
+import type { AlternateReport } from '../../model/alternateReport';
 import { AlternateCombatReportBody } from './AlternateCombatReportBody';
+import { AlternateCombatReportHeader } from './AlternateCombatReportHeader';
+import type { ReportCellTarget } from './ReportCellModal';
 
-// На даному етапі повністю така ж таблиця
-export function AlternateCombatReportTable() {
+export function AlternateCombatReportTable({
+    report,
+    onOpenCell,
+}: {
+    report: AlternateReport;
+    onOpenCell: (target: ReportCellTarget) => void;
+}) {
     return (
         <>
             <AlternateCombatReportHeader />
-            <AlternateCombatReportBody />
+            <AlternateCombatReportBody report={report} onOpenCell={onOpenCell} />
         </>
     );
 }

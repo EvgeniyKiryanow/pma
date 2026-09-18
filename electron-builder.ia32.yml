@@ -1,0 +1,14 @@
+# 32-bit Windows 10 (npm run dist:win32). Same app, data folder and appId as the x64 build,
+# so installing it on a PC is the same program. Its own update channel (ia32.yml) makes
+# installed 32-bit copies update to the 32-bit installer, never to the x64 one.
+extends: ./electron-builder.yml
+
+win:
+  artifactName: PManager-Setup-${version}-ia32.${ext}
+
+publish:
+  provider: github
+  owner: EvgeniyKiryanow
+  repo: pma
+  releaseType: draft
+  channel: ia32

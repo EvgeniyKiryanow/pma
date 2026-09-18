@@ -1,53 +1,32 @@
 import { create } from 'zustand';
 
-type DbReport = {
-    id: number;
-    name: string;
-    filePath: string;
-    createdAt: string;
-    buffer?: ArrayBuffer;
-};
+import type { ReportTemplateRecord } from '../../../../shared/types/reports';
+import { reportTemplatesApi } from '../../../shared/api/reports';
 
 type ReportFilesStore = {
-    files: DbReport[];
+    files: ReportTemplateRecord[];
     loadFromDb: () => Promise<void>;
+    /** Throws ApiError; the list is refreshed only after the file is stored. */
     addFileFromDisk: (file: File) => Promise<void>;
     removeFileById: (id: number) => Promise<void>;
 };
 
-export const useReportFilesStore = create<ReportFilesStore>((set) => ({
-    files: [],
+/** Report templates uploaded by users. */
+export const useReportFilesStore = create<ReportFilesStore>((set) => {
+    const reload = async () => set({ files: await reportTemplatesApi.listUploaded() });
 
-    loadFromDb: async () => {
-        const dbFiles = await window.electronAPI.getReportTemplatesFromDb();
-        set({ files: dbFiles });
-    },
+    return {
+        files: [],
+        loadFromDb: reload,
 
-    addFileFromDisk: async (file: File) => {
-        const buffer = await file.arrayBuffer();
+        addFileFromDisk: async (file) => {
+            await reportTemplatesApi.upload(file);
+            await reload();
+        },
 
-        // ✅ Save file to disk using IPC
-        const savedPath = await window.electronAPI.saveReportFileToDisk(buffer, file.name);
-
-        // ✅ Register in SQLite
-        await window.electronAPI.addReportTemplateToDb(file.name, savedPath);
-
-        // 🔄 Refresh file list
-        const dbFiles = await window.electronAPI.getReportTemplatesFromDb();
-        set({ files: dbFiles });
-    },
-
-    removeFileById: async (id: number) => {
-        // 👀 Get file info from DB
-        const dbFiles = await window.electronAPI.getReportTemplatesFromDb();
-        const fileToDelete = dbFiles.find((f) => f.id === id);
-        if (!fileToDelete) return;
-
-        // 🗑 Remove file via main process
-        await window.electronAPI.deleteReportTemplateFromDb(id);
-
-        // 🔄 Refresh list
-        const refreshed = await window.electronAPI.getReportTemplatesFromDb();
-        set({ files: refreshed });
-    },
-}));
+        removeFileById: async (id) => {
+            await reportTemplatesApi.remove(id);
+            await reload();
+        },
+    };
+});

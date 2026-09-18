@@ -1,4 +1,7 @@
+import { foundationEn } from './foundation.en';
+
 export const en = {
+    ...foundationEn,
     header: {
         title: 'Personnel Manager',
         addUser: 'Add new Person',
@@ -100,10 +103,19 @@ export const en = {
         restore: 'Restore Backup',
         reset: 'Reset App',
         reload: 'Reload',
+        hide: 'Minimize',
+        fullscreen: 'Full screen',
         close: 'Close',
         updateCheck: 'Check for updates',
-        updateError: 'Error checking for updates',
-        updateStarted: 'Update check started. If a new version is found, it will be downloaded.',
+        updateCurrent: 'You have the newest version ({{version}})',
+        updateAvailableTitle: 'Version {{version}} is available',
+        updateAvailableText:
+            'PManager will download the update, close and start again in the new version. Save open forms first.',
+        updateInstall: 'Update',
+        updateDownloading: 'Downloading version {{version}}… Do not turn off the computer',
+        updateManual:
+            'Version {{version}} is available. Download the installer from the releases page and install it over this version — your data stays.',
+        updateRestarting: 'Update downloaded. PManager is restarting…',
         restoreNoUser: 'You must have a registered user to restore a backup.',
         restoreFail: '✅ Restored! Please restart.',
         restoreSuccess: 'Restore failed. Try again.',
@@ -205,7 +217,7 @@ export const en = {
         cancel: 'Cancel',
         add: 'Add',
         saveChanges: 'Save Changes',
-        uploadPhoto: 'Download  photo',
+        uploadPhoto: 'Upload photo',
         save: 'Save',
         history: 'History',
         comments: 'Comments',
@@ -213,6 +225,12 @@ export const en = {
             fit: 'Fit for service',
             limited: 'Limited fitness',
         },
+        addUser: 'New service member',
+        editUser: 'Edit record',
+        relativeName: 'Relative full name',
+        relativeRelation: 'Relationship',
+        relativePhone: 'Phone',
+        soldierStatus: 'Service member status',
     },
     sections: {
         basic: 'Basic Information',

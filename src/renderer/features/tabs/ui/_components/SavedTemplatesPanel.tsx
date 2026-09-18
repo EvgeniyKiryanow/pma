@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { Download, FileCheck2, FileText, Sparkles } from 'lucide-react';
+import type { RefObject } from 'react';
 
+import { Button, cn, SearchInput } from '../../../../shared/ui';
 import { useI18nStore } from '../../../../stores/i18nStore';
-import AdditionalInfoModal from './AdditionalInfoModal';
 import SavedTemplatesList from './SavedTemplatesList';
+import { StepTitle } from './UserList';
+
 type Props = {
     savedTemplates: any[];
     selectedTemplateId: string | number;
@@ -14,11 +17,14 @@ type Props = {
     showAdvanced: boolean;
     setShowAdvanced: (v: boolean) => void;
     previewBuffer: ArrayBuffer | null;
+    previewRef: RefObject<HTMLDivElement>;
+    generating?: boolean;
     selectedTemplate: any;
     selectedUser: any;
     selectedUser2: any;
 };
 
+/** Steps 2 and 3 of report generation: choose a template, generate and download. */
 export default function SavedTemplatesPanel({
     savedTemplates,
     selectedTemplateId,
@@ -27,103 +33,98 @@ export default function SavedTemplatesPanel({
     handlePreview,
     handleGenerate,
     handleDownload,
-    showAdvanced,
-    setShowAdvanced,
     previewBuffer,
+    previewRef,
+    generating = false,
     selectedTemplate,
     selectedUser,
-    selectedUser2,
 }: Props) {
     const { t } = useI18nStore();
-    const [showDialog, setShowDialog] = useState(false);
-    const [showUserPreview, setShowUserPreview] = useState(false);
+    const ready = Boolean(selectedUser && selectedTemplate);
 
     return (
-        <main className="flex-1 p-6 overflow-y-auto bg-white">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">{t('reports.savedTemplates')}</h2>
-            <AdditionalInfoModal open={showDialog} onClose={() => setShowDialog(false)} />
-            <div className="mt-6 flex flex-wrap gap-3 pb-[15px] items-center">
-                {/* <button
-                    onClick={() => setShowAdvanced(!showAdvanced)}
-                    disabled={!selectedUser && !selectedUser2}
-                    className={`px-4 py-2 rounded-md border font-medium text-sm transition 
-                        ${
-                            !selectedUser && !selectedUser2
-                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                : 'text-gray-700 border-gray-300 hover:bg-gray-100'
-                        }`}
-                >
-                    {showAdvanced ? '⬆️ Приховати поля' : '⚙️ Розширені налаштування'}
-                </button> */}
+        <main className="min-w-0 flex-1 space-y-5 overflow-y-auto p-5">
+            <section className="card p-5">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <StepTitle
+                        step={2}
+                        title="Шаблон документа"
+                        hint={
+                            selectedTemplate ? `Обрано: ${selectedTemplate.name}` : 'Оберіть шаблон'
+                        }
+                    />
+                    <SearchInput
+                        value={searchQuery}
+                        onChange={setSearchQuery}
+                        placeholder={t('reports.searchTemplates') || 'Пошук шаблону…'}
+                        size="sm"
+                        className="w-full max-w-xs"
+                    />
+                </div>
 
-                {/* <button
-                    onClick={() => setShowDialog(true)}
-                    className="px-4 py-2 rounded-md border text-sm font-medium border-gray-300 hover:bg-gray-100 text-gray-700"
-                >
-                    ➕ Додати уточнюючі дані
-                </button> */}
+                {savedTemplates.length > 0 ? (
+                    <SavedTemplatesList
+                        templates={savedTemplates}
+                        selectedTemplateId={selectedTemplateId}
+                        searchQuery={searchQuery}
+                        handlePreview={handlePreview}
+                    />
+                ) : (
+                    <p className="text-sm text-ink-3">{t('reports.noSavedTemplates')}</p>
+                )}
+            </section>
 
-                <button
-                    onClick={handleGenerate}
-                    disabled={!selectedUser || !selectedTemplate}
-                    className={`px-4 py-2 rounded-md text-white font-medium text-sm transition ${
-                        !selectedUser || !selectedTemplate
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-indigo-600 hover:bg-indigo-700'
-                    }`}
-                >
-                    {t('reports.generateFilledTemplate')}
-                </button>
+            <section className="card overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-5">
+                    <StepTitle
+                        step={3}
+                        title="Готовий рапорт"
+                        hint={
+                            ready
+                                ? `${selectedUser.fullName} · ${selectedTemplate.name}`
+                                : 'Оберіть військовослужбовця та шаблон'
+                        }
+                    />
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            onClick={handleGenerate}
+                            disabled={!ready}
+                            loading={generating}
+                            icon={<Sparkles className="size-4" />}
+                        >
+                            {t('reports.generateFilledTemplate')}
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            onClick={handleDownload}
+                            disabled={!previewBuffer}
+                            icon={<Download className="size-4" />}
+                        >
+                            {t('reports.download')}
+                        </Button>
+                    </div>
+                </div>
 
-                <button
-                    onClick={handleDownload}
-                    disabled={!previewBuffer}
-                    className={`px-4 py-2 rounded-md text-white font-medium text-sm transition ${
-                        !previewBuffer
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-green-600 hover:bg-green-700'
-                    }`}
+                <div
+                    className={cn(
+                        'border-t border-line bg-surface-2',
+                        previewBuffer ? 'p-4' : 'hidden',
+                    )}
                 >
-                    {t('reports.download')}
-                </button>
-                {/* <button
-                    onClick={() => setShowUserPreview(true)}
-                    disabled={!selectedUser}
-                    className={`px-4 py-2 rounded-md border text-sm font-medium transition ${
-                        !selectedUser
-                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                            : 'text-gray-700 border-gray-300 hover:bg-gray-100'
-                    }`}
-                >
-                    🔍 Переглянути дані користувача
-                </button> */}
-            </div>
-            {/* <UserDataPreviewModal
-                open={showUserPreview}
-                onClose={() => setShowUserPreview(false)}
-                user={selectedUser}
-            /> */}
+                    <p className="mb-3 flex items-center gap-2 text-xs text-ink-3">
+                        <FileCheck2 className="size-4 text-success" />
+                        Попередній перегляд (оформлення може трохи відрізнятися від Word)
+                    </p>
+                    <div ref={previewRef} className="max-h-[70vh] overflow-auto rounded-lg" />
+                </div>
 
-            <div className="mt-4 mb-2">
-                <input
-                    type="text"
-                    placeholder={t('reports.searchTemplates') || 'Пошук шаблону...'}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-            </div>
-
-            {savedTemplates.length > 0 ? (
-                <SavedTemplatesList
-                    templates={savedTemplates}
-                    selectedTemplateId={selectedTemplateId}
-                    searchQuery={searchQuery}
-                    handlePreview={handlePreview}
-                />
-            ) : (
-                <p className="text-gray-500 text-sm">{t('reports.noSavedTemplates')}</p>
-            )}
+                {!previewBuffer && (
+                    <div className="flex items-center gap-3 border-t border-dashed border-line px-5 py-6 text-sm text-ink-3">
+                        <FileText className="size-5 shrink-0" />
+                        Після формування тут зʼявиться попередній перегляд документа.
+                    </div>
+                )}
+            </section>
         </main>
     );
 }

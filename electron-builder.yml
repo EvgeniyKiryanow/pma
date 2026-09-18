@@ -1,0 +1,102 @@
+# Installers for Windows, macOS and Linux (`npm run dist`, CI: .github/workflows/release.yml).
+#
+# Copies of PManager are already installed from GitHub releases. Their identity must not
+# change, or updates stop working and Windows sees a second, separate program:
+#   appId      — Windows uninstall key (NSIS GUID is derived from it), macOS bundle id
+#   publish    — where installed copies look for updates (latest*.yml)
+#   package.json "name"/"productName" — the data folder (%APPDATA%\p-manager, ~/Library/...)
+appId: com.your.app
+productName: PManager
+copyright: Copyright © 2025-2026 Evgeniy Kiryanow
+
+directories:
+  buildResources: assets/icons
+  output: dist
+
+files:
+  - renderer_dist/**/*
+  - .vite/build/**/*
+  - '!**/*.map'
+  - assets/icons/**/*
+  - assets/templates/**/*
+  - package.json
+  # The SQLite driver ships its C sources and prebuilt binaries for every system; only the
+  # binary of the system being built is needed.
+  - '!node_modules/better-sqlite3-multiple-ciphers/{deps,src,binding.gyp}'
+  - '!node_modules/better-sqlite3-multiple-ciphers/prebuilds/!(${platform}-${arch}.node)'
+  # 32-bit Windows has no prebuilt driver: scripts/prepare-ia32.mjs compiles it into
+  # build/Release. Only the binary itself is shipped, and only in the 32-bit build.
+  - '!node_modules/better-sqlite3-multiple-ciphers/build/!(Release)'
+  - '!node_modules/better-sqlite3-multiple-ciphers/build/Release/!(better_sqlite3.node)'
+  # koffi: only the binary for the system being built (ia32 and x64 can sit side by side).
+  - '!node_modules/@koromix/!(koffi-${platform}-${arch})/**'
+  - '!node_modules/@koromix/*/*.{lib,exp}'
+
+asarUnpack:
+  - assets/templates/**
+
+# Native modules (SQLite driver, koffi) are Node-API prebuilds shipped inside their packages:
+# they work in Electron as they are, nothing has to be compiled for the target system.
+npmRebuild: false
+# Chromium's own interface strings (context menu, dialogs).
+electronLanguages: [uk, en, en-US]
+afterPack: scripts/verify-package.cjs
+
+win:
+  icon: assets/icons/appIcon.ico
+  # x64 also runs on Windows 11 on ARM (emulation). Electron 37 needs Windows 10 or 11.
+  # 32-bit Windows 10: npm run dist:win32 (separate installer and update channel).
+  # The architecture comes from the command line (--x64 / --ia32): an arch list here
+  # would be merged into the 32-bit config and give one installer with both.
+  target: nsis
+  artifactName: PManager-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  # Per user, no administrator rights needed (installs into %LOCALAPPDATA%\Programs).
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: PManager
+  # Uninstalling the program never deletes the data; that is what "full reset" is for.
+  deleteAppDataOnUninstall: false
+  language: '1058'
+  installerLanguages: [uk_UA]
+
+mac:
+  category: public.app-category.productivity
+  icon: assets/icons/appIcon.icns
+  # Separate builds for Apple Silicon and Intel. Needs macOS 11 or newer.
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip # used by the updater
+      arch: [arm64, x64]
+  artifactName: PManager-${version}-mac-${arch}.${ext}
+  hardenedRuntime: true
+  # Signed and notarized only when CI has the Apple secrets (CSC_LINK, APPLE_ID...);
+  # otherwise an unsigned build (see docs: first start on macOS).
+
+dmg:
+  writeUpdateInfo: false
+
+linux:
+  icon: assets/icons/appIcon.png
+  category: Office
+  synopsis: Облік особового складу
+  maintainer: Evgeniy Kiryanow <kirjeka19977@gmail.com>
+  # deb: installs the sandbox profile Ubuntu 24.04+ needs. AppImage: any distribution.
+  target:
+    - target: deb
+      arch: [x64]
+    - target: AppImage
+      arch: [x64]
+  artifactName: PManager-${version}-linux-${arch}.${ext}
+
+publish:
+  provider: github
+  owner: EvgeniyKiryanow
+  repo: pma
+  # CI uploads into a draft and publishes it only after every system has built.
+  releaseType: draft
