@@ -1,6 +1,4 @@
-import { AUDIT_CHANNELS, type AuditQuery } from '../../shared/audit/types';
 import { ACCOUNT_CHANNELS, AUTH_CHANNELS, ROLE_CHANNELS } from '../../shared/ipc/channels';
-import type { AuditLog } from '../audit/AuditLog';
 import { access, handleResult, requireSession } from '../ipc/secureHandle';
 import type { AccountService } from './services/AccountService';
 import type { AuthService } from './services/AuthService';
@@ -126,11 +124,5 @@ export function registerRolesIpc(roles: RoleService): void {
         {
             audit: 'roles.delete',
         },
-    );
-}
-
-export function registerAuditIpc(audit: AuditLog): void {
-    handleResult(AUDIT_CHANNELS.list, access.any('audit.view'), (_event, query: AuditQuery) =>
-        audit.list(query),
     );
 }

@@ -8,7 +8,7 @@ import {
 import type { RoleDTO, RoleInput, SessionInfo } from '../../../shared/auth/types';
 import { AppError } from '../../../shared/ipc/result';
 import type { Logger } from '../../core/logger';
-import type { DatabaseManager } from '../../db/connection';
+import type { Transactor } from '../../db/types';
 import type { RoleRepository, RoleRow } from '../repositories/RoleRepository';
 import type { AuthService } from './AuthService';
 import { validateId, validateRoleName } from './validation';
@@ -29,7 +29,7 @@ function toRoleDTO(row: RoleRow, permissions: string[]): RoleDTO {
 
 export class RoleService {
     constructor(
-        private readonly database: DatabaseManager,
+        private readonly database: Transactor,
         private readonly roles: RoleRepository,
         private readonly auth: AuthService,
         private readonly logger: Logger,

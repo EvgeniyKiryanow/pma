@@ -1,8 +1,9 @@
-import { BrowserWindow, dialog, shell } from 'electron';
+import { shell } from 'electron';
 
 import type { AutoBackupSettings, BackupSettings } from '../../shared/backup/types';
 import { BACKUP_CHANNELS } from '../../shared/ipc/channels';
 import { AppError } from '../../shared/ipc/result';
+import { chooseOpenFile, chooseSavePath } from '../core/dialogs';
 import type { JsonStore } from '../core/JsonStore';
 import { AppPaths } from '../core/paths';
 import { access, handleResult } from '../ipc/secureHandle';
@@ -56,36 +57,27 @@ export function registerBackupIpc({ backups, settings, scheduler, hasAccounts }:
         BACKUP_CHANNELS.exportPackage,
         access.any('backup.export'),
         async (event, password: string) => {
-            const window = BrowserWindow.fromWebContents(event.sender);
-            const options = {
+            const filePath = await chooseSavePath(event.sender, {
                 title: 'Зберегти резервну копію',
                 defaultPath: defaultBackupName(),
                 filters: [{ name: 'Резервна копія PManager', extensions: ['pmb'] }],
-            };
-            const { canceled, filePath } = window
-                ? await dialog.showSaveDialog(window, options)
-                : await dialog.showSaveDialog(options);
-            if (canceled || !filePath) throw new AppError('CANCELED');
+            });
+            if (!filePath) throw new AppError('CANCELED');
             return backups.exportPackage(filePath, password);
         },
         { audit: 'backup.export' },
     );
 
     handleResult(BACKUP_CHANNELS.selectImportFile, canImport, async (event) => {
-        const window = BrowserWindow.fromWebContents(event.sender);
-        const options = {
+        const filePath = await chooseOpenFile(event.sender, {
             title: 'Оберіть резервну копію',
-            properties: ['openFile'] as 'openFile'[],
             filters: [
                 { name: 'Резервні копії', extensions: ['pmb', 'sqlite', 'db'] },
                 { name: 'Усі файли', extensions: ['*'] },
             ],
-        };
-        const { canceled, filePaths } = window
-            ? await dialog.showOpenDialog(window, options)
-            : await dialog.showOpenDialog(options);
-        if (canceled || !filePaths.length) throw new AppError('CANCELED');
-        return backups.selectImport(event.sender.id, filePaths[0]);
+        });
+        if (!filePath) throw new AppError('CANCELED');
+        return backups.selectImport(event.sender.id, filePath);
     });
 
     handleResult(BACKUP_CHANNELS.inspect, canImport, (event, password: string) =>

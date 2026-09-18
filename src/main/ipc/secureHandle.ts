@@ -1,4 +1,4 @@
-import { app, ipcMain, type IpcMainInvokeEvent } from 'electron';
+import { app, ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron';
 
 import type { PermissionKey } from '../../shared/auth/permissions';
 import {
@@ -64,7 +64,7 @@ export function setAuditSink(sink: AuditSink): void {
 
 const DEV_SERVER_ORIGIN = 'http://localhost:5173';
 
-function isTrustedSender(event: IpcMainInvokeEvent): boolean {
+function isTrustedSender(event: IpcMainInvokeEvent | IpcMainEvent): boolean {
     const url = event.senderFrame?.url ?? '';
     if (url.startsWith('file://')) return true;
     return !app.isPackaged && url.startsWith(DEV_SERVER_ORIGIN);
@@ -150,6 +150,20 @@ export function handle(
 
 function isFailResult(value: unknown): boolean {
     return Boolean(value && typeof value === 'object' && (value as { ok?: unknown }).ok === false);
+}
+
+/**
+ * One-way message from the renderer (`ipcRenderer.send`, no reply). Only for window controls
+ * that must work before login; the sender frame is still verified.
+ */
+export function listen(channel: string, listener: (event: IpcMainEvent) => void): void {
+    ipcMain.on(channel, (event) => {
+        if (!isTrustedSender(event)) {
+            logger.error(`Rejected ${channel} from untrusted frame`);
+            return;
+        }
+        listener(event);
+    });
 }
 
 /** Like `handle`, but converts domain errors (AppError) into a `Result` envelope. */

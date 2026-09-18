@@ -8,7 +8,7 @@ import type {
 } from '../../../shared/auth/types';
 import { AppError } from '../../../shared/ipc/result';
 import type { Logger } from '../../core/logger';
-import type { DatabaseManager } from '../../db/connection';
+import type { Transactor } from '../../db/types';
 import type { PasswordHasher, PasswordPolicy } from '../PasswordHasher';
 import type { AccountRepository, AccountRow } from '../repositories/AccountRepository';
 import type { RoleRepository } from '../repositories/RoleRepository';
@@ -37,7 +37,7 @@ export function toAccountDTO(row: AccountRow): AccountDTO {
 /** Administration of accounts. Invariant: at least one active administrator always exists. */
 export class AccountService {
     constructor(
-        private readonly database: DatabaseManager,
+        private readonly database: Transactor,
         private readonly accounts: AccountRepository,
         private readonly roles: RoleRepository,
         private readonly hasher: PasswordHasher,

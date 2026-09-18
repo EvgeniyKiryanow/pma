@@ -4,7 +4,7 @@ import type { WebContents } from 'electron';
 import type { AuthState, SessionInfo, SetupInput } from '../../../shared/auth/types';
 import { AppError } from '../../../shared/ipc/result';
 import type { Logger } from '../../core/logger';
-import type { DatabaseManager } from '../../db/connection';
+import type { Transactor } from '../../db/types';
 import type { PasswordHasher, PasswordPolicy } from '../PasswordHasher';
 import type { RecoveryCodes } from '../RecoveryCodes';
 import type { AccountRepository, AccountRow } from '../repositories/AccountRepository';
@@ -17,7 +17,7 @@ export type LockoutPolicy = { maxAttempts: number; lockMinutes: number };
 
 export class AuthService {
     constructor(
-        private readonly database: DatabaseManager,
+        private readonly database: Transactor,
         private readonly accounts: AccountRepository,
         private readonly roles: RoleRepository,
         private readonly sessions: SessionManager,

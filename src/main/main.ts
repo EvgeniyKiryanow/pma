@@ -4,17 +4,9 @@ import path from 'path';
 import { AppError } from '../shared/ipc/result';
 import { createContainer } from './app/container';
 import { applySecurityPolicies, createMainWindow } from './app/window';
-import {
-    registerAccountsIpc,
-    registerAuditIpc,
-    registerAuthIpc,
-    registerRolesIpc,
-} from './auth/ipc';
-import { registerBackupIpc } from './backup/ipc';
 import { getInstanceId } from './core/instance';
 import { createLogger } from './core/logger';
 import { AppPaths } from './core/paths';
-import { registerFeatureHandlers } from './ipc';
 import { setAuditSink } from './ipc/secureHandle';
 
 const isDev = !app.isPackaged;
@@ -87,17 +79,7 @@ async function bootstrap(): Promise<void> {
     await container.templates.ensureInstalled();
 
     setAuditSink(container.auditSink);
-    registerAuthIpc(container.auth);
-    registerAccountsIpc(container.accountService);
-    registerRolesIpc(container.roleService);
-    registerAuditIpc(container.audit);
-    registerBackupIpc({
-        backups: container.backups,
-        settings: container.settings,
-        scheduler: container.scheduler,
-        hasAccounts: () => container.auth.hasAccounts(),
-    });
-    registerFeatureHandlers();
+    for (const feature of container.modules) feature.registerIpc();
 
     if (smokeTest) {
         const summary = {
@@ -137,7 +119,9 @@ async function bootstrap(): Promise<void> {
 }
 
 async function runDevScript(container: unknown, window: BrowserWindow): Promise<void> {
-    await new Promise<void>((resolve) => window.webContents.once('did-finish-load', () => resolve()));
+    await new Promise<void>((resolve) =>
+        window.webContents.once('did-finish-load', () => resolve()),
+    );
     try {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const script = require(path.resolve(process.env.PMA_DEV_SCRIPT as string));

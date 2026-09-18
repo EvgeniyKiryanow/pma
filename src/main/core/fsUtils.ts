@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import fs from 'fs';
 import fsp from 'fs/promises';
 import path from 'path';
@@ -34,6 +35,21 @@ export async function move(source: string, target: string): Promise<boolean> {
 
 export async function remove(target: string): Promise<void> {
     await withRetry(() => fsp.rm(target, { recursive: true, force: true }));
+}
+
+/** Runs `work` with a fresh folder under `parent` and always removes the folder afterwards. */
+export async function withTempDir<T>(
+    parent: string,
+    prefix: string,
+    work: (dir: string) => Promise<T>,
+): Promise<T> {
+    const dir = path.join(parent, `${prefix}-${randomUUID()}`);
+    await fsp.mkdir(dir, { recursive: true });
+    try {
+        return await work(dir);
+    } finally {
+        await remove(dir);
+    }
 }
 
 export function timestampForFileName(date = new Date()): string {

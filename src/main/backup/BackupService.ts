@@ -282,7 +282,11 @@ export class BackupService {
      * Decrypts the freshly written package and checks that the database inside opens.
      * Catches a broken flash drive or a half-written file while the user is still watching.
      */
-    private async verifyPackage(filePath: string, password: string, workDir: string): Promise<void> {
+    private async verifyPackage(
+        filePath: string,
+        password: string,
+        workDir: string,
+    ): Promise<void> {
         const checkDir = path.join(workDir, 'verify');
         await fsp.mkdir(checkDir, { recursive: true });
         const archivePath = path.join(checkDir, 'archive.bin');
@@ -294,7 +298,10 @@ export class BackupService {
             await this.validateDatabase(path.join(stagingDir, DB_FILE));
         } catch (err) {
             await remove(filePath);
-            this.deps.logger.error('Verification of the new backup failed; the file was removed', err);
+            this.deps.logger.error(
+                'Verification of the new backup failed; the file was removed',
+                err,
+            );
             throw new AppError(
                 'CORRUPTED',
                 'Копію створено, але перевірка не пройшла, тому файл видалено. Спробуйте зберегти на інший носій.',
@@ -306,7 +313,7 @@ export class BackupService {
 
     private async createWorkDir(kind: string): Promise<string> {
         // Inside userData: same volume as live data, so the final swap is a cheap rename.
-        const dir = path.join(AppPaths.userData, '.staging', `${kind}-${randomUUID()}`);
+        const dir = path.join(AppPaths.staging, `${kind}-${randomUUID()}`);
         await fsp.mkdir(dir, { recursive: true });
         return dir;
     }
