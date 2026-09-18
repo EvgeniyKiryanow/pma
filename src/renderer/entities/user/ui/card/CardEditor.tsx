@@ -84,9 +84,12 @@ function progressOf(section: CardSection, form: Partial<User>): [number, number]
 /** The card of a service member: three categories, their sections, and the history of changes. */
 export default function CardEditor({
     userToEdit,
+    initialCategory = 'personal',
     onClose,
 }: {
     userToEdit?: User | null;
+    /** The category to open on (the card view's «Додати нагороду» opens «Нагороди»). */
+    initialCategory?: CardCategoryId;
     onClose: () => void;
 }) {
     const { t } = useI18nStore();
@@ -99,8 +102,10 @@ export default function CardEditor({
     const [form, setForm] = useState<Partial<User>>(() =>
         userToEdit ? { ...EMPTY_FORM, ...userToEdit } : { ...EMPTY_FORM },
     );
-    const [category, setCategory] = useState<CardCategoryId>('personal');
-    const [activeSection, setActiveSection] = useState<CardSectionId>('identity');
+    const [category, setCategory] = useState<CardCategoryId>(initialCategory);
+    const [activeSection, setActiveSection] = useState<CardSectionId>(
+        () => CARD.find((c) => c.id === initialCategory)?.sections[0].id ?? 'identity',
+    );
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -304,6 +309,7 @@ export default function CardEditor({
                     <>
                         <div className="col-span-full">
                             <AwardsEditor
+                                userId={userToEdit?.id}
                                 records={form.awardRecords ?? []}
                                 onChange={(awardRecords) => set({ awardRecords })}
                             />
@@ -389,7 +395,7 @@ export default function CardEditor({
             }
         >
             {/* Photo, name, status: always in sight */}
-            <div className="flex flex-wrap items-center gap-4 border-b border-line bg-surface-2 px-5 py-3">
+            <div className="flex shrink-0 flex-wrap items-center gap-4 border-b border-line bg-surface-2 px-5 py-3">
                 <button
                     type="button"
                     onClick={() => void choosePhoto()}
@@ -437,7 +443,7 @@ export default function CardEditor({
             <Tabs
                 value={category}
                 onChange={switchCategory}
-                className="border-b border-line px-3"
+                className="shrink-0 border-b border-line px-3"
                 items={CARD.map((c) => ({
                     value: c.id,
                     label: t(`card.categories.${c.id}`),

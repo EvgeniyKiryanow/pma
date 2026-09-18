@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import type { CardCategoryId } from '../../shared/personnel/cardSchema';
 import type { User } from '../../shared/types/user';
 import { isTabKey, type TabKey } from '../app/tabKeys';
 import { personnelApi } from '../shared/api/personnel';
@@ -21,13 +22,15 @@ type UserStore = {
     selectedUser: User | null;
     editingUser: User | null;
     isUserFormOpen: boolean;
+    /** The category the card editor opens on («Нагороди» from the awards of the card view). */
+    editingCategory: CardCategoryId;
 
     currentTab: TabKey;
     setCurrentTab: (tab: TabKey) => void;
 
     clearUser: () => void;
     openUserFormForAdd: () => void;
-    openUserFormForEdit: (user: User) => void;
+    openUserFormForEdit: (user: User, category?: CardCategoryId) => void;
     closeUserForm: () => void;
 
     fetchUsers: () => Promise<void>;
@@ -58,6 +61,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
     selectedUser: null,
     editingUser: null,
     isUserFormOpen: false,
+    editingCategory: 'personal',
 
     currentTab: readLastTab(),
     setCurrentTab: (tab) => {
@@ -99,8 +103,10 @@ export const useUserStore = create<UserStore>((set, get) => ({
         }));
     },
 
-    openUserFormForAdd: () => set({ editingUser: null, isUserFormOpen: true }),
-    openUserFormForEdit: (user) => set({ editingUser: user, isUserFormOpen: true }),
+    openUserFormForAdd: () =>
+        set({ editingUser: null, isUserFormOpen: true, editingCategory: 'personal' }),
+    openUserFormForEdit: (user, category = 'personal') =>
+        set({ editingUser: user, isUserFormOpen: true, editingCategory: category }),
     closeUserForm: () => set({ editingUser: null, isUserFormOpen: false }),
 
     refreshUsersFromDb: async () => {

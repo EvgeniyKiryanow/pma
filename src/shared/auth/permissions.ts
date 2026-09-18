@@ -42,6 +42,8 @@ export const PERMISSIONS = [
         requires: ['personnel.create', 'personnel.edit'],
     },
     { key: 'history.edit', group: 'personnel', requires: ['personnel.view'] },
+    /** The unit's own register of awards (brigade, local awards). */
+    { key: 'awards.manage', group: 'personnel', requires: ['personnel.view'] },
 
     { key: 'directives.view', group: 'directives', requires: ['personnel.view'] },
     { key: 'directives.edit', group: 'directives', requires: ['directives.view'] },

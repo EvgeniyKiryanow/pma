@@ -1,6 +1,7 @@
 import { Building2, ChevronDown, UserMinus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+import { staffCategoryName } from '../../../../../shared/personnel/staffCategory';
 import type { User } from '../../../../../shared/types/user';
 import { Button, cn, SearchInput } from '../../../../shared/ui';
 import { useI18nStore } from '../../../../stores/i18nStore';
@@ -122,7 +123,10 @@ export default function StaffPostEditor({
                         </p>
                         <p className="mt-0.5 text-sm text-ink-2">{position.unit_name || '—'}</p>
                         <dl className="mt-2.5 flex flex-wrap gap-2 text-xs">
-                            <Chip label={t('card.fields.category')} value={position.category} />
+                            <Chip
+                                label={t('card.fields.category')}
+                                value={staffCategoryName(position.category)}
+                            />
                             <Chip label={t('card.fields.shpkCode')} value={position.shpk_code} />
                             <Chip
                                 label={t('card.staff.vosByStaff')}

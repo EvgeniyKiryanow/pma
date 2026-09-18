@@ -13,6 +13,7 @@ export const SYNCABLE_TABLES = [
     'shtatni_posady',
     'named_list_tables',
     'user_directives',
+    'award_types',
 ] as const;
 
 export type SyncableTable = (typeof SYNCABLE_TABLES)[number];

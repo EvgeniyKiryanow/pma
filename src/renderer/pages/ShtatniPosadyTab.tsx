@@ -11,6 +11,7 @@ import { personnelApi } from '../shared/api/personnel';
 import { EmptyState, Spinner } from '../shared/ui';
 import { confirmAction } from '../shared/ui/confirm';
 import { toast } from '../shared/ui/toast';
+import { useSearchJump } from '../stores/searchJumpStore';
 import { usePermissions } from '../stores/sessionStore';
 import { useUserStore } from '../stores/userStore';
 
@@ -26,6 +27,13 @@ export default function ShtatniPosadyTab() {
     const [posadyLoaded, setPosadyLoaded] = useState(false);
     const [hasSyncedUsers, setHasSyncedUsers] = useState(false);
     const [query, setQuery] = useState('');
+    // The global search opens the БЧС filtered by a staff number.
+    const staffingJump = useSearchJump((s) => s.jumps.staffing);
+    useEffect(() => {
+        if (staffingJump === undefined) return;
+        setQuery(staffingJump);
+        useSearchJump.getState().clear('staffing');
+    }, [staffingJump]);
     const { can } = usePermissions();
     const canEditStaffing = can('staffing.edit');
 

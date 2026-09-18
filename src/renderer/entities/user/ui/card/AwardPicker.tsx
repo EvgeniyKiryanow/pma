@@ -1,15 +1,19 @@
-import { Medal } from 'lucide-react';
+import { Medal, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import {
+    allAwards,
     AWARD_GROUPS,
     type AwardDef,
     type AwardGroupId,
-    AWARDS,
+    customAwardDef,
 } from '../../../../../shared/awards/catalog';
 import type { AwardStatus } from '../../../../../shared/types/user';
 import { Badge, type BadgeTone, cn, Modal, SearchInput } from '../../../../shared/ui';
 import { useI18nStore } from '../../../../stores/i18nStore';
+import { usePermissions } from '../../../../stores/sessionStore';
+import { useCustomAwardsVersion } from '../../../award/model/awardTypesStore';
+import AwardTypeEditor from '../../../award/ui/AwardTypeEditor';
 import AwardIcon from './AwardIcon';
 
 const STATUS_TONES: Record<AwardStatus, BadgeTone> = {
@@ -25,7 +29,7 @@ export function AwardStatusBadge({ status }: { status: AwardStatus }) {
     return <Badge tone={STATUS_TONES[status] ?? 'gray'}>{t(`awards.statuses.${status}`)}</Badge>;
 }
 
-const normalize = (text: string) =>
+export const normalizeAwardText = (text: string) =>
     text
         .toLowerCase()
         .replace(/[«»"'’ʼ]/g, '')
@@ -43,22 +47,29 @@ export default function AwardPicker({
     const { t } = useI18nStore();
     const [query, setQuery] = useState('');
     const [group, setGroup] = useState<AwardGroupId | 'all'>('all');
+    const [creating, setCreating] = useState(false);
+    const version = useCustomAwardsVersion();
+    const canManage = usePermissions().can('awards.manage');
 
     const groups = useMemo(() => {
-        const words = normalize(query).split(' ').filter(Boolean);
+        const words = normalizeAwardText(query).split(' ').filter(Boolean);
         // «Інша нагорода» stays at the end whatever is typed: it is the answer when the
-        // catalogue has nothing.
+        // catalogue has nothing. Own awards no longer given are not offered.
+        const awards = allAwards().filter((award) => !(award.custom && award.retired));
         return AWARD_GROUPS.map((g) => ({
             id: g.id,
-            awards: AWARDS.filter(
+            awards: awards.filter(
                 (award) =>
                     award.group === g.id &&
                     (group === 'all' || group === g.id || award.group === 'other') &&
                     (award.group === 'other' ||
-                        words.every((word) => normalize(award.name).includes(word))),
+                        words.every((word) =>
+                            normalizeAwardText(`${award.name} ${award.body ?? ''}`).includes(word),
+                        )),
             ),
         })).filter((g) => g.awards.length > 0);
-    }, [query, group]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `version`: own awards changed
+    }, [query, group, version]);
 
     const total = groups
         .filter((g) => g.id !== 'other')
@@ -81,7 +92,7 @@ export default function AwardPicker({
                     placeholder={t('awards.search')}
                     autoFocus
                 />
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                     {(['all', ...AWARD_GROUPS.map((g) => g.id)] as const).map((id) => (
                         <button
                             key={id}
@@ -97,6 +108,16 @@ export default function AwardPicker({
                             {id === 'all' ? t('awards.report.allGroups') : t(`awards.groups.${id}`)}
                         </button>
                     ))}
+                    {canManage && (
+                        <button
+                            type="button"
+                            onClick={() => setCreating(true)}
+                            className="ml-auto flex items-center gap-1 rounded-full border border-dashed border-primary px-3 py-1 text-xs font-medium text-primary-ink hover:bg-primary-soft"
+                        >
+                            <Plus className="size-3.5" />
+                            {t('awards.own.add')}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -133,6 +154,14 @@ export default function AwardPicker({
                                                     {award.name}
                                                 </span>
                                                 <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-ink-3">
+                                                    {award.body && (
+                                                        <span className="font-semibold text-ink-2">
+                                                            {award.body}
+                                                        </span>
+                                                    )}
+                                                    {award.custom && award.awardedBy && (
+                                                        <span>{award.awardedBy}</span>
+                                                    )}
                                                     {award.degrees && (
                                                         <span className="font-mono">
                                                             {award.degrees.join(' · ')}
@@ -163,6 +192,13 @@ export default function AwardPicker({
                     ))}
                 </div>
             </div>
+            {creating && (
+                <AwardTypeEditor
+                    award={null}
+                    onClose={() => setCreating(false)}
+                    onSaved={(saved) => onPick(customAwardDef(saved))}
+                />
+            )}
         </Modal>
     );
 }

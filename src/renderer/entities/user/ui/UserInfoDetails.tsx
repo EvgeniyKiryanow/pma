@@ -1,4 +1,13 @@
-import { Building2, Eye, EyeOff, GraduationCap, IdCard, Medal, ShieldHalf } from 'lucide-react';
+import {
+    Building2,
+    Eye,
+    EyeOff,
+    GraduationCap,
+    IdCard,
+    Medal,
+    Plus,
+    ShieldHalf,
+} from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { awardTitle, compareAwards, findAward, isGranted } from '../../../../shared/awards/catalog';
@@ -8,12 +17,15 @@ import {
     type CardField,
     type CardSection,
 } from '../../../../shared/personnel/cardSchema';
+import { staffCategoryName } from '../../../../shared/personnel/staffCategory';
 import type { AwardRecord, User } from '../../../../shared/types/user';
-import { cn, EmptyState, Tabs } from '../../../shared/ui';
+import { Button, cn, EmptyState, Tabs } from '../../../shared/ui';
 import { useI18nStore } from '../../../stores/i18nStore';
+import { usePermissions } from '../../../stores/sessionStore';
 import { useUserStore } from '../../../stores/userStore';
 import { useShtatniStore } from '../../shtatna-posada/model/useShtatniStore';
 import { isFilled, PAY_GRADE_HEADING, staffExtra, VOS_HEADING } from '../model/cardValues';
+import AwardFiles from './card/AwardFiles';
 import AwardIcon from './card/AwardIcon';
 import { AwardStatusBadge } from './card/AwardPicker';
 import { formatShpkNumber } from './UserCard';
@@ -116,6 +128,9 @@ export default function UserInfoDetails({ user }: { user: User }) {
     const [category, setCategory] = useState<CardCategoryId>('personal');
     const [showEmpty, setShowEmpty] = useState(false);
     const positions = useShtatniStore((s) => s.shtatniPosady);
+    const { can } = usePermissions();
+    // As the «Редагувати» button of the card: excluded people are only viewed.
+    const canEdit = can('personnel.edit') && user.shpkNumber !== 'excluded';
 
     useEffect(() => {
         if (!useShtatniStore.getState().shtatniPosady.length) {
@@ -201,16 +216,29 @@ export default function UserInfoDetails({ user }: { user: User }) {
     const categoryBody = () => {
         if (category === 'awards') {
             const sorted = [...awards].sort(compareAwards);
+            // Straight to «Нагороди» of the editor, where the catalogue opens.
+            const addAward = canEdit ? (
+                <Button
+                    size="sm"
+                    icon={<Plus className="size-4" />}
+                    onClick={() => useUserStore.getState().openUserFormForEdit(user, 'awards')}
+                >
+                    {t('awards.add')}
+                </Button>
+            ) : null;
             return (
                 <div className="space-y-3">
-                    {sorted.length === 0 && !isFilled(liveUser.awards) && (
+                    {sorted.length === 0 && !isFilled(liveUser.awards) ? (
                         <div className="card">
                             <EmptyState
                                 icon={<Medal />}
                                 title={t('awards.empty')}
                                 description={t('awards.emptyHint')}
+                                action={addAward}
                             />
                         </div>
+                    ) : (
+                        addAward && <div className="flex justify-end">{addAward}</div>
                     )}
                     {sorted.map((record) => {
                         const award = findAward(record.awardId);
@@ -243,6 +271,7 @@ export default function UserInfoDetails({ user }: { user: User }) {
                                     </div>
                                     <p className="mt-0.5 text-xs text-ink-3">
                                         {award ? t(`awards.groups.${award.group}`) : ''}
+                                        {award?.body ? ` · ${award.body}` : ''}
                                         {record.posthumous
                                             ? ` · ${t('awards.fields.posthumous').toLowerCase()}`
                                             : ''}
@@ -279,6 +308,15 @@ export default function UserInfoDetails({ user }: { user: User }) {
                                             />
                                         )}
                                     </dl>
+                                    {record.files?.length ? (
+                                        <div className="mt-3">
+                                            <AwardFiles
+                                                userId={liveUser.id}
+                                                recordId={record.id}
+                                                files={record.files}
+                                            />
+                                        </div>
+                                    ) : null}
                                 </div>
                             </article>
                         );
@@ -318,7 +356,9 @@ export default function UserInfoDetails({ user }: { user: User }) {
                                 />
                                 <Fact
                                     label={t('card.fields.category')}
-                                    value={position?.category || liveUser.category}
+                                    value={staffCategoryName(
+                                        position?.category || liveUser.category,
+                                    )}
                                 />
                                 <Fact
                                     label={t('card.fields.shpkCode')}

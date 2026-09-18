@@ -106,6 +106,14 @@ export const HISTORY_CHANNELS = {
     statusPeriods: 'history:status-periods',
 } as const;
 
+/** The awards register: the unit's own awards and the documents of awards in the cards. */
+export const AWARD_CHANNELS = {
+    listTypes: 'awards:list-types',
+    saveType: 'awards:save-type',
+    removeType: 'awards:remove-type',
+    loadFile: 'awards:load-file',
+} as const;
+
 export const COMMENT_CHANNELS = {
     list: 'comments:get-user-comments',
     add: 'comments:add-user-comment',

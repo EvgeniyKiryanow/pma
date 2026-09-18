@@ -31,6 +31,7 @@ export function createPersonnelModule(context: ModuleContext) {
     return defineModule({
         name: 'personnel',
         personnel,
+        attachments,
         history,
         comments,
         registerIpc: () => {

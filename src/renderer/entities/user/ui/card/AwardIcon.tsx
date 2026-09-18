@@ -18,7 +18,12 @@ const PALETTES: Record<AwardGroupId, Palette> = {
     mod: { ribbon: ['#4E6B2A', '#C9B458'], accent: '#4E6B2A' },
     // black and red of the honorary badges of the Commander-in-Chief
     commander: { ribbon: ['#1E2328', '#B3322B'], accent: '#B3322B' },
+    // deep blue of the other bodies of the security sector (НГУ, ДПСУ, СБУ…)
+    bodies: { ribbon: ['#1D3A6B', '#7FA7D9'], accent: '#1D3A6B' },
     titles: { ribbon: ['#6B4AA8', '#E7D7A0'], accent: '#6B4AA8' },
+    public: { ribbon: ['#8A2F2F', '#E8C98A'], accent: '#8A2F2F' },
+    // the unit's own awards: dark olive and sand
+    unit: { ribbon: ['#3F4A2A', '#D9C27A'], accent: '#5B6B34' },
     other: { ribbon: ['#6B7280', '#C8CDD4'], accent: '#6B7280' },
 };
 
@@ -44,8 +49,13 @@ export default function AwardIcon({
     size = 36,
     className,
     muted,
+    kind,
+    group,
 }: {
     awardId: string;
+    /** Shape and colours of an award that is not in the catalogue yet (the editor's preview). */
+    kind?: AwardKind;
+    group?: AwardGroupId;
     degree?: string;
     size?: number;
     className?: string;
@@ -53,7 +63,8 @@ export default function AwardIcon({
     muted?: boolean;
 }) {
     const uid = useId().replace(/:/g, '');
-    const award = findAward(awardId) ?? findAward('other')!;
+    const found = findAward(awardId) ?? findAward('other')!;
+    const award = { kind: kind ?? found.kind, group: group ?? found.group };
     const palette = PALETTES[award.group];
     const metal = metalOf(degree, award.kind);
     const metalId = `aw-metal-${uid}`;

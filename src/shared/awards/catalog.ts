@@ -1,3 +1,4 @@
+import type { AwardType } from '../types/awards';
 import type { AwardRecord, AwardStatus } from '../types/user';
 
 /**
@@ -8,8 +9,11 @@ import type { AwardRecord, AwardStatus } from '../types/user';
  * - наказ Міністра оборони № 165 від 11.03.2013 у редакції наказу № 392 від 21.11.2022
  *   (відомчі заохочувальні відзнаки: нагрудні знаки, 28 медалей, заохочення);
  * - наказ Головнокомандувача ЗСУ № 411 від 23.12.2021 (почесні нагрудні знаки) зі змінами 2023.
- * Awards of other bodies (МВС, НГУ, ДПСУ, СБУ, ГУР, командувачів…) are written by hand as
- * «Інша нагорода» with «Від кого».
+ * - відомчі відзнаки НГУ (наказ МВС № 804 від 11.08.2014), ДПСУ, МВС (наказ № 38 від 2013),
+ *   Національної поліції (наказ № 317 від 25.04.2019), СБУ (наказ № 30 від 25.01.2013),
+ *   СЗР та ГУР МО — as their bodies publish them.
+ * Anything else (commanders of branches, brigades, local and public awards) is kept in the
+ * unit's own register (`award_types`, ids `custom:<uuid>`), see `setCustomAwards`.
  *
  * Ids are stored in the cards: never change or reuse one.
  */
@@ -25,7 +29,28 @@ export type AwardKind =
     | 'title'
     | 'other';
 
-export type AwardGroupId = 'state' | 'president' | 'mod' | 'commander' | 'titles' | 'other';
+export type AwardGroupId =
+    | 'state'
+    | 'president'
+    | 'mod'
+    | 'commander'
+    | 'bodies'
+    | 'titles'
+    | 'public'
+    | 'unit'
+    | 'other';
+
+export const AWARD_KINDS: readonly AwardKind[] = [
+    'hero',
+    'order',
+    'cross',
+    'medal',
+    'badge',
+    'weapon',
+    'letter',
+    'title',
+    'other',
+];
 
 export type AwardDef = {
     id: string;
@@ -39,6 +64,16 @@ export type AwardDef = {
     since?: number;
     /** No longer awarded, but still worn and recorded. */
     retired?: boolean;
+    /** Who awards it, when it differs from the group (other bodies, own awards). */
+    awardedBy?: string;
+    /** Short name of the body (НГУ, ДПСУ, СБУ…) shown next to the name. */
+    body?: string;
+    /** From the unit's own register: can be edited there. */
+    custom?: boolean;
+    /** Own awards: the order that established it. */
+    established?: string;
+    /** Own awards: what it is given for. */
+    notes?: string;
 };
 
 export type AwardGroup = {
@@ -52,7 +87,10 @@ export const AWARD_GROUPS: readonly AwardGroup[] = [
     { id: 'president', awardedBy: 'Президент України' },
     { id: 'mod', awardedBy: 'Міністр оборони України' },
     { id: 'commander', awardedBy: 'Головнокомандувач Збройних Сил України' },
+    { id: 'bodies', awardedBy: '' },
     { id: 'titles', awardedBy: 'Президент України' },
+    { id: 'public', awardedBy: '' },
+    { id: 'unit', awardedBy: 'Командир військової частини' },
     { id: 'other', awardedBy: '' },
 ];
 
@@ -69,6 +107,23 @@ const commander = (id: string, name: string, kind: AwardKind = 'cross') =>
     ({ id, group: 'commander', kind, name, since: 2021 }) as AwardDef;
 const title = (id: string, name: string) =>
     ({ id, group: 'titles', kind: 'title', name }) as AwardDef;
+/** A departmental award of another body; the name carries the body when it is ambiguous. */
+const bodyOf =
+    (body: string, awardedBy: string) =>
+    (id: string, kind: AwardKind, name: string, extra: Partial<AwardDef> = {}) =>
+        ({ id, group: 'bodies', kind, name, body, awardedBy, ...extra }) as AwardDef;
+const ngu = bodyOf('НГУ', 'Командувач Національної гвардії України');
+const dpsu = bodyOf('ДПСУ', 'Голова Державної прикордонної служби України');
+const mvs = bodyOf('МВС', 'Міністр внутрішніх справ України');
+const police = bodyOf('Нацполіція', 'Голова Національної поліції України');
+const sbu = bodyOf('СБУ', 'Голова Служби безпеки України');
+const szr = bodyOf('СЗР', 'Голова Служби зовнішньої розвідки України');
+const gur = bodyOf(
+    'ГУР МО',
+    'Начальник Головного управління розвідки Міністерства оборони України',
+);
+const publicAward = (id: string, kind: AwardKind, name: string, extra: Partial<AwardDef> = {}) =>
+    ({ id, group: 'public', kind, name, ...extra }) as AwardDef;
 
 export const AWARDS: readonly AwardDef[] = [
     // ------------------------------------------------------------ державні нагороди
@@ -107,14 +162,14 @@ export const AWARDS: readonly AwardDef[] = [
 
     // ------------------------------------------------------------ відзнаки Президента
     president('cross-combat-merit', 'cross', 'Хрест бойових заслуг', { since: 2022 }),
-    president('cross-mazepa', 'cross', 'Хрест Івана Мазепи', { since: 2009 }),
+    state('cross-mazepa', 'cross', 'Хрест Івана Мазепи', { since: 2009 }),
     president('defense-of-ukraine', 'medal', 'Відзнака Президента України «За оборону України»', {
         since: 2022,
     }),
     president('golden-heart', 'badge', 'Відзнака Президента України «Золоте серце»', {
         since: 2022,
     }),
-    president('medal-labor-valor', 'medal', 'Медаль «За працю і звитягу»', { since: 2001 }),
+    state('medal-labor-valor', 'medal', 'Медаль «За працю і звитягу»', { since: 2001 }),
     president(
         'ato-participation',
         'medal',
@@ -310,14 +365,121 @@ export const AWARDS: readonly AwardDef[] = [
     title('title-lawyer', 'Заслужений юрист України'),
     title('title-mother-heroine', 'Мати-героїня'),
 
+    // ------------------------------------------------------------ інші органи сектору безпеки
+    ngu('ngu-valiant-service', 'badge', 'Нагрудний знак «За доблесну службу» (НГУ)'),
+    ngu('ngu-20-years', 'medal', 'Медаль «20 років сумлінної служби» (НГУ)'),
+    ngu('ngu-15-years', 'medal', 'Медаль «15 років сумлінної служби» (НГУ)'),
+    ngu('ngu-10-years', 'medal', 'Медаль «10 років сумлінної служби» (НГУ)'),
+    ngu('ngu-honorary-letter', 'letter', 'Почесна грамота Національної гвардії України'),
+    ngu('ngu-letter', 'letter', 'Грамота Національної гвардії України'),
+    ngu('ngu-gratitude', 'letter', 'Подяка Національної гвардії України'),
+
+    dpsu('dpsu-courage', 'badge', 'Нагрудний знак «За мужність в охороні державного кордону»'),
+    dpsu('dpsu-excellent', 'badge', 'Нагрудний знак «Відмінний прикордонник»'),
+    dpsu('dpsu-distinction', 'badge', 'Нагрудний знак «Відзнака служби» (ДПСУ)'),
+    dpsu('dpsu-honorary', 'badge', 'Нагрудний знак «Почесний прикордонник України»'),
+    dpsu('dpsu-veteran', 'medal', 'Медаль «Ветеран служби» (ДПСУ)'),
+    dpsu('dpsu-20-years', 'medal', 'Медаль «20 років сумлінної служби» (ДПСУ)'),
+    dpsu('dpsu-15-years', 'medal', 'Медаль «15 років сумлінної служби» (ДПСУ)'),
+    dpsu('dpsu-10-years', 'medal', 'Медаль «10 років сумлінної служби» (ДПСУ)'),
+    dpsu('dpsu-honorary-letter', 'letter', 'Почесна грамота Державної прикордонної служби України'),
+    dpsu('dpsu-letter', 'letter', 'Грамота Державної прикордонної служби України'),
+    dpsu('dpsu-gratitude', 'letter', 'Подяка Державної прикордонної служби України'),
+
+    mvs('mvs-public-safety', 'badge', 'Нагрудний знак «За безпеку народу»'),
+    mvs('mvs-distinction', 'badge', 'Нагрудний знак «За відзнаку в службі»'),
+    mvs('mvs-bravery', 'badge', 'Нагрудний знак «За відвагу в службі»'),
+    mvs('mvs-veteran', 'medal', 'Медаль «Ветеран служби» (МВС)'),
+    mvs('mvs-20-years', 'medal', 'Медаль «20 років сумлінної служби» (МВС)'),
+    mvs('mvs-15-years', 'medal', 'Медаль «15 років сумлінної служби» (МВС)'),
+    mvs('mvs-10-years', 'medal', 'Медаль «10 років сумлінної служби» (МВС)'),
+    mvs('mvs-honorary-letter', 'letter', 'Почесна грамота Міністерства внутрішніх справ України'),
+    mvs('mvs-letter', 'letter', 'Грамота Міністерства внутрішніх справ України'),
+    mvs('mvs-gratitude', 'letter', 'Подяка Міністерства внутрішніх справ України'),
+    mvs('mvs-firearm', 'weapon', 'Вогнепальна зброя (відзнака МВС)'),
+
+    police('police-sign-of-honor', 'badge', 'Нагрудний знак «Знак пошани» (Національна поліція)'),
+    police('police-veteran', 'medal', 'Медаль «Ветеран служби» (Національна поліція)'),
+    police('police-20-years', 'medal', 'Медаль «20 років сумлінної служби» (Національна поліція)'),
+    police('police-15-years', 'medal', 'Медаль «15 років сумлінної служби» (Національна поліція)'),
+    police('police-10-years', 'medal', 'Медаль «10 років сумлінної служби» (Національна поліція)'),
+    police('police-honorary-letter', 'letter', 'Почесна грамота Національної поліції України'),
+    police('police-letter', 'letter', 'Грамота Національної поліції України'),
+    police('police-gratitude', 'letter', 'Подяка Національної поліції України'),
+
+    sbu('sbu-distinction', 'badge', 'Нагрудний знак «Відзнака Служби безпеки України»'),
+    sbu('sbu-valor', 'badge', 'Нагрудний знак «За доблесть» (СБУ)'),
+    sbu('sbu-courage', 'badge', 'Нагрудний знак «За відвагу» (СБУ)'),
+    sbu('sbu-veteran', 'medal', 'Медаль «Ветеран служби» (СБУ)'),
+    sbu('sbu-20-years', 'medal', 'Медаль «20 років сумлінної служби» (СБУ)'),
+    sbu('sbu-15-years', 'medal', 'Медаль «15 років сумлінної служби» (СБУ)'),
+    sbu('sbu-10-years', 'medal', 'Медаль «10 років сумлінної служби» (СБУ)'),
+    sbu('sbu-honorary-letter', 'letter', 'Почесна грамота Служби безпеки України'),
+    sbu('sbu-gratitude', 'letter', 'Подяка Служби безпеки України'),
+
+    szr('szr-knight', 'badge', 'Нагрудний знак «Лицар розвідки»'),
+    szr('szr-glory', 'badge', 'Нагрудний знак «Слава розвідки»'),
+    szr('szr-cross', 'cross', 'Нагрудний знак «Хрест розвідки»'),
+
+    gur('gur-firearm', 'weapon', 'Вогнепальна зброя (відзнака ГУР МО)'),
+    gur('gur-cold-weapon', 'weapon', 'Холодна зброя (відзнака ГУР МО)'),
+
+    // ------------------------------------------------------------ громадські нагороди
+    publicAward('public-people-hero', 'order', 'Орден «Народний Герой України»', {
+        since: 2015,
+        awardedBy: 'Рада ордена «Народний Герой України»',
+    }),
+
     // ------------------------------------------------------------ written by hand
     { id: 'other', group: 'other', kind: 'other', name: 'Інша нагорода' },
 ];
 
 const BY_ID = new Map(AWARDS.map((award) => [award.id, award]));
 
+/** Own awards of the unit (brigade, battalion, local...): ids `custom:<uuid>`. */
+let customAwards: readonly AwardDef[] = [];
+let customById = new Map<string, AwardDef>();
+
+export const CUSTOM_PREFIX = 'custom:';
+
+export function isCustomAwardId(id: string | null | undefined): boolean {
+    return Boolean(id?.startsWith(CUSTOM_PREFIX));
+}
+
+/** Replaces the own awards known to the catalogue (the renderer loads them from the database). */
+export function setCustomAwards(awards: readonly AwardDef[]): void {
+    customAwards = awards;
+    customById = new Map(awards.map((award) => [award.id, award]));
+}
+
+/** An award of the own register as the catalogue shows it. */
+export function customAwardDef(type: AwardType): AwardDef {
+    return {
+        id: `${CUSTOM_PREFIX}${type.uuid}`,
+        group: 'unit',
+        kind: type.kind,
+        name: type.name,
+        degrees: type.degrees.length ? type.degrees : undefined,
+        retired: type.retired || undefined,
+        awardedBy: type.awardedBy || undefined,
+        established: type.established || undefined,
+        notes: type.notes || undefined,
+        custom: true,
+    };
+}
+
+export function getCustomAwards(): readonly AwardDef[] {
+    return customAwards;
+}
+
+/** The catalogue with the own awards, «Інша нагорода» last. */
+export function allAwards(): AwardDef[] {
+    const other = AWARDS[AWARDS.length - 1];
+    return [...AWARDS.slice(0, -1), ...customAwards, other];
+}
+
 export function findAward(id: string | null | undefined): AwardDef | undefined {
-    return id ? BY_ID.get(id) : undefined;
+    return id ? (BY_ID.get(id) ?? customById.get(id)) : undefined;
 }
 
 export function awardGroup(id: AwardGroupId): AwardGroup {
@@ -362,7 +524,7 @@ export function newAwardRecord(award: AwardDef): AwardRecord {
 /** Who usually awards it (the default of «Від кого»). */
 export function defaultAwardedBy(awardId: string): string {
     const award = findAward(awardId);
-    return award ? awardGroup(award.group).awardedBy : '';
+    return award ? (award.awardedBy ?? awardGroup(award.group).awardedBy) : '';
 }
 
 /** Common answers for «Від кого». */
@@ -389,7 +551,22 @@ const KIND_ORDER: AwardKind[] = [
     'letter',
     'other',
 ];
-const GROUP_ORDER: AwardGroupId[] = ['state', 'president', 'mod', 'commander', 'titles', 'other'];
+const GROUP_ORDER: AwardGroupId[] = [
+    'state',
+    'president',
+    'mod',
+    'commander',
+    'bodies',
+    'titles',
+    'public',
+    'unit',
+    'other',
+];
+
+function position(award: AwardDef): number {
+    const index = AWARDS.indexOf(award);
+    return index >= 0 ? index : AWARDS.length + customAwards.indexOf(award);
+}
 
 /** Most important first: state awards before departmental ones, orders before medals. */
 export function compareAwards(a: AwardRecord, b: AwardRecord): number {
@@ -398,7 +575,7 @@ export function compareAwards(a: AwardRecord, b: AwardRecord): number {
     return (
         GROUP_ORDER.indexOf(da.group) - GROUP_ORDER.indexOf(db.group) ||
         KIND_ORDER.indexOf(da.kind) - KIND_ORDER.indexOf(db.kind) ||
-        AWARDS.indexOf(da) - AWARDS.indexOf(db) ||
+        position(da) - position(db) ||
         (da.degrees?.indexOf(a.degree ?? '') ?? 0) - (db.degrees?.indexOf(b.degree ?? '') ?? 0)
     );
 }

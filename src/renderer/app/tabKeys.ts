@@ -1,6 +1,7 @@
 /** Tab identifiers, kept free of component imports so stores can use them without cycles. */
 export const TAB_KEY_LIST = [
     'manager',
+    'awards',
     'reports',
     'backups',
     'importUsers',

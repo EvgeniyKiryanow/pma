@@ -3,6 +3,7 @@ import fsp from 'fs/promises';
 import mime from 'mime-types';
 import path from 'path';
 
+import { AppError } from '../../shared/ipc/result';
 import { move, remove } from '../core/fsUtils';
 import type { Logger } from '../core/logger';
 import { resolveInside, safeFileName } from '../core/paths';
@@ -79,7 +80,14 @@ export class HistoryAttachments {
         entryId: number,
         files: IncomingAttachment[],
     ): Promise<AttachmentMeta[]> {
-        const dir = this.entryDir(userId, entryId);
+        return this.saveInto(this.entryDir(userId, entryId), files, `history entry #${entryId}`);
+    }
+
+    private async saveInto(
+        dir: string,
+        files: IncomingAttachment[],
+        owner: string,
+    ): Promise<AttachmentMeta[]> {
         await fsp.mkdir(dir, { recursive: true });
 
         const taken = new Set<string>();
@@ -97,7 +105,7 @@ export class HistoryAttachments {
                 }
                 const content = decodeDataUrl(file.dataUrl);
                 if (!content) throw new Error(`Attachment #${meta.length + 1} is not a data URL`);
-                const target = this.filePath(userId, entryId, name);
+                const target = resolveInside(dir, name);
                 const existed = fs.existsSync(target);
                 // Written aside and renamed: a crash never leaves half a document in place.
                 partial = `${target}.partial`;
@@ -109,7 +117,7 @@ export class HistoryAttachments {
             }
             return meta;
         } catch (err) {
-            this.logger.error(`Failed to write attachments of history entry #${entryId}`, err);
+            this.logger.error(`Failed to write attachments of ${owner}`, err);
             if (partial) await remove(partial).catch(() => undefined);
             for (const target of written) await remove(target).catch(() => undefined);
             throw err;
@@ -117,11 +125,59 @@ export class HistoryAttachments {
     }
 
     async readAsDataUrl(userId: number, entryId: number, fileName: string): Promise<string> {
-        const buffer = this.cipher.decrypt(
-            await fsp.readFile(this.filePath(userId, entryId, fileName)),
-        );
+        return this.readFile(this.filePath(userId, entryId, fileName), fileName);
+    }
+
+    private async readFile(target: string, fileName: string): Promise<string> {
+        const buffer = this.cipher.decrypt(await fsp.readFile(target));
         const mimeType = mime.lookup(fileName) || 'application/octet-stream';
         return `data:${mimeType};base64,${buffer.toString('base64')}`;
+    }
+
+    // ------------------------------------------------------------ documents of awards
+    // <root>/<userId>/awards/<recordId>/<file>; the record id is the award's UUID in the card.
+
+    awardDir(userId: number, recordId: string): string {
+        return resolveInside(
+            this.root(),
+            safeFileName(String(userId)),
+            'awards',
+            safeFileName(recordId),
+        );
+    }
+
+    /** Writes the new files of an award (all or nothing) and returns what the card keeps. */
+    saveAwardFiles(
+        userId: number,
+        recordId: string,
+        files: IncomingAttachment[],
+    ): Promise<AttachmentMeta[]> {
+        return this.saveInto(this.awardDir(userId, recordId), files, `award ${recordId}`);
+    }
+
+    /** Throws NOT_FOUND when the file is not on this computer (e.g. the card came by exchange). */
+    async readAwardFile(userId: number, recordId: string, fileName: string): Promise<string> {
+        const target = resolveInside(this.awardDir(userId, recordId), safeFileName(fileName));
+        try {
+            return await this.readFile(target, fileName);
+        } catch {
+            throw new AppError('NOT_FOUND', `File not found: ${fileName}`);
+        }
+    }
+
+    /** Deletes files of an award that are no longer listed in it. */
+    async removeAwardFilesExcept(userId: number, recordId: string, keep: AttachmentMeta[]) {
+        const dir = this.awardDir(userId, recordId);
+        const kept = new Set(keep.map((file) => file.name.toLowerCase()));
+        const names = await fsp.readdir(dir).catch(() => [] as string[]);
+        for (const name of names) {
+            if (kept.has(name.toLowerCase())) continue;
+            await fsp
+                .rm(resolveInside(dir, name), { force: true })
+                .catch((err) => this.logger.warn('Failed to delete a removed award file', err));
+        }
+        if (!keep.length)
+            await fsp.rm(dir, { recursive: true, force: true }).catch(() => undefined);
     }
 
     /** Deletes files of the entry that are not in `keep`. */

@@ -8,6 +8,7 @@ import { pickFiles } from '../../../shared/lib/pickFiles';
 import { cn, EmptyState, formatDateTime, IconButton, SearchInput } from '../../../shared/ui';
 import { confirmAction } from '../../../shared/ui/confirm';
 import { useI18nStore } from '../../../stores/i18nStore';
+import { useSearchJump } from '../../../stores/searchJumpStore';
 import { useReportFilesStore } from '../../report/model/reportFilesStore';
 import { printDocx } from '../model/docxPrint';
 
@@ -17,6 +18,12 @@ export default function YourSavedReportsTab() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [dragOver, setDragOver] = useState(false);
+    const reportsJump = useSearchJump((s) => s.jumps.reports);
+    useEffect(() => {
+        if (reportsJump?.view !== 'yourSaved') return;
+        setSearchTerm(reportsJump.query ?? '');
+        useSearchJump.getState().clear('reports');
+    }, [reportsJump]);
 
     useEffect(() => {
         void loadFromDb();

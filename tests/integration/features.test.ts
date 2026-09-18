@@ -5,6 +5,8 @@ import path from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { ModuleContext } from '../../src/main/app/module';
+import { AwardTypeRepository } from '../../src/main/awards/AwardTypeRepository';
+import { AwardTypeService } from '../../src/main/awards/AwardTypeService';
 import { DatabaseManager } from '../../src/main/db/connection';
 import { migrationRunner } from '../../src/main/db/migrations';
 import { DirectiveRepository } from '../../src/main/directives/DirectiveRepository';
@@ -53,7 +55,9 @@ async function createWorld(dir: string) {
         dir,
         database,
         journal,
+        attachments,
         personnel: new PersonnelService(transactor, people, journal, attachments),
+        awardTypes: new AwardTypeService(transactor, new AwardTypeRepository(db), journal),
         history: new HistoryService(
             transactor,
             new EntryListStore<CommentOrHistoryEntry>(people, journal, 'history'),
@@ -204,6 +208,89 @@ describe('personnel', () => {
         expect(saved.awardRecords).toEqual([award]);
         expect(saved.educationList).toEqual([education]);
         expect(saved.iban).toBe('UA213223130000026007233566001');
+    });
+
+    it('keeps the documents of awards on disk and only their names in the card', async () => {
+        const scan = `data:application/pdf;base64,${Buffer.from('%PDF указ').toString('base64')}`;
+        const award = {
+            id: 'rec-1',
+            awardId: 'order-courage',
+            degree: 'III',
+            status: 'awarded',
+        };
+        const created = await world.personnel.create(
+            person('Мельник Андрій', {
+                awardRecords: [
+                    {
+                        ...award,
+                        files: [{ name: 'указ.pdf', type: 'application/pdf', dataUrl: scan }],
+                    },
+                ],
+            }),
+        );
+        const stored = created.awardRecords[0].files;
+        expect(stored).toEqual([{ name: 'указ.pdf', type: 'application/pdf', size: 13 }]);
+        expect(JSON.stringify(created)).not.toContain('base64');
+        expect(await world.attachments.readAwardFile(created.id, 'rec-1', 'указ.pdf')).toBe(scan);
+
+        // A second file with the same name is kept apart; the first stays.
+        const updated = await world.personnel.update(created.id, {
+            ...created,
+            awardRecords: [{ ...award, files: [...stored, { name: 'указ.pdf', dataUrl: scan }] }],
+        });
+        expect(updated.awardRecords[0].files.map((f: { name: string }) => f.name)).toEqual([
+            'указ.pdf',
+            'указ (2).pdf',
+        ]);
+
+        // Removing a file, then the award, removes them from disk.
+        await world.personnel.update(created.id, {
+            ...created,
+            awardRecords: [{ ...award, files: [stored[0]] }],
+        });
+        await expect(
+            world.attachments.readAwardFile(created.id, 'rec-1', 'указ (2).pdf'),
+        ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+        await world.personnel.update(created.id, { ...created, awardRecords: [] });
+        expect(fs.existsSync(world.attachments.awardDir(created.id, 'rec-1'))).toBe(false);
+    });
+
+    it('keeps the own awards register and refuses to delete an award someone holds', async () => {
+        const saved = await world.awardTypes.save({
+            name: 'Нагрудний знак «За мужність» бригади',
+            kind: 'badge',
+            awardedBy: 'Командир бригади',
+            degrees: ['II', 'I'],
+            established: 'Наказ № 1',
+            notes: '',
+            retired: false,
+        });
+        expect(saved.uuid).toMatch(/^[0-9a-f-]{36}$/);
+        expect(saved.degrees).toEqual(['I', 'II']);
+
+        const { id } = await world.personnel.create(
+            person('Коваль Ігор', {
+                awardRecords: [{ id: 'r', awardId: `custom:${saved.uuid}`, status: 'awarded' }],
+            }),
+        );
+        await expect(world.awardTypes.remove(saved.uuid)).rejects.toMatchObject({
+            code: 'CONFLICT',
+            details: { holders: 1 },
+        });
+
+        const retired = await world.awardTypes.save({ ...saved, retired: true });
+        expect(retired.retired).toBe(true);
+        await world.personnel.update(id, { awardRecords: [] });
+        await world.awardTypes.remove(saved.uuid);
+        expect(await world.awardTypes.list()).toEqual([]);
+        expect((await journalOf('award_types')).map((c) => c.operation)).toEqual([
+            'insert',
+            'update',
+            'delete',
+        ]);
+        await expect(
+            world.awardTypes.save({ ...saved, name: '  ', uuid: undefined }),
+        ).rejects.toMatchObject({ code: 'VALIDATION' });
     });
 
     it('lists the database columns', async () => {
