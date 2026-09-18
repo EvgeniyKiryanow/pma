@@ -1,0 +1,57 @@
+{
+  "version": "v2.0.0",
+  "backupPassword": "Sumisnist-Kopii-2026",
+  "account": {
+    "username": "fixture",
+    "password": "Fixture-Parol-2026"
+  },
+  "positions": [
+    {
+      "shtat_number": "001",
+      "unit_name": "Управління\r\nроти",
+      "position_name": "Командир роти",
+      "category": "оф"
+    },
+    {
+      "shtat_number": "010",
+      "unit_name": "1 взвод\r\n1 відділення",
+      "position_name": "Стрілець",
+      "category": "солд"
+    },
+    {
+      "shtat_number": "011",
+      "unit_name": "1 взвод\r\n1 відділення",
+      "position_name": "Кулеметник",
+      "category": "солд"
+    }
+  ],
+  "people": [
+    {
+      "fullName": "Сумісний Андрій Петрович",
+      "dateOfBirth": "1990-01-15",
+      "rank": "капітан",
+      "soldierStatus": "Управління",
+      "shpkNumber": "001"
+    },
+    {
+      "fullName": "Сумісний Богдан Іванович",
+      "dateOfBirth": "1995-06-01",
+      "rank": "солдат",
+      "soldierStatus": "Позиція піхоти",
+      "shpkNumber": "010"
+    },
+    {
+      "fullName": "Сумісний Василь Олегович",
+      "dateOfBirth": "1998-11-30",
+      "rank": "солдат",
+      "soldierStatus": "Відпустка",
+      "shpkNumber": null
+    }
+  ],
+  "document": {
+    "person": "Сумісний Богдан Іванович",
+    "entryId": 1789000000001,
+    "name": "довідка.txt",
+    "text": "Документ версії, що створила ці дані: має читатися в усіх наступних версіях."
+  }
+}

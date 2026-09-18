@@ -9,7 +9,10 @@ export type BackupManifest = {
     counts: {
         personnel: number;
         accounts: number;
+        /** Every file of the package, blank templates included. */
         files: number;
+        /** Attachments and saved documents (packages made since this field exists). */
+        documents?: number;
     };
     totalBytes: number;
 };
@@ -36,6 +39,8 @@ export type ImportInspection = {
     willMigrate: boolean;
     personnelCount: number;
     accountCount: number;
+    /** Login of the signed-in administrator, who keeps signing in after the restore. */
+    keepsAccount?: string | null;
 };
 
 export type RestoreResult = {

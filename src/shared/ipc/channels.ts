@@ -46,6 +46,10 @@ export const BACKUP_CHANNELS = {
     createSnapshot: 'backup:create-snapshot',
     openBackupsFolder: 'backup:open-folder',
     resetAll: 'system:reset-all',
+    /** Whether this installation can remove itself (installed on Windows). */
+    canUninstall: 'system:can-uninstall',
+    /** Destroys every piece of data, then removes the program from the computer. */
+    uninstall: 'system:uninstall',
 } as const;
 
 export const APP_CHANNELS = {

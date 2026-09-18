@@ -81,7 +81,9 @@ describe('archive container', () => {
         await expect(writer.addBuffer('/absolute.txt', Buffer.from('x'))).rejects.toMatchObject({
             code: 'CORRUPTED',
         });
-        await expect(writer.addBuffer('C:\\windows\\x.txt', Buffer.from('x'))).rejects.toMatchObject({
+        await expect(
+            writer.addBuffer('C:\\windows\\x.txt', Buffer.from('x')),
+        ).rejects.toMatchObject({
             code: 'CORRUPTED',
         });
         await writer.close();

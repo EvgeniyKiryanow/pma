@@ -51,6 +51,10 @@ export function createContainer() {
         sessions: sessionManager,
         templates: reports.installer,
         hasAccounts: () => auth.auth.hasAccounts(),
+        accountToKeep: async (sender) => {
+            const session = sessionManager.get(sender);
+            return session ? auth.accounts.credentials(session.accountId) : null;
+        },
         onDataReplaced: () => settings.settings.forget(),
         clearBrowserData,
         destroyLogs: destroyLogFiles,
@@ -71,7 +75,7 @@ export function createContainer() {
 
     /** Registration order does not matter: every channel is independent. */
     const modules: FeatureModule[] = [
-        createSystemModule(context),
+        createSystemModule(context, { hasAccounts: () => auth.auth.hasAccounts() }),
         auth,
         audit,
         settings,

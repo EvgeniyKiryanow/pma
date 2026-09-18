@@ -1,20 +1,26 @@
+import type { WebContents } from 'electron';
 import { shell } from 'electron';
 
 import type { AutoBackupSettings, BackupSettings, ResetOptions } from '../../shared/backup/types';
 import { BACKUP_CHANNELS } from '../../shared/ipc/channels';
 import { AppError } from '../../shared/ipc/result';
+import type { KeptAccount } from '../auth/services/AccountService';
 import { chooseOpenFile, chooseSavePath } from '../core/dialogs';
 import type { JsonStore } from '../core/JsonStore';
 import { AppPaths } from '../core/paths';
 import { access, handleResult } from '../ipc/secureHandle';
 import type { AutoBackupScheduler } from './AutoBackupScheduler';
 import type { BackupService } from './BackupService';
+import type { Uninstaller } from './Uninstaller';
 
 type Deps = {
     backups: BackupService;
     settings: JsonStore<BackupSettings>;
     scheduler: AutoBackupScheduler;
     hasAccounts: () => Promise<boolean>;
+    /** The signed-in account of the window (null on a fresh install: nobody to keep). */
+    accountToKeep: (sender: WebContents) => Promise<KeptAccount | null>;
+    uninstaller: Uninstaller;
 };
 
 function defaultBackupName(): string {
@@ -42,7 +48,14 @@ function sanitizeAutoBackup(input: Partial<AutoBackupSettings>): Partial<AutoBac
     return result;
 }
 
-export function registerBackupIpc({ backups, settings, scheduler, hasAccounts }: Deps): void {
+export function registerBackupIpc({
+    backups,
+    settings,
+    scheduler,
+    hasAccounts,
+    accountToKeep,
+    uninstaller,
+}: Deps): void {
     // Restoring is also allowed on a fresh install (no accounts yet), so a new computer can be
     // set up straight from a backup without creating a throwaway administrator first.
     const canImport = access.custom(
@@ -80,17 +93,20 @@ export function registerBackupIpc({ backups, settings, scheduler, hasAccounts }:
         return backups.selectImport(event.sender.id, filePath);
     });
 
-    handleResult(BACKUP_CHANNELS.inspect, canImport, (event, password: string) =>
-        backups.inspectImport(event.sender.id, password),
-    );
+    handleResult(BACKUP_CHANNELS.inspect, canImport, async (event, password: string) => {
+        const inspection = await backups.inspectImport(event.sender.id, password);
+        const keep = await accountToKeep(event.sender);
+        return { ...inspection, keepsAccount: keep?.username ?? null };
+    });
 
     handleResult(
         BACKUP_CHANNELS.restore,
         canImport,
-        (event) => backups.restoreImport(event.sender.id),
-        {
-            audit: 'backup.restore',
-        },
+        async (event) =>
+            backups.restoreImport(event.sender.id, {
+                keepAccount: await accountToKeep(event.sender),
+            }),
+        { audit: 'backup.restore' },
     );
 
     handleResult(BACKUP_CHANNELS.getSettings, access.any('backup.export', 'backup.import'), () =>
@@ -143,5 +159,24 @@ export function registerBackupIpc({ backups, settings, scheduler, hasAccounts }:
                 ),
             }),
         { audit: 'system.reset-all' },
+    );
+
+    handleResult(BACKUP_CHANNELS.canUninstall, access.any('system.reset'), () =>
+        uninstaller.available(),
+    );
+
+    // Everything is destroyed the same way as «Очищення» with local copies; the uninstaller
+    // then removes the program, its shortcuts and the (now empty) data folder.
+    handleResult(
+        BACKUP_CHANNELS.uninstall,
+        access.any('system.reset'),
+        async () => {
+            if (!uninstaller.available()) {
+                throw new AppError('VALIDATION', 'Програму встановлено не інсталятором');
+            }
+            await backups.resetAll({ destroyLocalCopies: true });
+            uninstaller.start();
+        },
+        { audit: 'system.uninstall' },
     );
 }

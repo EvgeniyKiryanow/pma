@@ -1,7 +1,9 @@
-import { app } from 'electron';
+import { app, type WebContents } from 'electron';
+import path from 'path';
 
 import type { BackupSettings } from '../../shared/backup/types';
 import { defineModule, type ModuleContext } from '../app/module';
+import type { KeptAccount } from '../auth/services/AccountService';
 import type { SessionManager } from '../auth/SessionManager';
 import { getInstanceId } from '../core/instance';
 import { JsonStore } from '../core/JsonStore';
@@ -14,6 +16,7 @@ import type { DataVault } from '../security/DataVault';
 import { AutoBackupScheduler } from './AutoBackupScheduler';
 import { BackupService } from './BackupService';
 import { registerBackupIpc } from './ipc';
+import { Uninstaller } from './Uninstaller';
 
 const DEFAULT_SETTINGS: BackupSettings = {
     autoBackup: { enabled: true, intervalDays: 1, keep: 14 },
@@ -27,6 +30,8 @@ type BackupModuleDeps = {
     sessions: SessionManager;
     templates: TemplateInstaller;
     hasAccounts: () => Promise<boolean>;
+    /** The administrator restoring a backup keeps their login (see BackupService). */
+    accountToKeep?: (sender: WebContents) => Promise<KeptAccount | null>;
     onDataReplaced?: () => void;
     clearBrowserData?: () => Promise<void>;
     destroyLogs?: () => Promise<number>;
@@ -58,12 +63,25 @@ export function createBackupModule(context: ModuleContext, deps: BackupModuleDep
         context.createLogger('auto-backup'),
     );
 
+    const uninstaller = new Uninstaller(context.createLogger('uninstall'), {
+        packaged: () => app.isPackaged,
+        programDir: () => path.dirname(process.execPath),
+        exit: () => app.exit(0),
+    });
+
     return defineModule({
         name: 'backup',
         backups,
         settings,
         scheduler,
         registerIpc: () =>
-            registerBackupIpc({ backups, settings, scheduler, hasAccounts: deps.hasAccounts }),
+            registerBackupIpc({
+                backups,
+                settings,
+                scheduler,
+                hasAccounts: deps.hasAccounts,
+                accountToKeep: deps.accountToKeep ?? (async () => null),
+                uninstaller,
+            }),
     });
 }

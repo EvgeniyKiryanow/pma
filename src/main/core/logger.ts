@@ -1,4 +1,5 @@
 import log from 'electron-log/main';
+import fsp from 'fs/promises';
 import path from 'path';
 
 import { shred } from './fsUtils';
@@ -30,7 +31,11 @@ export function createLogger(scope: string): Logger {
  */
 export async function destroyLogFiles(): Promise<number> {
     const file = log.transports.file.getFile();
-    const { files } = await shred(path.dirname(file.path));
+    const folder = path.dirname(file.path);
+    const { files } = await shred(folder);
+    // electron-log creates the folder once, at start: without it every later line would be
+    // lost (the error of the very next failure included).
+    await fsp.mkdir(folder, { recursive: true });
     (file as unknown as { reset?: () => void }).reset?.();
     return files;
 }

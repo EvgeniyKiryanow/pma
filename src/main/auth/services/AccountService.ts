@@ -9,12 +9,20 @@ import type {
 import { AppError } from '../../../shared/ipc/result';
 import type { Logger } from '../../core/logger';
 import type { Transactor } from '../../db/types';
+import { type DataKeyring, noKeyring } from '../DataKeyring';
 import type { PasswordHasher, PasswordPolicy } from '../PasswordHasher';
 import type { AccountRepository, AccountRow } from '../repositories/AccountRepository';
 import type { RoleRepository } from '../repositories/RoleRepository';
-import { type DataKeyring, noKeyring } from '../DataKeyring';
 import type { AuthService } from './AuthService';
 import { validateDisplayName, validateId, validateUsername } from './validation';
+
+/** An account carried into restored data: same login, same password, administrator. */
+export type KeptAccount = {
+    username: string;
+    displayName: string;
+    passwordHash: string;
+    recoveryCodeHash: string | null;
+};
 
 export function toAccountDTO(row: AccountRow): AccountDTO {
     return {
@@ -175,6 +183,21 @@ export class AccountService {
         await this.keyring.forget(username);
         this.logger.warn(`Account #${id} deleted by account #${actor.accountId}`);
         await this.auth.refreshSessions((s) => s.accountId === id);
+    }
+
+    /**
+     * Login and password (hashes) of an account, so the administrator who restores a backup
+     * keeps signing in as before (see BackupService.restoreImport).
+     */
+    async credentials(id: number): Promise<KeptAccount | null> {
+        const row = await this.accounts.findById(id);
+        if (!row || !row.is_active) return null;
+        return {
+            username: row.username,
+            displayName: row.display_name,
+            passwordHash: row.password_hash,
+            recoveryCodeHash: row.recovery_code_hash ?? null,
+        };
     }
 
     private async require(id: number): Promise<AccountRow> {

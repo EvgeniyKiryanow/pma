@@ -27,6 +27,21 @@ export type OpenOptions = {
 };
 
 const HEX_KEY = /^[0-9a-f]{64}$/;
+
+/**
+ * Cipher settings of every encrypted database, stated instead of left to the driver's defaults:
+ * a later driver version with other defaults must still open the files written today. These
+ * are the defaults of SQLite3 Multiple Ciphers 2.4 (ChaCha20-Poly1305, PBKDF2-SHA256 with 64007
+ * iterations). Never change them for existing data — a new scheme needs a new, explicit
+ * migration of the files.
+ */
+const CIPHER_SETTINGS = ["cipher = 'chacha20'", 'kdf_iter = 64007', 'legacy = 0'];
+
+function applyKey(db: Database.Database, key: string, pragma: 'key' | 'rekey'): void {
+    if (!HEX_KEY.test(key)) throw new Error('Invalid database key format');
+    for (const setting of CIPHER_SETTINGS) db.pragma(setting);
+    db.pragma(`${pragma} = '${key}'`);
+}
 const SQLITE_HEADER = Buffer.from('SQLite format 3\0', 'latin1');
 
 /** An unencrypted SQLite file starts with this header; an encrypted one looks random. */
@@ -110,10 +125,7 @@ class BetterSqliteDb implements Db {
 export function openDatabase(file: string, options: OpenOptions = {}): Db {
     const db = new Database(file, { readonly: Boolean(options.readonly), timeout: 5000 });
     try {
-        if (options.key) {
-            if (!HEX_KEY.test(options.key)) throw new Error('Invalid database key format');
-            db.pragma(`key = '${options.key}'`);
-        }
+        if (options.key) applyKey(db, options.key, 'key');
         db.prepare('SELECT count(*) FROM sqlite_master').get();
     } catch (err) {
         db.close();
@@ -132,7 +144,7 @@ export function encryptPlainDatabase(file: string, key: string): void {
     try {
         // Rekeying is not possible in WAL mode.
         db.pragma('journal_mode = DELETE');
-        db.pragma(`rekey = '${key}'`);
+        applyKey(db, key, 'rekey');
     } finally {
         db.close();
     }

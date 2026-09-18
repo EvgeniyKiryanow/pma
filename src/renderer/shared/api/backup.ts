@@ -30,6 +30,10 @@ export const backupApi = {
     openBackupsFolder: (): Promise<void> => unwrap(bridge().backup.openBackupsFolder()),
     resetAll: (options: ResetOptions = {}): Promise<ResetResult> =>
         unwrap(bridge().backup.resetAll(options)),
+    /** False in development runs and portable copies: there is nothing to uninstall. */
+    canUninstall: (): Promise<boolean> => unwrap(bridge().backup.canUninstall()),
+    /** Destroys all data and removes the program; the window closes. */
+    uninstall: (): Promise<void> => unwrap(bridge().backup.uninstall()),
 };
 
 /**

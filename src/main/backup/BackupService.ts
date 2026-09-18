@@ -3,6 +3,7 @@ import fs from 'fs';
 import fsp from 'fs/promises';
 import path from 'path';
 
+import { passwordWeakness, passwordWeaknessMessage } from '../../shared/auth/passwordStrength';
 import {
     BACKUP_PASSWORD_MIN_LENGTH,
     type BackupFormat,
@@ -17,14 +18,15 @@ import {
     type SnapshotKind,
 } from '../../shared/backup/types';
 import { AppError } from '../../shared/ipc/result';
+import type { KeptAccount } from '../auth/services/AccountService';
 import type { SessionManager } from '../auth/SessionManager';
 import { directorySize, move, remove, shred, timestampForFileName } from '../core/fsUtils';
 import type { Logger } from '../core/logger';
 import { AppPaths, DATA_DIRECTORIES, PRIVATE_DATA_DIRECTORIES, resolveInside } from '../core/paths';
 import type { DatabaseManager } from '../db/connection';
 import { isPlainDatabaseFile, openDatabase } from '../db/driver';
-import type { Db } from '../db/types';
 import type { MigrationRunner } from '../db/migrations/runner';
+import type { Db } from '../db/types';
 import type { TemplateInstaller } from '../reports/TemplateInstaller';
 import type { DataEncryptor } from '../security/DataEncryptor';
 import type { DataVault } from '../security/DataVault';
@@ -85,11 +87,13 @@ export class BackupService {
             await this.deps.database.snapshotTo(dbCopy);
 
             let files = 0;
+            let documents = 0;
             let totalBytes = (await fsp.stat(dbCopy)).size;
             for (const dir of DATA_DIRECTORIES) {
                 const size = await directorySize(dir.resolve());
                 files += size.files;
                 totalBytes += size.bytes;
+                if (dir.name !== 'templates') documents += size.files;
             }
 
             const counts = await this.countRecords(dbCopy, this.currentKey());
@@ -99,7 +103,7 @@ export class BackupService {
                 appVersion: this.deps.appVersion(),
                 schemaVersion: this.deps.migrations.latestVersion,
                 sourceInstanceId: this.deps.instanceId(),
-                counts: { ...counts, files },
+                counts: { ...counts, files, documents },
                 totalBytes,
             };
 
@@ -129,7 +133,7 @@ export class BackupService {
 
             const { size } = await fsp.stat(targetPath);
             this.deps.logger.info(
-                `Backup exported and verified: ${counts.personnel} personnel, ${files} files, ${size} bytes`,
+                `Backup exported and verified: ${counts.personnel} personnel, ${documents} documents, ${files} files, ${size} bytes`,
             );
             return { fileName: path.basename(targetPath), sizeBytes: size, manifest };
         } finally {
@@ -195,9 +199,19 @@ export class BackupService {
         return pending.inspection;
     }
 
-    async restoreImport(senderId: number): Promise<RestoreResult> {
+    /**
+     * Replaces the data of this computer with the inspected backup. `keepAccount`: the signed-in
+     * administrator who restores keeps their login and password in the restored data (the
+     * accounts of the backup stay as they are), so a new computer can be set up by creating
+     * an administrator first and restoring after.
+     */
+    async restoreImport(
+        senderId: number,
+        options: { keepAccount?: KeptAccount | null } = {},
+    ): Promise<RestoreResult> {
         const pending = this.pending.get(senderId);
         if (!pending?.inspection || !pending.workDir) throw new AppError('NOTHING_SELECTED');
+        const keep = options.keepAccount ?? null;
 
         try {
             const { snapshot, from, to } = await this.replaceLiveData({
@@ -205,6 +219,7 @@ export class BackupService {
                 stagingDir: path.join(pending.workDir, 'data'),
                 includeFiles: pending.inspection.includesFiles,
                 key: pending.key ?? null,
+                afterMigrate: keep ? (db) => this.keepAccount(db, keep) : undefined,
             });
             this.deps.logger.warn(
                 `Data restored from ${pending.selection.format} backup (schema v${from} -> v${to})`,
@@ -345,14 +360,14 @@ export class BackupService {
 
     // ------------------------------------------------------------------ internals
 
+    /** The password is all that protects a copy on a flash drive: obvious ones are refused. */
     private assertPassword(password: string): void {
-        if (typeof password !== 'string' || password.length < BACKUP_PASSWORD_MIN_LENGTH) {
+        const weakness = passwordWeakness(password, BACKUP_PASSWORD_MIN_LENGTH);
+        if (weakness) {
             throw new AppError(
                 'VALIDATION',
-                `Пароль має містити щонайменше ${BACKUP_PASSWORD_MIN_LENGTH} символів`,
-                {
-                    field: 'password',
-                },
+                passwordWeaknessMessage(weakness, BACKUP_PASSWORD_MIN_LENGTH),
+                { field: 'password', reason: weakness },
             );
         }
     }
@@ -512,6 +527,8 @@ export class BackupService {
         includeFiles: boolean;
         /** Key of the incoming data (a package of this version); null: keep the current key. */
         key?: Buffer | null;
+        /** Last step on the new data; a failure rolls everything back like any other. */
+        afterMigrate?: (db: Db) => Promise<void>;
     }): Promise<{ snapshot: string; from: number; to: number }> {
         const { database, migrations, templates, logger } = this.deps;
         const snapshotName = `${timestampForFileName()}__${options.reason}`;
@@ -552,6 +569,7 @@ export class BackupService {
             await this.takeOverData(options.key ?? null, dataDirs.length > 0);
             const db = await database.get();
             const report = await migrations.run(db);
+            await options.afterMigrate?.(db);
             await templates.ensureInstalled();
             await this.prune('safety', SAFETY_SNAPSHOTS_TO_KEEP);
             return { snapshot: snapshotName, from: report.from, to: migrations.latestVersion };
@@ -579,6 +597,45 @@ export class BackupService {
                 .catch((e) => logger.error('Reopening database after rollback failed', e));
             throw err;
         }
+    }
+
+    /** Adds the restoring administrator to the restored accounts (or updates the same login). */
+    private async keepAccount(db: Db, account: KeptAccount): Promise<void> {
+        const role = await db.get<{ id: number }>(`SELECT id FROM roles WHERE is_system = 1`);
+        if (!role) throw new Error('The restored data has no administrator role');
+        const existing = await db.get<{ id: number }>(
+            `SELECT id FROM accounts WHERE username = ?`,
+            account.username,
+        );
+        if (existing) {
+            await db.run(
+                `UPDATE accounts
+                    SET password_hash = ?, recovery_code_hash = ?, role_id = ?, is_active = 1,
+                        must_change_password = 0, failed_login_count = 0, locked_until = NULL
+                  WHERE id = ?`,
+                account.passwordHash,
+                account.recoveryCodeHash,
+                role.id,
+                existing.id,
+            );
+            this.deps.logger.info(
+                `Restoring administrator kept their password (account #${existing.id} of the copy)`,
+            );
+            return;
+        }
+        const { lastID } = await db.run(
+            `INSERT INTO accounts (uuid, username, display_name, password_hash, recovery_code_hash, role_id)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            randomUUID(),
+            account.username,
+            account.displayName,
+            account.passwordHash,
+            account.recoveryCodeHash,
+            role.id,
+        );
+        this.deps.logger.info(
+            `Restoring administrator added to the restored data (account #${lastID})`,
+        );
     }
 
     /**

@@ -29,6 +29,8 @@ export const backupApi = {
     openBackupsFolder: () => invoke<Result<void>>(BACKUP_CHANNELS.openBackupsFolder),
     resetAll: (options: ResetOptions) =>
         invoke<Result<ResetResult>>(BACKUP_CHANNELS.resetAll, options),
+    canUninstall: () => invoke<Result<boolean>>(BACKUP_CHANNELS.canUninstall),
+    uninstall: () => invoke<Result<void>>(BACKUP_CHANNELS.uninstall),
 };
 
 /** Change-log exchange between computers (offline, encrypted .pmc files). */

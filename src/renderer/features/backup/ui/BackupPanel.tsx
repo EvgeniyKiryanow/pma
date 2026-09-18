@@ -7,6 +7,7 @@ import {
     HardDriveDownload,
     Save,
     ShieldAlert,
+    Trash2,
     Upload,
 } from 'lucide-react';
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from 'react';
@@ -78,7 +79,12 @@ const SECTIONS: Section[] = [
         icon: <ShieldAlert />,
         danger: true,
         anyOf: ['system.reset'],
-        render: () => <DangerZoneSection />,
+        render: () => (
+            <div className="space-y-5">
+                <DangerZoneSection />
+                <UninstallSection />
+            </div>
+        ),
     },
 ];
 
@@ -500,6 +506,57 @@ function DangerZoneSection() {
                     onClick={() => void reset()}
                 >
                     {t('backups.danger.button')}
+                </Button>
+            </div>
+        </Card>
+    );
+}
+
+/** Installed copies only: destroy everything, then remove the program from the computer. */
+function UninstallSection() {
+    const { t } = useI18nStore();
+    const [available, setAvailable] = useState(false);
+    const [confirmation, setConfirmation] = useState('');
+    const [busy, setBusy] = useState(false);
+    const word = t('backups.uninstall.word');
+
+    useEffect(() => {
+        backupApi
+            .canUninstall()
+            .then(setAvailable)
+            .catch(() => setAvailable(false));
+    }, []);
+
+    if (!available) return null;
+
+    const uninstall = async () => {
+        setBusy(true);
+        try {
+            await backupApi.uninstall();
+        } catch (err) {
+            toast.error(errorMessage(err, t));
+            setBusy(false);
+        }
+    };
+
+    return (
+        <Card title={t('backups.uninstall.title')} icon={<Trash2 />} className="border-danger-line">
+            <div className="space-y-4">
+                <Alert tone="error">{t('backups.uninstall.description')}</Alert>
+                <TextField
+                    label={t('backups.danger.confirmLabel', { word })}
+                    value={confirmation}
+                    onChange={(e) => setConfirmation(e.target.value)}
+                    autoComplete="off"
+                />
+                <Button
+                    variant="danger"
+                    disabled={confirmation.trim() !== word}
+                    loading={busy}
+                    icon={<Trash2 className="h-4 w-4" />}
+                    onClick={() => void uninstall()}
+                >
+                    {busy ? t('backups.uninstall.progress') : t('backups.uninstall.button')}
                 </Button>
             </div>
         </Card>

@@ -12,7 +12,14 @@ export type KeyProtector = {
     unprotect(data: Buffer): Buffer;
 };
 
-type PasswordWrap = { salt: string; iv: string; tag: string; data: string };
+type PasswordWrap = {
+    salt: string;
+    iv: string;
+    tag: string;
+    data: string;
+    /** scrypt cost N; absent in the first copies, which used 2^15. */
+    n?: number;
+};
 
 type KeystoreFile = {
     version: 1;
@@ -27,12 +34,26 @@ export type VaultState = 'unlocked' | 'locked' | 'missing';
 export type VaultSnapshot = { key: Buffer | null; store: KeystoreFile | null };
 
 const KEY_BYTES = 32;
-const SCRYPT = { N: 1 << 15, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
+/** Same cost as the backup packages: ~0.3 s and 128 MB per attempt, on a worker thread. */
+const WRAP_COST = 1 << 17;
+const ALLOWED_COSTS = new Set([1 << 15, 1 << 16, 1 << 17, 1 << 18]);
 
-function wrapWithPassword(key: Buffer, password: string): PasswordWrap {
+function scrypt(password: string, salt: Buffer, cost: number): Promise<Buffer> {
+    return new Promise((resolve, reject) =>
+        crypto.scrypt(
+            password,
+            salt,
+            KEY_BYTES,
+            { N: cost, r: 8, p: 1, maxmem: 512 * 1024 * 1024 },
+            (err, key) => (err ? reject(err) : resolve(key)),
+        ),
+    );
+}
+
+async function wrapWithPassword(key: Buffer, password: string): Promise<PasswordWrap> {
     const salt = crypto.randomBytes(16);
     const iv = crypto.randomBytes(12);
-    const kek = crypto.scryptSync(password, salt, KEY_BYTES, SCRYPT);
+    const kek = await scrypt(password, salt, WRAP_COST);
     const cipher = crypto.createCipheriv('aes-256-gcm', kek, iv);
     const data = Buffer.concat([cipher.update(key), cipher.final()]);
     return {
@@ -40,11 +61,14 @@ function wrapWithPassword(key: Buffer, password: string): PasswordWrap {
         iv: iv.toString('base64'),
         tag: cipher.getAuthTag().toString('base64'),
         data: data.toString('base64'),
+        n: WRAP_COST,
     };
 }
 
-function unwrapWithPassword(wrap: PasswordWrap, password: string): Buffer {
-    const kek = crypto.scryptSync(password, Buffer.from(wrap.salt, 'base64'), KEY_BYTES, SCRYPT);
+async function unwrapWithPassword(wrap: PasswordWrap, password: string): Promise<Buffer> {
+    const cost = wrap.n ?? 1 << 15;
+    if (!ALLOWED_COSTS.has(cost)) throw new Error('Unsupported key copy');
+    const kek = await scrypt(password, Buffer.from(wrap.salt, 'base64'), cost);
     const decipher = crypto.createDecipheriv('aes-256-gcm', kek, Buffer.from(wrap.iv, 'base64'));
     decipher.setAuthTag(Buffer.from(wrap.tag, 'base64'));
     return Buffer.concat([decipher.update(Buffer.from(wrap.data, 'base64')), decipher.final()]);
@@ -89,7 +113,9 @@ export class DataVault {
     /** Key for attachments and saved reports, derived from the data key. */
     fileKey(): Buffer | null {
         if (!this.key) return null;
-        return Buffer.from(crypto.hkdfSync('sha256', this.key, Buffer.alloc(0), 'pmanager-files', 32));
+        return Buffer.from(
+            crypto.hkdfSync('sha256', this.key, Buffer.alloc(0), 'pmanager-files', 32),
+        );
     }
 
     /** Whether some account can open the data with its password. */
@@ -141,7 +167,7 @@ export class DataVault {
         if (!wrap || typeof password !== 'string') return false;
         let key: Buffer;
         try {
-            key = unwrapWithPassword(wrap, password);
+            key = await unwrapWithPassword(wrap, password);
         } catch {
             return false;
         }
@@ -154,7 +180,11 @@ export class DataVault {
     /** Called after a password was verified or changed: that password can open the data. */
     async rememberAccount(username: string, password: string): Promise<void> {
         if (!this.key || !this.store || !username || typeof password !== 'string') return;
-        this.store.accounts[username] = wrapWithPassword(this.key, password);
+        const key = this.key;
+        const wrap = await wrapWithPassword(key, password);
+        // The key may have changed while scrypt ran (a restore adopted another one).
+        if (this.key !== key || !this.store) return;
+        this.store.accounts[username] = wrap;
         await this.save();
     }
 

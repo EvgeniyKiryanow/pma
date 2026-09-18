@@ -30,7 +30,8 @@ async function tableCounts(file: string, key: string | null): Promise<Record<str
         );
         const counts: Record<string, number> = {};
         for (const { name } of tables) {
-            counts[name] = (await db.get<{ n: number }>(`SELECT COUNT(*) AS n FROM "${name}"`))?.n ?? 0;
+            counts[name] =
+                (await db.get<{ n: number }>(`SELECT COUNT(*) AS n FROM "${name}"`))?.n ?? 0;
         }
         return counts;
     } finally {

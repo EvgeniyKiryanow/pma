@@ -44,7 +44,8 @@ export default function CustomTitleBar({
     const { t } = useI18nStore();
     const [version, setVersion] = useState('');
     const [checking, setChecking] = useState(false);
-    const isSignedIn = useSessionStore((s) => s.status === 'ready');
+    // An empty installation (first run, or after everything was destroyed) can update too.
+    const canUpdate = useSessionStore((s) => s.status === 'ready' || s.status === 'setup');
     const { resolvedTheme, toggleTheme, zoom, zoomIn, zoomOut, resetZoom } = useUiStore();
 
     useEffect(() => {
@@ -183,7 +184,7 @@ export default function CustomTitleBar({
                         )
                     }
                 />
-                {isSignedIn && (
+                {canUpdate && (
                     <IconButton
                         variant="rail"
                         size="sm"

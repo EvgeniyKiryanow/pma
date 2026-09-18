@@ -348,3 +348,163 @@ describe('moving the data: backup → destroy → restore', () => {
         expect((await again.get(`SELECT COUNT(*) AS n FROM users`)).n).toBe(1);
     });
 });
+
+describe('backups: the cases a unit runs into', () => {
+    const target = () => path.join(root, 'flash-drive', 'rota.pmb');
+
+    async function seededSet() {
+        const set = dataSet(fakeWindows().protector);
+        await start(set);
+        const db = await set.database.get();
+        await db.run(
+            `INSERT INTO users (fullName, dateOfBirth, taxId) VALUES (?, ?, ?)`,
+            SOLDIER,
+            '1990-03-09',
+            TAX_ID,
+        );
+        await fsp.mkdir(path.dirname(target()), { recursive: true });
+        return set;
+    }
+
+    async function restore(set: ReturnType<typeof dataSet>, file: string, password: string) {
+        await set.backups.selectImport(1, file);
+        return set.backups.inspectImport(1, password);
+    }
+
+    it('keeps the administrator who restores, next to the accounts of the copy', async () => {
+        const set = await seededSet();
+        const db = await set.database.get();
+        const role = await db.get<{ id: number }>(`SELECT id FROM roles WHERE is_system = 1`);
+        for (const [uuid, username, hash] of [
+            ['u-1', 'pysar', 'hash-from-copy'],
+            ['u-2', 'komandyr', 'old-hash'],
+        ]) {
+            await db.run(
+                `INSERT INTO accounts (uuid, username, display_name, password_hash, role_id)
+                 VALUES (?, ?, '', ?, ?)`,
+                uuid,
+                username,
+                hash,
+                role!.id,
+            );
+        }
+        await set.backups.exportPackage(target(), BACKUP_PASSWORD);
+        await set.backups.resetAll({ destroyLocalCopies: true });
+
+        await restore(set, target(), BACKUP_PASSWORD);
+        await set.backups.restoreImport(1, {
+            keepAccount: {
+                username: 'novyi',
+                displayName: 'Новий адміністратор',
+                passwordHash: 'hash-of-novyi',
+                recoveryCodeHash: null,
+            },
+        });
+        const accounts = async () =>
+            (await set.database.get()).all(
+                `SELECT username, password_hash AS hash, role_id AS role FROM accounts ORDER BY username`,
+            );
+        expect(await accounts()).toEqual([
+            { username: 'komandyr', hash: 'old-hash', role: role!.id },
+            { username: 'novyi', hash: 'hash-of-novyi', role: role!.id },
+            { username: 'pysar', hash: 'hash-from-copy', role: role!.id },
+        ]);
+
+        // The same login in the copy: it takes the password of the one who restores.
+        await restore(set, target(), BACKUP_PASSWORD);
+        await set.backups.restoreImport(1, {
+            keepAccount: {
+                username: 'komandyr',
+                displayName: '',
+                passwordHash: 'new-hash',
+                recoveryCodeHash: null,
+            },
+        });
+        expect((await accounts()).map((a: { hash: string }) => a.hash)).toEqual([
+            'new-hash',
+            'hash-from-copy',
+        ]);
+    });
+
+    it('makes a copy right after everything was destroyed', async () => {
+        const set = await seededSet();
+        await set.backups.resetAll({ destroyLocalCopies: true });
+        const exported = await set.backups.exportPackage(target(), BACKUP_PASSWORD);
+        expect(exported.manifest.counts).toMatchObject({ personnel: 0, documents: 0 });
+        expect((await restore(set, target(), BACKUP_PASSWORD)).personnelCount).toBe(0);
+    });
+
+    it('refuses a password that is guessed first, for copies and for sign-in', async () => {
+        const set = await seededSet();
+        for (const weak of [
+            '12341234',
+            '12345678',
+            'qwertyui',
+            'aaaaaaaa',
+            '19900309',
+            'password',
+        ]) {
+            await expect(set.backups.exportPackage(target(), weak)).rejects.toMatchObject({
+                code: 'VALIDATION',
+            });
+        }
+        expect(fs.existsSync(target())).toBe(false);
+        const { PasswordPolicy } = await import('../../src/main/auth/PasswordHasher');
+        expect(() => new PasswordPolicy().assertValid('12341234')).toThrow(/повторів/);
+        expect(() => new PasswordPolicy().assertValid(LOGIN_PASSWORD)).not.toThrow();
+    });
+
+    it('restores the database file of an older version and encrypts it here', async () => {
+        const set = await seededSet();
+        const plain = openDatabase(FIXTURE);
+        const expected = (await plain.get<{ n: number }>(`SELECT COUNT(*) AS n FROM users`))!.n;
+        await plain.close();
+
+        const inspection = await restore(set, FIXTURE, '');
+        expect(inspection.personnelCount).toBe(expected);
+        await set.backups.restoreImport(1);
+        const db = await set.database.get();
+        expect((await db.get(`SELECT COUNT(*) AS n FROM users`)).n).toBe(expected);
+        await set.database.close();
+        expect(isPlainDatabaseFile(AppPaths.database)).toBe(false);
+    });
+
+    it('refuses a damaged copy and leaves the data as it was', async () => {
+        const set = await seededSet();
+        await set.backups.exportPackage(target(), BACKUP_PASSWORD);
+        const bytes = await fsp.readFile(target());
+        await fsp.writeFile(target(), bytes.subarray(0, bytes.length - 100));
+
+        await expect(restore(set, target(), BACKUP_PASSWORD)).rejects.toMatchObject({
+            code: expect.stringMatching(/INVALID_PASSWORD|CORRUPTED/),
+        });
+        const db = await set.database.get();
+        expect(await db.get(`SELECT fullName FROM users`)).toEqual({ fullName: SOLDIER });
+    });
+
+    it('puts the data and its key back when a restore fails half-way', async () => {
+        const set = await seededSet();
+        await set.backups.exportPackage(target(), BACKUP_PASSWORD);
+        await set.backups.resetAll({ destroyLocalCopies: true });
+        const db = await set.database.get();
+        await db.run(
+            `INSERT INTO users (fullName, dateOfBirth) VALUES ('Після очищення', '2000-01-01')`,
+        );
+        const keyBefore = set.vault.exportKey();
+
+        await restore(set, target(), BACKUP_PASSWORD);
+        const templates = (set.container as unknown as { templates: TemplateInstaller }).templates;
+        vi.spyOn(templates, 'ensureInstalled').mockRejectedValueOnce(new Error('disk is full'));
+        await expect(set.backups.restoreImport(1)).rejects.toThrow('disk is full');
+
+        expect(set.vault.exportKey().equals(keyBefore)).toBe(true);
+        const after = await set.database.get();
+        expect(await after.all(`SELECT fullName FROM users`)).toEqual([
+            { fullName: 'Після очищення' },
+        ]);
+        // And the next start still opens it.
+        await set.database.close();
+        const nextStart = dataSet(fakeWindows().protector);
+        expect((await start(nextStart)).state).toBe('unlocked');
+    });
+});

@@ -117,10 +117,23 @@ export default function RestoreBackupFlow({ onCancel }: { onCancel?: () => void 
                                 <dd className="font-medium text-ink">
                                     {inspection.manifest.appVersion}
                                 </dd>
-                                <dt className="text-ink-3">{t('backups.full.files')}</dt>
-                                <dd className="font-medium text-ink">
-                                    {inspection.manifest.counts.files}
-                                </dd>
+                                {inspection.manifest.counts.documents !== undefined ? (
+                                    <>
+                                        <dt className="text-ink-3">
+                                            {t('backups.full.documents')}
+                                        </dt>
+                                        <dd className="font-medium text-ink">
+                                            {inspection.manifest.counts.documents}
+                                        </dd>
+                                    </>
+                                ) : (
+                                    <>
+                                        <dt className="text-ink-3">{t('backups.full.files')}</dt>
+                                        <dd className="font-medium text-ink">
+                                            {inspection.manifest.counts.files}
+                                        </dd>
+                                    </>
+                                )}
                             </>
                         )}
                         <dt className="text-ink-3">{t('backups.full.personnel')}</dt>
@@ -134,7 +147,12 @@ export default function RestoreBackupFlow({ onCancel }: { onCancel?: () => void 
                     {inspection.includesFiles && inspection.willMigrate && (
                         <Alert tone="info">{t('backups.full.willMigrate')}</Alert>
                     )}
-                    <Alert tone="warning">{t('backups.full.restoreWarning')}</Alert>
+                    <Alert tone="warning">
+                        {t('backups.full.restoreWarning')}{' '}
+                        {inspection.keepsAccount
+                            ? t('backups.full.keepsAccount', { login: inspection.keepsAccount })
+                            : t('backups.full.accountsFromCopy')}
+                    </Alert>
                     <div className="flex flex-wrap justify-end gap-2">
                         <Button
                             variant="secondary"

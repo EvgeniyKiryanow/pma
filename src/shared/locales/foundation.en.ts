@@ -62,7 +62,7 @@ export const foundationEn: typeof foundationUa = {
         saved: 'File saved: {{file}}',
     },
     auth: {
-        passwordHint: 'At least {{min}} characters',
+        passwordHint: 'At least {{min}} characters. Not "12345678", no repeats, not digits only',
         passwordMismatch: 'Passwords do not match',
         setup: {
             title: 'Initial setup',
@@ -384,7 +384,7 @@ export const foundationEn: typeof foundationUa = {
             password: 'Backup password',
             confirmPassword: 'Repeat password',
             passwordHint:
-                'At least {{min}} characters. Without the password the backup cannot be restored.',
+                'At least {{min}} characters, not "12345678" and not digits only. Write the password down: without it nobody can open the backup.',
             export: 'Save backup…',
             exported: 'Backup saved: {{file}} ({{size}})',
             importTitle: 'Restore from backup',
@@ -400,10 +400,14 @@ export const foundationEn: typeof foundationUa = {
             personnel: 'Personnel',
             accounts: 'Accounts',
             files: 'Attachment files',
+            documents: 'Documents and attachments',
             legacy: 'Backup from an older version: database only (no attachments). It will be upgraded automatically.',
             willMigrate: 'The database structure will be upgraded after restoring.',
             restoreWarning:
-                'Restoring REPLACES all current data on this computer, including accounts. Current data is kept in a safety copy. Sign in with an account from the backup afterwards.',
+                'Restoring REPLACES all current data on this computer with the backup. Current data is kept in a safety copy.',
+            keepsAccount:
+                'Your account "{{login}}" stays: after restoring, sign in with your own login and password. The accounts from the backup work too.',
+            accountsFromCopy: 'After restoring, sign in with an account from the backup.',
             restore: 'Restore data',
             cancel: 'Cancel',
         },
@@ -449,6 +453,14 @@ export const foundationEn: typeof foundationUa = {
             confirmLabel: 'Type {{word}} to confirm',
             word: 'ERASE',
             button: 'Erase all data',
+        },
+        uninstall: {
+            title: 'Remove the program from this computer',
+            description:
+                'First every piece of data and every local copy is destroyed (like «Erase» with local copies), then the program is removed with its shortcuts and data folder. This cannot be undone. If the data is still needed, save a full backup to a flash drive first: it can be restored after a new installation.',
+            word: 'DELETE',
+            button: 'Remove the program',
+            progress: 'Destroying the data, removing the program…',
         },
     },
 };
