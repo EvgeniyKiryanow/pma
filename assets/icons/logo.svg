@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- PManager mark: field-green shield, brass rank chevrons, roster lines.
+       Source of appIcon.png / appIcon.ico / appIcon.icns; the UI draws the same shape
+       from src/renderer/shared/icons/LogoSvg.tsx. -->
+  <defs>
+    <linearGradient id="shield" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#6B8A3A"/>
+      <stop offset="0.55" stop-color="#465F27"/>
+      <stop offset="1" stop-color="#2B3B1A"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6DD98"/>
+      <stop offset="0.5" stop-color="#E0B458"/>
+      <stop offset="1" stop-color="#B7852F"/>
+    </linearGradient>
+  </defs>
+  <path d="M32 3.2 54.6 10v19.4c0 15.2-9.4 25.9-22.6 31.4C18.8 55.3 9.4 44.6 9.4 29.4V10Z" fill="url(#shield)"/>
+  <path d="M32 3.2 54.6 10v19.4c0 15.2-9.4 25.9-22.6 31.4C18.8 55.3 9.4 44.6 9.4 29.4V10Z" fill="url(#sheen)"/>
+  <path d="M32 7.4 50.8 13v16.4c0 12.9-7.8 22.1-18.8 27.1-11-5-18.8-14.2-18.8-27.1V13Z" fill="none" stroke="url(#brass)" stroke-opacity="0.5" stroke-width="1.1"/>
+  <path d="m20.5 26.4 11.5-7.7 11.5 7.7" fill="none" stroke="url(#brass)" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m20.5 34.6 11.5-7.7 11.5 7.7" fill="none" stroke="url(#brass)" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.72"/>
+  <path d="M24.2 42.3h15.6M27.3 48.1h9.4" fill="none" stroke="#E9F0D8" stroke-opacity="0.85" stroke-width="2.6" stroke-linecap="round"/>
+</svg>

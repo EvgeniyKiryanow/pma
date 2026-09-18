@@ -35,7 +35,7 @@ export default function SetupScreen() {
                     <button
                         type="button"
                         onClick={() => setMode('create')}
-                        className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-ink hover:underline"
                     >
                         <ArrowLeft className="h-4 w-4" />
                         {t('auth.setup.back')}
@@ -101,8 +101,8 @@ export default function SetupScreen() {
                 </Button>
             </form>
 
-            <div className="mt-6 border-t pt-4 text-center">
-                <p className="mb-2 text-sm text-gray-600">{t('auth.setup.orRestore')}</p>
+            <div className="mt-6 border-t border-line pt-5 text-center">
+                <p className="mb-3 text-sm text-ink-3">{t('auth.setup.orRestore')}</p>
                 <Button
                     variant="secondary"
                     onClick={() => setMode('restore')}

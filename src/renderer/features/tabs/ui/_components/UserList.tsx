@@ -1,5 +1,7 @@
-// components/UserList.tsx
+import { Check, SearchX } from 'lucide-react';
+
 import type { User } from '../../../../../shared/types/user';
+import { Avatar, cn, EmptyState, SearchInput } from '../../../../shared/ui';
 import { useReportsStore } from '../../../report/model/reportsStore';
 
 type Props = {
@@ -11,166 +13,79 @@ type Props = {
     setSearchUser2: (value: string) => void;
 };
 
-export default function UserList({
-    users,
-    selectedUserId,
-    searchUser1,
-    setSearchUser1,
-    searchUser2,
-    setSearchUser2,
-}: Props) {
+/** Step 1 of report generation: the person whose data fills the template. */
+export default function UserList({ users, selectedUserId, searchUser1, setSearchUser1 }: Props) {
     const setSelectedUser = useReportsStore((s) => s.setSelectedUser);
-    const selectedUserId2 = useReportsStore((s) => s.selectedUserId2);
-    const setSelectedUser2 = useReportsStore((s) => s.setSelectedUser2);
+    const search = searchUser1.toLowerCase();
+    const visible = users.filter((u) => u.fullName.toLowerCase().includes(search));
 
     return (
-        <div>
-            {/* First User */}
-            <div className="border rounded-lg p-3 bg-white shadow-sm mb-4">
-                <h3 className="text-md font-semibold mb-3 text-gray-800 border-b pb-2">
-                    Обрати користувача
-                </h3>
-
-                <input
-                    type="text"
-                    placeholder="🔍 Пошук користувача..."
-                    className="w-full mb-3 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300"
+        <div className="flex min-h-0 flex-1 flex-col">
+            <div className="space-y-3 border-b border-line p-3">
+                <StepTitle step={1} title="Військовослужбовець" />
+                <SearchInput
                     value={searchUser1}
-                    onChange={(e) => setSearchUser1(e.target.value)}
+                    onChange={setSearchUser1}
+                    placeholder="Пошук за прізвищем…"
+                    size="sm"
                 />
-
-                <ul className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
-                    {users
-                        .filter((u) => u.fullName.toLowerCase().includes(searchUser1.toLowerCase()))
-                        .map((u) => (
-                            <li
-                                key={u.id}
-                                onClick={() =>
-                                    setSelectedUser(selectedUserId === u.id ? null : u.id)
-                                }
-                                className={`cursor-pointer px-3 py-2 rounded-md border transition text-sm ${
-                                    selectedUserId === u.id
-                                        ? 'bg-blue-100 border-blue-400 font-medium'
-                                        : 'hover:bg-blue-50 border-gray-200'
-                                }`}
-                            >
-                                👤 {u.fullName}
-                            </li>
-                        ))}
-                </ul>
             </div>
-
-            {/* Second User */}
-            {/* <div className="border rounded-lg p-3 bg-white shadow-sm">
-                <h3 className="text-md font-semibold mb-3 text-gray-800 border-b pb-2">
-                    Обрати другого користувача
-                </h3>
-
-                <input
-                    type="text"
-                    placeholder="🔍 Пошук другого користувача..."
-                    className="w-full mb-3 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-green-300"
-                    value={searchUser2}
-                    onChange={(e) => setSearchUser2(e.target.value)}
-                />
-
-                <ul className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
-                    {users
-                        .filter((u) => u.fullName.toLowerCase().includes(searchUser2.toLowerCase()))
-                        .map((u) => (
-                            <li
-                                key={u.id}
-                                onClick={() =>
-                                    setSelectedUser2(selectedUserId2 === u.id ? null : u.id)
-                                }
-                                className={`cursor-pointer px-3 py-2 rounded-md border transition text-sm ${
-                                    selectedUserId2 === u.id
-                                        ? 'bg-green-100 border-green-400 font-medium'
-                                        : 'hover:bg-green-50 border-gray-200'
-                                }`}
-                            >
-                                👥 {u.fullName}
+            <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2">
+                {visible.length === 0 ? (
+                    <li>
+                        <EmptyState icon={<SearchX />} title="Нікого не знайдено" />
+                    </li>
+                ) : (
+                    visible.map((u) => {
+                        const selected = selectedUserId === u.id;
+                        return (
+                            <li key={u.id}>
+                                <button
+                                    onClick={() => setSelectedUser(selected ? null : u.id)}
+                                    className={cn(
+                                        'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors',
+                                        selected ? 'bg-primary-soft' : 'hover:bg-surface-2',
+                                    )}
+                                >
+                                    <Avatar name={u.fullName} src={u.photo} size={30} />
+                                    <span className="min-w-0 flex-1">
+                                        <span
+                                            className={cn(
+                                                'block truncate text-[13px] font-medium',
+                                                selected ? 'text-primary-ink' : 'text-ink',
+                                            )}
+                                        >
+                                            {u.fullName}
+                                        </span>
+                                        {u.rank && (
+                                            <span className="block truncate text-[11px] text-ink-3">
+                                                {u.rank}
+                                            </span>
+                                        )}
+                                    </span>
+                                    {selected && (
+                                        <Check className="size-4 shrink-0 text-primary-ink" />
+                                    )}
+                                </button>
                             </li>
-                        ))}
-                </ul>
-            </div> */}
+                        );
+                    })
+                )}
+            </ul>
         </div>
     );
 }
-{
-    /* <div className="border rounded-lg p-3 bg-white shadow-sm mb-4">
-                    <h3 className="text-md font-semibold mb-3 text-gray-800 border-b pb-2">
-                        {t('reports.selectUser')}
-                    </h3>
 
-                    <input
-                        type="text"
-                        placeholder="🔍 Пошук користувача..."
-                        className="w-full mb-3 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300"
-                        value={searchUser1}
-                        onChange={(e) => setSearchUser1(e.target.value)}
-                    />
-
-                    <ul className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
-                        {users
-                            .filter((u) =>
-                                u.fullName.toLowerCase().includes(searchUser1.toLowerCase()),
-                            )
-                            .map((u) => (
-                                <li
-                                    key={u.id}
-                                    onClick={() =>
-                                        setSelectedUser(selectedUserId === u.id ? null : u.id)
-                                    }
-                                    className={`cursor-pointer px-3 py-2 rounded-md border transition text-sm ${
-                                        selectedUserId === u.id
-                                            ? 'bg-blue-100 border-blue-400 font-medium'
-                                            : 'hover:bg-blue-50 border-gray-200'
-                                    }`}
-                                >
-                                    👤 {u.fullName}
-                                </li>
-                            ))}
-                    </ul>
-                </div>
-
-                <div className="border rounded-lg p-3 bg-white shadow-sm">
-                    <h3 className="text-md font-semibold mb-3 text-gray-800 border-b pb-2">
-                        Обрати другого користувача
-                    </h3>
-
-                    <input
-                        type="text"
-                        placeholder="🔍 Пошук другого користувача..."
-                        className="w-full mb-3 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-green-300"
-                        value={searchUser2}
-                        onChange={(e) => setSearchUser2(e.target.value)}
-                    />
-
-                    <ul className="space-y-1 max-h-[250px] overflow-y-auto pr-1">
-                        {users
-                            .filter((u) =>
-                                u.fullName.toLowerCase().includes(searchUser2.toLowerCase()),
-                            )
-                            .map((u) => (
-                                <li
-                                    key={u.id}
-                                    onClick={() => {
-                                        const currentId =
-                                            useReportsStore.getState().selectedUserId2;
-                                        useReportsStore
-                                            .getState()
-                                            .setSelectedUser2(currentId === u.id ? null : u.id);
-                                    }}
-                                    className={`cursor-pointer px-3 py-2 rounded-md border transition text-sm ${
-                                        useReportsStore.getState().selectedUserId2 === u.id
-                                            ? 'bg-green-100 border-green-400 font-medium'
-                                            : 'hover:bg-green-50 border-gray-200'
-                                    }`}
-                                >
-                                    👥 {u.fullName}
-                                </li>
-                            ))}
-                    </ul>
-                </div> */
+export function StepTitle({ step, title, hint }: { step: number; title: string; hint?: string }) {
+    return (
+        <div className="flex items-center gap-2.5">
+            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-on-primary">
+                {step}
+            </span>
+            <div className="min-w-0">
+                <p className="text-sm font-semibold leading-tight text-ink">{title}</p>
+                {hint && <p className="truncate text-xs text-ink-3">{hint}</p>}
+            </div>
+        </div>
+    );
 }

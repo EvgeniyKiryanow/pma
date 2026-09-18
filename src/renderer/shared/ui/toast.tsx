@@ -1,26 +1,33 @@
-import { CheckCircle2, X, XCircle } from 'lucide-react';
-import { useEffect } from 'react';
+import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { create } from 'zustand';
 
-import { useI18nStore } from '../../stores/i18nStore';
-import { toApiError } from '../api/call';
+import { cn } from './index';
 
-type Toast = { id: number; tone: 'success' | 'error'; message: string };
+type ToastTone = 'success' | 'error' | 'info' | 'warning';
+type Toast = { id: number; tone: ToastTone; message: string };
 
 type ToastStore = {
     toasts: Toast[];
-    show: (tone: Toast['tone'], message: string) => void;
+    show: (tone: ToastTone, message: string) => void;
     dismiss: (id: number) => void;
 };
 
 let nextId = 1;
+
+const DURATION: Record<ToastTone, number> = {
+    success: 3500,
+    info: 4500,
+    warning: 6000,
+    error: 6500,
+};
 
 export const useToastStore = create<ToastStore>((set, get) => ({
     toasts: [],
     show: (tone, message) => {
         const id = nextId++;
         set({ toasts: [...get().toasts.slice(-3), { id, tone, message }] });
-        setTimeout(() => get().dismiss(id), tone === 'error' ? 6000 : 3500);
+        setTimeout(() => get().dismiss(id), DURATION[tone]);
     },
     dismiss: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
 }));
@@ -28,58 +35,43 @@ export const useToastStore = create<ToastStore>((set, get) => ({
 export const toast = {
     success: (message: string) => useToastStore.getState().show('success', message),
     error: (message: string) => useToastStore.getState().show('error', message),
+    info: (message: string) => useToastStore.getState().show('info', message),
+    warning: (message: string) => useToastStore.getState().show('warning', message),
+};
+
+const TONES: Record<ToastTone, { icon: ReactNode; accent: string }> = {
+    success: { icon: <CheckCircle2 className="size-[18px]" />, accent: 'text-success' },
+    error: { icon: <XCircle className="size-[18px]" />, accent: 'text-danger' },
+    info: { icon: <Info className="size-[18px]" />, accent: 'text-info' },
+    warning: { icon: <AlertTriangle className="size-[18px]" />, accent: 'text-warning' },
 };
 
 export function ToastViewport() {
     const toasts = useToastStore((s) => s.toasts);
     const dismiss = useToastStore((s) => s.dismiss);
     return (
-        <div className="pointer-events-none fixed bottom-4 right-4 z-[70] flex w-80 flex-col gap-2">
+        <div className="pointer-events-none fixed bottom-4 right-4 z-[90] flex w-[360px] max-w-[calc(100vw-2rem)] flex-col gap-2">
             {toasts.map((item) => (
                 <div
                     key={item.id}
                     role="status"
-                    className={`pointer-events-auto flex items-start gap-2 rounded-lg border p-3 text-sm shadow-lg ${
-                        item.tone === 'error'
-                            ? 'border-red-200 bg-red-50 text-red-900'
-                            : 'border-green-200 bg-green-50 text-green-900'
-                    }`}
+                    className="pointer-events-auto flex animate-slide-up items-start gap-3 rounded-xl border border-line bg-surface px-3.5 py-3 text-sm text-ink shadow-pop"
                 >
-                    {item.tone === 'error' ? (
-                        <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    ) : (
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                    )}
-                    <span className="flex-1">{item.message}</span>
+                    <span className={cn('mt-px shrink-0', TONES[item.tone].accent)}>
+                        {TONES[item.tone].icon}
+                    </span>
+                    <span className="min-w-0 flex-1 whitespace-pre-line leading-relaxed">
+                        {item.message}
+                    </span>
                     <button
                         onClick={() => dismiss(item.id)}
-                        className="text-current opacity-60 hover:opacity-100"
+                        className="-mr-1 grid size-6 shrink-0 place-items-center rounded-md text-ink-3 hover:bg-surface-2 hover:text-ink"
                         aria-label="Закрити"
                     >
-                        <X className="h-4 w-4" />
+                        <X className="size-3.5" />
                     </button>
                 </div>
             ))}
         </div>
     );
-}
-
-const ACCESS_CODES = new Set(['FORBIDDEN', 'UNAUTHENTICATED', 'PASSWORD_CHANGE_REQUIRED']);
-
-/**
- * Safety net for older screens that do not handle rejected IPC calls: access errors become a
- * readable notification instead of a silent failure in the console.
- */
-export function useGlobalAccessErrors(): void {
-    const t = useI18nStore((s) => s.t);
-    useEffect(() => {
-        const onRejection = (event: PromiseRejectionEvent) => {
-            const error = toApiError(event.reason);
-            if (!ACCESS_CODES.has(error.code)) return;
-            event.preventDefault();
-            toast.error(t(`errors.${error.code}`));
-        };
-        window.addEventListener('unhandledrejection', onRejection);
-        return () => window.removeEventListener('unhandledrejection', onRejection);
-    }, [t]);
 }

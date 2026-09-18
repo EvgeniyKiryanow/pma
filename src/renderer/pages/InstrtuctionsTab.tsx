@@ -1,394 +1,388 @@
 import {
+    Bell,
     ClipboardList,
-    Download,
+    DatabaseBackup,
     Edit3,
+    FileSpreadsheet,
     FileText,
-    Info,
+    FileWarning,
+    Keyboard,
     Layers,
+    LayoutPanelLeft,
+    LifeBuoy,
     Lightbulb,
-    Minus,
+    Moon,
     RefreshCw,
-    RotateCcw,
     Settings,
-    Trash2,
-    Upload,
+    Table2,
     UploadCloud,
     UserCircle,
     Users,
-    X,
+    ZoomIn,
 } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
+import { Button, cn, EmptyState, Modal, SearchInput, Tabs } from '../shared/ui';
+import PageHeader from '../shared/ui/PageHeader';
 import { HEADER_MAP } from '../shared/utils/headerMap';
 
+type HelpTab = 'personnel' | 'reports' | 'excel' | 'backups' | 'interface';
+
 export default function InstructionsTab() {
-    const [activeTab, setActiveTab] = useState<
-        'reports' | 'personnel' | 'backups' | 'header' | 'excel'
-    >('reports');
+    const [activeTab, setActiveTab] = useState<HelpTab>('personnel');
 
     return (
-        <div className="h-full w-full bg-gray-50 flex flex-col">
-            {/* Header */}
-            <div className="p-6 border-b bg-white flex justify-between items-center">
-                <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-800">
-                    <Info className="w-6 h-6 text-blue-500" />
-                    Інструкції по використанню системи
-                </h1>
+        <div className="flex min-h-0 flex-1 flex-col">
+            <PageHeader
+                title="Довідка"
+                description="Коротко про те, як працювати з PManager"
+                icon={<LifeBuoy />}
+            />
+            <div className="shrink-0 border-b border-line bg-surface px-5">
+                <Tabs
+                    value={activeTab}
+                    onChange={setActiveTab}
+                    items={[
+                        { value: 'personnel', label: 'Особовий склад', icon: <Users /> },
+                        { value: 'reports', label: 'Рапорти та шаблони', icon: <FileText /> },
+                        { value: 'excel', label: 'Імпорт Excel', icon: <UploadCloud /> },
+                        { value: 'backups', label: 'Резервні копії', icon: <DatabaseBackup /> },
+                        { value: 'interface', label: 'Інтерфейс', icon: <Settings /> },
+                    ]}
+                />
             </div>
 
-            {/* Tabs Navigation */}
-            <div className="flex border-b bg-white text-sm font-medium">
-                <button
-                    onClick={() => setActiveTab('reports')}
-                    className={`px-6 py-3 flex items-center gap-2 transition ${
-                        activeTab === 'reports'
-                            ? 'border-b-2 border-blue-600 text-blue-700'
-                            : 'text-gray-500 hover:text-gray-800'
-                    }`}
-                >
-                    <FileText className="w-4 h-4" /> Звіти та шаблони
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('personnel')}
-                    className={`px-6 py-3 flex items-center gap-2 transition ${
-                        activeTab === 'personnel'
-                            ? 'border-b-2 border-blue-600 text-blue-700'
-                            : 'text-gray-500 hover:text-gray-800'
-                    }`}
-                >
-                    <Users className="w-4 h-4" /> Управління персоналом
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('backups')}
-                    className={`px-6 py-3 flex items-center gap-2 transition ${
-                        activeTab === 'backups'
-                            ? 'border-b-2 border-blue-600 text-blue-700'
-                            : 'text-gray-500 hover:text-gray-800'
-                    }`}
-                >
-                    <Download className="w-4 h-4" /> Резервні копії
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('header')}
-                    className={`px-6 py-3 flex items-center gap-2 transition ${
-                        activeTab === 'header'
-                            ? 'border-b-2 border-blue-600 text-blue-700'
-                            : 'text-gray-500 hover:text-gray-800'
-                    }`}
-                >
-                    <Settings className="w-4 h-4" /> Верхня панель
-                </button>
-                <button
-                    onClick={() => setActiveTab('excel')}
-                    className={`px-6 py-3 flex items-center gap-2 transition ${
-                        activeTab === 'excel'
-                            ? 'border-b-2 border-blue-600 text-blue-700'
-                            : 'text-gray-500 hover:text-gray-800'
-                    }`}
-                >
-                    <UploadCloud className="w-4 h-4" /> Імпорт Excel/CSV
-                </button>
-            </div>
-
-            {/* Tab Content */}
-            <div className="flex-1 p-8 overflow-y-auto">
-                {activeTab === 'reports' && <ReportsInstructions />}
-                {activeTab === 'personnel' && <PersonnelInstructions />}
-                {activeTab === 'backups' && <BackupInstructions />}
-                {activeTab === 'header' && <HeaderInstructions />}
-                {activeTab === 'excel' && <ExcelImportInstructions />}
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+                <div key={activeTab} className="mx-auto max-w-5xl animate-fade-in">
+                    {activeTab === 'personnel' && <PersonnelInstructions />}
+                    {activeTab === 'reports' && <ReportsInstructions />}
+                    {activeTab === 'excel' && <ExcelImportInstructions />}
+                    {activeTab === 'backups' && <BackupInstructions />}
+                    {activeTab === 'interface' && <InterfaceInstructions />}
+                </div>
             </div>
         </div>
     );
 }
 
-/* ---------------------------
-   HEADER (TITLE BAR) INSTRUCTIONS TAB
-----------------------------*/
-function HeaderInstructions() {
+function Grid({ children }: { children: ReactNode }) {
+    return <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">{children}</div>;
+}
+
+function InterfaceInstructions() {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <InstructionCard
-                icon={<Download className="w-8 h-8 text-blue-500" />}
-                title="Перевірка оновлень"
-                steps={[
-                    'Натисніть кнопку зі стрілкою вниз, щоб перевірити нові версії',
-                    'При наявності оновлень вони автоматично завантажуються',
-                    'Рекомендується робити резервну копію перед оновленням',
-                ]}
-            />
-            <InstructionCard
-                icon={<Upload className="w-8 h-8 text-green-500" />}
-                title="Відновлення даних"
-                steps={[
-                    'Натисніть кнопку із хмарою зі стрілкою вверх',
-                    'Оберіть резервну копію для відновлення',
-                    'Після успішного відновлення додаток перезапуститься',
-                ]}
-            />
-            <InstructionCard
-                icon={<Trash2 className="w-8 h-8 text-red-500" />}
-                title="Скидання бази даних"
-                steps={[
-                    'Натисніть кнопку з іконкою смітника',
-                    'Підтвердіть дію – усі дані будуть видалені',
-                    'Додаток автоматично перезапуститься з чистою базою',
-                ]}
-            />
-            <InstructionCard
-                icon={<RotateCcw className="w-8 h-8 text-orange-500" />}
-                title="Перезавантаження програми"
-                steps={[
-                    'Натисніть кнопку із круговою стрілкою',
-                    'Інтерфейс перезапуститься без втрати даних',
-                ]}
-            />
-            <InstructionCard
-                icon={<Minus className="w-8 h-8 text-gray-500" />}
-                title="Згортання в трей"
-                steps={[
-                    'Натисніть кнопку з мінусом',
-                    'Додаток згорнеться у трей, але продовжить працювати',
-                ]}
-            />
-            <InstructionCard
-                icon={<X className="w-8 h-8 text-gray-700" />}
-                title="Закриття програми"
-                steps={['Натисніть кнопку з хрестиком', 'Програма завершить роботу']}
-            />
-            <InstructionCard
-                icon={<Lightbulb className="w-8 h-8 text-yellow-500" />}
-                title="Поради по верхній панелі"
-                steps={[
-                    'Перед оновленням чи скиданням робіть резервну копію',
-                    'Якщо програма зависла – натисніть «Перезавантажити»',
-                    'Закривайте додаток лише після збереження усіх даних',
-                ]}
-            />
+        <div className="space-y-4">
+            <Grid>
+                <InstructionCard
+                    icon={<LayoutPanelLeft />}
+                    title="Бічне меню"
+                    steps={[
+                        'Розділи зібрані в меню ліворуч: «Робота» і «Система»',
+                        'Кнопка «Згорнути меню» внизу залишає лише іконки — більше місця для таблиць',
+                        'На вузькому вікні меню згортається само',
+                        'Внизу меню — ваш обліковий запис: зміна пароля та вихід',
+                    ]}
+                />
+                <InstructionCard
+                    icon={<ZoomIn />}
+                    title="Масштаб інтерфейсу"
+                    steps={[
+                        'Кнопки «−» і «+» у верхній панелі роблять усе дрібнішим або більшим',
+                        'Вікно при цьому не звужується — просто вміщується більше даних',
+                        'Натисніть на відсотки, щоб повернути 100%',
+                        'Масштаб запамʼятовується на цьому компʼютері',
+                    ]}
+                />
+                <InstructionCard
+                    icon={<Moon />}
+                    title="Денна та нічна тема"
+                    steps={[
+                        'Кнопка з місяцем / сонцем у верхній панелі перемикає тему',
+                        'Нічна тема менше втомлює очі в темряві',
+                        'Бланки звітів (іменний список, донесення) завжди лишаються «паперовими» — білими',
+                    ]}
+                />
+                <InstructionCard
+                    icon={<Bell />}
+                    title="Сповіщення у верхній панелі"
+                    steps={[
+                        'Латунна кнопка з дзвіночком — найближчі події: дні народження, розпорядження, що закінчуються, завершення статусів',
+                        'Червона кнопка — записи про зміну статусу без файлу або періоду',
+                        'Кнопка «Відкрити картку» у списку веде прямо до потрібної людини',
+                    ]}
+                />
+                <InstructionCard
+                    icon={<RefreshCw />}
+                    title="Оновлення та перезавантаження"
+                    steps={[
+                        'Кнопка зі стрілкою вниз перевіряє нові версії програми',
+                        'Кругова стрілка перезавантажує вікно, дані при цьому не втрачаються',
+                        'Перед оновленням зробіть повну резервну копію',
+                    ]}
+                />
+                <InstructionCard
+                    icon={<Lightbulb />}
+                    title="Поради"
+                    steps={[
+                        'Небезпечні дії (видалення, виключення) завжди просять підтвердження',
+                        'Результат дій зʼявляється у сповіщеннях у правому нижньому куті',
+                        'Якщо щось пішло не так — натисніть «Перезавантажити вікно»',
+                    ]}
+                />
+            </Grid>
+            <ShortcutsCard />
         </div>
     );
 }
 
-/* ---------------------------
-   OTHER EXISTING TABS REMAIN
-----------------------------*/
+function ShortcutsCard() {
+    const rows: [string[], string][] = [
+        [['Ctrl', '+'], 'Збільшити інтерфейс'],
+        [['Ctrl', '−'], 'Зменшити інтерфейс'],
+        [['Ctrl', '0'], 'Звичайний масштаб (100%)'],
+        [['Esc'], 'Закрити вікно чи діалог'],
+    ];
+    return (
+        <section className="card p-5">
+            <h3 className="mb-4 flex items-center gap-2 text-[15px] font-semibold text-ink">
+                <Keyboard className="size-[18px] text-ink-3" />
+                Гарячі клавіші
+            </h3>
+            <ul className="grid gap-x-8 gap-y-2.5 sm:grid-cols-2">
+                {rows.map(([keys, label]) => (
+                    <li key={label} className="flex items-center justify-between gap-4 text-sm">
+                        <span className="text-ink-2">{label}</span>
+                        <span className="flex gap-1">
+                            {keys.map((key) => (
+                                <kbd key={key} className="kbd">
+                                    {key}
+                                </kbd>
+                            ))}
+                        </span>
+                    </li>
+                ))}
+            </ul>
+        </section>
+    );
+}
+
 function ReportsInstructions() {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Grid>
             <InstructionCard
-                icon={<FileText className="w-8 h-8 text-blue-600" />}
-                title="Збережені шаблони"
+                icon={<FileText />}
+                title="Створити рапорт"
                 steps={[
-                    'Перегляньте список доступних шаблонів',
-                    'Оберіть користувача, чиї дані будуть вставлені',
-                    'Згенеруйте документ та завантажте його',
+                    'Ліворуч оберіть військовослужбовця',
+                    'Оберіть шаблон документа (можна переглянути його заздалегідь)',
+                    'Натисніть «Створити рапорт» — зʼявиться попередній перегляд',
+                    'Перевірте документ і натисніть «Скачати рапорт»',
                 ]}
             />
             <InstructionCard
-                icon={<Users className="w-8 h-8 text-green-600" />}
-                title="Ваші збережені звіти"
+                icon={<UploadCloud />}
+                title="Додати шаблон"
                 steps={[
-                    'Перетягніть файли у вікно або натисніть «browse»',
+                    'Відкрийте вкладку «Додати шаблон»',
+                    'Оберіть файл .docx і перевірте попередній перегляд',
+                    'Натисніть «Зберегти шаблон»',
+                ]}
+            />
+            <InstructionCard
+                icon={<Users />}
+                title="Збережені звіти"
+                steps={[
+                    'Перетягніть файли у вікно або натисніть на зону завантаження',
                     'Шукайте звіти за назвою',
                     'Завантажуйте або видаляйте непотрібні',
                 ]}
             />
             <InstructionCard
-                icon={<UploadCloud className="w-8 h-8 text-purple-600" />}
-                title="Завантаження нових шаблонів"
-                steps={[
-                    'Натисніть «Завантажити шаблон»',
-                    'Перегляньте PDF-превʼю перед збереженням',
-                    'Збережіть шаблон у вашу базу',
-                ]}
-            />
-            <InstructionCard
-                icon={<Lightbulb className="w-8 h-8 text-yellow-500" />}
+                icon={<Lightbulb />}
                 title="Поради"
                 steps={[
-                    'Оберіть правильного користувача перед генерацією документа',
-                    'Використовуйте пошук, щоб швидко знайти потрібний звіт',
-                    'Шаблони автоматично зберігаються після завантаження',
+                    'Перевіряйте, що обрано правильну людину, перед створенням документа',
+                    'Попередній перегляд приблизний — фінальний вигляд у Word може трохи відрізнятися',
                 ]}
             />
-        </div>
+        </Grid>
     );
 }
 
 function PersonnelInstructions() {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Grid>
             <InstructionCard
-                icon={<UserCircle className="w-8 h-8 text-blue-500" />}
-                title="Список персоналу"
+                icon={<UserCircle />}
+                title="Список особового складу"
                 steps={[
-                    'Використовуйте пошук для фільтрації персоналу',
-                    'Клікніть по користувачу, щоб переглянути детальну інформацію',
-                    'Переглядайте ранги, посади, контакти та інші дані',
+                    'Шукайте за прізвищем, званням, телефоном чи статусом',
+                    'Кольорова крапка біля людини — група її статусу',
+                    'Натисніть на людину, щоб відкрити картку; ще раз — щоб закрити',
+                    'Список можна згорнути кнопкою над ним',
                 ]}
             />
             <InstructionCard
-                icon={<ClipboardList className="w-8 h-8 text-green-500" />}
-                title="Детальна інформація"
+                icon={<ClipboardList />}
+                title="Картка військовослужбовця"
                 steps={[
-                    'Переглядайте особисту інформацію, військові дані, родичів',
-                    'Додавайте історію, коментарі та оновлюйте дані',
-                    'Видаляйте користувача за потреби',
+                    'Угорі — фото, звання, посада, статус і всі дії',
+                    'Нижче — службові та особисті дані, «Показати всі дані» розгортає решту',
+                    'Праворуч — історія: зміни статусу, посад, розпорядження, документи',
+                    'Фільтри «1 день / 7 днів / Місяць / Увесь час» обмежують історію',
                 ]}
             />
             <InstructionCard
-                icon={<Edit3 className="w-8 h-8 text-orange-500" />}
-                title="Редагування та додавання користувачів"
+                icon={<Edit3 />}
+                title="Зміна статусу та записи"
                 steps={[
-                    'Натисніть «Редагувати», щоб змінити існуючі дані',
-                    'Додавайте фото, контакти, військові дані, родичів',
-                    'Збережіть зміни або додайте нового користувача',
+                    'Натисніть «Додати запис» в історії',
+                    'Оберіть новий статус, період і додайте файл-підставу',
+                    'Без файлу або періоду запис буде позначено червоним — його варто доповнити',
                 ]}
             />
             <InstructionCard
-                icon={<Lightbulb className="w-8 h-8 text-yellow-500" />}
-                title="Поради по роботі з персоналом"
+                icon={<FileWarning />}
+                title="Розпорядження та виключення"
                 steps={[
-                    'Слідкуйте за оновленнями та правами доступу',
-                    'Зберігайте актуальні дані про родичів та військовий статус',
-                    'Використовуйте коментарі для важливих заміток',
+                    '«Подати розпорядження» переводить людину у вкладку «Розпорядження» і прибирає з БЧС',
+                    '«Виключити» переносить у «Виключені»',
+                    '«Відновити» повертає людину до штату',
+                    'Для кожної дії потрібні заголовок, дата і документ-підстава',
                 ]}
             />
-        </div>
+        </Grid>
     );
 }
 
 function BackupInstructions() {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Grid>
             <InstructionCard
-                icon={<Download className="w-8 h-8 text-green-600" />}
-                title="Створення резервної копії"
+                icon={<DatabaseBackup />}
+                title="Повна резервна копія"
                 steps={[
-                    'Натисніть кнопку «Завантажити резервну копію»',
-                    'Файл з базою даних буде збережений на ваш компʼютер',
-                    'Рекомендується робити копії перед оновленням або змінами',
+                    'Розділ «Резервні копії» → «Повна копія»',
+                    'Придумайте пароль і збережіть зашифрований файл',
+                    'Цим файлом переносять усі дані на інший компʼютер',
                 ]}
             />
             <InstructionCard
-                icon={<RefreshCw className="w-8 h-8 text-orange-500" />}
-                title="Відновлення даних"
+                icon={<RefreshCw />}
+                title="Відновлення"
                 steps={[
-                    'Натисніть «Відновити з резервної копії»',
-                    'Оберіть файл резервної копії, який хочете відновити',
-                    'Після відновлення система перезапуститься',
+                    'Оберіть файл копії та введіть пароль',
+                    'Програма покаже, що в копії, і лише після підтвердження відновить дані',
+                    'Після відновлення потрібно увійти знову',
                 ]}
             />
             <InstructionCard
-                icon={<Settings className="w-8 h-8 text-blue-500" />}
-                title="Автоматичне резервне копіювання"
+                icon={<Settings />}
+                title="Автоматичні копії"
                 steps={[
-                    'У вкладці «Налаштування» задайте частоту автозбережень',
-                    'Файли автоматично створюються в обрану директорію',
-                    'Ви можете змінити директорію у налаштуваннях',
+                    'У «Автокопії» задайте, як часто робити копії та скільки зберігати',
+                    'Копії лежать у теці даних програми — кнопка «Відкрити теку»',
                 ]}
             />
             <InstructionCard
-                icon={<Lightbulb className="w-8 h-8 text-yellow-500" />}
+                icon={<Lightbulb />}
                 title="Рекомендації"
                 steps={[
-                    'Зберігайте резервні копії на окремому носії або у хмарі',
-                    'Регулярно перевіряйте автозбереження',
-                    'Перед оновленнями завжди створюйте ручну копію',
+                    'Зберігайте копії на окремому носії',
+                    'Робіть ручну копію перед оновленням програми',
+                    'Не передавайте пароль від копії разом із файлом',
                 ]}
             />
-        </div>
+        </Grid>
     );
 }
+
 function ExcelImportInstructions() {
     const [showModal, setShowModal] = useState(false);
 
     return (
-        <div className="flex flex-col gap-6">
-            {/* Instruction Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+            <Grid>
                 <InstructionCard
-                    icon={<UploadCloud className="w-8 h-8 text-blue-500" />}
-                    title="Як працює імпорт Excel/CSV?"
+                    icon={<UploadCloud />}
+                    title="Як працює імпорт"
                     steps={[
-                        'Можна завантажити один файл, система читає ВСІ листи',
+                        'Можна завантажити один файл — система читає всі листи',
                         'Для кожного листа визначається тип таблиці',
-                        'Якщо знайдено заголовки користувачів → кнопка «Імпортувати користувачів»',
-                        'Якщо знайдено заголовки штатних посад → кнопка «Імпортувати штатні посади»',
-                        'Якщо лист підходить під обидва типи → показуються ДВІ кнопки',
-                        'Якщо лист не підтримується – кнопки не буде',
+                        'Лист з особовим складом → кнопка «Імпортувати особовий склад»',
+                        'Лист зі штатними посадами → кнопка «Імпортувати БЧС»',
+                        'Якщо лист не підтримується — кнопки не буде',
                     ]}
                 />
-
                 <InstructionCard
-                    icon={<FileText className="w-8 h-8 text-green-600" />}
-                    title="Які листи вважаються «КОРИСТУВАЧАМИ»?"
+                    icon={<FileText />}
+                    title="Лист «особовий склад»"
                     steps={[
-                        'Має бути колонка з ПІБ або Прізвище+Імʼя',
-                        'Додатково ОБОВʼЯЗКОВО повинна бути «Дата народження»',
-                        'Інші поля (посада, підрозділ, телефон) необовʼязкові',
-                        'Користувачі визначаються унікально за ПІБ + дату народження',
+                        'Має бути колонка з ПІБ',
+                        'Обовʼязково — «Дата народження»',
+                        'Інші поля (посада, підрозділ, телефон) — за бажанням',
+                        'Людина визначається за ПІБ + дата народження',
                     ]}
                 />
-
                 <InstructionCard
-                    icon={<Layers className="w-8 h-8 text-purple-500" />}
-                    title="Які листи вважаються «ШТАТНИМИ ПОСАДАМИ»?"
+                    icon={<Layers />}
+                    title="Лист «штатні посади»"
                     steps={[
-                        'Мають бути ВСІ 5 обовʼязкових колонок:',
-                        '• «Номер по штату» (shtat_number)',
-                        '• «Підрозділ» (unit_name)',
-                        '• «Посада» (position_name)',
-                        '• «Категорія» (кат)',
-                        '• «ШПК» (shpk_code)',
-                        'Якщо хоча б одна з них відсутня → не вважається штатним списком',
+                        'Потрібні всі 5 колонок:',
+                        '«Номер по штату», «Підрозділ», «Посада», «Категорія» (кат), «ШПК»',
+                        'Якщо хоч однієї немає — лист не вважається БЧС',
                     ]}
                 />
-
                 <InstructionCard
-                    icon={<Edit3 className="w-8 h-8 text-orange-500" />}
-                    title="Як обробляються значення?"
+                    icon={<Edit3 />}
+                    title="Обробка значень"
                     steps={[
-                        'Порожні комірки → порожній рядок',
-                        'Дати конвертуються в YYYY-MM-DD',
-                        'Числові дати Excel (серійні) теж розпізнаються',
-                        'Будь-який інший текст зберігається без змін',
+                        'Порожні комірки → порожнє значення',
+                        'Дати перетворюються у формат РРРР-ММ-ДД, числові дати Excel теж',
+                        'Невідомі колонки ігноруються без помилок',
                     ]}
                 />
-
                 <InstructionCard
-                    icon={<Users className="w-8 h-8 text-indigo-600" />}
-                    title="Що відбувається при імпорті?"
+                    icon={<Users />}
+                    title="Результат імпорту"
                     steps={[
-                        'Для користувачів – оновлюються існуючі або створюються нові',
-                        'Для штатних посад – створюються нові, існуючі пропускаються',
-                        'Після імпорту зʼявляється підсумок: скільки додано / оновлено / пропущено',
+                        'Особовий склад: існуючі оновлюються, нові створюються',
+                        'Штатні посади: нові додаються, існуючі пропускаються',
+                        'Підсумок (скільки додано / оновлено / пропущено) зʼявиться у сповіщенні',
                     ]}
                 />
-
                 <InstructionCard
-                    icon={<Lightbulb className="w-8 h-8 text-yellow-500" />}
-                    title="Що ще важливо знати?"
+                    icon={<Lightbulb />}
+                    title="Важливо"
                     steps={[
-                        'Формат дат може бути довільний – система намагається розпізнати',
-                        'Невідомі колонки не викликають помилок – вони просто ігноруються',
-                        'Завжди перевіряйте попередній перегляд перед імпортом',
-                        'Якщо файл великий – імпорт може зайняти кілька секунд',
+                        'Завжди переглядайте таблицю перед імпортом',
+                        'Великий файл може імпортуватися кілька секунд',
                     ]}
                 />
-
-                <button
+            </Grid>
+            <section className="card flex flex-wrap items-center justify-between gap-4 p-5">
+                <div className="flex items-center gap-3">
+                    <span className="grid size-10 place-items-center rounded-xl bg-success-soft text-success-ink">
+                        <FileSpreadsheet className="size-5" />
+                    </span>
+                    <div>
+                        <p className="text-[15px] font-semibold text-ink">
+                            Підтримувані заголовки колонок
+                        </p>
+                        <p className="text-[13px] text-ink-3">
+                            Які назви колонок Excel розуміє програма і куди їх записує
+                        </p>
+                    </div>
+                </div>
+                <Button
+                    variant="secondary"
+                    icon={<Table2 className="size-4" />}
                     onClick={() => setShowModal(true)}
-                    className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition"
                 >
-                    HEADER_MAP (Види заголовків)
-                </button>
-            </div>
+                    Переглянути список
+                </Button>
+            </section>
 
-            {/* Modal with search */}
             {showModal && <HeaderMapModal onClose={() => setShowModal(false)} />}
         </div>
     );
@@ -397,104 +391,90 @@ function ExcelImportInstructions() {
 function HeaderMapModal({ onClose }: { onClose: () => void }) {
     const [searchTerm, setSearchTerm] = useState('');
 
-    const headers = Object.entries(HEADER_MAP);
-
-    const filteredHeaders = headers.filter(
+    const filteredHeaders = Object.entries(HEADER_MAP).filter(
         ([excel, db]) =>
             excel.toLowerCase().includes(searchTerm.toLowerCase()) ||
             db.toLowerCase().includes(searchTerm.toLowerCase()),
     );
 
     return (
-        <div className="fixed inset-0 bg-gradient-to-br from-gray-100/70 to-gray-300/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl w-[90%] max-w-3xl max-h-[80%] flex flex-col">
-                {/* Header */}
-                <div className="flex justify-between items-center p-4 border-b">
-                    <h2 className="text-xl font-bold text-gray-800">
-                        📄 Підтримувані заголовки Excel
-                    </h2>
-                    <button onClick={onClose} className="p-2 rounded hover:bg-gray-100 transition">
-                        ✖
-                    </button>
-                </div>
-
-                {/* Search */}
-                <div className="p-4 border-b">
-                    <input
-                        type="text"
-                        placeholder="🔍 Пошук заголовків..."
-                        className="w-full border rounded-lg px-4 py-2 text-sm focus:ring focus:ring-blue-300 outline-none"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-
-                {/* Table */}
-                <div className="flex-1 overflow-auto">
-                    <table className="min-w-full border-collapse text-sm">
+        <Modal
+            open
+            onClose={onClose}
+            title="Підтримувані заголовки Excel"
+            icon={<FileSpreadsheet />}
+            width="max-w-3xl"
+            bodyClassName="p-0 flex min-h-0 flex-col"
+        >
+            <div className="border-b border-line p-4">
+                <SearchInput
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                    placeholder="Пошук заголовків…"
+                    size="sm"
+                    autoFocus
+                />
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto">
+                {filteredHeaders.length === 0 ? (
+                    <EmptyState title="Нічого не знайдено" />
+                ) : (
+                    <table className="data-table">
                         <thead>
-                            <tr className="bg-gray-100">
-                                <th className="border px-4 py-2 text-left">Заголовок у Excel</th>
-                                <th className="border px-4 py-2 text-left">Поле в БД</th>
+                            <tr>
+                                <th>Заголовок у Excel</th>
+                                <th>Поле в базі</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredHeaders.map(([excelHeader, dbField]) => (
-                                <tr key={excelHeader} className="hover:bg-gray-50">
-                                    <td className="border px-4 py-2">{excelHeader}</td>
-                                    <td className="border px-4 py-2 text-blue-700">{dbField}</td>
-                                </tr>
-                            ))}
-                            {filteredHeaders.length === 0 && (
-                                <tr>
-                                    <td
-                                        colSpan={2}
-                                        className="text-center text-gray-500 py-4 italic"
-                                    >
-                                        Нічого не знайдено...
+                                <tr key={excelHeader}>
+                                    <td>{excelHeader}</td>
+                                    <td className="font-mono text-xs text-primary-ink">
+                                        {dbField}
                                     </td>
                                 </tr>
-                            )}
+                            ))}
                         </tbody>
                     </table>
-                </div>
-
-                {/* Footer */}
-                <div className="p-4 border-t flex justify-end">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700"
-                    >
-                        Закрити
-                    </button>
-                </div>
+                )}
             </div>
-        </div>
+        </Modal>
     );
 }
-/* ---------------------------
-   SHARED CARD
-----------------------------*/
+
 function InstructionCard({
     icon,
     title,
     steps,
 }: {
-    icon: React.ReactNode;
+    icon: ReactNode;
     title: string;
     steps: string[];
 }) {
     return (
-        <div className="bg-white rounded-xl shadow-sm border p-6 flex flex-col gap-3 hover:shadow-md transition">
+        <section className="card flex flex-col gap-4 p-5 transition-shadow hover:shadow-pop">
             <div className="flex items-center gap-3">
-                {icon}
-                <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-ink [&_svg]:size-5">
+                    {icon}
+                </span>
+                <h3 className="text-[15px] font-semibold text-ink">{title}</h3>
             </div>
-            <ul className="list-disc list-inside text-gray-600 text-sm space-y-1">
+            <ol className="space-y-2">
                 {steps.map((step, idx) => (
-                    <li key={idx}>{step}</li>
+                    <li key={idx} className="flex gap-3 text-sm leading-relaxed text-ink-2">
+                        <span
+                            className={cn(
+                                'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-semibold tabular-nums',
+                                'bg-surface-3 text-ink-3',
+                            )}
+                        >
+                            {idx + 1}
+                        </span>
+                        <span>{step}</span>
+                    </li>
                 ))}
-            </ul>
-        </div>
+            </ol>
+        </section>
     );
 }

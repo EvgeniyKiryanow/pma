@@ -1,11 +1,9 @@
-import './styles/index.css';
-
 import { useEffect, useMemo, useRef } from 'react';
 
 import { useShtatniStore } from '../renderer/entities/shtatna-posada/model/useShtatniStore';
 import { UnitStatsCalculator } from '../renderer/features/report/ui/_components/UnitStatsCalculator';
 import { buildPlannedTotalsFromShtatni } from '../renderer/shared/utils/plannedTotalsFromShtatni';
-import Header from './app/layout/Header';
+import Sidebar from './app/layout/Sidebar';
 import { visibleTabs } from './app/navigation';
 import UserFormModalUpdate from './entities/user/ui/userFormModal';
 import { useNamedListStore } from './features/report/model/useNamedListStore';
@@ -79,14 +77,23 @@ export default function App() {
     }, [activeTab?.key, currentTab]);
 
     return (
-        <div className="h-screen flex flex-col bg-gray-50 pt-[44px]">
-            <Header
+        <div className="flex h-screen bg-rail pt-10">
+            <Sidebar
                 tabs={tabs}
                 currentTab={activeTab?.key ?? currentTab}
-                setCurrentTab={setCurrentTab}
+                onSelect={setCurrentTab}
             />
 
-            {activeTab?.render()}
+            <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-[18px] bg-canvas">
+                {activeTab && (
+                    <div
+                        key={activeTab.key}
+                        className="flex min-h-0 flex-1 animate-fade-in flex-col"
+                    >
+                        {activeTab.render()}
+                    </div>
+                )}
+            </main>
 
             {isUserFormOpen && (
                 <UserFormModalUpdate userToEdit={editingUser} onClose={closeUserForm} />

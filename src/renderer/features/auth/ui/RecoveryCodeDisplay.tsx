@@ -22,8 +22,8 @@ export default function RecoveryCodeDisplay({ code }: { code: string }) {
     return (
         <div className="space-y-4">
             <Alert tone="warning">{t('auth.recoveryCode.description')}</Alert>
-            <div className="flex items-center justify-between gap-3 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3">
-                <code className="select-all font-mono text-xl font-semibold tracking-widest text-gray-900">
+            <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-brass/50 bg-brass-soft px-4 py-3.5">
+                <code className="select-all font-mono text-xl font-semibold tracking-widest text-ink">
                     {code}
                 </code>
                 <Button

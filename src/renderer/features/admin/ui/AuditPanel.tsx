@@ -1,4 +1,4 @@
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ScrollText } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { AuditEntryDTO, AuditOutcome } from '../../../../shared/audit/types';
@@ -67,6 +67,7 @@ export default function AuditPanel() {
         <Card
             title={t('admin.audit.title')}
             description={t('admin.audit.description')}
+            icon={<ScrollText />}
             actions={
                 <Button
                     variant="secondary"
@@ -112,37 +113,35 @@ export default function AuditPanel() {
             )}
 
             {items.length === 0 && !loading ? (
-                <p className="text-sm text-gray-500">{t('admin.audit.empty')}</p>
+                <p className="text-sm text-ink-3">{t('admin.audit.empty')}</p>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                <div className="-mx-5 overflow-x-auto border-y border-line">
+                    <table className="data-table">
                         <thead>
-                            <tr className="border-b text-left text-xs uppercase tracking-wide text-gray-500">
-                                <th className="py-2 pr-3">{t('admin.audit.time')}</th>
-                                <th className="py-2 pr-3">{t('admin.audit.account')}</th>
-                                <th className="py-2 pr-3">{t('admin.audit.action')}</th>
-                                <th className="py-2 pr-3">{t('admin.audit.outcome')}</th>
-                                <th className="py-2">{t('admin.audit.details')}</th>
+                            <tr>
+                                <th>{t('admin.audit.time')}</th>
+                                <th>{t('admin.audit.account')}</th>
+                                <th>{t('admin.audit.action')}</th>
+                                <th>{t('admin.audit.outcome')}</th>
+                                <th>{t('admin.audit.details')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {items.map((item) => (
-                                <tr key={item.id} className="border-b last:border-0">
-                                    <td className="whitespace-nowrap py-2 pr-3 text-gray-600">
+                                <tr key={item.id}>
+                                    <td className="whitespace-nowrap text-ink-2 tabular-nums">
                                         {formatDateTime(item.occurredAt)}
                                     </td>
-                                    <td className="py-2 pr-3">
+                                    <td>
                                         {item.accountUsername ?? (
-                                            <span className="text-gray-400">
+                                            <span className="text-ink-3">
                                                 {t('admin.audit.system')}
                                             </span>
                                         )}
                                     </td>
-                                    <td className="py-2 pr-3" title={item.action}>
-                                        {actionLabel(item.action)}
-                                    </td>
-                                    <td className="py-2 pr-3">{outcomeBadge(item.outcome)}</td>
-                                    <td className="py-2 font-mono text-xs text-gray-500">
+                                    <td title={item.action}>{actionLabel(item.action)}</td>
+                                    <td>{outcomeBadge(item.outcome)}</td>
+                                    <td className="max-w-[360px] break-all font-mono text-[11px] text-ink-3">
                                         {item.details ? JSON.stringify(item.details) : ''}
                                     </td>
                                 </tr>
@@ -152,7 +151,7 @@ export default function AuditPanel() {
                 </div>
             )}
 
-            <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+            <div className="mt-4 flex items-center justify-between text-sm text-ink-2">
                 <span>{t('admin.audit.total', { count: total })}</span>
                 <div className="flex gap-2">
                     <Button

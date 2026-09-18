@@ -1,10 +1,12 @@
 import {
     AlertOctagon,
+    ArrowLeftRight,
     CalendarClock,
     Download,
     FolderOpen,
     HardDriveDownload,
     Save,
+    ShieldAlert,
     Upload,
 } from 'lucide-react';
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from 'react';
@@ -21,41 +23,58 @@ import {
     Badge,
     Button,
     Card,
-    cn,
     formatBytes,
     formatDateTime,
     PasswordField,
     TextField,
 } from '../../../shared/ui';
+import SideNav from '../../../shared/ui/SideNav';
 import { toast } from '../../../shared/ui/toast';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { usePermissions } from '../../../stores/sessionStore';
 import RestoreBackupFlow from './RestoreBackupFlow';
 
-type Section = { key: string; labelKey: string; anyOf: PermissionKey[]; render: () => ReactNode };
+type Section = {
+    key: string;
+    labelKey: string;
+    hintKey: string;
+    icon: ReactNode;
+    danger?: boolean;
+    anyOf: PermissionKey[];
+    render: () => ReactNode;
+};
 
 const SECTIONS: Section[] = [
     {
         key: 'full',
         labelKey: 'backups.nav.full',
+        hintKey: 'backups.navHint.full',
+        icon: <HardDriveDownload />,
         anyOf: ['backup.export', 'backup.import'],
         render: () => <FullBackupSection />,
     },
     {
         key: 'auto',
         labelKey: 'backups.nav.auto',
+        hintKey: 'backups.navHint.auto',
+        icon: <CalendarClock />,
         anyOf: ['backup.export'],
         render: () => <AutoBackupSection />,
     },
     {
         key: 'changeLog',
         labelKey: 'backups.nav.changeLog',
+        hintKey: 'backups.navHint.changeLog',
+        icon: <ArrowLeftRight />,
         anyOf: ['sync.export', 'sync.import'],
         render: () => <ChangeLogSection />,
     },
     {
         key: 'danger',
         labelKey: 'backups.nav.danger',
+        hintKey: 'backups.navHint.danger',
+        icon: <ShieldAlert />,
+        danger: true,
         anyOf: ['system.reset'],
         render: () => <DangerZoneSection />,
     },
@@ -69,24 +88,23 @@ export default function BackupPanel() {
     const active = sections.find((s) => s.key === activeKey) ?? sections[0];
 
     return (
-        <div className="flex h-full min-h-0 flex-1">
-            <aside className="w-56 shrink-0 space-y-1 border-r bg-gray-100 p-4">
-                <h2 className="mb-3 text-lg font-semibold text-gray-800">{t('backups.title')}</h2>
-                {sections.map((section) => (
-                    <button
-                        key={section.key}
-                        onClick={() => setActiveKey(section.key)}
-                        className={cn(
-                            'w-full rounded px-3 py-2 text-left text-sm hover:bg-gray-200',
-                            active?.key === section.key && 'bg-gray-200 font-medium',
-                        )}
-                    >
-                        {t(section.labelKey)}
-                    </button>
-                ))}
-            </aside>
-            <main className="flex-1 overflow-y-auto p-6">
-                <div className="mx-auto max-w-3xl space-y-6">{active?.render()}</div>
+        <div className="flex min-h-0 flex-1">
+            <SideNav
+                title={t('backups.title')}
+                value={active?.key ?? ''}
+                onChange={setActiveKey}
+                items={sections.map((section) => ({
+                    value: section.key,
+                    label: t(section.labelKey),
+                    description: t(section.hintKey),
+                    icon: section.icon,
+                    tone: section.danger ? 'danger' : 'default',
+                }))}
+            />
+            <main className="min-w-0 flex-1 overflow-y-auto p-6">
+                <div key={active?.key} className="mx-auto max-w-3xl animate-fade-in space-y-5">
+                    {active?.render()}
+                </div>
             </main>
         </div>
     );
@@ -256,7 +274,7 @@ function AutoBackupSection() {
             }
         >
             <div className="space-y-4">
-                <label className="flex items-center gap-2 text-sm text-gray-800">
+                <label className="flex items-center gap-2.5 rounded-xl border border-line bg-surface-2 px-3.5 py-3 text-sm font-medium text-ink">
                     <input
                         type="checkbox"
                         checked={auto.enabled}
@@ -283,8 +301,8 @@ function AutoBackupSection() {
                         onChange={(e) => update({ keep: Number(e.target.value) })}
                     />
                 </div>
-                <p className="text-xs text-gray-500">
-                    <CalendarClock className="mr-1 inline h-3.5 w-3.5" />
+                <p className="flex items-center gap-1.5 text-xs text-ink-3">
+                    <CalendarClock className="size-3.5" />
                     {t('backups.auto.last', { time: formatDateTime(settings.lastAutoBackupAt) })}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -304,26 +322,26 @@ function AutoBackupSection() {
                     </Button>
                 </div>
 
-                <div className="border-t pt-4">
-                    <h3 className="mb-2 text-sm font-semibold text-gray-900">
+                <div className="border-t border-line pt-5">
+                    <h3 className="mb-2 text-sm font-semibold text-ink">
                         {t('backups.auto.snapshots')}
                     </h3>
                     {snapshots.length === 0 ? (
-                        <p className="text-sm text-gray-500">{t('backups.auto.empty')}</p>
+                        <p className="text-sm text-ink-3">{t('backups.auto.empty')}</p>
                     ) : (
-                        <ul className="divide-y text-sm">
+                        <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line text-sm">
                             {snapshots.map((snapshot) => (
                                 <li
                                     key={`${snapshot.kind}-${snapshot.name}`}
-                                    className="flex items-center justify-between gap-3 py-2"
+                                    className="flex items-center justify-between gap-3 px-3.5 py-2.5 transition-colors hover:bg-surface-2"
                                 >
                                     <span
-                                        className="truncate font-mono text-xs text-gray-700"
+                                        className="truncate font-mono text-xs text-ink-2"
                                         title={snapshot.name}
                                     >
                                         {snapshot.name}
                                     </span>
-                                    <span className="flex shrink-0 items-center gap-2 text-xs text-gray-500">
+                                    <span className="flex shrink-0 items-center gap-2 text-xs text-ink-3">
                                         <Badge tone={snapshot.kind === 'auto' ? 'gray' : 'amber'}>
                                             {snapshot.kind === 'auto'
                                                 ? t('backups.auto.kindAuto')
@@ -448,7 +466,11 @@ function DangerZoneSection() {
     };
 
     return (
-        <Card title={t('backups.danger.title')} className="border-red-200">
+        <Card
+            title={t('backups.danger.title')}
+            icon={<ShieldAlert />}
+            className="border-danger-line"
+        >
             <div className="space-y-4">
                 <Alert tone="error">{t('backups.danger.description')}</Alert>
                 <TextField

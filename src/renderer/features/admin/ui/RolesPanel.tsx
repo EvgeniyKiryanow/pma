@@ -10,6 +10,7 @@ import {
 import type { RoleDTO } from '../../../../shared/auth/types';
 import { errorMessage, unwrap } from '../../../shared/api/call';
 import { Alert, Badge, Button, Card, Modal, TextField } from '../../../shared/ui';
+import { confirmAction } from '../../../shared/ui/confirm';
 import { toast } from '../../../shared/ui/toast';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useAdminData } from '../model/useAdminData';
@@ -20,7 +21,13 @@ export default function RolesPanel() {
     const [editing, setEditing] = useState<RoleDTO | 'new' | null>(null);
 
     const remove = async (role: RoleDTO) => {
-        if (!window.confirm(t('admin.roles.confirmDelete', { name: role.name }))) return;
+        const confirmed = await confirmAction({
+            title: t('admin.roles.delete'),
+            message: t('admin.roles.confirmDelete', { name: role.name }),
+            confirmLabel: t('admin.roles.delete'),
+            tone: 'danger',
+        });
+        if (!confirmed) return;
         try {
             await unwrap(window.electronAPI.roles.remove(role.id));
             toast.success(t('admin.roles.deleted'));
@@ -34,6 +41,7 @@ export default function RolesPanel() {
         <Card
             title={t('admin.roles.title')}
             description={t('admin.roles.description')}
+            icon={<ShieldCheck />}
             actions={
                 <Button icon={<Plus className="h-4 w-4" />} onClick={() => setEditing('new')}>
                     {t('admin.roles.add')}
@@ -48,26 +56,27 @@ export default function RolesPanel() {
             {!loading && (
                 <div className="grid gap-3 md:grid-cols-2">
                     {roles.map((role) => (
-                        <div key={role.id} className="rounded-lg border border-gray-200 p-4">
+                        <div
+                            key={role.id}
+                            className="rounded-xl border border-line bg-surface p-4 transition-colors hover:border-line-strong"
+                        >
                             <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
                                         {role.isSystem && (
-                                            <ShieldCheck className="h-4 w-4 text-blue-600" />
+                                            <ShieldCheck className="h-4 w-4 text-primary-ink" />
                                         )}
-                                        <span className="font-semibold text-gray-900">
-                                            {role.name}
-                                        </span>
+                                        <span className="font-semibold text-ink">{role.name}</span>
                                         {role.isSystem && (
-                                            <Badge tone="blue">{t('admin.roles.system')}</Badge>
+                                            <Badge tone="olive">{t('admin.roles.system')}</Badge>
                                         )}
                                     </div>
                                     {role.description && (
-                                        <p className="mt-1 text-sm text-gray-600">
+                                        <p className="mt-1 text-sm text-ink-2">
                                             {role.description}
                                         </p>
                                     )}
-                                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
+                                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-ink-3">
                                         <span>
                                             {t('admin.roles.accounts', {
                                                 count: role.accountCount,
@@ -96,7 +105,7 @@ export default function RolesPanel() {
                                         <Button
                                             size="sm"
                                             variant="ghost"
-                                            className="text-red-600"
+                                            className="text-danger-ink hover:bg-danger-soft hover:text-danger-ink"
                                             icon={<Trash2 className="h-3.5 w-3.5" />}
                                             disabled={role.accountCount > 0}
                                             onClick={() => void remove(role)}
@@ -217,10 +226,10 @@ function RoleEditorDialog({
                 </div>
 
                 <div>
-                    <h4 className="mb-1 text-sm font-semibold text-gray-900">
+                    <h4 className="mb-1 text-sm font-semibold text-ink">
                         {t('admin.roles.permissions')}
                     </h4>
-                    <p className="mb-3 text-xs text-gray-500">
+                    <p className="mb-3 text-xs text-ink-3">
                         {isSystem ? t('admin.roles.systemNote') : t('admin.roles.requiresNote')}
                     </p>
                     <div className="grid gap-3 md:grid-cols-2">
@@ -229,23 +238,23 @@ function RoleEditorDialog({
                             return (
                                 <fieldset
                                     key={group}
-                                    className="rounded-lg border border-gray-200 p-3"
+                                    className="rounded-xl border border-line p-3.5"
                                     disabled={isSystem}
                                 >
-                                    <legend className="flex w-full items-center justify-between gap-2 px-1 text-sm font-medium text-gray-800">
+                                    <legend className="flex w-full items-center justify-between gap-2 px-1 text-sm font-medium text-ink">
                                         <span>{t(`permissionGroups.${group}`)}</span>
                                         {!isSystem && (
                                             <span className="flex gap-2 text-xs font-normal">
                                                 <button
                                                     type="button"
-                                                    className="text-blue-600 hover:underline"
+                                                    className="font-medium text-primary-ink hover:underline"
                                                     onClick={() => setGroup(keys, true)}
                                                 >
                                                     {t('admin.roles.selectAll')}
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    className="text-gray-500 hover:underline"
+                                                    className="text-ink-3 hover:underline"
                                                     onClick={() => setGroup(keys, false)}
                                                 >
                                                     {t('admin.roles.selectNone')}
@@ -257,7 +266,7 @@ function RoleEditorDialog({
                                         {items.map((item) => (
                                             <label
                                                 key={item.key}
-                                                className="flex items-start gap-2 text-sm text-gray-700"
+                                                className="flex items-start gap-2 text-sm text-ink-2"
                                             >
                                                 <input
                                                     type="checkbox"
@@ -268,7 +277,7 @@ function RoleEditorDialog({
                                                 <span>
                                                     {t(`permissions.${item.key}`)}
                                                     {item.sensitive && (
-                                                        <span className="ml-1 text-xs text-amber-700">
+                                                        <span className="ml-1 text-xs text-warning-ink">
                                                             ({t('admin.roles.sensitive')})
                                                         </span>
                                                     )}

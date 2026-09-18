@@ -1,4 +1,4 @@
-import { KeyRound, Lock, Pencil, Trash2, UserPlus } from 'lucide-react';
+import { KeyRound, Lock, Pencil, Trash2, UserPlus, Users } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 import type { AccountDTO, RoleDTO } from '../../../../shared/auth/types';
@@ -6,6 +6,7 @@ import { PASSWORD_RULES } from '../../../../shared/auth/types';
 import { errorMessage, unwrap } from '../../../shared/api/call';
 import {
     Alert,
+    Avatar,
     Badge,
     Button,
     Card,
@@ -15,6 +16,7 @@ import {
     SelectField,
     TextField,
 } from '../../../shared/ui';
+import { confirmAction } from '../../../shared/ui/confirm';
 import { toast } from '../../../shared/ui/toast';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useSessionStore } from '../../../stores/sessionStore';
@@ -45,8 +47,14 @@ export default function AccountsPanel() {
         }
     };
 
-    const remove = (account: AccountDTO) => {
-        if (!window.confirm(t('admin.accounts.confirmDelete', { name: account.username }))) return;
+    const remove = async (account: AccountDTO) => {
+        const confirmed = await confirmAction({
+            title: t('admin.accounts.delete'),
+            message: t('admin.accounts.confirmDelete', { name: account.username }),
+            confirmLabel: t('admin.accounts.delete'),
+            tone: 'danger',
+        });
+        if (!confirmed) return;
         void act(
             () => unwrap(window.electronAPI.accounts.remove(account.id)),
             t('admin.accounts.deleted'),
@@ -57,6 +65,7 @@ export default function AccountsPanel() {
         <Card
             title={t('admin.accounts.title')}
             description={t('admin.accounts.description')}
+            icon={<Users />}
             actions={
                 <Button
                     icon={<UserPlus className="h-4 w-4" />}
@@ -72,50 +81,55 @@ export default function AccountsPanel() {
                 </Alert>
             )}
             {!loading && accounts.length === 0 && (
-                <p className="text-sm text-gray-500">{t('admin.accounts.empty')}</p>
+                <p className="text-sm text-ink-3">{t('admin.accounts.empty')}</p>
             )}
 
             {accounts.length > 0 && (
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                <div className="-mx-5 -mb-5 overflow-x-auto border-t border-line">
+                    <table className="data-table">
                         <thead>
-                            <tr className="border-b text-left text-xs uppercase tracking-wide text-gray-500">
-                                <th className="py-2 pr-3">{t('admin.accounts.username')}</th>
-                                <th className="py-2 pr-3">{t('admin.accounts.role')}</th>
-                                <th className="py-2 pr-3">{t('admin.accounts.status')}</th>
-                                <th className="py-2 pr-3">{t('admin.accounts.lastLogin')}</th>
-                                <th className="py-2" />
+                            <tr>
+                                <th>{t('admin.accounts.username')}</th>
+                                <th>{t('admin.accounts.role')}</th>
+                                <th>{t('admin.accounts.status')}</th>
+                                <th>{t('admin.accounts.lastLogin')}</th>
+                                <th />
                             </tr>
                         </thead>
                         <tbody>
                             {accounts.map((account) => {
                                 const isSelf = account.id === currentAccountId;
                                 return (
-                                    <tr
-                                        key={account.id}
-                                        className="border-b last:border-0 align-top"
-                                    >
-                                        <td className="py-3 pr-3">
-                                            <div className="font-medium text-gray-900">
-                                                {account.username}
-                                                {isSelf && (
-                                                    <span className="ml-2 text-xs text-gray-500">
-                                                        ({t('admin.accounts.you')})
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {account.displayName && (
-                                                <div className="text-xs text-gray-500">
-                                                    {account.displayName}
+                                    <tr key={account.id}>
+                                        <td>
+                                            <div className="flex items-center gap-2.5">
+                                                <Avatar
+                                                    name={account.displayName || account.username}
+                                                    size={32}
+                                                />
+                                                <div className="min-w-0">
+                                                    <div className="font-medium text-ink">
+                                                        {account.username}
+                                                        {isSelf && (
+                                                            <span className="ml-2 text-xs font-normal text-ink-3">
+                                                                ({t('admin.accounts.you')})
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {account.displayName && (
+                                                        <div className="text-xs text-ink-3">
+                                                            {account.displayName}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
+                                            </div>
                                         </td>
-                                        <td className="py-3 pr-3">
-                                            <Badge tone={account.roleGrantsAll ? 'blue' : 'gray'}>
+                                        <td>
+                                            <Badge tone={account.roleGrantsAll ? 'olive' : 'gray'}>
                                                 {account.roleName}
                                             </Badge>
                                         </td>
-                                        <td className="space-x-1 space-y-1 py-3 pr-3">
+                                        <td className="space-x-1 space-y-1">
                                             {account.isActive ? (
                                                 <Badge tone="green">
                                                     {t('admin.accounts.active')}
@@ -127,7 +141,8 @@ export default function AccountsPanel() {
                                             )}
                                             {account.lockedUntil && (
                                                 <Badge tone="red">
-                                                    🔒 {formatDateTime(account.lockedUntil)}
+                                                    <Lock className="size-3" />
+                                                    {formatDateTime(account.lockedUntil)}
                                                 </Badge>
                                             )}
                                             {account.mustChangePassword && (
@@ -136,10 +151,10 @@ export default function AccountsPanel() {
                                                 </Badge>
                                             )}
                                         </td>
-                                        <td className="py-3 pr-3 text-gray-600">
+                                        <td className="whitespace-nowrap text-ink-2">
                                             {formatDateTime(account.lastLoginAt)}
                                         </td>
-                                        <td className="py-3">
+                                        <td>
                                             <div className="flex flex-wrap justify-end gap-1">
                                                 <Button
                                                     size="sm"
@@ -185,9 +200,9 @@ export default function AccountsPanel() {
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        className="text-red-600"
+                                                        className="text-danger-ink hover:bg-danger-soft hover:text-danger-ink"
                                                         icon={<Trash2 className="h-3.5 w-3.5" />}
-                                                        onClick={() => remove(account)}
+                                                        onClick={() => void remove(account)}
                                                     >
                                                         {t('admin.accounts.delete')}
                                                     </Button>
@@ -333,7 +348,7 @@ function AccountFormDialog({
                     />
                 )}
                 {isEdit && !isSelf && (
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <label className="flex items-center gap-2.5 rounded-xl border border-line px-3.5 py-3 text-sm text-ink">
                         <input
                             type="checkbox"
                             checked={isActive}

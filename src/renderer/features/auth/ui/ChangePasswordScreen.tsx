@@ -20,7 +20,7 @@ export default function ChangePasswordScreen() {
                 <button
                     type="button"
                     onClick={() => void logout()}
-                    className="inline-flex items-center gap-1 text-sm text-gray-600 hover:underline"
+                    className="inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink"
                 >
                     <LogOut className="h-4 w-4" />
                     {t('session.logout')}

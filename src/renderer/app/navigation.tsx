@@ -1,9 +1,10 @@
 import {
-    BookText,
     DatabaseBackup,
-    FileBarChart,
-    FileSpreadsheet,
+    FileText,
+    LifeBuoy,
+    ListTree,
     ShieldCheck,
+    Sheet,
     Users,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -25,10 +26,14 @@ export type TabContext = {
     hasStaffingTable: boolean;
 };
 
+export type TabGroup = 'work' | 'system';
+
 export type TabDefinition = {
     key: TabKey;
     label: (t: (key: string) => string) => string;
+    /** Icon component; the shell decides size and colour. */
     icon: ReactNode;
+    group: TabGroup;
     /** `null` = any signed-in user. Otherwise at least one permission is required. */
     requires: PermissionKey[] | null;
     /** Extra visibility condition that does not depend on permissions. */
@@ -36,64 +41,72 @@ export type TabDefinition = {
     render: () => ReactNode;
 };
 
+export const TAB_GROUPS: { key: TabGroup; labelKey: string }[] = [
+    { key: 'work', labelKey: 'nav.groupWork' },
+    { key: 'system', labelKey: 'nav.groupSystem' },
+];
+
 /**
- * Single registry of the main navigation. Header and App both read from here, so adding
- * a tab (and its access rule) is one entry.
+ * Single registry of the main navigation. The shell (sidebar, title bar) and App read from
+ * here, so adding a section (and its access rule) is one entry.
  */
 export const TABS: TabDefinition[] = [
     {
         key: 'manager',
-        label: (t) => t('header.managerTab'),
-        icon: <Users className="h-4 w-4" />,
+        label: (t) => t('nav.personnel'),
+        icon: <Users />,
+        group: 'work',
         requires: ['personnel.view'],
-        render: () => (
-            <div className="flex flex-1 overflow-hidden">
-                <ManagerTab />
-            </div>
-        ),
+        render: () => <ManagerTab />,
     },
     {
         key: 'reports',
-        label: (t) => t('header.reportsTab'),
-        icon: <FileBarChart className="h-4 w-4" />,
+        label: (t) => t('nav.reports'),
+        icon: <FileText />,
+        group: 'work',
         requires: ['reports.view'],
         render: () => <ReportsTab />,
     },
     {
-        key: 'backups',
-        label: (t) => t('header.backupTab'),
-        icon: <DatabaseBackup className="h-4 w-4" />,
-        requires: ['backup.export', 'backup.import', 'sync.export', 'sync.import', 'system.reset'],
-        render: () => <BackupPanel />,
-    },
-    {
         key: 'importUsers',
-        label: () => 'Excel',
-        icon: <FileSpreadsheet className="h-4 w-4" />,
+        label: (t) => t('nav.tables'),
+        icon: <Sheet />,
+        group: 'work',
         requires: ['personnel.import', 'staffing.edit', 'tables.view'],
         render: () => <ImportUsersTab />,
     },
     {
         key: 'shtatni',
-        label: () => 'БЧС',
-        icon: <FileSpreadsheet className="h-4 w-4" />,
+        label: (t) => t('nav.staffing'),
+        icon: <ListTree />,
+        group: 'work',
         requires: ['staffing.view'],
         visibleWhen: ({ hasStaffingTable }) => hasStaffingTable,
         render: () => <ShtatniPosadyTab />,
     },
     {
-        key: 'instructions',
-        label: (t) => t('header.instructions'),
-        icon: <BookText className="h-4 w-4" />,
-        requires: null,
-        render: () => <InstructionsTab />,
+        key: 'backups',
+        label: (t) => t('nav.backups'),
+        icon: <DatabaseBackup />,
+        group: 'system',
+        requires: ['backup.export', 'backup.import', 'sync.export', 'sync.import', 'system.reset'],
+        render: () => <BackupPanel />,
     },
     {
         key: 'admin',
         label: (t) => t('nav.admin'),
-        icon: <ShieldCheck className="h-4 w-4" />,
+        icon: <ShieldCheck />,
+        group: 'system',
         requires: ['accounts.manage', 'roles.manage', 'audit.view'],
         render: () => <AdminTab />,
+    },
+    {
+        key: 'instructions',
+        label: (t) => t('nav.help'),
+        icon: <LifeBuoy />,
+        group: 'system',
+        requires: null,
+        render: () => <InstructionsTab />,
     },
 ];
 

@@ -1,17 +1,545 @@
-@import "tailwindcss";
-section.docx {
-  padding: 40px !important; /* Customize as needed */
-  box-sizing: border-box;
+@import 'tailwindcss';
+@import './palette.css';
+
+/*
+ * PManager design system ("field HQ").
+ *
+ * Colours are semantic tokens (`--c-*`) that switch with the theme: `data-theme="dark"` on
+ * <html> selects the night palette (see stores/uiStore.ts). Components use the Tailwind
+ * names mapped below — bg-surface, text-ink, border-line, bg-primary... — so both themes
+ * come from one set of classes.
+ */
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme {
+    --font-sans: 'Geologica Variable', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+
+    --shadow-card: 0 1px 2px oklch(20% 0.02 130 / 0.05), 0 1px 1px oklch(20% 0.02 130 / 0.03);
+    --shadow-pop:
+        0 12px 32px -8px oklch(20% 0.03 130 / 0.22), 0 4px 10px -4px oklch(20% 0.03 130 / 0.12);
+    --shadow-inset-line: inset 0 0 0 1px var(--c-line);
+
+    --animate-fade-in: fade-in 160ms ease-out;
+    --animate-pop-in: pop-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1.15);
+    --animate-slide-in: slide-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    --animate-slide-up: slide-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+}
+
+@theme inline {
+    --color-canvas: var(--c-canvas);
+    --color-surface: var(--c-surface);
+    --color-surface-2: var(--c-surface-2);
+    --color-surface-3: var(--c-surface-3);
+    --color-line: var(--c-line);
+    --color-line-strong: var(--c-line-strong);
+    --color-ink: var(--c-ink);
+    --color-ink-2: var(--c-ink-2);
+    --color-ink-3: var(--c-ink-3);
+
+    --color-primary: var(--c-primary);
+    --color-primary-hover: var(--c-primary-hover);
+    --color-primary-soft: var(--c-primary-soft);
+    --color-primary-ink: var(--c-primary-ink);
+    --color-on-primary: var(--c-on-primary);
+
+    --color-brass: var(--c-brass);
+    --color-brass-soft: var(--c-brass-soft);
+    --color-brass-ink: var(--c-brass-ink);
+
+    --color-danger: var(--c-danger);
+    --color-danger-hover: var(--c-danger-hover);
+    --color-on-danger: var(--c-on-danger);
+    --color-danger-soft: var(--c-danger-soft);
+    --color-danger-ink: var(--c-danger-ink);
+    --color-danger-line: var(--c-danger-line);
+    --color-success: var(--c-success);
+    --color-success-soft: var(--c-success-soft);
+    --color-success-ink: var(--c-success-ink);
+    --color-success-line: var(--c-success-line);
+    --color-warning: var(--c-warning);
+    --color-warning-soft: var(--c-warning-soft);
+    --color-warning-ink: var(--c-warning-ink);
+    --color-warning-line: var(--c-warning-line);
+    --color-info: var(--c-info);
+    --color-info-soft: var(--c-info-soft);
+    --color-info-ink: var(--c-info-ink);
+    --color-info-line: var(--c-info-line);
+
+    --color-rail: var(--c-rail);
+    --color-rail-2: var(--c-rail-2);
+    --color-rail-3: var(--c-rail-3);
+    --color-rail-line: var(--c-rail-line);
+    --color-rail-ink: var(--c-rail-ink);
+    --color-rail-ink-2: var(--c-rail-ink-2);
+    --color-rail-accent: var(--c-rail-accent);
+    --color-scrim: var(--c-scrim);
+}
+
+/* ------------------------------------------------------------------ Tokens: day */
+
+:root,
+[data-theme='dark'] .paper,
+.paper {
+    --c-canvas: oklch(96.3% 0.008 104);
+    --c-surface: oklch(99.4% 0.003 104);
+    --c-surface-2: oklch(96.9% 0.007 104);
+    --c-surface-3: oklch(93.7% 0.01 106);
+    --c-line: oklch(90.6% 0.011 106);
+    --c-line-strong: oklch(84.2% 0.014 108);
+    --c-ink: oklch(24% 0.02 128);
+    --c-ink-2: oklch(43% 0.018 122);
+    --c-ink-3: oklch(58.5% 0.015 116);
+
+    --c-primary: oklch(49% 0.105 136);
+    --c-primary-hover: oklch(44% 0.1 136);
+    --c-primary-soft: oklch(94.6% 0.035 128);
+    --c-primary-ink: oklch(39% 0.095 136);
+    --c-on-primary: oklch(98.6% 0.012 120);
+
+    --c-brass: oklch(74% 0.13 80);
+    --c-brass-soft: oklch(95.6% 0.045 88);
+    --c-brass-ink: oklch(47% 0.1 68);
+
+    --c-danger: oklch(55.5% 0.19 28);
+    --c-danger-hover: oklch(50% 0.18 28);
+    --c-on-danger: oklch(99% 0.005 28);
+    --c-danger-soft: oklch(95.8% 0.025 25);
+    --c-danger-ink: oklch(45% 0.16 28);
+    --c-danger-line: oklch(86% 0.07 25);
+    --c-success: oklch(56% 0.13 150);
+    --c-success-soft: oklch(95.5% 0.04 150);
+    --c-success-ink: oklch(42% 0.1 150);
+    --c-success-line: oklch(85% 0.08 150);
+    --c-warning: oklch(72% 0.15 70);
+    --c-warning-soft: oklch(96% 0.05 85);
+    --c-warning-ink: oklch(47% 0.11 60);
+    --c-warning-line: oklch(86% 0.09 80);
+    --c-info: oklch(54% 0.1 245);
+    --c-info-soft: oklch(95.5% 0.02 240);
+    --c-info-ink: oklch(43% 0.1 250);
+    --c-info-line: oklch(86% 0.045 240);
+
+    --c-rail: oklch(22.5% 0.022 130);
+    --c-rail-2: oklch(27.5% 0.024 130);
+    --c-rail-3: oklch(31.5% 0.027 130);
+    --c-rail-line: oklch(32% 0.022 130);
+    --c-rail-ink: oklch(93% 0.018 110);
+    --c-rail-ink-2: oklch(71% 0.022 115);
+    --c-rail-accent: oklch(85% 0.15 118);
+    --c-scrim: oklch(18% 0.02 130 / 0.42);
+
+    color-scheme: light;
+}
+
+/* ------------------------------------------------------------------ Tokens: night */
+
+[data-theme='dark'] {
+    --c-canvas: oklch(17% 0.01 128);
+    --c-surface: oklch(21% 0.012 128);
+    --c-surface-2: oklch(24.5% 0.013 128);
+    --c-surface-3: oklch(28.5% 0.015 128);
+    --c-line: oklch(29.5% 0.014 128);
+    --c-line-strong: oklch(37% 0.016 126);
+    --c-ink: oklch(94% 0.012 105);
+    --c-ink-2: oklch(79% 0.014 108);
+    --c-ink-3: oklch(63% 0.014 112);
+
+    --c-primary: oklch(79% 0.14 126);
+    --c-primary-hover: oklch(84% 0.14 124);
+    --c-primary-soft: oklch(30% 0.05 132);
+    --c-primary-ink: oklch(86% 0.12 124);
+    --c-on-primary: oklch(20% 0.035 132);
+
+    --c-brass: oklch(79% 0.12 82);
+    --c-brass-soft: oklch(30% 0.045 80);
+    --c-brass-ink: oklch(86% 0.1 85);
+
+    --c-danger: oklch(68% 0.17 25);
+    --c-danger-hover: oklch(73% 0.16 25);
+    --c-on-danger: oklch(18% 0.03 25);
+    --c-danger-soft: oklch(29% 0.06 25);
+    --c-danger-ink: oklch(82% 0.1 25);
+    --c-danger-line: oklch(42% 0.1 25);
+    --c-success: oklch(72% 0.14 150);
+    --c-success-soft: oklch(28% 0.05 150);
+    --c-success-ink: oklch(84% 0.11 150);
+    --c-success-line: oklch(40% 0.07 150);
+    --c-warning: oklch(80% 0.14 75);
+    --c-warning-soft: oklch(30% 0.05 75);
+    --c-warning-ink: oklch(87% 0.11 85);
+    --c-warning-line: oklch(43% 0.08 75);
+    --c-info: oklch(72% 0.1 240);
+    --c-info-soft: oklch(28% 0.04 245);
+    --c-info-ink: oklch(84% 0.07 240);
+    --c-info-line: oklch(40% 0.06 245);
+
+    --c-rail: oklch(14.5% 0.01 128);
+    --c-rail-2: oklch(20% 0.012 128);
+    --c-rail-3: oklch(24% 0.015 128);
+    --c-rail-line: oklch(23.5% 0.012 128);
+    --c-rail-ink: oklch(92% 0.014 108);
+    --c-rail-ink-2: oklch(67% 0.016 112);
+    --c-rail-accent: oklch(84% 0.15 118);
+    --c-scrim: oklch(6% 0.01 130 / 0.62);
+
+    color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------ Base */
+
+@layer base {
+    *,
+    ::before,
+    ::after {
+        border-color: var(--c-line);
+    }
+
+    html,
+    body {
+        background-color: var(--c-canvas);
+        color: var(--c-ink);
+    }
+
+    body {
+        font-family: var(--font-sans);
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+    }
+
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--c-line-strong) transparent;
+    }
+
+    ::selection {
+        background-color: color-mix(in oklab, var(--c-primary) 26%, transparent);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--c-primary);
+        outline-offset: 2px;
+    }
+
+    button:not(:disabled),
+    [role='button']:not([aria-disabled='true']),
+    label[for],
+    summary {
+        cursor: pointer;
+    }
+
+    button:disabled {
+        cursor: not-allowed;
+    }
+
+    /* Safety net: form controls from older screens follow the theme. */
+    input:where(
+        :not([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type='color'])
+    ),
+    select,
+    textarea {
+        background-color: var(--c-surface);
+        color: var(--c-ink);
+    }
+
+    ::placeholder {
+        color: var(--c-ink-3);
+        opacity: 1;
+    }
+
+    input[type='checkbox'],
+    input[type='radio'] {
+        accent-color: var(--c-primary);
+    }
+
+    table {
+        font-variant-numeric: tabular-nums;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        letter-spacing: -0.01em;
+    }
+}
+
+/* ------------------------------------------------------------------ Components */
+
+@layer components {
+    /* Text input / select / textarea. */
+    .field {
+        display: block;
+        width: 100%;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--c-line-strong);
+        background-color: var(--c-surface);
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: var(--c-ink);
+        box-shadow: 0 1px 0 oklch(20% 0.02 130 / 0.03);
+        outline: none;
+        transition:
+            border-color 120ms,
+            box-shadow 120ms,
+            background-color 120ms;
+    }
+    .field:hover:not(:disabled):not(:focus) {
+        border-color: color-mix(in oklab, var(--c-line-strong) 60%, var(--c-ink-3));
+    }
+    .field:focus {
+        border-color: var(--c-primary);
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--c-primary) 20%, transparent);
+    }
+    .field:disabled {
+        background-color: var(--c-surface-2);
+        color: var(--c-ink-3);
+    }
+    .field[aria-invalid='true'] {
+        border-color: var(--c-danger);
+    }
+    .field[aria-invalid='true']:focus {
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--c-danger) 20%, transparent);
+    }
+    .field-sm {
+        padding: 0.3125rem 0.625rem;
+        font-size: 0.8125rem;
+        border-radius: var(--radius-md);
+    }
+    textarea.field {
+        resize: vertical;
+        min-height: 4.5rem;
+    }
+
+    .label {
+        display: block;
+        margin-bottom: 0.375rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--c-ink-2);
+    }
+
+    /* Small uppercase section label. */
+    .eyebrow {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--c-ink-3);
+    }
+
+    .card {
+        border-radius: var(--radius-2xl);
+        border: 1px solid var(--c-line);
+        background-color: var(--c-surface);
+        box-shadow: var(--shadow-card);
+    }
+
+    /* Categorical colour (statuses, units, categories): set a hue with .tone-*. */
+    .tone {
+        --tc: 1;
+        background-color: oklch(95% calc(0.04 * var(--tc)) var(--th, 110));
+        color: oklch(40% calc(0.1 * var(--tc)) var(--th, 110));
+        border-color: oklch(86% calc(0.07 * var(--tc)) var(--th, 110));
+    }
+    [data-theme='dark'] .tone {
+        background-color: oklch(28% calc(0.045 * var(--tc)) var(--th, 110));
+        color: oklch(86% calc(0.1 * var(--tc)) var(--th, 110));
+        border-color: oklch(38% calc(0.06 * var(--tc)) var(--th, 110));
+    }
+    .tone-dot {
+        background-color: oklch(62% calc(0.15 * var(--tc, 1)) var(--th, 110));
+    }
+    [data-theme='dark'] .tone-dot {
+        background-color: oklch(74% calc(0.15 * var(--tc, 1)) var(--th, 110));
+    }
+    .tone-olive {
+        --th: 132;
+    }
+    .tone-amber {
+        --th: 85;
+    }
+    .tone-sand {
+        --th: 62;
+        --tc: 0.75;
+    }
+    .tone-steel {
+        --th: 255;
+        --tc: 0.8;
+    }
+    .tone-violet {
+        --th: 295;
+        --tc: 0.8;
+    }
+    .tone-teal {
+        --th: 200;
+        --tc: 0.85;
+    }
+    .tone-sky {
+        --th: 235;
+        --tc: 0.9;
+    }
+    .tone-red {
+        --th: 27;
+        --tc: 1.1;
+    }
+    .tone-rose {
+        --th: 5;
+        --tc: 1;
+    }
+    .tone-gray {
+        --th: 110;
+        --tc: 0.12;
+    }
+
+    /* Printable sheet: always light, like paper on the desk. */
+    .paper {
+        background-color: #fff;
+        color: #111;
+        border-radius: var(--radius-lg);
+        box-shadow:
+            0 0 0 1px oklch(20% 0.02 130 / 0.1),
+            0 8px 24px -12px oklch(20% 0.02 130 / 0.3);
+    }
+
+    /* Contour-line texture; colour comes from `color`/`background-color` via the mask. */
+    .topo {
+        pointer-events: none;
+        background-color: currentColor;
+        mask-image: url('../shared/assets/topo.svg');
+        mask-size: 820px 820px;
+        mask-repeat: repeat;
+    }
+
+    .kbd {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 5px;
+        border: 1px solid var(--c-line-strong);
+        border-bottom-width: 2px;
+        padding: 0 0.3rem;
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        color: var(--c-ink-2);
+        background-color: var(--c-surface);
+    }
+
+    /* Data tables of the app (not the printable report sheets). */
+    .data-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.8125rem;
+    }
+    .data-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background-color: var(--c-surface-2);
+        border-bottom: 1px solid var(--c-line);
+        padding: 0.625rem 0.75rem;
+        text-align: left;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--c-ink-3);
+        white-space: nowrap;
+    }
+    .data-table tbody td {
+        border-bottom: 1px solid var(--c-line);
+        padding: 0.625rem 0.75rem;
+        vertical-align: top;
+        color: var(--c-ink);
+    }
+    .data-table tbody tr {
+        transition: background-color 100ms;
+    }
+    .data-table tbody tr:hover {
+        background-color: var(--c-surface-2);
+    }
+    .data-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+}
+
+/* ------------------------------------------------------------------ Motion */
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pop-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 
 @keyframes slide-in {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0%);
-  }
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0%);
+    }
 }
-.animate-slide-in {
-  animation: slide-in 0.3s ease-out;
+
+@keyframes slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes pulse-soft {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 35%, transparent);
+    }
+    50% {
+        box-shadow: 0 0 0 4px color-mix(in oklab, currentColor 0%, transparent);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+    }
+}
+
+/* ------------------------------------------------------------------ Third-party */
+
+/* docx-preview renders Word pages; they stay white paper with black text in both themes. */
+section.docx {
+    padding: 40px !important;
+    box-sizing: border-box;
+    color: #111;
+    color-scheme: light;
+}
+.docx-wrapper {
+    background-color: var(--c-surface-3) !important;
+    border-radius: var(--radius-lg);
 }

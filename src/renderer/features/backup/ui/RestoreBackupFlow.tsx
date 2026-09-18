@@ -71,7 +71,7 @@ export default function RestoreBackupFlow({ onCancel }: { onCancel?: () => void 
                     {t('backups.full.selectFile')}
                 </Button>
                 {selection && (
-                    <span className="truncate text-sm text-gray-700">
+                    <span className="truncate text-sm text-ink-2">
                         {t('backups.full.selected', {
                             file: selection.fileName,
                             size: formatBytes(selection.sizeBytes),
@@ -101,29 +101,31 @@ export default function RestoreBackupFlow({ onCancel }: { onCancel?: () => void 
             )}
 
             {inspection && (
-                <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <h3 className="text-sm font-semibold text-gray-900">
+                <div className="animate-fade-in space-y-3 rounded-xl border border-line bg-surface-2 p-4">
+                    <h3 className="text-sm font-semibold text-ink">
                         {t('backups.full.inspectionTitle')}
                     </h3>
                     <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
                         {inspection.manifest && (
                             <>
-                                <dt className="text-gray-500">{t('backups.full.createdAt')}</dt>
-                                <dd className="text-gray-900">
+                                <dt className="text-ink-3">{t('backups.full.createdAt')}</dt>
+                                <dd className="font-medium text-ink">
                                     {formatDateTime(inspection.manifest.createdAt)}
                                 </dd>
-                                <dt className="text-gray-500">{t('backups.full.appVersion')}</dt>
-                                <dd className="text-gray-900">{inspection.manifest.appVersion}</dd>
-                                <dt className="text-gray-500">{t('backups.full.files')}</dt>
-                                <dd className="text-gray-900">
+                                <dt className="text-ink-3">{t('backups.full.appVersion')}</dt>
+                                <dd className="font-medium text-ink">
+                                    {inspection.manifest.appVersion}
+                                </dd>
+                                <dt className="text-ink-3">{t('backups.full.files')}</dt>
+                                <dd className="font-medium text-ink">
                                     {inspection.manifest.counts.files}
                                 </dd>
                             </>
                         )}
-                        <dt className="text-gray-500">{t('backups.full.personnel')}</dt>
-                        <dd className="text-gray-900">{inspection.personnelCount}</dd>
-                        <dt className="text-gray-500">{t('backups.full.accounts')}</dt>
-                        <dd className="text-gray-900">{inspection.accountCount}</dd>
+                        <dt className="text-ink-3">{t('backups.full.personnel')}</dt>
+                        <dd className="font-medium text-ink">{inspection.personnelCount}</dd>
+                        <dt className="text-ink-3">{t('backups.full.accounts')}</dt>
+                        <dd className="font-medium text-ink">{inspection.accountCount}</dd>
                     </dl>
                     {!inspection.includesFiles && (
                         <Alert tone="info">{t('backups.full.legacy')}</Alert>

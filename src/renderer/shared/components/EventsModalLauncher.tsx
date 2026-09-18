@@ -1,138 +1,126 @@
-import { Gift } from 'lucide-react';
+import { Bell, Cake, CalendarClock, Hourglass } from 'lucide-react';
 import pLimit from 'p-limit';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
+import { useI18nStore } from '../../stores/i18nStore';
 import { useSessionStore } from '../../stores/sessionStore';
+import { Avatar, cn, EmptyState, Modal, railChipClass, Tabs } from '../ui';
 import { StatusExcel } from '../utils/excelUserStatuses';
 
-function EventsModal({
-    tabs,
-    onClose,
-}: {
-    tabs: {
-        key: string;
-        label: string;
-        items: { id: number; name: string; dateLabel: string; age?: number; daysLeft?: number }[];
-    }[];
-    onClose: () => void;
-}) {
-    const [activeTab, setActiveTab] = useState(tabs[0]?.key ?? '');
-    const currentTab = tabs.find((tab) => tab.key === activeTab);
+type EventItem = {
+    id: number;
+    name: string;
+    dateLabel: string;
+    age?: number;
+    daysLeft?: number;
+    soldierStatus?: string;
+};
 
-    const tabDescriptions: Record<string, string> = {
-        birthdays: 'Перелік військовослужбовців, у яких день народження протягом 7 днів.',
-        orders: 'Розпорядження, термін дії яких завершується найближчим часом.',
-        'ending-status':
-            'Солдати, у яких завтра завершується поточний статус (наприклад, ВЛК, шпиталь тощо).',
-    };
+type EventTab = { key: string; label: string; icon: ReactNode; items: EventItem[] };
+
+const TAB_DESCRIPTIONS: Record<string, string> = {
+    birthdays: 'Військовослужбовці, у яких день народження протягом 7 днів.',
+    orders: 'Розпорядження, термін дії яких завершується найближчим часом.',
+    'ending-status':
+        'Військовослужбовці, у яких найближчим часом завершується поточний статус (ВЛК, шпиталь тощо).',
+};
+
+function daysLeftLabel(days: number): string {
+    if (days < 0) return `прострочено на ${Math.abs(days)} дн.`;
+    if (days === 0) return 'сьогодні';
+    if (days === 1) return 'завтра';
+    return `через ${days} дн.`;
+}
+
+function EventsModal({ tabs, onClose }: { tabs: EventTab[]; onClose: () => void }) {
+    const [activeTab, setActiveTab] = useState(tabs[0]?.key ?? '');
+    const currentTab = tabs.find((tab) => tab.key === activeTab) ?? tabs[0];
 
     return (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-            <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl border relative transform transition-all duration-300 scale-100 opacity-100 animate-fade-in overflow-hidden">
-                {/* Header */}
-                <div className="px-6 pt-6 pb-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900">🔔 Важливі події</h2>
-                            <p className="text-sm text-gray-500 mt-1">
-                                Станом на {new Date().toLocaleDateString('uk-UA')} — перевірте, що
-                                потребує уваги.
-                            </p>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="text-gray-400 hover:text-red-500 text-2xl font-bold px-2 transition"
-                            aria-label="Закрити"
-                        >
-                            ✕
-                        </button>
-                    </div>
-                </div>
-
-                {/* Tabs */}
-                <div className="px-6 pt-4">
-                    <div className="flex space-x-3 overflow-x-auto">
-                        {tabs.map((tab) => (
-                            <button
-                                key={tab.key}
-                                onClick={() => setActiveTab(tab.key)}
-                                className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
-                                    tab.key === activeTab
-                                        ? 'bg-blue-100 text-blue-700 shadow-sm'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                            >
-                                {tab.label}
-                                <span className="ml-1 text-xs text-gray-400">
-                                    ({tab.items.length})
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Description */}
-                <div className="px-6 pt-3">
-                    <p className="text-sm text-gray-500 italic">
-                        {tabDescriptions[activeTab] ?? 'Інформація про цю категорію.'}
-                    </p>
-                </div>
-
-                {/* Content */}
-                <div className="px-6 py-4 max-h-[400px] overflow-y-auto">
-                    {currentTab?.items.length === 0 ? (
-                        <p className="text-sm text-gray-400 italic py-12 text-center">
-                            Подій не знайдено для цієї категорії.
-                        </p>
-                    ) : (
-                        <ul className="space-y-3">
-                            {currentTab.items.map((item: any) => (
-                                <li
-                                    key={item.id}
-                                    className="flex justify-between items-start p-4 border rounded-xl bg-white hover:bg-blue-50 shadow-sm transition"
-                                >
-                                    <div className="flex flex-col space-y-1">
-                                        <span className="text-base font-semibold text-gray-900">
-                                            {item.name}
-                                        </span>
-
-                                        {item.soldierStatus && (
-                                            <span className="inline-block text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800 w-fit font-medium">
-                                                {item.soldierStatus}
-                                            </span>
-                                        )}
-
-                                        <span className="text-xs text-gray-600">
-                                            {item.age !== undefined
-                                                ? `🎂 ${item.dateLabel} — виповнюється ${item.age} років`
-                                                : item.daysLeft !== undefined
-                                                  ? `📋 ${item.dateLabel} — залишилось ${item.daysLeft} дн.`
-                                                  : `📌 ${item.dateLabel}`}
-                                        </span>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
+        <Modal
+            open
+            onClose={onClose}
+            title="Важливі події"
+            description={`Станом на ${new Date().toLocaleDateString('uk-UA')} — що потребує уваги`}
+            icon={<Bell />}
+            width="max-w-2xl"
+            bodyClassName="p-0"
+        >
+            <div className="border-b border-line px-5 pt-1">
+                <Tabs
+                    value={currentTab?.key ?? ''}
+                    onChange={setActiveTab}
+                    items={tabs.map((tab) => ({
+                        value: tab.key,
+                        label: tab.label,
+                        icon: tab.icon,
+                        count: tab.items.length,
+                    }))}
+                />
             </div>
-        </div>
+            <div className="px-5 py-4">
+                <p className="mb-3 text-[13px] text-ink-3">
+                    {TAB_DESCRIPTIONS[currentTab?.key ?? ''] ?? ''}
+                </p>
+                {!currentTab || currentTab.items.length === 0 ? (
+                    <EmptyState icon={<CalendarClock />} title="Подій не знайдено" />
+                ) : (
+                    <ul className="space-y-2">
+                        {currentTab.items.map((item) => (
+                            <li
+                                key={`${currentTab.key}-${item.id}`}
+                                className="flex items-center gap-3 rounded-xl border border-line bg-surface px-3.5 py-3"
+                            >
+                                <Avatar name={item.name} size={36} />
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate font-medium text-ink">{item.name}</p>
+                                    {item.soldierStatus && (
+                                        <p className="truncate text-xs text-ink-3">
+                                            {item.soldierStatus}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="shrink-0 text-right">
+                                    <p className="font-mono text-[13px] tabular-nums text-ink">
+                                        {item.dateLabel}
+                                    </p>
+                                    <p
+                                        className={cn(
+                                            'text-xs',
+                                            item.daysLeft !== undefined && item.daysLeft <= 1
+                                                ? 'font-medium text-danger-ink'
+                                                : 'text-ink-3',
+                                        )}
+                                    >
+                                        {item.age !== undefined
+                                            ? `виповнюється ${item.age}`
+                                            : item.daysLeft !== undefined
+                                              ? daysLeftLabel(item.daysLeft)
+                                              : ''}
+                                    </p>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </Modal>
     );
 }
 
 export default function EventsModalLauncher() {
+    const { t } = useI18nStore();
     const [showModal, setShowModal] = useState(false);
-    const [birthdayItems, setBirthdayItems] = useState([]);
-    const [orderItems, setOrderItems] = useState([]);
-    const [endingStatusItems, setEndingStatusItems] = useState([]); // ✅ new tab
-    const [entries, setEntries] = useState([]);
+    const [birthdayItems, setBirthdayItems] = useState<EventItem[]>([]);
+    const [orderItems, setOrderItems] = useState<EventItem[]>([]);
+    const [endingStatusItems, setEndingStatusItems] = useState<EventItem[]>([]);
 
     async function fetchOrderEntriesFromDb() {
         // Birthdays and statuses still work for roles without access to orders.
         if (!useSessionStore.getState().can('directives.view')) return [];
         const raw = await window.electronAPI.directives.getAllByType('order');
 
-        const parsed = raw.map((entry: any) => ({
+        return raw.map((entry: any) => ({
             id: entry.id,
             userId: entry.userId,
             title: entry.title,
@@ -141,8 +129,6 @@ export default function EventsModalLauncher() {
             date: entry.date,
             period: entry.period || { from: '', to: undefined },
         }));
-
-        return parsed;
     }
 
     useEffect(() => {
@@ -153,7 +139,6 @@ export default function EventsModalLauncher() {
                 window.electronAPI.fetchUsersMetadata(),
                 fetchOrderEntriesFromDb(),
             ]);
-            setEntries(orderEntries);
 
             const relevantStatuses = [
                 StatusExcel.ABSENT_VLK,
@@ -172,13 +157,7 @@ export default function EventsModalLauncher() {
                 relevantStatuses.includes(user.soldierStatus?.trim() as StatusExcel),
             );
 
-            const endingStatus: {
-                id: number;
-                name: string;
-                dateLabel: string;
-                daysLeft: number;
-                soldierStatus?: string;
-            }[] = [];
+            const endingStatus: EventItem[] = [];
 
             await Promise.all(
                 usersWithRelevantStatus.map((user: any) =>
@@ -222,7 +201,7 @@ export default function EventsModalLauncher() {
 
             setEndingStatusItems(endingStatus);
 
-            // 🎂 Birthdays
+            // Birthdays
             const birthdayList = users
                 .filter(
                     (user: any) =>
@@ -261,9 +240,7 @@ export default function EventsModalLauncher() {
 
             setBirthdayItems(birthdayList);
 
-            // 📋 Orders (розпорядження)
-            // const today = new Date();
-
+            // Orders (розпорядження)
             const orderList = orderEntries
                 .map((entry) => {
                     const user = users.find((u: any) => u.id === entry.userId);
@@ -286,10 +263,10 @@ export default function EventsModalLauncher() {
                 })
                 .filter(Boolean);
 
-            setOrderItems(orderList as any[]);
+            setOrderItems(orderList as EventItem[]);
         };
 
-        loadEvents();
+        void loadEvents();
     }, []);
 
     const totalCount = birthdayItems.length + orderItems.length + endingStatusItems.length;
@@ -299,11 +276,12 @@ export default function EventsModalLauncher() {
         <>
             <button
                 onClick={() => setShowModal(true)}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm rounded-full bg-yellow-100 hover:bg-yellow-200 text-yellow-900 border border-yellow-300 shadow-sm animate-pulse font-semibold transition"
-                title="Найближчі події"
+                className={railChipClass('brass')}
+                title={t('shell.events')}
             >
-                <Gift className="w-4 h-4" />
-                Події ({totalCount})
+                <Bell className="size-3.5" />
+                <span className="tabular-nums">{totalCount}</span>
+                <span className="hidden xl:inline">події</span>
             </button>
 
             {showModal && (
@@ -313,16 +291,19 @@ export default function EventsModalLauncher() {
                         {
                             key: 'birthdays',
                             label: 'Дні народження',
+                            icon: <Cake />,
                             items: birthdayItems,
                         },
                         {
                             key: 'orders',
                             label: 'Розпорядження',
+                            icon: <CalendarClock />,
                             items: orderItems,
                         },
                         {
                             key: 'ending-status',
                             label: 'Завершення статусу',
+                            icon: <Hourglass />,
                             items: endingStatusItems,
                         },
                     ].filter((tab) => tab.items.length > 0)}

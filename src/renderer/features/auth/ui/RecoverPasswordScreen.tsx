@@ -85,12 +85,12 @@ export default function RecoverPasswordScreen({
                 >
                     {t('auth.recover.submit')}
                 </Button>
-                <p className="text-center text-xs text-gray-500">{t('auth.recover.noCode')}</p>
+                <p className="text-center text-xs text-ink-3">{t('auth.recover.noCode')}</p>
                 <div className="text-center">
                     <button
                         type="button"
                         onClick={onBack}
-                        className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-ink hover:underline"
                     >
                         <ArrowLeft className="h-4 w-4" />
                         {t('auth.recover.back')}

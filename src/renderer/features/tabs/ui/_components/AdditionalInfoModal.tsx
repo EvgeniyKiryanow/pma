@@ -1,5 +1,7 @@
+import { NotebookPen, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { Button, Modal, TextField } from '../../../../shared/ui';
 import { useReportsStore } from '../../../report/model/reportsStore';
 
 type Props = {
@@ -24,69 +26,52 @@ export default function AdditionalInfoModal({ open, onClose }: Props) {
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm transition-all">
-            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg border border-gray-200">
-                <h3 className="text-xl font-semibold text-gray-800 mb-5">Уточнюючі дані</h3>
-
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Назва підрозділу
-                        </label>
-                        <input
-                            type="text"
-                            value={unitName}
-                            onChange={(e) => setUnitName(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            ПІБ командира для якого клопотання
-                        </label>
-                        <input
-                            type="text"
-                            value={commanderName}
-                            onChange={(e) => setCommanderName(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition"
-                        />
-                    </div>
-                    Військова частина номер? може ще якісь поля
-                </div>
-
-                <div className="mt-6 flex justify-between gap-4 items-center">
-                    <button
+        <Modal
+            open
+            onClose={onClose}
+            title="Уточнюючі дані"
+            icon={<NotebookPen />}
+            footer={
+                <>
+                    <Button
+                        variant="danger-soft"
+                        className="mr-auto"
+                        icon={<Trash2 className="size-4" />}
                         onClick={() => {
                             setAdditionalInfo(null);
                             setUnitName('');
                             setCommanderName('');
                             onClose();
                         }}
-                        className="px-4 py-2 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-50 transition"
                     >
-                        🗑 Видалити
-                    </button>
-
-                    <div className="flex gap-3">
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-md hover:bg-gray-100 transition"
-                        >
-                            ✖️ Скасувати
-                        </button>
-
-                        <button
-                            onClick={() => {
-                                setAdditionalInfo({ unitName, commanderName });
-                                onClose();
-                            }}
-                            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm transition"
-                        >
-                            💾 Зберегти
-                        </button>
-                    </div>
-                </div>
+                        Видалити
+                    </Button>
+                    <Button variant="secondary" onClick={onClose}>
+                        Скасувати
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setAdditionalInfo({ unitName, commanderName });
+                            onClose();
+                        }}
+                    >
+                        Зберегти
+                    </Button>
+                </>
+            }
+        >
+            <div className="space-y-4">
+                <TextField
+                    label="Назва підрозділу"
+                    value={unitName}
+                    onChange={(e) => setUnitName(e.target.value)}
+                />
+                <TextField
+                    label="ПІБ командира, для якого клопотання"
+                    value={commanderName}
+                    onChange={(e) => setCommanderName(e.target.value)}
+                />
             </div>
-        </div>
+        </Modal>
     );
 }

@@ -42,6 +42,14 @@ type UserStore = {
     headerCollapsed: boolean;
     setHeaderCollapsed: (value: boolean) => void;
     getUserById: (id: number) => Promise<User | null>;
+
+    /** Incremented after history changes; history views reload when it changes. */
+    historyVersion: number;
+    /**
+     * Reloads the personnel list and the open dossier after a change (status, history,
+     * order...), keeping the same person selected.
+     */
+    refreshAfterChange: () => Promise<void>;
 };
 
 export const useUserStore = create<UserStore>((set, get) => ({
@@ -74,6 +82,21 @@ export const useUserStore = create<UserStore>((set, get) => ({
         }),
 
     getUserById: (id) => window.electronAPI.users.getOne(id),
+
+    historyVersion: 0,
+    refreshAfterChange: async () => {
+        const users = await window.electronAPI.fetchUsersMetadata();
+        const selectedId = get().selectedUser?.id;
+        const selectedUser =
+            selectedId !== undefined && users.some((u) => u.id === selectedId)
+                ? await window.electronAPI.users.getOne(selectedId)
+                : null;
+        set((state) => ({
+            users,
+            selectedUser,
+            historyVersion: state.historyVersion + 1,
+        }));
+    },
 
     openUserFormForAdd: () => set({ editingUser: null, isUserFormOpen: true }),
     openUserFormForEdit: (user) => set({ editingUser: user, isUserFormOpen: true }),

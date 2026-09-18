@@ -1,29 +1,44 @@
-import { Edit3, MessageCircle, Trash2 } from 'lucide-react';
+import {
+    BarChart2,
+    MessageSquareText,
+    MousePointerClick,
+    Pencil,
+    RotateCcw,
+    Send,
+    Trash2,
+    UserX,
+} from 'lucide-react';
 import { useState } from 'react';
 
 import type { CommentOrHistoryEntry } from '../../../../shared/types/user';
 import CommentsModal from '../../../entities/user/ui/CommentsModal';
+import UserCard from '../../../entities/user/ui/UserCard';
 import UserHistory from '../../../entities/user/ui/UserHistory';
 import UserInfoDetails from '../../../entities/user/ui/UserInfoDetails';
 import UserStatisticsDrawer from '../../../entities/user/ui/UserStatisticsDrawer';
+import { Button, EmptyState, IconButton } from '../../../shared/ui';
+import { confirmAction } from '../../../shared/ui/confirm';
+import { toast } from '../../../shared/ui/toast';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 import { useI18nStore } from '../../../stores/i18nStore';
+import { usePermissions } from '../../../stores/sessionStore';
 import { useUserStore } from '../../../stores/userStore';
 import RozporyadzhennyaModal from './RozporyadzhennyaModal';
 import VidnovytyModal from './VidnovytyModal';
 import VyklyuchennyaModal from './VyklyuchennyaModal';
 
+/** Dossier of the selected service member: identity, actions, data and history. */
 export default function RightBar() {
     const [showComments, setShowComments] = useState(false);
-    const [dbComments, setDbComments] = useState<CommentOrHistoryEntry[]>([]);
-    const sidebarCollapsed = useUserStore((s) => s.sidebarCollapsed);
     const { t } = useI18nStore();
+    const { can } = usePermissions();
 
     const user = useUserStore((s) => s.selectedUser);
     const updateUser = useUserStore((s) => s.updateUser);
     const deleteUser = useUserStore((s) => s.deleteUser);
     const openUserFormForEdit = useUserStore((s) => s.openUserFormForEdit);
     const setSelectedUser = useUserStore((s) => s.setSelectedUser);
+    const refreshAfterChange = useUserStore((s) => s.refreshAfterChange);
     const [showStatistics, setShowStatistics] = useState(false);
     const [showOrderModal, setShowOrderModal] = useState(false);
     const [showExcludeModal, setShowExcludeModal] = useState(false);
@@ -46,7 +61,7 @@ export default function RightBar() {
 
         await window.electronAPI.addUserHistory(user.id, historyEntry);
         await updateUser({ ...user, soldierStatus: newStatus });
-        window.location.reload();
+        await refreshAfterChange();
     };
 
     const handleAddHistory = async (
@@ -59,141 +74,157 @@ export default function RightBar() {
         if (maybeNewStatus && maybeNewStatus !== user.soldierStatus) {
             await updateUser({ ...user, soldierStatus: maybeNewStatus });
         }
-        window.location.reload();
+        await refreshAfterChange();
+        toast.success('Запис додано до історії');
     };
 
     const handleDeleteHistory = async (id: number) => {
         if (!user) return;
         await window.electronAPI.deleteUserHistory(id);
-        window.location.reload();
-    };
-
-    const handleShowComments = async () => {
-        if (!user) return;
-        const result = await window.electronAPI.getUserComments(user.id);
-        const comments: CommentOrHistoryEntry[] = Array.isArray(result) ? result : [];
-        setDbComments(comments);
-        setShowComments(true);
+        await refreshAfterChange();
     };
 
     const handleDeleteUser = async () => {
         if (!user) return;
-        const confirmed = confirm(`${t('rightBar.confirmDelete')} ${user.fullName}?`);
+        const confirmed = await confirmAction({
+            title: 'Видалити військовослужбовця?',
+            message: (
+                <>
+                    Картку <strong className="text-ink">{user.fullName}</strong> разом з історією
+                    буде видалено з бази. Цю дію не можна скасувати.
+                </>
+            ),
+            confirmLabel: t('rightBar.delete'),
+            tone: 'danger',
+        });
         if (!confirmed) return;
         await deleteUser(user.id);
         setSelectedUser(null);
+        toast.success('Картку видалено');
     };
 
     if (!user) {
         return (
-            <aside className="flex-1 bg-gradient-to-br from-gray-50 to-gray-100 p-8 text-gray-500 flex items-center justify-center">
-                <p className="text-lg italic">{t('rightBar.selectPrompt')}</p>
-            </aside>
+            <section className="flex min-w-0 flex-1 items-center justify-center p-8">
+                <EmptyState
+                    icon={<MousePointerClick />}
+                    title="Оберіть військовослужбовця"
+                    description="Натисніть на людину у списку ліворуч — тут відкриється картка з даними, історією та діями."
+                />
+            </section>
         );
     }
 
-    return (
-        <aside className="flex-1 bg-gradient-to-b from-white via-gray-50 to-gray-100 shadow-inner overflow-y-auto max-h-[calc(100vh-56px)]">
-            {/* === HEADER ACTIONS === */}
-            <section className="sticky top-0 z-20 backdrop-blur-md bg-white/90 border-b border-gray-200 shadow-sm px-4 py-3">
-                <div className="flex flex-wrap gap-2 items-center">
-                    {/* ✅ Only show if user is not excluded */}
-                    {user.shpkNumber !== 'excluded' && (
-                        <>
-                            {!user.shpkNumber?.toString().includes('order') && (
-                                <button
-                                    onClick={() => setShowOrderModal(true)}
-                                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-blue-100 text-blue-800 hover:bg-blue-200 transition border border-blue-200"
-                                >
-                                    📤 Подати розпорядження
-                                </button>
-                            )}
+    const shpk = user.shpkNumber?.toString() ?? '';
+    const isExcluded = user.shpkNumber === 'excluded';
+    const isOnOrder = shpk.includes('order');
 
-                            <button
-                                onClick={() => setShowExcludeModal(true)}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-red-100 text-red-800 hover:bg-red-200 transition border border-red-200"
-                            >
-                                ❌ Виключити
-                            </button>
-                            {user.shpkNumber?.toString().includes('order') && (
-                                <button
-                                    onClick={() => setShowRestoreModal(true)}
-                                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-xl bg-green-100 text-green-800 hover:bg-green-200 transition border border-green-200"
-                                >
-                                    ♻️ Відновити
-                                </button>
-                            )}
-
-                            <button
-                                onClick={() => openUserFormForEdit(user)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-yellow-200 transition"
-                            >
-                                <Edit3 className="w-4 h-4" /> Редагувати
-                            </button>
-
-                            <button
-                                onClick={handleShowComments}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-indigo-100 text-indigo-800 hover:bg-indigo-200 border border-indigo-200 transition"
-                            >
-                                <MessageCircle className="w-4 h-4" /> Коментарі
-                            </button>
-                        </>
+    const actions = (
+        <>
+            {!isExcluded && (
+                <>
+                    {can('personnel.edit') && (
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={<Pencil className="size-3.5" />}
+                            onClick={() => openUserFormForEdit(user)}
+                        >
+                            {t('rightBar.edit')}
+                        </Button>
                     )}
-
-                    <button
-                        onClick={handleDeleteUser}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-red-200 text-red-900 hover:bg-red-300 border border-red-300 transition"
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={<MessageSquareText className="size-3.5" />}
+                        onClick={() => setShowComments(true)}
                     >
-                        <Trash2 className="w-4 h-4" /> Видалити
-                    </button>
+                        {t('rightBar.comments')}
+                    </Button>
+                </>
+            )}
+            <Button
+                variant="secondary"
+                size="sm"
+                icon={<BarChart2 className="size-3.5" />}
+                onClick={() => setShowStatistics(true)}
+            >
+                {t('rightBar.statistics')}
+            </Button>
 
-                    <button
-                        onClick={() => setShowStatistics(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-xl bg-purple-100 text-purple-800 hover:bg-purple-200 border border-purple-200 transition"
+            <span className="flex-1" />
+
+            {!isExcluded && can('directives.edit') && (
+                <>
+                    {!isOnOrder && (
+                        <Button
+                            variant="soft"
+                            size="sm"
+                            icon={<Send className="size-3.5" />}
+                            onClick={() => setShowOrderModal(true)}
+                        >
+                            Подати розпорядження
+                        </Button>
+                    )}
+                    {isOnOrder && (
+                        <Button
+                            variant="soft"
+                            size="sm"
+                            icon={<RotateCcw className="size-3.5" />}
+                            onClick={() => setShowRestoreModal(true)}
+                        >
+                            Відновити
+                        </Button>
+                    )}
+                    <Button
+                        variant="danger-soft"
+                        size="sm"
+                        icon={<UserX className="size-3.5" />}
+                        onClick={() => setShowExcludeModal(true)}
                     >
-                        📊 Статистика
-                    </button>
-                </div>
-            </section>
+                        Виключити
+                    </Button>
+                </>
+            )}
+            {can('personnel.delete') && (
+                <IconButton
+                    label={t('rightBar.delete')}
+                    size="sm"
+                    variant="ghost"
+                    className="text-danger-ink hover:bg-danger-soft hover:text-danger-ink"
+                    onClick={() => void handleDeleteUser()}
+                    icon={<Trash2 className="size-4" />}
+                />
+            )}
+        </>
+    );
+
+    return (
+        <section className="@container min-w-0 flex-1 overflow-y-auto">
+            <header className="border-b border-line bg-surface px-6 pb-4 pt-5">
+                <UserCard user={user} actions={actions} />
+            </header>
+
+            <div className="grid items-start gap-5 p-5 @5xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+                <UserInfoDetails user={user} />
+                <UserHistory
+                    userId={user.id}
+                    onAddHistory={handleAddHistory}
+                    onDeleteHistory={handleDeleteHistory}
+                    onStatusChange={handleStatusChange}
+                    currentStatus={user.soldierStatus || ''}
+                />
+            </div>
 
             {showStatistics && (
                 <UserStatisticsDrawer user={user} onClose={() => setShowStatistics(false)} />
             )}
-
-            {/* === MAIN CONTENT LAYOUT === */}
-            <div
-                className={`pb-10 p-4 gap-6 ${
-                    sidebarCollapsed
-                        ? 'grid grid-cols-1 lg:grid-cols-2 max-w-full'
-                        : 'max-w-4xl mx-auto space-y-8'
-                }`}
-            >
-                {/* === COLUMN 1: User Info Details === */}
-                <div className="bg-white/80 rounded-xl shadow-md border border-gray-200 p-4 hover:shadow-lg transition">
-                    <UserInfoDetails user={user} />
-                </div>
-
-                {/* === COLUMN 2: History === */}
-                <div className="space-y-6">
-                    <section className="bg-white/80 border rounded-xl shadow-md hover:shadow-lg transition p-4">
-                        <UserHistory
-                            userId={user.id}
-                            onAddHistory={handleAddHistory}
-                            onDeleteHistory={handleDeleteHistory}
-                            onStatusChange={handleStatusChange}
-                            currentStatus={user.soldierStatus || ''}
-                        />
-                    </section>
-                </div>
-            </div>
-
-            {/* Comments modal */}
             {showComments && (
                 <CommentsModal userId={user.id} onClose={() => setShowComments(false)} />
             )}
             {showOrderModal && <RozporyadzhennyaModal onClose={() => setShowOrderModal(false)} />}
             {showExcludeModal && <VyklyuchennyaModal onClose={() => setShowExcludeModal(false)} />}
             {showRestoreModal && <VidnovytyModal onClose={() => setShowRestoreModal(false)} />}
-        </aside>
+        </section>
     );
 }

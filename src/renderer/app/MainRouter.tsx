@@ -1,4 +1,3 @@
-import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 
 import App from '../App';
@@ -7,28 +6,39 @@ import LoginScreen from '../features/auth/ui/LoginScreen';
 import RecoveryCodeScreen from '../features/auth/ui/RecoveryCodeScreen';
 import SetupScreen from '../features/auth/ui/SetupScreen';
 import CustomTitleBar from '../shared/components/CustomTitleBar';
-import { ToastViewport, useGlobalAccessErrors } from '../shared/ui/toast';
+import LogoSvg from '../shared/icons/LogoSvg';
+import { BlockingTaskHost } from '../shared/ui/blockingTask';
+import { ConfirmHost } from '../shared/ui/confirm';
+import { PageLoader } from '../shared/ui/loader';
+import { ToastViewport } from '../shared/ui/toast';
 import { useSessionStore } from '../stores/sessionStore';
+import { useNavLayout } from '../stores/uiStore';
+import { SectionCrumb, ShellAlerts } from './layout/ShellChrome';
 
 /** Chooses what to show from the session state held by the main process. */
 export function Main() {
     const status = useSessionStore((s) => s.status);
     const pendingRecoveryCode = useSessionStore((s) => s.pendingRecoveryCode);
     const init = useSessionStore((s) => s.init);
-
-    useGlobalAccessErrors();
+    const nav = useNavLayout();
 
     useEffect(() => {
         void init();
     }, [init]);
 
+    const inApp = status === 'ready' && !pendingRecoveryCode;
+
     let content;
     switch (status) {
         case 'loading':
+            // No delay: this is the first thing the window shows, it must never be blank.
             content = (
-                <div className="flex h-screen items-center justify-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
+                <PageLoader
+                    fullScreen
+                    delay={0}
+                    className="pt-10"
+                    emblem={<LogoSvg className="size-14" />}
+                />
             );
             break;
         case 'setup':
@@ -51,9 +61,15 @@ export function Main() {
 
     return (
         <>
-            <CustomTitleBar />
+            <CustomTitleBar
+                brandWidth={inApp ? nav.width : undefined}
+                leading={inApp ? <SectionCrumb /> : null}
+                trailing={inApp ? <ShellAlerts /> : null}
+            />
             {content}
             <ToastViewport />
+            <ConfirmHost />
+            <BlockingTaskHost />
         </>
     );
 }

@@ -1,64 +1,88 @@
 import {
     ArrowRight,
-    CalendarDays,
+    Briefcase,
     CalendarRange,
+    Download,
     FileText,
-    Info,
-    RefreshCcw,
+    FileWarning,
+    Pencil,
+    RefreshCw,
+    Send,
+    StickyNote,
     Trash2,
+    UserCheck,
+    UserX,
 } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import { CommentOrHistoryEntry } from '../../../../shared/types/user';
 import { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
+import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { cn, formatDate, IconButton } from '../../../shared/ui';
+import { confirmAction } from '../../../shared/ui/confirm';
 import { useI18nStore } from '../../../stores/i18nStore';
 
 type Props = {
     userId: any;
     entry: CommentOrHistoryEntry;
+    canEdit?: boolean;
     onDelete: (id: number) => void;
     onEdit: (entry: CommentOrHistoryEntry) => void;
-    onPreviewFile: (file: FileWithDataUrl) => void; // ✅ NEW
+    onPreviewFile: (file: FileWithDataUrl) => void;
 };
 
-export default function HistoryItem({ entry, onDelete, onEdit, userId, onPreviewFile }: Props) {
+type Kind = {
+    label: string;
+    icon: ReactNode;
+    /** Marker on the timeline. */
+    marker: string;
+};
+
+export default function HistoryItem({
+    entry,
+    onDelete,
+    onEdit,
+    userId,
+    onPreviewFile,
+    canEdit = true,
+}: Props) {
     const { t } = useI18nStore();
     const [showFullDesc, setShowFullDesc] = useState(false);
-    // { name: string; type: string; dataUrl?: string }
+
     const handlePreviewFile = async (file: any) => {
         if (file.dataUrl) {
             onPreviewFile(file);
             return;
         }
-
         const { dataUrl } = await window.electronAPI.loadHistoryFile(userId, entry.id, file.name);
-        onPreviewFile({
-            ...file,
-            dataUrl,
-        });
+        onPreviewFile({ ...file, dataUrl });
     };
 
     const handleDownload = async (file: { name: string; dataUrl?: string }) => {
-        if (!file.dataUrl) {
-            const { dataUrl } = await window.electronAPI.loadHistoryFile(
-                userId,
-                entry.id,
-                file.name,
-            );
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = file.name;
-            a.click();
-        } else {
-            const a = document.createElement('a');
-            a.href = file.dataUrl;
-            a.download = file.name;
-            a.click();
-        }
+        const dataUrl =
+            file.dataUrl ??
+            (await window.electronAPI.loadHistoryFile(userId, entry.id, file.name)).dataUrl;
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = file.name;
+        a.click();
+    };
+
+    const handleDelete = async () => {
+        const confirmed = await confirmAction({
+            title: 'Видалити запис історії?',
+            message: t('history.confirmDelete'),
+            confirmLabel: t('common.delete'),
+            tone: 'danger',
+        });
+        if (confirmed) onDelete(entry.id);
     };
 
     const isStatusChange = entry.type === 'statusChange';
-    const dateFormatted = new Date(entry.date).toLocaleString();
+    const date = new Date(entry.date);
+    const dateFormatted = Number.isNaN(date.getTime())
+        ? entry.date
+        : date.toLocaleString('uk-UA', { dateStyle: 'medium', timeStyle: 'short' });
 
     const description = entry.description || '';
 
@@ -71,6 +95,14 @@ export default function HistoryItem({ entry, onDelete, onEdit, userId, onPreview
             newStatus = match[2];
         }
     }
+    // The status line is shown as chips; keep only the free text written by the user.
+    const statusNote = isStatusChange
+        ? description
+              .split('\n')
+              .filter((line) => !/Статус змінено з/.test(line))
+              .join('\n')
+              .trim()
+        : '';
 
     const isPosadaChange =
         description.includes('Призначено на посаду') ||
@@ -95,309 +127,244 @@ export default function HistoryItem({ entry, onDelete, onEdit, userId, onPreview
     const isIncompleteStatusChange =
         isStatusChange && (!entry.period?.from || !entry.files || entry.files.length === 0);
 
+    const kind: Kind = isStatusChange
+        ? {
+              label: 'Зміна статусу',
+              icon: <RefreshCw />,
+              marker: 'bg-primary text-on-primary',
+          }
+        : isPosadaChange
+          ? {
+                label: 'Зміна посади',
+                icon: <Briefcase />,
+                marker: 'bg-info text-[oklch(99%_0_0)] dark:text-[oklch(20%_0.03_240)]',
+            }
+          : entry.type === 'order'
+            ? {
+                  label: 'Розпорядження',
+                  icon: <Send />,
+                  marker: 'bg-warning text-[oklch(25%_0.05_70)]',
+              }
+            : entry.type === 'exclude'
+              ? {
+                    label: 'Виключення',
+                    icon: <UserX />,
+                    marker: 'bg-danger text-on-danger',
+                }
+              : entry.type === 'restore'
+                ? {
+                      label: 'Відновлення',
+                      icon: <UserCheck />,
+                      marker: 'bg-success text-[oklch(99%_0_0)] dark:text-[oklch(20%_0.03_150)]',
+                  }
+                : {
+                      label: t(`historyItem.type.${entry.type}`).startsWith('historyItem.')
+                          ? 'Запис'
+                          : t(`historyItem.type.${entry.type}`),
+                      icon: <StickyNote />,
+                      marker: 'bg-surface-3 text-ink-2',
+                  };
+
+    const longText = !isStatusChange && !isPosadaChange && description.length > 220;
+    const typeNote = entry.type === 'order' || entry.type === 'exclude' || entry.type === 'restore';
+
     return (
-        <li
-            className={`group relative rounded-xl border p-5 shadow-sm hover:shadow-md transition-all ${
-                isIncompleteStatusChange
-                    ? 'border-red-500 bg-gradient-to-br from-red-50 to-white shadow-md'
-                    : isPosadaChange
-                      ? 'border-blue-300 bg-blue-50'
-                      : 'border-gray-200 bg-white'
-            }`}
-        >
-            {/* Action buttons on hover */}
-            <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                <button
-                    onClick={() => onEdit(entry)}
-                    className="text-blue-500 hover:text-blue-700 text-sm"
-                    title="Редагувати"
-                >
-                    ✏️
-                </button>
-                <button
-                    onClick={() => onDelete(entry.id)}
-                    className="text-red-500 hover:text-red-700"
-                    title={t('historyItem.delete')}
-                >
-                    <Trash2 className="w-5 h-5" />
-                </button>
-            </div>
-            {isIncompleteStatusChange && (
-                <div className="mb-4 inline-flex items-center gap-2 bg-red-100 border border-red-300 text-red-700 text-xs font-semibold px-3 py-1 rounded-full shadow-sm animate-pulse z-10">
-                    <Info className="w-4 h-4" />
-                    Відсутній файл або період
-                </div>
-            )}
-            {/* Header */}
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-                <CalendarDays className="w-4 h-4 text-blue-500" />
-                <span className="uppercase font-medium text-blue-600">
-                    {isStatusChange
-                        ? t('historyItem.type.statusChange')
-                        : isPosadaChange
-                          ? 'Зміна посади'
-                          : t(`historyItem.type.${entry.type}`)}
-                </span>
-                <span className="text-gray-400">•</span>
-                <span>{dateFormatted}</span>
-
-                {isPosadaChange && (
-                    <span className="ml-2 inline-flex items-center gap-1 text-xs font-semibold text-blue-800 bg-blue-100 px-2 py-0.5 rounded">
-                        <RefreshCcw className="w-3 h-3" /> Переміщення
-                    </span>
+        <li className="group/item relative pb-4 pl-10 last:pb-0">
+            {/* Timeline rail and marker */}
+            <span className="absolute bottom-0 left-[13px] top-8 w-px bg-line group-last/item:hidden" />
+            <span
+                className={cn(
+                    'absolute left-0 top-1 grid size-[27px] place-items-center rounded-full ring-4 ring-surface [&_svg]:size-3.5',
+                    isIncompleteStatusChange ? 'bg-danger text-on-danger' : kind.marker,
                 )}
-            </div>
-            {/* ✅ Status Change */}
-            {isStatusChange && (
-                <div className="p-4 rounded-xl border border-blue-300 bg-gradient-to-br from-blue-50 to-white shadow-sm mb-3">
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="bg-blue-100 text-blue-700 p-2 rounded-full">
-                            <Info className="w-4 h-4" />
-                        </div>
-                        <h3 className="text-blue-800 font-semibold text-base">
-                            {t('historyItem.type.statusChange')}
-                        </h3>
-                    </div>
+            >
+                {isIncompleteStatusChange ? <FileWarning /> : kind.icon}
+            </span>
 
-                    <p className="text-sm text-gray-600 mb-2 leading-snug">
-                        {t('historyItem.statusChangeDescription') ||
-                            'Статус особового складу був оновлений. Нижче показані старий та новий статус.'}
-                    </p>
-
-                    {description && (
-                        <p className="text-sm text-gray-800 mb-3 whitespace-pre-line">
-                            {description}
+            <article
+                className={cn(
+                    'rounded-xl border bg-surface p-4 transition-shadow hover:shadow-card',
+                    isIncompleteStatusChange ? 'border-danger-line' : 'border-line',
+                )}
+            >
+                <header className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-semibold text-ink">{kind.label}</p>
+                        <p className="text-xs text-ink-3">
+                            {dateFormatted}
+                            {entry.author && entry.author !== 'System' && entry.author !== 'You'
+                                ? ` · ${entry.author}`
+                                : ''}
                         </p>
-                    )}
-
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 border border-gray-300 shadow-sm">
-                            {prevStatus}
-                        </span>
-                        <ArrowRight className="hidden sm:inline-block w-6 h-6 text-blue-500" />
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800 border border-green-300 shadow-sm mt-2 sm:mt-0">
-                            {newStatus}
-                        </span>
                     </div>
-                </div>
-            )}
-
-            {/* ✅ Posada Change */}
-            {isPosadaChange && (
-                <div className="p-4 rounded-xl border border-blue-300 bg-gradient-to-br from-blue-50 to-white shadow-sm mb-3">
-                    <div className="flex items-center gap-2 mb-3">
-                        <div className="bg-blue-100 text-blue-700 p-2 rounded-full">
-                            <RefreshCcw className="w-4 h-4" />
+                    {canEdit && (
+                        <div className="flex gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/item:opacity-100">
+                            <IconButton
+                                label="Редагувати запис"
+                                size="xs"
+                                onClick={() => onEdit(entry)}
+                                icon={<Pencil className="size-3.5" />}
+                            />
+                            <IconButton
+                                label={t('historyItem.delete')}
+                                size="xs"
+                                className="hover:bg-danger-soft hover:text-danger-ink"
+                                onClick={() => void handleDelete()}
+                                icon={<Trash2 className="size-3.5" />}
+                            />
                         </div>
-                        <h3 className="text-blue-800 font-semibold text-base">🔄 Зміна посади</h3>
-                    </div>
+                    )}
+                </header>
 
-                    {oldPosada && newPosada ? (
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
-                            <div className="flex-1 px-4 py-2 rounded-lg bg-gray-100 border border-gray-300 text-gray-800 text-sm shadow-sm">
-                                <span className="font-medium text-gray-600 block text-xs">
-                                    Було:
-                                </span>
-                                <span className="font-semibold">{oldPosada}</span>
+                {isIncompleteStatusChange && (
+                    <p className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-danger-soft px-2.5 py-1 text-xs font-medium text-danger-ink">
+                        <FileWarning className="size-3.5" />
+                        Відсутній файл або період
+                    </p>
+                )}
+
+                {/* Status change: previous → new */}
+                {isStatusChange && (
+                    <div className="mt-3 space-y-2">
+                        {(prevStatus || newStatus) && (
+                            <div className="flex flex-wrap items-center gap-2">
+                                <StatusBadge status={prevStatus} className="opacity-75" />
+                                <ArrowRight className="size-4 shrink-0 text-ink-3" />
+                                <StatusBadge status={newStatus} />
                             </div>
-                            <div className="flex justify-center my-2 sm:my-0">
-                                <ArrowRight className="w-6 h-6 text-blue-500" />
-                            </div>
-                            <div
-                                className={`flex-1 px-4 py-2 rounded-lg ${
-                                    newPosada === '— (прибрано)'
-                                        ? 'bg-red-50 border border-red-300 text-red-700'
-                                        : 'bg-green-50 border border-green-300 text-green-800'
-                                } text-sm shadow-sm`}
-                            >
-                                <span
-                                    className={`font-medium block text-xs ${
+                        )}
+                        {!prevStatus && !newStatus && description && (
+                            <p className="whitespace-pre-line text-sm text-ink-2">{description}</p>
+                        )}
+                        {statusNote && (prevStatus || newStatus) && (
+                            <p className="whitespace-pre-line text-sm text-ink-2">{statusNote}</p>
+                        )}
+                    </div>
+                )}
+
+                {/* Position change: was → became */}
+                {isPosadaChange && (
+                    <div className="mt-3">
+                        {oldPosada && newPosada ? (
+                            <div className="grid items-stretch gap-2 sm:grid-cols-[1fr_auto_1fr]">
+                                <div className="rounded-lg border border-line bg-surface-2 px-3 py-2">
+                                    <p className="text-[11px] uppercase tracking-wider text-ink-3">
+                                        Було
+                                    </p>
+                                    <p className="text-sm font-medium text-ink">{oldPosada}</p>
+                                </div>
+                                <ArrowRight className="hidden size-4 self-center text-ink-3 sm:block" />
+                                <div
+                                    className={cn(
+                                        'rounded-lg border px-3 py-2',
                                         newPosada === '— (прибрано)'
-                                            ? 'text-red-600'
-                                            : 'text-green-600'
-                                    }`}
-                                >
-                                    Стало:
-                                </span>
-                                <span className="font-semibold">{newPosada}</span>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="px-4 py-2 rounded-lg bg-green-50 border border-green-300 text-green-800 shadow-sm">
-                            ✅ <span className="font-semibold">{newPosada || description}</span>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* ✅ Regular text */}
-            {!isStatusChange && !isPosadaChange && description && (
-                <div className="mb-3">
-                    <p
-                        className={`text-gray-800 font-medium text-base leading-relaxed whitespace-pre-line transition-all ${
-                            showFullDesc ? '' : 'max-h-32 overflow-hidden'
-                        }`}
-                    >
-                        {description}
-                    </p>
-
-                    {description.length > 200 && ( // show toggle if long
-                        <button
-                            onClick={() => setShowFullDesc(!showFullDesc)}
-                            className="mt-2 text-sm text-blue-600 hover:underline"
-                        >
-                            {showFullDesc ? '⬆️ Згорнути' : '⬇️ Показати повністю'}
-                        </button>
-                    )}
-                </div>
-            )}
-            {entry.type === 'order' && (
-                <div className="p-4 rounded-xl border border-yellow-400 bg-gradient-to-br from-yellow-50 to-white shadow-sm mb-3">
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="bg-yellow-200 text-yellow-800 p-2 rounded-full">📤</div>
-                        <h3 className="text-yellow-800 font-semibold text-base">
-                            Подано розпорядження
-                        </h3>
-                    </div>
-
-                    {description && (
-                        <p className="text-sm text-gray-700 mb-3 whitespace-pre-line">
-                            {description}
-                        </p>
-                    )}
-
-                    {entry.period?.from && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <CalendarDays className="w-4 h-4 text-yellow-500" />
-                            <span>
-                                Дата подання:{' '}
-                                <span className="font-medium text-gray-800">
-                                    {new Date(entry.period.from).toLocaleDateString()}
-                                </span>
-                            </span>
-                        </div>
-                    )}
-                </div>
-            )}
-            {entry.type === 'exclude' && (
-                <div className="p-4 rounded-xl border border-red-400 bg-gradient-to-br from-red-50 to-white shadow-sm mb-3">
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="bg-red-200 text-red-800 p-2 rounded-full">❌</div>
-                        <h3 className="text-red-800 font-semibold text-base">
-                            Користувача виключено
-                        </h3>
-                    </div>
-
-                    {description && (
-                        <p className="text-sm text-gray-700 mb-3 whitespace-pre-line">
-                            {description}
-                        </p>
-                    )}
-
-                    {entry.period?.from && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <CalendarDays className="w-4 h-4 text-red-500" />
-                            <span>
-                                Дата виключення:{' '}
-                                <span className="font-medium text-gray-800">
-                                    {new Date(entry.period.from).toLocaleDateString()}
-                                </span>
-                            </span>
-                        </div>
-                    )}
-                </div>
-            )}
-            {entry.type === 'restore' && (
-                <div className="p-4 rounded-xl border border-green-400 bg-gradient-to-br from-green-50 to-white shadow-sm mb-3">
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="bg-green-200 text-green-800 p-2 rounded-full">♻️</div>
-                        <h3 className="text-green-800 font-semibold text-base">
-                            Користувача відновлено
-                        </h3>
-                    </div>
-
-                    {entry.content && (
-                        <p className="text-sm text-gray-700 mb-3 whitespace-pre-line">
-                            {entry.content}
-                        </p>
-                    )}
-
-                    {entry.period?.from && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <CalendarDays className="w-4 h-4 text-green-500" />
-                            <span>
-                                Дата відновлення:{' '}
-                                <span className="font-medium text-gray-800">
-                                    {new Date(entry.period.from).toLocaleDateString()}
-                                </span>
-                            </span>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* ✅ Files */}
-            {entry.files?.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-3">
-                    {entry.files.map((file, i) => (
-                        <div
-                            key={i}
-                            className="relative border rounded-lg overflow-hidden bg-gray-50 shadow-sm hover:shadow-md transition flex flex-col"
-                        >
-                            <div
-                                key={i}
-                                className="relative border rounded-lg overflow-hidden bg-gray-50 shadow-sm hover:shadow-md transition flex flex-col"
-                            >
-                                {/* === Preview Button === */}
-                                <button
-                                    onClick={() => handlePreviewFile(file)}
-                                    className="flex-1 w-full text-left"
-                                >
-                                    {file.dataUrl && file.type.startsWith('image/') ? (
-                                        <img
-                                            src={file.dataUrl}
-                                            alt={file.name}
-                                            className="w-full h-32 object-cover hover:scale-105 transition-transform"
-                                        />
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center gap-2 p-4 text-blue-600 text-sm hover:underline">
-                                            <FileText className="w-6 h-6" /> {file.name}
-                                        </div>
+                                            ? 'border-danger-line bg-danger-soft'
+                                            : 'border-success-line bg-success-soft',
                                     )}
-                                </button>
-
-                                {/* === Download Button (always visible) === */}
-                                <button
-                                    onClick={() => handleDownload(file)}
-                                    className="text-center text-sm text-blue-500 hover:underline p-2 border-t border-gray-200"
                                 >
-                                    ⬇️ Завантажити
-                                </button>
+                                    <p
+                                        className={cn(
+                                            'text-[11px] uppercase tracking-wider',
+                                            newPosada === '— (прибрано)'
+                                                ? 'text-danger-ink'
+                                                : 'text-success-ink',
+                                        )}
+                                    >
+                                        Стало
+                                    </p>
+                                    <p className="text-sm font-medium text-ink">{newPosada}</p>
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-            {/* ✅ Period display (if exists) */}
-            {entry.period && (
-                <div className="mt-6 bg-blue-100/60 border border-blue-200 rounded-xl px-6 py-4 flex items-center gap-4 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <CalendarRange className="w-6 h-6 text-blue-600 shrink-0" />
-                        <span className="text-md font-bold text-blue-800">Період:</span>
-                    </div>
-                    <div className="text-md font-semibold text-gray-800 bg-white px-4 py-2 rounded-lg border border-gray-300 shadow-inner">
-                        {entry.period.from && (
-                            <span>{new Date(entry.period.from).toLocaleDateString()}</span>
-                        )}
-
-                        {entry.period.to && entry.period.from && ' — '}
-
-                        {entry.period.to && (
-                            <span>{new Date(entry.period.to).toLocaleDateString()}</span>
+                        ) : (
+                            <p className="rounded-lg border border-success-line bg-success-soft px-3 py-2 text-sm font-medium text-success-ink">
+                                {newPosada || description}
+                            </p>
                         )}
                     </div>
-                </div>
-            )}
+                )}
+
+                {/* Free text */}
+                {!isStatusChange && !isPosadaChange && description && (
+                    <div className="mt-2.5">
+                        <p
+                            className={cn(
+                                'whitespace-pre-line text-sm leading-relaxed text-ink-2',
+                                longText && !showFullDesc && 'line-clamp-4',
+                            )}
+                        >
+                            {description}
+                        </p>
+                        {longText && (
+                            <button
+                                onClick={() => setShowFullDesc(!showFullDesc)}
+                                className="mt-1 text-[13px] font-medium text-primary-ink hover:underline"
+                            >
+                                {showFullDesc ? 'Згорнути' : 'Показати повністю'}
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {typeNote && entry.content && (
+                    <p className="mt-2 whitespace-pre-line text-sm text-ink-2">{entry.content}</p>
+                )}
+
+                {/* Attachments */}
+                {entry.files?.length > 0 && (
+                    <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
+                        {entry.files.map((file, i) => {
+                            const isImage = Boolean(
+                                file.dataUrl && file.type?.startsWith('image/'),
+                            );
+                            return (
+                                <li
+                                    key={i}
+                                    className="group/file overflow-hidden rounded-lg border border-line bg-surface-2"
+                                >
+                                    <button
+                                        onClick={() => void handlePreviewFile(file)}
+                                        className="block w-full text-left"
+                                        title="Переглянути"
+                                    >
+                                        {isImage ? (
+                                            <img
+                                                src={file.dataUrl}
+                                                alt={file.name}
+                                                className="h-24 w-full object-cover transition-transform duration-300 group-hover/file:scale-[1.03]"
+                                            />
+                                        ) : (
+                                            <span className="flex h-24 flex-col items-center justify-center gap-1.5 px-2 text-center">
+                                                <FileText className="size-6 text-ink-3" />
+                                                <span className="line-clamp-2 break-all text-xs text-ink-2">
+                                                    {file.name}
+                                                </span>
+                                            </span>
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={() => void handleDownload(file)}
+                                        className="flex w-full items-center justify-center gap-1.5 border-t border-line py-1.5 text-xs font-medium text-ink-2 transition-colors hover:bg-surface-3 hover:text-ink"
+                                    >
+                                        <Download className="size-3.5" />
+                                        Завантажити
+                                    </button>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                )}
+
+                {/* Period */}
+                {entry.period && (entry.period.from || entry.period.to) && (
+                    <p className="mt-3 inline-flex items-center gap-2 rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-[13px] text-ink-2">
+                        <CalendarRange className="size-4 text-ink-3" />
+                        <span className="font-medium text-ink">
+                            {entry.period.from ? formatDate(entry.period.from) : '…'}
+                            {entry.period.to ? ` — ${formatDate(entry.period.to)}` : ''}
+                        </span>
+                    </p>
+                )}
+            </article>
         </li>
     );
 }

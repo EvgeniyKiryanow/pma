@@ -1,35 +1,65 @@
+import {
+    Ban,
+    Building2,
+    CircleDashed,
+    Crosshair,
+    HeartPulse,
+    type LucideIcon,
+    Luggage,
+    Package,
+    RefreshCw,
+} from 'lucide-react';
+import { createElement, type ReactNode } from 'react';
+
 import { StatusExcel } from './excelUserStatuses';
 
+/** Hue families defined in styles/index.css (`.tone-*`), readable in both themes. */
+export type Tone =
+    | 'olive'
+    | 'amber'
+    | 'sand'
+    | 'steel'
+    | 'violet'
+    | 'teal'
+    | 'sky'
+    | 'red'
+    | 'rose'
+    | 'gray';
+
 export type StatusBadgeInfo = {
-    icon: string;
+    icon: ReactNode;
+    /** Classes for a chip: background, text and border colour of the tone. */
     badgeStyle: string;
+    tone: Tone;
+    /** Short name of the status group, for legends and tooltips. */
+    group: string;
 };
+
+const badge = (tone: Tone, Icon: LucideIcon, group: string): StatusBadgeInfo => ({
+    icon: createElement(Icon, { className: 'size-3.5 shrink-0', 'aria-hidden': true }),
+    badgeStyle: `tone tone-${tone}`,
+    tone,
+    group,
+});
 
 export function getStatusBadge(status?: string): StatusBadgeInfo {
     if (!status || status === StatusExcel.NO_STATUS) {
-        return {
-            icon: '⚪',
-            badgeStyle: 'bg-gray-100 text-gray-600 border-gray-200',
-        };
+        return badge('gray', CircleDashed, 'Без статусу');
     }
 
-    const s = status.toLowerCase(); // ✅ приводимо до lowercase
+    const s = status.toLowerCase();
 
-    // === АКТИВНІ БОЙОВІ ПОЗИЦІЇ ===
+    // Active combat positions
     if (
         s.includes('позиція піхоти') ||
         s.includes('позиція екіпажу') ||
         s.includes('позиція розрахунку') ||
         s.includes('позиція бпла')
     ) {
-        return {
-            icon: '🪖',
-            badgeStyle:
-                'bg-gradient-to-r from-green-50 to-green-100 text-green-800 border-green-200 shadow-sm',
-        };
+        return badge('olive', Crosshair, 'На позиціях');
     }
 
-    // === РОТАЦІЯ / РЕЗЕРВ ===
+    // Rotation / reserve
     if (
         s.includes('ротація піхота') ||
         s.includes('ротація екіпаж') ||
@@ -38,36 +68,24 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         s.includes('ротація') ||
         s.includes('резерв')
     ) {
-        return {
-            icon: '🔄',
-            badgeStyle:
-                'bg-gradient-to-r from-yellow-50 to-yellow-100 text-yellow-800 border-yellow-200 shadow-sm',
-        };
+        return badge('amber', RefreshCw, 'Ротація / резерв');
     }
 
-    // === ЗАБЕЗПЕЧЕННЯ ===
+    // Support
     if (
         s.includes('забезпечення бд') ||
         s.includes('забезпечення інженерне') ||
         s.includes('забезпечення життєдіяльності')
     ) {
-        return {
-            icon: '📦',
-            badgeStyle:
-                'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 border-amber-200 shadow-sm',
-        };
+        return badge('sand', Package, 'Забезпечення');
     }
 
-    // === УПРАВЛІННЯ ===
+    // Command
     if (s.includes('управління') || s.includes('ксп')) {
-        return {
-            icon: '🏢',
-            badgeStyle:
-                'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-800 border-indigo-200 shadow-sm',
-        };
+        return badge('steel', Building2, 'Управління');
     }
 
-    // === НЕ БГ / НЕБЕЗПОСЕРЕДНЯ УЧАСТЬ ===
+    // Not directly in combat
     if (
         s.includes('приданий в інший підрозділ') ||
         s.includes('навчання, новоприбулий') ||
@@ -78,14 +96,10 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         s.includes('очікує кадрового рішення') ||
         s.includes('відмовник')
     ) {
-        return {
-            icon: '🩺',
-            badgeStyle:
-                'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 border-blue-200 shadow-sm',
-        };
+        return badge('sky', CircleDashed, 'Не бере участі в БД');
     }
 
-    // === ВІДСУТНІ / ВІДПУСТКИ ===
+    // Absent: leave, training, business trip
     if (
         s.includes('відпустка лікування') ||
         s.includes('відпустка щорічна') ||
@@ -93,23 +107,15 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         s.includes('навчання') ||
         s.includes('відрядження')
     ) {
-        return {
-            icon: '🏖️',
-            badgeStyle:
-                'bg-gradient-to-r from-cyan-50 to-cyan-100 text-cyan-800 border-cyan-200 shadow-sm',
-        };
+        return badge('teal', Luggage, 'Відпустка / відрядження');
     }
 
-    // === АРЕШТ / СЗЧ ===
+    // Arrest / AWOL
     if (s.includes('арешт') || s.includes('сзч')) {
-        return {
-            icon: '⛔',
-            badgeStyle:
-                'bg-gradient-to-r from-red-50 to-red-100 text-red-800 border-red-200 shadow-sm',
-        };
+        return badge('red', Ban, 'Арешт / СЗЧ');
     }
 
-    // === ШПИТАЛЬ / 300 / 500 / 200 ===
+    // Hospital / 300 / 500 / 200
     if (
         s.includes('шпиталь') ||
         s.includes('влк') ||
@@ -117,16 +123,8 @@ export function getStatusBadge(status?: string): StatusBadgeInfo {
         s.includes('500') ||
         s.includes('200')
     ) {
-        return {
-            icon: '🚑',
-            badgeStyle:
-                'bg-gradient-to-r from-rose-50 to-rose-100 text-rose-800 border-rose-200 shadow-sm',
-        };
+        return badge('rose', HeartPulse, 'Лікування / втрати');
     }
 
-    // === ФОЛБЕК ===
-    return {
-        icon: '⚪',
-        badgeStyle: 'bg-gray-100 text-gray-600 border-gray-200',
-    };
+    return badge('gray', CircleDashed, 'Інше');
 }

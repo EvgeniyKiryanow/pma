@@ -8,9 +8,10 @@ import type * as ShevchenkoType from 'shevchenko';
 import generateAndFlattenFullNameForms from '../../../shared/helpers/generateAndFlattenFullNameForms';
 import generateAndFlattenTitleForms from '../../../shared/helpers/generateAndFlattenTitleForms';
 import getImageOptions from '../../../shared/helpers/imageOptionHelper';
-import { hideLoader, showLoader } from '../../../shared/helpers/loadersSimple';
 import { declineRank } from '../../../shared/helpers/militaryRanks';
 import { buildPositionForms, buildUnitForms } from '../../../shared/helpers/positionForms';
+import { runBlocking } from '../ui/blockingTask';
+import { toast } from '../ui/toast';
 
 let shevPromise: Promise<typeof ShevchenkoType> | null = null;
 async function getShevchenkoModule(): Promise<typeof ShevchenkoType> {
@@ -98,74 +99,104 @@ export function useDocxGenerator() {
         additionalFields,
     }: GenerateArgs): Promise<ArrayBuffer | null> => {
         if (!selectedTemplate || !selectedUser) {
-            alert('❌ Оберіть шаблон і військовослужбовця.');
+            toast.warning('Оберіть шаблон і військовослужбовця.');
             return null;
         }
         if (!selectedTemplate.content) {
-            alert('❌ Файл шаблону не завантажено. Оновіть список шаблонів.');
+            toast.warning('Файл шаблону не завантажено. Оновіть список шаблонів.');
             return null;
         }
 
-        showLoader('⏳ Генерація рапорту... зачекайте');
         try {
-            const { commanderName = '', unitName = '' } = additionalFields ?? {};
-            const shev = await getShevchenkoModule();
-            const gender =
-                String(selectedUser.gender || '').toLowerCase() === 'female'
-                    ? shev.GrammaticalGender.FEMININE
-                    : shev.GrammaticalGender.MASCULINE;
-
-            const doc = new Docxtemplater(new PizZip(selectedTemplate.content), {
-                paragraphLoop: true,
-                linebreaks: true,
-                modules: [new ImageModule(getImageOptions())],
-                delimiters: { start: '{', end: '}' },
-                nullGetter: () => '',
-            });
-
-            const data: Record<string, any> = {
-                ...pickUserFields(selectedUser, includedFields),
-                ...(await generateAndFlattenFullNameForms(selectedUser.fullName, gender, true, 'fn')),
-                ...generateAndFlattenTitleForms(declineRank(selectedUser.rank), {}, {}, true, 'rank'),
-                ...generateAndFlattenTitleForms({}, buildPositionForms(selectedUser), {}, true, 'pos'),
-                ...generateAndFlattenTitleForms({}, {}, buildUnitForms(unitName), true, 'unit'),
-                ...buildDateFields(),
-            };
-
-            if (commanderName.trim()) {
-                Object.assign(
-                    data,
-                    await generateAndFlattenFullNameForms(
-                        commanderName,
-                        shev.GrammaticalGender.MASCULINE,
-                        true,
-                        'com',
-                    ),
-                );
-            }
-
-            if (selectedUser2) {
-                const gender2 =
-                    String(selectedUser2.gender || '').toLowerCase() === 'female'
+            return await runBlocking('Генерація рапорту… зачекайте', async () => {
+                const { commanderName = '', unitName = '' } = additionalFields ?? {};
+                const shev = await getShevchenkoModule();
+                const gender =
+                    String(selectedUser.gender || '').toLowerCase() === 'female'
                         ? shev.GrammaticalGender.FEMININE
                         : shev.GrammaticalGender.MASCULINE;
-                Object.assign(
-                    data,
-                    pickUserFields(selectedUser2, includedFields2, '2'),
-                    await generateAndFlattenFullNameForms(
-                        selectedUser2.fullName,
-                        gender2,
-                        true,
-                        'fn2',
-                    ),
-                    generateAndFlattenTitleForms(declineRank(selectedUser2.rank), {}, {}, true, 'rank2'),
-                    generateAndFlattenTitleForms({}, buildPositionForms(selectedUser2), {}, true, 'pos2'),
-                );
-            }
 
-            doc.setData(data);
-            doc.render();
-            return doc.getZip().generate({ type: 'arraybuffer' });
+                const doc = new Docxtemplater(new PizZip(selectedTemplate.content), {
+                    paragraphLoop: true,
+                    linebreaks: true,
+                    modules: [new ImageModule(getImageOptions())],
+                    delimiters: { start: '{', end: '}' },
+                    nullGetter: () => '',
+                });
+
+                const data: Record<string, any> = {
+                    ...pickUserFields(selectedUser, includedFields),
+                    ...(await generateAndFlattenFullNameForms(
+                        selectedUser.fullName,
+                        gender,
+                        true,
+                        'fn',
+                    )),
+                    ...generateAndFlattenTitleForms(
+                        declineRank(selectedUser.rank),
+                        {},
+                        {},
+                        true,
+                        'rank',
+                    ),
+                    ...generateAndFlattenTitleForms(
+                        {},
+                        buildPositionForms(selectedUser),
+                        {},
+                        true,
+                        'pos',
+                    ),
+                    ...generateAndFlattenTitleForms({}, {}, buildUnitForms(unitName), true, 'unit'),
+                    ...buildDateFields(),
+                };
+
+                if (commanderName.trim()) {
+                    Object.assign(
+                        data,
+                        await generateAndFlattenFullNameForms(
+                            commanderName,
+                            shev.GrammaticalGender.MASCULINE,
+                            true,
+                            'com',
+                        ),
+                    );
+                }
+
+                if (selectedUser2) {
+                    const gender2 =
+                        String(selectedUser2.gender || '').toLowerCase() === 'female'
+                            ? shev.GrammaticalGender.FEMININE
+                            : shev.GrammaticalGender.MASCULINE;
+                    Object.assign(
+                        data,
+                        pickUserFields(selectedUser2, includedFields2, '2'),
+                        await generateAndFlattenFullNameForms(
+                            selectedUser2.fullName,
+                            gender2,
+                            true,
+                            'fn2',
+                        ),
+                        generateAndFlattenTitleForms(
+                            declineRank(selectedUser2.rank),
+                            {},
+                            {},
+                            true,
+                            'rank2',
+                        ),
+                        generateAndFlattenTitleForms(
+                            {},
+                            buildPositionForms(selectedUser2),
+                            {},
+                            true,
+                            'pos2',
+                        ),
+                    );
+                }
+
+                doc.setData(data);
+                doc.render();
+                return doc.getZip().generate({ type: 'arraybuffer' }) as ArrayBuffer;
+            });
         } catch (error: any) {
             // docxtemplater reports the offending placeholder in `properties.errors`
             const details = (error?.properties?.errors ?? [])
@@ -174,10 +205,8 @@ export function useDocxGenerator() {
                 .slice(0, 3)
                 .join('; ');
             console.error('Template generation failed', error);
-            alert(`❌ Не вдалося створити рапорт.${details ? `\n\n${details}` : ''}`);
+            toast.error(`Не вдалося створити рапорт.${details ? `\n${details}` : ''}`);
             return null;
-        } finally {
-            hideLoader();
         }
     };
 

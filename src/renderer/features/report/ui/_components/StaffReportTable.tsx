@@ -150,7 +150,7 @@ export function StaffReportTable() {
         }
     };
     return (
-        <div className="relative border-4 border-black rounded-lg shadow bg-white overflow-auto max-w-full max-h-[80vh]">
+        <div className="paper relative max-h-[calc(100vh-190px)] max-w-full overflow-auto">
             <table className="min-w-[2000px] text-[12px] border-collapse table-fixed">
                 <thead className="sticky top-0 z-10 bg-gray-100">
                     <tr>
@@ -210,7 +210,7 @@ export function StaffReportTable() {
                                             {editable ? (
                                                 <input
                                                     type="text"
-                                                    className="w-full text-[12px] rounded border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-300 px-1 py-[3px]"
+                                                    className="w-full rounded border border-gray-300 bg-white px-1 py-[3px] text-[12px] text-gray-900 outline-none focus:border-olive-600 focus:ring-2 focus:ring-olive-300/60"
                                                     value={value}
                                                     onChange={(e) =>
                                                         handleEditChange(
@@ -244,7 +244,7 @@ export function StaffReportTable() {
                                 className="p-6 text-center text-gray-500 italic"
                                 style={{ border: '1px solid black' }}
                             >
-                                ⏳ Даних немає або пошук не знайшов збігів
+                                Даних немає або пошук не знайшов збігів
                             </td>
                         </tr>
                     )}

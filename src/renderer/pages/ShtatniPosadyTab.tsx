@@ -1,3 +1,4 @@
+import { ListTree } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { CommentOrHistoryEntry, User } from '../../shared/types/user';
@@ -5,6 +6,10 @@ import { ShtatnaPosada, useShtatniStore } from '../entities/shtatna-posada/model
 import EditPosadaModal from '../entities/shtatna-posada/ui/EditPosadaModal';
 import ShtatniPosadyHeader from '../entities/shtatna-posada/ui/ShtatniPosadyHeader';
 import ShtatniPosadyTable from '../entities/shtatna-posada/ui/ShtatniPosadyTable';
+import { EmptyState, Spinner } from '../shared/ui';
+import { confirmAction } from '../shared/ui/confirm';
+import { toast } from '../shared/ui/toast';
+import { usePermissions } from '../stores/sessionStore';
 import { useUserStore } from '../stores/userStore';
 
 export default function ShtatniPosadyTab() {
@@ -18,14 +23,17 @@ export default function ShtatniPosadyTab() {
     const [usersLoaded, setUsersLoaded] = useState(false);
     const [posadyLoaded, setPosadyLoaded] = useState(false);
     const [hasSyncedUsers, setHasSyncedUsers] = useState(false);
+    const [query, setQuery] = useState('');
+    const { can } = usePermissions();
+    const canEditStaffing = can('staffing.edit');
 
     const unassignUserFromPosada = async (pos: ShtatnaPosada) => {
         // ✅ знайти користувача, який зараз займає цю посаду (по shpkNumber)
         const assignedUser = users.find((u) => u.shpkNumber === pos.shtat_number);
 
         if (!assignedUser) {
-            alert(
-                `❗ На посаду "${pos.position_name}" (${pos.unit_name}) зараз ніхто не призначений`,
+            toast.info(
+                `На посаду «${pos.position_name}» (${pos.unit_name}) зараз ніхто не призначений`,
             );
             return;
         }
@@ -61,8 +69,8 @@ export default function ShtatniPosadyTab() {
             setSelectedUser(clearedUser);
         }
 
-        alert(
-            `✅ ${assignedUser.fullName} звільнений з посади "${pos.position_name}" (${pos.unit_name})`,
+        toast.success(
+            `${assignedUser.fullName} знято з посади «${pos.position_name}» (${pos.unit_name})`,
         );
     };
     const mergeUserAssignmentsOnce = async () => {
@@ -229,15 +237,19 @@ export default function ShtatniPosadyTab() {
         // ✅ Refresh right panel
         setSelectedUser(updatedUser);
 
-        alert(
-            `✅ ${selectedUser.fullName} призначений на "${pos.position_name}" (${pos.unit_name})`,
+        toast.success(
+            `${selectedUser.fullName} призначений на «${pos.position_name}» (${pos.unit_name})`,
         );
     };
 
     const handleDelete = async (shtat_number: string) => {
-        if (confirm('Видалити цю посаду?')) {
-            await deletePosada(shtat_number);
-        }
+        const confirmed = await confirmAction({
+            title: 'Видалити посаду?',
+            message: `Посаду № ${shtat_number} буде видалено з БЧС.`,
+            confirmLabel: 'Видалити',
+            tone: 'danger',
+        });
+        if (confirmed) await deletePosada(shtat_number);
     };
 
     const handleEdit = (pos: ShtatnaPosada) => {
@@ -256,9 +268,13 @@ export default function ShtatniPosadyTab() {
     };
 
     const handleDeleteAll = async () => {
-        if (confirm('❗ Ви впевнені, що хочете видалити ВСІ штатні посади?')) {
-            await deleteAll();
-        }
+        const confirmed = await confirmAction({
+            title: 'Видалити всі штатні посади?',
+            message: 'БЧС буде повністю очищено. Цю дію не можна скасувати.',
+            confirmLabel: 'Видалити всі',
+            tone: 'danger',
+        });
+        if (confirmed) await deleteAll();
     };
 
     /** ✅ Sort posady by shtat_number numeric */
@@ -295,11 +311,53 @@ export default function ShtatniPosadyTab() {
         return result;
     }, [sortedPosady]);
 
-    return (
-        <div className="p-6">
-            <ShtatniPosadyHeader total={shtatniPosady.length} onDeleteAll={handleDeleteAll} />
+    /** Search keeps a unit header only when some of its positions match. */
+    const visibleGroups = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        if (!q) return groupedWithHeaders;
+        const holderById = new Map(users.map((u) => [String(u.shpkNumber ?? ''), u.fullName]));
+        const result: typeof groupedWithHeaders = [];
+        let pendingHeader: (typeof groupedWithHeaders)[number] | null = null;
+        for (const item of groupedWithHeaders) {
+            if (item.type === 'header') {
+                pendingHeader = item;
+                continue;
+            }
+            const pos = item.data as ShtatnaPosada;
+            const haystack = [
+                pos.shtat_number,
+                pos.unit_name,
+                pos.position_name,
+                pos.category,
+                pos.shpk_code,
+                holderById.get(String(pos.shtat_number)),
+            ]
+                .join(' ')
+                .toLowerCase();
+            if (!haystack.includes(q)) continue;
+            if (pendingHeader) {
+                result.push(pendingHeader);
+                pendingHeader = null;
+            }
+            result.push(item);
+        }
+        return result;
+    }, [groupedWithHeaders, query, users]);
 
-            {loading && <p className="text-gray-500">Завантаження...</p>}
+    const assignedCount = useMemo(() => {
+        const numbers = new Set(users.map((u) => String(u.shpkNumber ?? '')));
+        return shtatniPosady.filter((p) => numbers.has(String(p.shtat_number))).length;
+    }, [users, shtatniPosady]);
+
+    return (
+        <div className="flex min-h-0 flex-1 flex-col">
+            <ShtatniPosadyHeader
+                total={shtatniPosady.length}
+                assigned={assignedCount}
+                query={query}
+                onQueryChange={setQuery}
+                onDeleteAll={canEditStaffing ? () => void handleDeleteAll() : undefined}
+            />
 
             {editing && (
                 <EditPosadaModal
@@ -310,15 +368,34 @@ export default function ShtatniPosadyTab() {
                 />
             )}
 
-            {/* ✅ Compact Table with Assign column */}
-            <ShtatniPosadyTable
-                groupedWithHeaders={groupedWithHeaders}
-                users={users}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onAssign={assignUserToPosada}
-                onUnassign={unassignUserFromPosada}
-            />
+            <div className="min-h-0 flex-1 p-5">
+                {loading && shtatniPosady.length === 0 ? (
+                    <div className="flex h-full items-center justify-center">
+                        <Spinner />
+                    </div>
+                ) : visibleGroups.length === 0 ? (
+                    <div className="card">
+                        <EmptyState
+                            icon={<ListTree />}
+                            title={query ? 'Нічого не знайдено' : 'Штатних посад ще немає'}
+                            description={
+                                query
+                                    ? 'Спробуйте інший запит.'
+                                    : 'Імпортуйте БЧС з Excel у розділі «Таблиці та Excel».'
+                            }
+                        />
+                    </div>
+                ) : (
+                    <ShtatniPosadyTable
+                        groupedWithHeaders={visibleGroups}
+                        users={users}
+                        onEdit={handleEdit}
+                        onDelete={(shtatNumber) => void handleDelete(shtatNumber)}
+                        onAssign={assignUserToPosada}
+                        onUnassign={unassignUserFromPosada}
+                    />
+                )}
+            </div>
         </div>
     );
 }

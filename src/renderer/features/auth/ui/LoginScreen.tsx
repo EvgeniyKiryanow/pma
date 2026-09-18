@@ -78,7 +78,7 @@ export default function LoginScreen() {
                     <button
                         type="button"
                         onClick={() => setMode('recover')}
-                        className="text-sm text-blue-600 hover:underline"
+                        className="text-sm font-medium text-primary-ink hover:underline"
                     >
                         {t('auth.login.forgot')}
                     </button>

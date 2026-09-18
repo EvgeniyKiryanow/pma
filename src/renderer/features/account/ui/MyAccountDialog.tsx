@@ -47,7 +47,7 @@ export default function MyAccountDialog({ onClose }: { onClose: () => void }) {
         >
             <div className="space-y-6">
                 <section>
-                    <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink">
                         <KeyRound className="h-4 w-4" />
                         {t('admin.security.changePassword')}
                     </h4>
@@ -56,8 +56,8 @@ export default function MyAccountDialog({ onClose }: { onClose: () => void }) {
                     />
                 </section>
 
-                <section className="border-t pt-5">
-                    <h4 className="mb-3 text-sm font-semibold text-gray-900">
+                <section className="border-t border-line pt-5">
+                    <h4 className="mb-3 text-sm font-semibold text-ink">
                         {t('admin.security.recoveryTitle')}
                     </h4>
                     {newCode ? (
