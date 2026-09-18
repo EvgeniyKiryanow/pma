@@ -5,6 +5,7 @@ import {
     FileText,
     ListTree,
     Lock,
+    Medal,
     MousePointerClick,
     Printer,
     Swords,
@@ -19,10 +20,12 @@ import { Button, cn, EmptyState } from '../../../shared/ui';
 import { useUserStore } from '../../../stores/userStore';
 import { exportNamedListTable } from '../excel/exportNamedListTable';
 import { generateAlternateCombatReportExcelTemplate } from '../excel/generateAlternateCombatReportExcelTemplate';
+import { generateAwardsExcel } from '../excel/generateAwardsExcel';
 import { generateImpulseExcel } from '../excel/generateImpulseExcel';
 import { generateStaffReportExcel } from '../excel/generateStaffReportExcel';
 import { buildAlternateReport } from '../model/alternateReport';
 import { AlternateCombatReportTable } from './_components/AlternateCombatReportTable';
+import { AwardsReportTable } from './_components/AwardsReportTable';
 import { ImpulseExportPanel } from './_components/ImpulseExportPanel';
 import { NamedListTable } from './_components/NamedListTable';
 import { ReportCellModal, type ReportCellTarget } from './_components/ReportCellModal';
@@ -32,7 +35,7 @@ type Props = {
     onRequestImportTab?: () => void;
 };
 
-type TableId = 'staff' | 'alternate' | 'named' | 'impulse';
+type TableId = 'staff' | 'alternate' | 'named' | 'awards' | 'impulse';
 
 const TABLES: {
     id: TableId;
@@ -59,6 +62,13 @@ const TABLES: {
         title: 'Штатний звіт',
         description: 'Посади, люди та статуси в районі',
         icon: <ClipboardList />,
+    },
+    {
+        id: 'awards',
+        title: 'Нагороди',
+        description: 'Подання, накази й вручення нагород',
+        icon: <Medal />,
+        withoutShtat: true,
     },
     {
         id: 'impulse',
@@ -102,6 +112,7 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
         else if (activeTable === 'alternate')
             void generateAlternateCombatReportExcelTemplate(report);
         else if (activeTable === 'impulse') return generateImpulseExcel(users);
+        else if (activeTable === 'awards') void generateAwardsExcel();
         else void generateStaffReportExcel();
     };
     const showsReport = hasShtatni || !!active.withoutShtat;
@@ -261,6 +272,8 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                 )}
 
                                 {activeTable === 'staff' && <StaffReportTable />}
+
+                                {activeTable === 'awards' && <AwardsReportTable />}
 
                                 {activeTable === 'impulse' && <ImpulseExportPanel users={users} />}
                             </div>

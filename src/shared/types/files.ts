@@ -44,6 +44,11 @@ export type PrintableDocument = {
     landscape: boolean;
     /** Shrinks a wide report to the page width (0.1–1). */
     scale: number;
+    /**
+     * A generated document (a DOCX drawn page by page): printed as it is — no heading, no
+     * margins of its own (the document has them), a new sheet for every page.
+     */
+    document?: boolean;
 };
 
 export type PrintResult = { printed: boolean };

@@ -61,7 +61,11 @@ describe('buildPlannedTotalsFromShtatni', () => {
     });
 
     it('ignores rows without a unit', () => {
-        const totals = buildPlannedTotalsFromShtatni([position(''), position('   '), position('1-й взвод')]);
+        const totals = buildPlannedTotalsFromShtatni([
+            position(''),
+            position('   '),
+            position('1-й взвод'),
+        ]);
         expect(totals['ВСЬОГО'].total).toBe(1);
     });
 

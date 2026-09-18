@@ -172,6 +172,40 @@ describe('personnel', () => {
         expect(saved.unitMain).toBe('1 взвод');
     });
 
+    it('keeps the Impulse card, education and awards through save, list and update', async () => {
+        const award = {
+            id: 'a-1',
+            awardId: 'order-courage',
+            degree: 'III',
+            status: 'awarded',
+            orderNumber: '123/2026',
+            orderDate: '01.09.2026',
+        };
+        const education = { id: 'e-1', type: 'Цивільна', level: 'Вища', institution: 'КПІ' };
+        const created = await world.personnel.create(
+            person('Бондар Олег', {
+                passportSeries: 'КН',
+                passportNumber: '123456',
+                iban: 'UA213223130000026007233566001',
+                awardRecords: [award],
+                educationList: [education],
+            }),
+        );
+        expect(created.awardRecords).toEqual([award]);
+
+        const [listed] = await world.personnel.list();
+        expect(listed.awardRecords).toEqual([award]);
+        expect(listed.educationList).toEqual([education]);
+        expect(listed.passportSeries).toBe('КН');
+
+        // Saving the card from the list (as the editor does) keeps both lists.
+        await world.personnel.update(created.id, { ...listed, rank: 'сержант' });
+        const saved = await world.personnel.getOne(created.id);
+        expect(saved.awardRecords).toEqual([award]);
+        expect(saved.educationList).toEqual([education]);
+        expect(saved.iban).toBe('UA213223130000026007233566001');
+    });
+
     it('lists the database columns', async () => {
         const columns = await world.personnel.listColumns();
         expect(columns).toEqual(expect.arrayContaining(['id', 'uuid', 'fullName', 'shpkNumber']));
@@ -305,6 +339,36 @@ describe('history and comments', () => {
         expect(await world.history.findIncomplete()).toEqual([
             { userId: active.id, entryId: 1, reason: 'missing_both' },
             { userId: active.id, entryId: 2, reason: 'missing_file' },
+        ]);
+    });
+
+    it('lists status periods of everyone for the named list', async () => {
+        const a = await world.personnel.create(person('Відпускник'));
+        const b = await world.personnel.create(person('Відряджений'));
+        await world.history.add(
+            a.id,
+            entry(1, {
+                type: 'statusChange',
+                status: 'Відпустка',
+                period: { from: '2026-09-10', to: '2026-09-20' },
+            }),
+        );
+        // Older entries have the status only in their text; the old spelling is corrected.
+        await world.history.add(
+            b.id,
+            entry(2, {
+                type: 'statusChange',
+                description: '✅ Статус змінено з "Позиція піхоти" → "Бронєгрупа"',
+                period: { from: '2026-09-01', to: '' },
+            }),
+        );
+        await world.history.add(b.id, entry(3, { type: 'statusChange', status: 'СЗЧ' }));
+        await world.history.add(b.id, entry(4, { period: { from: '2026-09-02', to: '' } }));
+
+        const periods = await world.history.statusPeriods();
+        expect(periods.map(({ userId, status, from, to }) => ({ userId, status, from, to }))).toEqual([
+            { userId: a.id, status: 'Відпустка', from: '2026-09-10', to: '2026-09-20' },
+            { userId: b.id, status: 'Бронегрупа', from: '2026-09-01', to: null },
         ]);
     });
 
@@ -474,7 +538,11 @@ describe('change-log exchange', () => {
             // The other computer already has someone under local id 1.
             await other.personnel.create(person('Чужа людина'));
 
-            const { id } = await world.personnel.create(person('Ткаченко Василь'));
+            const award = { id: 'a-7', awardId: 'mod-iron-cross', status: 'awarded' };
+            const { id } = await world.personnel.create(
+                person('Ткаченко Василь', { awardRecords: [award] }),
+            );
+            // An update that does not send the awards keeps them.
             await world.personnel.update(id, { ...person('Ткаченко Василь'), rank: 'сержант' });
             await world.staffing.import([{ shtat_number: '7', position_name: 'кулеметник' }]);
             await world.namedList.create('2026-09', [{ id, attendance: ['', ''] }]);
@@ -493,6 +561,8 @@ describe('change-log exchange', () => {
             expect(stats).toEqual({ imported: 5, skipped: 0, failed: 0 });
 
             const names = (await other.personnel.list()).map((u) => [u.fullName, u.rank]);
+            const moved = (await other.personnel.list()).find((u) => u.fullName === 'Ткаченко Василь');
+            expect(moved?.awardRecords).toEqual([award]);
             expect(names).toEqual([
                 ['Чужа людина', 'солдат'],
                 ['Ткаченко Василь', 'сержант'],

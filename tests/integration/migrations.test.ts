@@ -164,6 +164,13 @@ describe.each(fixtures)('migration of the real database %s', (fixture) => {
         expect((await db.get(`SELECT COUNT(*) AS n FROM users WHERE uuid IS NULL`)).n).toBe(0);
         expect((await db.get(`SELECT COUNT(*) AS n FROM users WHERE updated_at IS NULL`)).n).toBe(0);
 
+        // The card of Impulse (v10): the lists start empty, the new columns exist.
+        expect(await db.all(`SELECT DISTINCT awardRecords, educationList FROM users`)).toEqual(
+            personnel ? [{ awardRecords: '[]', educationList: '[]' }] : [],
+        );
+        const columns = (await db.all(`PRAGMA table_info(users)`)).map((c: { name: string }) => c.name);
+        expect(columns).toEqual(expect.arrayContaining(['passportSeries', 'iban', 'oathDate']));
+
         const integrity = await db.get(`PRAGMA integrity_check`);
         expect(integrity.integrity_check).toBe('ok');
         } finally {

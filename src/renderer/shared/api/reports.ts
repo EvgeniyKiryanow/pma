@@ -2,6 +2,7 @@ import type { Reminder } from '../../../shared/types/reminder';
 import type {
     BundledReportTemplate,
     NamedListRecord,
+    ReportFileKind,
     ReportTemplateRecord,
 } from '../../../shared/types/reports';
 import type { ShtatnaPosada } from '../../../shared/types/shtatnaPosada';
@@ -33,12 +34,15 @@ export const staffingApi = {
 export const reportTemplatesApi = {
     listBundled: (): Promise<BundledReportTemplate[]> => call(bridge().getAllReportTemplates()),
     listUploaded: (): Promise<ReportTemplateRecord[]> => call(bridge().getReportTemplatesFromDb()),
-    /** Saves the file and registers it; returns the stored file name. */
-    upload: async (file: File): Promise<string> => {
+    /**
+     * Saves the file in the reports folder (it travels with backups) and registers it as a
+     * template or a saved report; returns the stored file name.
+     */
+    upload: async (file: File, kind: ReportFileKind = 'report'): Promise<string> => {
         const fileName = await call(
             bridge().saveReportFileToDisk(await file.arrayBuffer(), file.name),
         );
-        await expectSuccess(bridge().addReportTemplateToDb(file.name, fileName), 'INTERNAL');
+        await expectSuccess(bridge().addReportTemplateToDb(file.name, fileName, kind), 'INTERNAL');
         return fileName;
     },
     remove: async (id: number): Promise<void> => {

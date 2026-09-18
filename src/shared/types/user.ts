@@ -24,6 +24,9 @@ export type CommentOrHistoryEntry = {
         from: string;
         to: string;
     };
+    /** Status changes: the status set by this entry (older entries have it only in the text). */
+    status?: string;
+    previousStatus?: string;
 };
 
 export type RelativeContact = {
@@ -35,6 +38,53 @@ export type RelativeContact = {
 };
 
 export type Gender = 'male' | 'female';
+
+/** One line of Impulse «Освіта і курси» (Додаток 2). */
+export type EducationEntry = {
+    /** Stable id of the line (a random UUID), kept across computers. */
+    id: string;
+    /** «Цивільна» / «Військова». */
+    type?: string;
+    /** Рівень цивільної або військової освіти (Impulse dictionaries). */
+    level?: string;
+    form?: string;
+    /** Курси професійної військової освіти (L1A…L5). */
+    courses?: string;
+    institution?: string;
+    institutionType?: string;
+    specialty?: string;
+    startYear?: string;
+    endYear?: string;
+    comment?: string;
+};
+
+/** Where an award stands: from the submission to the handing over. */
+export type AwardStatus = 'draft' | 'submitted' | 'awarded' | 'presented' | 'rejected';
+
+/** One award of a person (the «Нагороди» category of the card). */
+export type AwardRecord = {
+    /** Stable id of the record (a random UUID), kept across computers. */
+    id: string;
+    /** Catalogue id (shared/awards/catalog.ts) or 'other' for an award written by hand. */
+    awardId: string;
+    /** Ступінь: 'I'…'V' for awards with degrees. */
+    degree?: string;
+    /** The name, for 'other' (and awards of other bodies). */
+    title?: string;
+    /** Від кого: who awards (Президент України, Міністр оборони, командир…). */
+    awardedBy?: string;
+    status: AwardStatus;
+    /** Дата подачі (ДД.ММ.РРРР). */
+    submittedAt?: string;
+    /** Дата наказу / указу. */
+    orderDate?: string;
+    /** Номер наказу / указу про нагородження. */
+    orderNumber?: string;
+    /** Дата вручення. */
+    presentedAt?: string;
+    posthumous?: boolean;
+    notes?: string;
+};
 
 export type User = {
     shtatNumber: string | boolean; // keep as provided
@@ -130,6 +180,97 @@ export type User = {
 
     // ✅ (was missing) soldierStatus
     soldierStatus?: string;
+
+    // Особова картка as in Impulse (migration 10). The free-text fields above (passportData,
+    // militaryTicketInfo, registeredAddress…) stay as written; these hold the same data in the
+    // columns of the Impulse form, so exports take them as they are.
+    passportType?: string;
+    passportSeries?: string;
+    passportNumber?: string;
+    passportIssuer?: string;
+    passportIssueDate?: string;
+    foreignPassportNumber?: string;
+    foreignPassportIssuer?: string;
+    foreignPassportIssueDate?: string;
+    militaryTicketSeries?: string;
+    militaryTicketNumber?: string;
+    militaryTicketIssuer?: string;
+    militaryTicketIssueDate?: string;
+    ubdSeries?: string;
+    ubdNumber?: string;
+    ubdIssuer?: string;
+    ubdIssueDate?: string;
+    driverLicenseCategories?: string;
+    driverLicenseSeries?: string;
+    driverLicenseNumber?: string;
+    driverLicenseIssuer?: string;
+    driverLicenseIssueDate?: string;
+    driverLicenseValidUntil?: string;
+    drivingExperience?: string;
+    tractorLicenseCategories?: string;
+    tractorLicenseSeries?: string;
+    tractorLicenseNumber?: string;
+    tractorLicenseIssuer?: string;
+    tractorLicenseIssueDate?: string;
+    tractorLicenseValidUntil?: string;
+    tractorExperience?: string;
+    iban?: string;
+    bankCard?: string;
+    bankName?: string;
+    regRegion?: string;
+    regDistrict?: string;
+    regSettlement?: string;
+    regCityDistrict?: string;
+    regStreetType?: string;
+    regStreet?: string;
+    regHouse?: string;
+    regFlat?: string;
+    liveRegion?: string;
+    liveDistrict?: string;
+    liveSettlement?: string;
+    liveCityDistrict?: string;
+    liveStreetType?: string;
+    liveStreet?: string;
+    liveHouse?: string;
+    liveFlat?: string;
+    extraPhone?: string;
+    citizenship?: string;
+    birthCountry?: string;
+    nationality?: string;
+    tags?: string;
+    rankOrderNumber?: string;
+    rankOrderIssuer?: string;
+    appointmentOrderDate?: string;
+    appointmentOrderNumber?: string;
+    appointmentOrderIssuer?: string;
+    drillOrderDate?: string;
+    drillOrderNumber?: string;
+    drillOrderIssuer?: string;
+    bzvpFrom?: string;
+    bzvpTo?: string;
+    bzvpPlace?: string;
+    bzvpCommander?: string;
+    bzvpComment?: string;
+    academicTitle?: string;
+    academicTitleAssignedBy?: string;
+    academicTitleDate?: string;
+    scientificWorks?: string;
+    electedBody?: string;
+    electedDate?: string;
+    electedUntil?: string;
+    electedPosition?: string;
+    oathDate?: string;
+    conscriptionDate?: string;
+    enlistmentOrderDate?: string;
+    enlistmentOrderNumber?: string;
+    serviceLengthDate?: string;
+    serviceLength?: string;
+    preferentialServiceLengthDate?: string;
+    preferentialServiceLength?: string;
+    /** Освіта і курси (Impulse Додаток 2), one entry per school or course. */
+    educationList?: EducationEntry[];
+    /** Нагороди. */
+    awardRecords?: AwardRecord[];
 };
 
 export type FullName = {
