@@ -16,6 +16,7 @@ import UserCard from '../../../entities/user/ui/UserCard';
 import UserHistory from '../../../entities/user/ui/UserHistory';
 import UserInfoDetails from '../../../entities/user/ui/UserInfoDetails';
 import UserStatisticsDrawer from '../../../entities/user/ui/UserStatisticsDrawer';
+import { historyApi } from '../../../shared/api/personnel';
 import { Button, EmptyState, IconButton } from '../../../shared/ui';
 import { confirmAction } from '../../../shared/ui/confirm';
 import { toast } from '../../../shared/ui/toast';
@@ -59,7 +60,7 @@ export default function RightBar() {
             files: [],
         };
 
-        await window.electronAPI.addUserHistory(user.id, historyEntry);
+        await historyApi.add(user.id, historyEntry);
         await updateUser({ ...user, soldierStatus: newStatus });
         await refreshAfterChange();
     };
@@ -70,7 +71,7 @@ export default function RightBar() {
     ) => {
         if (!user) return;
         // Attachments are written to disk by the main process; only their names stay in the entry.
-        await window.electronAPI.addUserHistory(user.id, newEntry);
+        await historyApi.add(user.id, newEntry);
         if (maybeNewStatus && maybeNewStatus !== user.soldierStatus) {
             await updateUser({ ...user, soldierStatus: maybeNewStatus });
         }
@@ -80,7 +81,7 @@ export default function RightBar() {
 
     const handleDeleteHistory = async (id: number) => {
         if (!user) return;
-        await window.electronAPI.deleteUserHistory(id);
+        await historyApi.remove(id);
         await refreshAfterChange();
     };
 

@@ -1,5 +1,6 @@
-// stores/useVidnovlennyaStore.ts
 import { create } from 'zustand';
+
+import { directivesApi } from '../../../shared/api/directives';
 import type { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
 
 export type VidnovlennyaEntry = {
@@ -13,35 +14,31 @@ export type VidnovlennyaEntry = {
 
 type VidnovlennyaState = {
     entries: VidnovlennyaEntry[];
+    /** Throws ApiError; the screen that called it shows it. */
     addVidnovlennya: (entry: VidnovlennyaEntry) => Promise<void>;
     fetchAll: () => Promise<void>;
 };
 
-export const useVidnovlennyaStore = create<VidnovlennyaState>((set, get) => ({
+/** Restorations (відновлення) of excluded people. */
+export const useVidnovlennyaStore = create<VidnovlennyaState>((set) => ({
     entries: [],
 
     addVidnovlennya: async (entry) => {
-        await window.electronAPI.directives.add({
-            ...entry,
-            type: 'restore',
-        });
-        set((state) => ({
-            entries: [...state.entries, entry],
-        }));
+        await directivesApi.add({ ...entry, type: 'restore' });
+        set((state) => ({ entries: [...state.entries, entry] }));
     },
 
     fetchAll: async () => {
-        const raw = await window.electronAPI.directives.getAllByType('restore');
-
-        const normalized: VidnovlennyaEntry[] = raw.map((item: any) => ({
-            userId: item.userId,
-            title: item.title,
-            description: item.description || '',
-            file: item.file,
-            date: item.date,
-            period: item.period || { from: '' },
-        }));
-        set({ entries: normalized });
+        const records = await directivesApi.list('restore');
+        set({
+            entries: records.map((record) => ({
+                userId: record.userId,
+                title: record.title,
+                description: record.description || '',
+                file: record.file,
+                date: record.date,
+                period: record.period || { from: '' },
+            })),
+        });
     },
 }));
-``;

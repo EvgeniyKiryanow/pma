@@ -1,6 +1,7 @@
 import { FileUp, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { reportTemplatesApi } from '../../../shared/api/reports';
 import { Alert, Button, Card } from '../../../shared/ui';
 import { toast } from '../../../shared/ui/toast';
 import { useI18nStore } from '../../../stores/i18nStore';
@@ -34,7 +35,7 @@ export default function UploadReportsTab() {
         if (previewBuffer && uploadedTemplateName) {
             const convertToPdf = async () => {
                 try {
-                    const pdfPath = await window.electronAPI.convertDocxToPdf(
+                    const pdfPath = await reportTemplatesApi.convertToPdf(
                         previewBuffer,
                         uploadedTemplateName,
                     );

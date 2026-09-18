@@ -2,7 +2,8 @@ import { RefreshCw, ScrollText } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { AuditEntryDTO, AuditOutcome } from '../../../../shared/audit/types';
-import { errorMessage, unwrap } from '../../../shared/api/call';
+import { errorMessage } from '../../../shared/api/call';
+import { auditApi } from '../../../shared/api/security';
 import {
     Alert,
     Badge,
@@ -30,14 +31,12 @@ export default function AuditPanel() {
         setLoading(true);
         setError(null);
         try {
-            const page = await unwrap(
-                window.electronAPI.audit.list({
-                    limit: PAGE_SIZE,
-                    offset,
-                    action: action.trim() || undefined,
-                    outcome: outcome || undefined,
-                }),
-            );
+            const page = await auditApi.list({
+                limit: PAGE_SIZE,
+                offset,
+                action: action.trim() || undefined,
+                outcome: outcome || undefined,
+            });
             setItems(page.items);
             setTotal(page.total);
         } catch (err) {

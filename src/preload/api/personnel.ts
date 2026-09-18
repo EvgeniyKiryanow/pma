@@ -17,7 +17,9 @@ export const personnelApi = {
         getOne: (id: number) => invoke<User | null>(PERSONNEL_CHANNELS.getOne, id),
     },
     addUser: (user: Omit<User, 'id'> | User) => invoke<User>(PERSONNEL_CHANNELS.create, user),
-    updateUser: (user: User) => invoke<User>(PERSONNEL_CHANNELS.update, user),
+    /** The updated person, or the failure shape when it no longer exists or the write failed. */
+    updateUser: (user: User) =>
+        invoke<User | ActionStatus>(PERSONNEL_CHANNELS.update, user),
     deleteUser: (id: number) => invoke<boolean>(PERSONNEL_CHANNELS.remove, id),
     bulkUpdateUsers: (users: Partial<User>[]) =>
         invoke<{ success: boolean; error?: string }>(

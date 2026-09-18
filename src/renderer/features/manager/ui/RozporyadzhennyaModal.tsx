@@ -2,6 +2,7 @@ import { Send } from 'lucide-react';
 import { useState } from 'react';
 
 import { CommentOrHistoryEntry } from '../../../../shared/types/user';
+import { historyApi } from '../../../shared/api/personnel';
 import AttachmentPicker from '../../../shared/components/AttachmentPicker';
 import { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
@@ -52,7 +53,7 @@ export default function RozporyadzhennyaModal({ onClose }: { onClose: () => void
                 period,
             };
 
-            await window.electronAPI.addUserHistory(user.id, historyEntry);
+            await historyApi.add(user.id, historyEntry);
             await updateUser({
                 ...user,
                 shpkNumber: user.shpkNumber ? `${user.shpkNumber}_order` : 'order',

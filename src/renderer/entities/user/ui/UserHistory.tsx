@@ -2,6 +2,7 @@ import { History, Plus, ScrollText } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { CommentOrHistoryEntry } from '../../../../shared/types/user';
+import { historyApi } from '../../../shared/api/personnel';
 import FilePreviewModal from '../../../shared/components/FilePreviewModal';
 import { Button, EmptyState, SearchInput, Tabs } from '../../../shared/ui';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
@@ -56,7 +57,7 @@ export default function UserHistory({
     const canEdit = can('history.edit') && !isExcluded;
 
     const refreshHistory = async () => {
-        const result = await window.electronAPI.getUserHistoryByRange(userId, dateRange);
+        const result = await historyApi.listByRange(userId, dateRange);
         setHistory(result);
     };
 
@@ -124,12 +125,8 @@ export default function UserHistory({
             const retained: FileWithDataUrl[] = await Promise.all(
                 retainedMeta.map(async (f) => {
                     try {
-                        const loaded = await window.electronAPI.loadHistoryFile(
-                            userId,
-                            editingEntry.id,
-                            f.name,
-                        );
-                        return { ...f, dataUrl: loaded.dataUrl };
+                        const dataUrl = await historyApi.loadFile(userId, editingEntry.id, f.name);
+                        return { ...f, dataUrl };
                     } catch {
                         return null;
                     }
@@ -151,7 +148,7 @@ export default function UserHistory({
                 period: period || undefined,
             };
 
-            await window.electronAPI.editUserHistory(userId, updated);
+            await historyApi.edit(userId, updated);
             // Also refreshes the "without file / period" counter in the title bar.
             await useUserStore.getState().refreshAfterChange();
         } else {

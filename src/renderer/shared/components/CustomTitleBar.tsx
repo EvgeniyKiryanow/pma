@@ -4,6 +4,7 @@ import { type CSSProperties, type ReactNode, useEffect, useState } from 'react';
 import { useI18nStore } from '../../stores/i18nStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useUiStore } from '../../stores/uiStore';
+import { systemApi } from '../api/system';
 import LogoSvg from '../icons/LogoSvg';
 import { cn, IconButton } from '../ui';
 import { toast } from '../ui/toast';
@@ -33,13 +34,13 @@ export default function CustomTitleBar({
     const { resolvedTheme, toggleTheme, zoom, zoomIn, zoomOut, resetZoom } = useUiStore();
 
     useEffect(() => {
-        void window.electronAPI.getAppVersion().then(setVersion);
+        void systemApi.getVersion().then(setVersion);
     }, []);
 
     const handleCheckUpdate = async () => {
         setChecking(true);
         try {
-            const result = await window.electronAPI.checkForUpdates();
+            const result = await systemApi.checkForUpdates();
             if (result.status === 'error')
                 toast.error(`${t('titleBar.updateError')}: ${result.message}`);
             else toast.info(t('titleBar.updateStarted'));
@@ -147,23 +148,16 @@ export default function CustomTitleBar({
 
             {/* Window controls */}
             <div className="flex items-stretch border-l border-rail-line" style={noDrag}>
-                <WindowButton
-                    label={t('shell.minimize')}
-                    onClick={() => void window.electronAPI.hideApp()}
-                >
+                <WindowButton label={t('shell.minimize')} onClick={() => void systemApi.minimize()}>
                     <Minus className="size-4" />
                 </WindowButton>
                 <WindowButton
                     label={t('shell.fullscreen')}
-                    onClick={() => window.electronAPI.toggleFullScreen()}
+                    onClick={() => systemApi.toggleFullScreen()}
                 >
                     <Maximize2 className="size-3.5" />
                 </WindowButton>
-                <WindowButton
-                    label={t('shell.close')}
-                    onClick={() => window.electronAPI.closeApp()}
-                    danger
-                >
+                <WindowButton label={t('shell.close')} onClick={() => systemApi.close()} danger>
                     <X className="size-4" />
                 </WindowButton>
             </div>

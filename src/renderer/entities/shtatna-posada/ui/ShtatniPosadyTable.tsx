@@ -1,6 +1,7 @@
 import { Flag, Pencil, Trash2 } from 'lucide-react';
 
 import type { User } from '../../../../shared/types/user';
+import { historyApi } from '../../../shared/api/personnel';
 import { StatusDot } from '../../../shared/components/StatusBadge';
 import { cn, IconButton } from '../../../shared/ui';
 import { toast } from '../../../shared/ui/toast';
@@ -166,18 +167,15 @@ export default function ShtatniPosadyTable({
                                                     const previousStatus =
                                                         matchedUser.soldierStatus;
 
-                                                    await window.electronAPI.addUserHistory(
-                                                        matchedUser.id,
-                                                        {
-                                                            id: Date.now(),
-                                                            date: new Date().toISOString(),
-                                                            type: 'statusChange',
-                                                            author: 'System',
-                                                            description: `Статус змінено з "${previousStatus}" → "${newStatus}"`,
-                                                            content: `Статус змінено з "${previousStatus}" на "${newStatus}"`,
-                                                            files: [],
-                                                        },
-                                                    );
+                                                    await historyApi.add(matchedUser.id, {
+                                                        id: Date.now(),
+                                                        date: new Date().toISOString(),
+                                                        type: 'statusChange',
+                                                        author: 'System',
+                                                        description: `Статус змінено з "${previousStatus}" → "${newStatus}"`,
+                                                        content: `Статус змінено з "${previousStatus}" на "${newStatus}"`,
+                                                        files: [],
+                                                    });
                                                     await updateUser({
                                                         ...matchedUser,
                                                         soldierStatus: newStatus,

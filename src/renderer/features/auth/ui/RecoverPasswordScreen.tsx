@@ -2,7 +2,8 @@ import { ArrowLeft, KeyRound } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 import { PASSWORD_RULES } from '../../../../shared/auth/types';
-import { errorMessage, unwrap } from '../../../shared/api/call';
+import { errorMessage } from '../../../shared/api/call';
+import { authApi } from '../../../shared/api/security';
 import { Alert, Button, PasswordField, TextField } from '../../../shared/ui';
 import { useI18nStore } from '../../../stores/i18nStore';
 import AuthLayout from './AuthLayout';
@@ -32,7 +33,7 @@ export default function RecoverPasswordScreen({
         setError(null);
         setBusy(true);
         try {
-            await unwrap(window.electronAPI.auth.recover(username, code, password));
+            await authApi.recover(username, code, password);
             onDone(t('auth.recover.success'));
         } catch (err) {
             setError(errorMessage(err, t));

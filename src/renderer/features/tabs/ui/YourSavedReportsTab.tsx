@@ -1,6 +1,8 @@
 import { Download, FileSpreadsheet, FolderOpen, Trash2, UploadCloud } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { reportTemplatesApi } from '../../../shared/api/reports';
+import { downloadFile } from '../../../shared/lib/download';
 import { cn, EmptyState, formatDateTime, IconButton, SearchInput } from '../../../shared/ui';
 import { confirmAction } from '../../../shared/ui/confirm';
 import { useI18nStore } from '../../../stores/i18nStore';
@@ -30,27 +32,9 @@ export default function YourSavedReportsTab() {
         e.target.value = '';
     };
 
+    // A failure reaches the global handler, which shows a translated notification.
     const handleDownload = async (filePath: string, name: string) => {
-        try {
-            const buffer: ArrayBuffer = await window.electronAPI.readReportFileBuffer(filePath);
-
-            const blob = new Blob([buffer], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            });
-
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = name || 'downloaded-file.xlsx';
-
-            document.body.appendChild(a);
-            a.click();
-
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Failed to read file buffer or download:', error);
-        }
+        downloadFile(await reportTemplatesApi.readFile(filePath), name || filePath);
     };
 
     const handleDelete = async (id: number, name: string) => {

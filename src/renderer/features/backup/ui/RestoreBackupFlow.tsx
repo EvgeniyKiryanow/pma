@@ -2,7 +2,8 @@ import { FileSearch, FolderOpen, RotateCcw } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 import type { ImportInspection, ImportSelection } from '../../../../shared/backup/types';
-import { ApiError, errorMessage, unwrap } from '../../../shared/api/call';
+import { backupApi } from '../../../shared/api/backup';
+import { ApiError, errorMessage } from '../../../shared/api/call';
 import { Alert, Button, formatBytes, formatDateTime, PasswordField } from '../../../shared/ui';
 import { useI18nStore } from '../../../stores/i18nStore';
 
@@ -34,25 +35,25 @@ export default function RestoreBackupFlow({ onCancel }: { onCancel?: () => void 
 
     const select = () =>
         run('select', async () => {
-            const selected = await unwrap(window.electronAPI.backup.selectImportFile());
+            const selected = await backupApi.selectImportFile();
             setSelection(selected);
             setInspection(null);
             setPassword('');
             if (!selected.requiresPassword) {
-                setInspection(await unwrap(window.electronAPI.backup.inspect('')));
+                setInspection(await backupApi.inspect(''));
             }
         });
 
     const inspect = (event: FormEvent) => {
         event.preventDefault();
         void run('inspect', async () => {
-            setInspection(await unwrap(window.electronAPI.backup.inspect(password)));
+            setInspection(await backupApi.inspect(password));
         });
     };
 
     const restore = () =>
         run('restore', async () => {
-            await unwrap(window.electronAPI.backup.restore());
+            await backupApi.restore();
             // Sessions were ended by the main process; start clean on the login screen.
             window.location.reload();
         });

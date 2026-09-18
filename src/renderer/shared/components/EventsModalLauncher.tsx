@@ -4,6 +4,8 @@ import { type ReactNode, useEffect, useState } from 'react';
 
 import { useI18nStore } from '../../stores/i18nStore';
 import { useSessionStore } from '../../stores/sessionStore';
+import { directivesApi } from '../api/directives';
+import { historyApi, personnelApi } from '../api/personnel';
 import { Avatar, cn, EmptyState, Modal, railChipClass, Tabs } from '../ui';
 import { StatusExcel } from '../utils/excelUserStatuses';
 
@@ -118,7 +120,7 @@ export default function EventsModalLauncher() {
     async function fetchOrderEntriesFromDb() {
         // Birthdays and statuses still work for roles without access to orders.
         if (!useSessionStore.getState().can('directives.view')) return [];
-        const raw = await window.electronAPI.directives.getAllByType('order');
+        const raw = await directivesApi.list('order');
 
         return raw.map((entry: any) => ({
             id: entry.id,
@@ -136,7 +138,7 @@ export default function EventsModalLauncher() {
             const today = new Date();
             const year = today.getFullYear();
             const [users, orderEntries] = await Promise.all([
-                window.electronAPI.fetchUsersMetadata(),
+                personnelApi.list(),
                 fetchOrderEntriesFromDb(),
             ]);
 
@@ -162,10 +164,7 @@ export default function EventsModalLauncher() {
             await Promise.all(
                 usersWithRelevantStatus.map((user: any) =>
                     limit(async () => {
-                        const history: any[] = await window.electronAPI.getUserHistory(
-                            user.id,
-                            'all',
-                        );
+                        const history: any[] = await historyApi.list(user.id, 'all');
 
                         const matching = history
                             .filter(

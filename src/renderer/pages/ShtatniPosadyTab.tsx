@@ -6,6 +6,7 @@ import { ShtatnaPosada, useShtatniStore } from '../entities/shtatna-posada/model
 import EditPosadaModal from '../entities/shtatna-posada/ui/EditPosadaModal';
 import ShtatniPosadyHeader from '../entities/shtatna-posada/ui/ShtatniPosadyHeader';
 import ShtatniPosadyTable from '../entities/shtatna-posada/ui/ShtatniPosadyTable';
+import { historyApi, personnelApi } from '../shared/api/personnel';
 import { EmptyState, Spinner } from '../shared/ui';
 import { confirmAction } from '../shared/ui/confirm';
 import { toast } from '../shared/ui/toast';
@@ -60,7 +61,7 @@ export default function ShtatniPosadyTab() {
         };
 
         // ✅ Оновлюємо користувача в Zustand/БД
-        await window.electronAPI.addUserHistory(assignedUser.id, historyEntry);
+        await historyApi.add(assignedUser.id, historyEntry);
         await updateUser(clearedUser);
 
         // ✅ Якщо цей користувач зараз відкритий у правій панелі – оновлюємо стан
@@ -100,10 +101,10 @@ export default function ShtatniPosadyTab() {
         }
 
         if (usersToFix.length) {
-            await window.electronAPI.bulkUpdateUsers(usersToFix);
+            await personnelApi.assignPositions(usersToFix);
 
             // ✅ Refresh all users once after merge
-            const fresh = await window.electronAPI.fetchUsersMetadata();
+            const fresh = await personnelApi.list();
             useUserStore.setState({ users: fresh });
         }
     };
@@ -187,7 +188,7 @@ export default function ShtatniPosadyTab() {
                 category: null,
             };
 
-            await window.electronAPI.addUserHistory(alreadyOnThisPosada.id, clearedHistory);
+            await historyApi.add(alreadyOnThisPosada.id, clearedHistory);
             await updateUser(clearedUser);
 
             // refresh if currently selected
@@ -231,7 +232,7 @@ export default function ShtatniPosadyTab() {
             shpkNumber: pos.shtat_number,
             category: pos.category,
         };
-        await window.electronAPI.addUserHistory(selectedUser.id, newHistory);
+        await historyApi.add(selectedUser.id, newHistory);
         await updateUser(updatedUser);
 
         // ✅ Refresh right panel

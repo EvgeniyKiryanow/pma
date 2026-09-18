@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { directivesApi } from '../../../shared/api/directives';
 import { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
 import { useUserStore } from '../../../stores/userStore';
 
@@ -25,7 +26,7 @@ export const useVyklyuchennyaStore = create<VyklyuchennyaStore>((set, get) => ({
     list: [],
 
     addVyklyuchennya: async (entry) => {
-        await window.electronAPI.directives.add({
+        await directivesApi.add({
             ...entry,
             type: 'exclude',
             period: {
@@ -39,7 +40,7 @@ export const useVyklyuchennyaStore = create<VyklyuchennyaStore>((set, get) => ({
     },
 
     fetchAll: async () => {
-        const raw = await window.electronAPI.directives.getAllByType('exclude');
+        const raw = await directivesApi.list('exclude');
 
         const parsed: VyklyuchennyaEntry[] = raw.map((entry) => ({
             id: entry.id,
@@ -65,7 +66,7 @@ export const useVyklyuchennyaStore = create<VyklyuchennyaStore>((set, get) => ({
             }
 
             // Delete directive
-            await window.electronAPI.directives.deleteById(id);
+            await directivesApi.remove(id);
 
             // Refresh local list
             await get().fetchAll();
@@ -73,7 +74,7 @@ export const useVyklyuchennyaStore = create<VyklyuchennyaStore>((set, get) => ({
     },
 
     clearAllVyklyuchennya: async () => {
-        await window.electronAPI.directives.clearByType('exclude');
+        await directivesApi.clear('exclude');
         set({ list: [] });
     },
 }));

@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import { create } from 'zustand';
 
+import { systemApi } from '../shared/api/system';
+
 /**
  * Per-computer interface preferences: theme, interface scale and the navigation panel.
  * Stored in localStorage only — they are conveniences, not data.
@@ -67,7 +69,7 @@ function applyTheme(preference: ThemePreference): 'light' | 'dark' {
 }
 
 function applyZoom(zoom: number): void {
-    window.electronAPI?.ui?.setZoomFactor(zoom);
+    systemApi.setZoomFactor(zoom);
 }
 
 type UiStore = {

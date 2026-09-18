@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import type { DirectiveRecord } from '../../../../shared/types/directive';
+import { directivesApi } from '../../../shared/api/directives';
 import { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
 import { useUserStore } from '../../../stores/userStore';
 
@@ -15,6 +17,7 @@ export type RozporyadzhennyaEntry = {
 
 type RozporyadzhennyaStore = {
     entries: RozporyadzhennyaEntry[];
+    /** Mutations throw ApiError; the screen that called them shows it. */
     addEntry: (entry: RozporyadzhennyaEntry) => Promise<void>;
     fetchAll: () => Promise<void>;
     removeEntry: (userId: number, date: string) => Promise<void>;
@@ -22,10 +25,31 @@ type RozporyadzhennyaStore = {
     getUserEntries: (userId: number) => RozporyadzhennyaEntry[];
 };
 
+function toEntry(record: DirectiveRecord): RozporyadzhennyaEntry {
+    return {
+        id: record.id,
+        userId: record.userId,
+        title: record.title,
+        description: record.description ?? '',
+        file: record.file,
+        date: record.date,
+        period: record.period || { from: '', to: undefined },
+    };
+}
+
+/** A person under an order leaves the staff position; removing the order returns them. */
+async function releaseFromOrder(userId: number): Promise<void> {
+    const { updateUser, users } = useUserStore.getState();
+    const user = users.find((u) => u.id === userId);
+    if (user) await updateUser({ ...user, shpkNumber: null });
+}
+
+/** Orders (розпорядження). */
 export const useRozporyadzhennyaStore = create<RozporyadzhennyaStore>((set, get) => ({
     entries: [],
+
     addEntry: async (entry) => {
-        await window.electronAPI.directives.add({
+        await directivesApi.add({
             userId: entry.userId,
             type: 'order',
             title: entry.title,
@@ -34,61 +58,28 @@ export const useRozporyadzhennyaStore = create<RozporyadzhennyaStore>((set, get)
             date: entry.date,
             period: entry.period,
         });
-
-        set((state) => ({
-            entries: [...state.entries, entry],
-        }));
+        set((state) => ({ entries: [...state.entries, entry] }));
     },
 
     fetchAll: async () => {
-        const raw = await window.electronAPI.directives.getAllByType('order');
-
-        const parsed: RozporyadzhennyaEntry[] = raw.map((entry: any) => ({
-            id: entry.id,
-            userId: entry.userId,
-            title: entry.title,
-            description: entry.description ?? '',
-            file: entry.file,
-            date: entry.date,
-            period: entry.period || { from: '', to: undefined },
-        }));
-
-        set({ entries: parsed });
+        set({ entries: (await directivesApi.list('order')).map(toEntry) });
     },
 
     removeEntry: async (userId, date) => {
-        await window.electronAPI.directives.delete({ userId, date });
-
+        await directivesApi.removeByUserAndDate(userId, date);
         set((state) => ({
             entries: state.entries.filter((e) => e.userId !== userId || e.date !== date),
         }));
-
-        // also reset shpkNumber
-        const { updateUser, users } = useUserStore.getState();
-        const user = users.find((u) => u.id === userId);
-        if (user) {
-            updateUser({ ...user, shpkNumber: null });
-        }
+        await releaseFromOrder(userId);
     },
 
     clearAllEntries: async () => {
         const current = get().entries;
-
-        // Remove from DB
         for (const entry of current) {
-            await window.electronAPI.directives.delete({ userId: entry.userId, date: entry.date });
+            await directivesApi.removeByUserAndDate(entry.userId, entry.date);
         }
-
-        // Reset shpkNumber for all affected users
-        const { updateUser, users } = useUserStore.getState();
-        for (const entry of current) {
-            const user = users.find((u) => u.id === entry.userId);
-            if (user) {
-                updateUser({ ...user, shpkNumber: null });
-            }
-        }
-
         set({ entries: [] });
+        for (const entry of current) await releaseFromOrder(entry.userId);
     },
 
     getUserEntries: (userId) => get().entries.filter((e) => e.userId === userId),

@@ -2,6 +2,7 @@ import { Camera, Plus, Trash2, UserPlus, UserRoundPen } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import type { RelativeContact, User } from '../../../../shared/types/user';
+import { useAsyncAction } from '../../../shared/hooks/useAsyncAction';
 import { Avatar, Button, cn, IconButton, Modal } from '../../../shared/ui';
 import { toast } from '../../../shared/ui/toast';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
@@ -158,6 +159,13 @@ export default function UserFormModalUpdate({
         setForm((prev) => ({ ...prev, [key]: value }));
     };
     const allUsers = useUserStore((s) => s.users);
+    // The form closes only after the person is saved; on failure it stays open with the data.
+    const save = useAsyncAction((user: User) => (isEditing ? updateUser(user) : addUser(user)), {
+        success: isEditing ? 'Зміни збережено' : 'Військовослужбовця додано',
+        onSuccess: onClose,
+        context: 'user-form',
+    });
+
     const handleSubmit = () => {
         const finalUser: User = {
             id: userToEdit?.id ?? Date.now(),
@@ -178,10 +186,7 @@ export default function UserFormModalUpdate({
             return;
         }
 
-        if (isEditing) void updateUser(finalUser);
-        else void addUser(finalUser);
-        toast.success(isEditing ? 'Зміни збережено' : 'Військовослужбовця додано');
-        onClose();
+        void save.run(finalUser);
     };
 
     const sections: SectionDef[] = [
@@ -315,10 +320,14 @@ export default function UserFormModalUpdate({
             bodyClassName="p-0 flex min-h-0"
             footer={
                 <>
-                    <Button variant="secondary" onClick={onClose}>
+                    <Button variant="secondary" onClick={onClose} disabled={save.pending}>
                         {t('user.cancel')}
                     </Button>
-                    <Button onClick={handleSubmit} disabled={!String(form.fullName || '').trim()}>
+                    <Button
+                        onClick={handleSubmit}
+                        loading={save.pending}
+                        disabled={!String(form.fullName || '').trim()}
+                    >
                         {isEditing ? t('user.save') : t('user.add')}
                     </Button>
                 </>

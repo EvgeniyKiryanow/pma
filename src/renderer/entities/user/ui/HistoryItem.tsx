@@ -16,8 +16,10 @@ import {
 import { type ReactNode, useState } from 'react';
 
 import { CommentOrHistoryEntry } from '../../../../shared/types/user';
+import { historyApi } from '../../../shared/api/personnel';
 import { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { downloadFile } from '../../../shared/lib/download';
 import { cn, formatDate, IconButton } from '../../../shared/ui';
 import { confirmAction } from '../../../shared/ui/confirm';
 import { useI18nStore } from '../../../stores/i18nStore';
@@ -54,18 +56,13 @@ export default function HistoryItem({
             onPreviewFile(file);
             return;
         }
-        const { dataUrl } = await window.electronAPI.loadHistoryFile(userId, entry.id, file.name);
+        const dataUrl = await historyApi.loadFile(userId, entry.id, file.name);
         onPreviewFile({ ...file, dataUrl });
     };
 
     const handleDownload = async (file: { name: string; dataUrl?: string }) => {
-        const dataUrl =
-            file.dataUrl ??
-            (await window.electronAPI.loadHistoryFile(userId, entry.id, file.name)).dataUrl;
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = file.name;
-        a.click();
+        const dataUrl = file.dataUrl ?? (await historyApi.loadFile(userId, entry.id, file.name));
+        downloadFile(dataUrl, file.name);
     };
 
     const handleDelete = async () => {

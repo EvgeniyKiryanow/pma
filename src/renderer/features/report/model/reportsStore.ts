@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 
 import type { User } from '../../../../shared/types/user';
+import { personnelApi } from '../../../shared/api/personnel';
+import { reportTemplatesApi } from '../../../shared/api/reports';
 
 type Template = {
     id: string | number;
@@ -91,12 +93,12 @@ export const useReportsStore = create<ReportsState>((set) => ({
         })),
 
     loadUsers: async () => {
-        const data = await window.electronAPI.fetchUsersMetadata();
+        const data = await personnelApi.list();
         set({ users: data });
     },
 
     loadDefaultTemplates: async () => {
-        const templates = await window.electronAPI.getAllReportTemplates();
+        const templates = await reportTemplatesApi.listBundled();
         set({ savedTemplates: templates });
     },
 }));

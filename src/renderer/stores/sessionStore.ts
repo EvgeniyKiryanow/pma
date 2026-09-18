@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 import type { PermissionKey } from '../../shared/auth/permissions';
 import type { AuthState, SessionInfo, SetupInput } from '../../shared/auth/types';
-import { unwrap } from '../shared/api/call';
+import { authApi } from '../shared/api/security';
 
 export type AuthStatus = 'loading' | 'setup' | 'login' | 'change-password' | 'ready';
 
@@ -50,14 +50,14 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     init: async () => {
         if (!subscribed) {
             subscribed = true;
-            window.electronAPI.events.onSessionChanged(() => void get().refresh());
+            authApi.onSessionChanged(() => void get().refresh());
         }
         await get().refresh();
     },
 
     refresh: async () => {
         const hadSession = Boolean(get().session);
-        const state = await unwrap(window.electronAPI.auth.getState());
+        const state = await authApi.getState();
         if (hadSession && !state.session) {
             reloadRenderer();
             return;
@@ -66,24 +66,22 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     },
 
     setup: async (input) => {
-        const { session, recoveryCode } = await unwrap(window.electronAPI.auth.setup(input));
+        const { session, recoveryCode } = await authApi.setup(input);
         set({ session, status: 'ready', pendingRecoveryCode: recoveryCode });
     },
 
     login: async (username, password) => {
-        const session = await unwrap(window.electronAPI.auth.login(username, password));
+        const session = await authApi.login(username, password);
         set({ session, status: statusOf({ hasAccounts: true, session }) });
     },
 
     logout: async () => {
-        await unwrap(window.electronAPI.auth.logout());
+        await authApi.logout();
         reloadRenderer();
     },
 
     changePassword: async (currentPassword, newPassword) => {
-        const session = await unwrap(
-            window.electronAPI.auth.changePassword(currentPassword, newPassword),
-        );
+        const session = await authApi.changePassword(currentPassword, newPassword);
         set({ session, status: statusOf({ hasAccounts: true, session }) });
     },
 

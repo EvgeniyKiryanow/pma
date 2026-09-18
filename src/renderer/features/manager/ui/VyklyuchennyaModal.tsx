@@ -1,6 +1,7 @@
 import { UserX } from 'lucide-react';
 import { useState } from 'react';
 
+import { historyApi } from '../../../shared/api/personnel';
 import AttachmentPicker from '../../../shared/components/AttachmentPicker';
 import { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
 import { Alert, Button, FieldShell, Modal } from '../../../shared/ui';
@@ -35,7 +36,7 @@ export default function VyklyuchennyaModal({ onClose }: { onClose: () => void })
             });
 
             // 2. Entry in the person's history
-            await window.electronAPI.addUserHistory(user.id, {
+            await historyApi.add(user.id, {
                 id: Date.now(),
                 type: 'exclude',
                 date: new Date().toISOString(),

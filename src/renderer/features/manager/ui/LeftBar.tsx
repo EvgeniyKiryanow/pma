@@ -2,6 +2,7 @@ import { Loader2, PanelLeftClose, PanelLeftOpen, SearchX } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import type { User } from '../../../../shared/types/user';
+import { personnelApi } from '../../../shared/api/personnel';
 import { StatusDot } from '../../../shared/components/StatusBadge';
 import { Avatar, cn, EmptyState, IconButton, SearchInput } from '../../../shared/ui';
 import { useI18nStore } from '../../../stores/i18nStore';
@@ -65,7 +66,7 @@ export default function LeftBar({ users }: Props) {
         }
         setLoadingUserId(user.id);
         try {
-            const fullUser = await window.electronAPI.users.getOne(user.id);
+            const fullUser = await personnelApi.get(user.id);
             setSelectedUser(fullUser);
         } finally {
             setLoadingUserId(null);

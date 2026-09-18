@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { historyApi } from '../../../shared/api/personnel';
+
 type IncompleteEntry = {
     userId: number;
     entryId: number;
@@ -17,7 +19,7 @@ type IncompleteHistoryStore = {
 export const useIncompleteHistoryStore = create<IncompleteHistoryStore>((set) => ({
     entries: [],
     load: async () => {
-        set({ entries: await window.electronAPI.findIncompleteHistory() });
+        set({ entries: await historyApi.findIncomplete() });
     },
     addIncomplete: (userId, entryId, reason) =>
         set((state) => ({

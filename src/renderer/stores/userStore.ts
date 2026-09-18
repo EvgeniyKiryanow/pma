@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import type { User } from '../../shared/types/user';
 import { isTabKey, type TabKey } from '../app/tabKeys';
+import { personnelApi } from '../shared/api/personnel';
 
 export type { TabKey };
 
@@ -81,15 +82,15 @@ export const useUserStore = create<UserStore>((set, get) => ({
             isUserFormOpen: false,
         }),
 
-    getUserById: (id) => window.electronAPI.users.getOne(id),
+    getUserById: (id) => personnelApi.get(id),
 
     historyVersion: 0,
     refreshAfterChange: async () => {
-        const users = await window.electronAPI.fetchUsersMetadata();
+        const users = await personnelApi.list();
         const selectedId = get().selectedUser?.id;
         const selectedUser =
             selectedId !== undefined && users.some((u) => u.id === selectedId)
-                ? await window.electronAPI.users.getOne(selectedId)
+                ? await personnelApi.get(selectedId)
                 : null;
         set((state) => ({
             users,
@@ -103,33 +104,34 @@ export const useUserStore = create<UserStore>((set, get) => ({
     closeUserForm: () => set({ editingUser: null, isUserFormOpen: false }),
 
     refreshUsersFromDb: async () => {
-        set({ users: await window.electronAPI.fetchUsersMetadata() });
+        set({ users: await personnelApi.list() });
     },
 
     fetchUsers: async () => {
-        set({ users: await window.electronAPI.fetchUsersMetadata() });
+        set({ users: await personnelApi.list() });
     },
 
+    // Mutations throw ApiError on failure (the caller shows it); the list is only
+    // refreshed after the change was actually saved.
     addUser: async (user) => {
-        await window.electronAPI.addUser(user);
-        set({ users: await window.electronAPI.fetchUsersMetadata() });
+        await personnelApi.create(user);
+        set({ users: await personnelApi.list() });
     },
 
     updateUser: async (user) => {
-        const updatedUser = await window.electronAPI.updateUser(user);
-        const users = await window.electronAPI.fetchUsersMetadata();
+        const updatedUser = await personnelApi.update(user);
+        const users = await personnelApi.list();
         set({
             users,
             selectedUser:
-                get().selectedUser?.id === updatedUser?.id ? updatedUser : get().selectedUser,
+                get().selectedUser?.id === updatedUser.id ? updatedUser : get().selectedUser,
         });
     },
 
     deleteUser: async (userId) => {
-        const success = await window.electronAPI.deleteUser(userId);
-        if (!success) return;
+        await personnelApi.remove(userId);
         set({
-            users: await window.electronAPI.fetchUsersMetadata(),
+            users: await personnelApi.list(),
             selectedUser: get().selectedUser?.id === userId ? null : get().selectedUser,
         });
     },
@@ -140,7 +142,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
         const current = get().selectedUser;
         if (current?.id === user.id && current.history && current.comments) return;
 
-        const fullUser = await window.electronAPI.users.getOne(user.id);
+        const fullUser = await personnelApi.get(user.id);
         if (fullUser) set({ selectedUser: fullUser });
     },
 }));

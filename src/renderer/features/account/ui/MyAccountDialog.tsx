@@ -1,7 +1,8 @@
 import { KeyRound, RefreshCw } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
-import { errorMessage, unwrap } from '../../../shared/api/call';
+import { errorMessage } from '../../../shared/api/call';
+import { authApi } from '../../../shared/api/security';
 import { Alert, Button, Modal, PasswordField } from '../../../shared/ui';
 import { toast } from '../../../shared/ui/toast';
 import { useI18nStore } from '../../../stores/i18nStore';
@@ -26,9 +27,7 @@ export default function MyAccountDialog({ onClose }: { onClose: () => void }) {
         setError(null);
         setBusy(true);
         try {
-            setNewCode(
-                await unwrap(window.electronAPI.auth.regenerateRecoveryCode(currentPassword)),
-            );
+            setNewCode(await authApi.regenerateRecoveryCode(currentPassword));
             setCurrentPassword('');
             await refresh();
         } catch (err) {

@@ -133,6 +133,24 @@ export default tseslint.config(
         },
     },
 
+    // Renderer: only src/renderer/shared/api talks to the preload bridge. Screens and stores
+    // use the typed clients there, which check every reply and throw ApiError on failure.
+    {
+        files: ['src/renderer/**/*.{ts,tsx}'],
+        ignores: ['src/renderer/shared/api/**', 'src/renderer/renderer.ts'],
+        rules: {
+            'no-restricted-properties': [
+                'error',
+                {
+                    object: 'window',
+                    property: 'electronAPI',
+                    message:
+                        'Use the clients in src/renderer/shared/api (personnelApi, backupApi...) instead of window.electronAPI.',
+                },
+            ],
+        },
+    },
+
     // Сортування ключів лише в preload (електрон-брідж величезний)
     {
         files: ['src/preload.{ts,js}'],

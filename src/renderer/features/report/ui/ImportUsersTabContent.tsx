@@ -9,6 +9,7 @@ import {
 } from '../../../../shared/helpers/csvImports';
 import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
 import { errorMessage } from '../../../shared/api/call';
+import { personnelApi } from '../../../shared/api/personnel';
 import { Badge, Button, cn, SearchInput } from '../../../shared/ui';
 import { toast } from '../../../shared/ui/toast';
 import { HEADER_MAP } from '../../../shared/utils/headerMap';
@@ -28,13 +29,13 @@ export default function ImportUsersTabContent() {
 
     useEffect(() => {
         // Import of staffing positions only does not require access to personnel data.
-        window.electronAPI
-            .getDbColumns()
-            .then((cols: string[]) => setDbColumns(cols))
+        personnelApi
+            .columns()
+            .then(setDbColumns)
             .catch(() => setDbColumns([]));
-        window.electronAPI
-            .fetchUsersMetadata()
-            .then((users: any[]) => setExistingUsers(users))
+        personnelApi
+            .list()
+            .then(setExistingUsers)
             .catch(() => setExistingUsers([]));
     }, []);
 
@@ -83,7 +84,7 @@ export default function ImportUsersTabContent() {
 
     const loadWorkbook = async (file: File) => {
         setFileName(file.name);
-        const dbCols = await window.electronAPI.getDbColumns();
+        const dbCols = await personnelApi.columns();
         setDbColumns(dbCols);
 
         const reader = new FileReader();
@@ -283,9 +284,7 @@ export default function ImportUsersTabContent() {
         let failedCount = 0;
 
         // Fresh list: people created by an earlier import in this session must be matched too.
-        const currentUsers: any[] = await window.electronAPI
-            .fetchUsersMetadata()
-            .catch(() => existingUsers);
+        const currentUsers: any[] = await personnelApi.list().catch(() => existingUsers);
         const userLookup = new Map(currentUsers.map((u) => [generateUserKey(u), u]));
 
         for (const row of rows) {
@@ -340,7 +339,7 @@ export default function ImportUsersTabContent() {
             if (existing) {
                 if (needsUpdate(existing, mappedRow)) {
                     try {
-                        const updatedUser = await window.electronAPI.updateUser({
+                        const updatedUser = await personnelApi.update({
                             ...existing,
                             ...mappedRow,
                             id: existing.id,
@@ -356,7 +355,7 @@ export default function ImportUsersTabContent() {
                 }
             } else {
                 try {
-                    const createdUser = await window.electronAPI.addUser(mappedRow);
+                    const createdUser = await personnelApi.create(mappedRow);
                     userLookup.set(key, createdUser);
                     createdCount++;
                 } catch (err) {

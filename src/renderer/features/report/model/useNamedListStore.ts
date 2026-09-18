@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 
+import { reportError } from '../../../shared/api/errors';
+import { namedListApi } from '../../../shared/api/reports';
+
 export type AttendanceRow = {
     id: number;
     rank: string;
@@ -26,24 +29,38 @@ type NamedListStore = {
     loadAllTables: () => Promise<void>;
 };
 
+/** Month key of today, e.g. "2026-09". */
+function currentMonthKey(now = new Date()): string {
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * Monthly named lists (табель). Changes are shown at once (the table is edited cell by cell)
+ * and rolled back with a notification when the database does not accept them.
+ */
 export const useNamedListStore = create<NamedListStore>((set, get) => ({
     tables: {},
     activeKey: null,
     loadedOnce: false,
 
     createTable: async (key, rows) => {
-        const existing = get().tables[key];
-        if (existing) return;
+        if (get().tables[key]) return;
+        const previousKey = get().activeKey;
+        set((state) => ({ tables: { ...state.tables, [key]: rows }, activeKey: key }));
 
-        set((state) => ({
-            tables: {
-                ...state.tables,
-                [key]: rows,
-            },
-            activeKey: key, // ✅ Automatically activate new table
-        }));
-
-        await window.electronAPI.namedList.create(key, rows);
+        try {
+            await namedListApi.create(key, rows);
+        } catch (error) {
+            set((state) => {
+                const tables = { ...state.tables };
+                delete tables[key];
+                return {
+                    tables,
+                    activeKey: state.activeKey === key ? previousKey : state.activeKey,
+                };
+            });
+            reportError(error, { context: 'named-list.create' });
+        }
     },
 
     getTable: (key) => get().tables[key],
@@ -51,21 +68,25 @@ export const useNamedListStore = create<NamedListStore>((set, get) => ({
     loadAllTables: async () => {
         if (get().loadedOnce) return;
 
-        const dbTables = await window.electronAPI.namedList.getAll();
+        let records: Awaited<ReturnType<typeof namedListApi.list>>;
+        try {
+            records = await namedListApi.list();
+        } catch (error) {
+            // `loadedOnce` stays false, so the next visit tries again.
+            reportError(error, { context: 'named-list.load' });
+            return;
+        }
 
-        const tablesArray = Array.isArray(dbTables) ? dbTables : [];
-        const mapped = tablesArray.reduce<Record<string, AttendanceRow[]>>((acc, { key, data }) => {
+        const tables = records.reduce<Record<string, AttendanceRow[]>>((acc, { key, data }) => {
             acc[key] = data;
             return acc;
         }, {});
-
-        const now = new Date();
-        const currentKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+        const currentKey = currentMonthKey();
 
         set({
-            tables: mapped,
+            tables,
             loadedOnce: true,
-            activeKey: mapped[currentKey] ? currentKey : (Object.keys(mapped)[0] ?? null), // ✅ Set activeKey
+            activeKey: tables[currentKey] ? currentKey : (Object.keys(tables)[0] ?? null),
         });
     },
 
@@ -75,31 +96,38 @@ export const useNamedListStore = create<NamedListStore>((set, get) => ({
 
         const updated = current.map((row) =>
             row.id === rowId
-                ? {
-                      ...row,
-                      attendance: row.attendance.map((v, i) => (i === dayIndex ? value : v)),
-                  }
+                ? { ...row, attendance: row.attendance.map((v, i) => (i === dayIndex ? value : v)) }
                 : row,
         );
+        set((state) => ({ tables: { ...state.tables, [key]: updated } }));
 
-        set((state) => ({
-            tables: {
-                ...state.tables,
-                [key]: updated,
-            },
-        }));
-
-        await window.electronAPI.namedList.updateCell(key, rowId, dayIndex, value);
+        try {
+            await namedListApi.updateCell(key, rowId, dayIndex, value);
+        } catch (error) {
+            // Roll back only if nothing else changed the table meanwhile.
+            set((state) =>
+                state.tables[key] === updated
+                    ? { tables: { ...state.tables, [key]: current } }
+                    : state,
+            );
+            reportError(error, { context: 'named-list.update-cell' });
+        }
     },
 
     deleteTable: async (key) => {
+        const previous = get().tables[key];
         set((state) => {
-            const newTables = { ...state.tables };
-            delete newTables[key];
-            return { tables: newTables };
+            const tables = { ...state.tables };
+            delete tables[key];
+            return { tables };
         });
 
-        await window.electronAPI.namedList.delete(key);
+        try {
+            await namedListApi.remove(key);
+        } catch (error) {
+            if (previous) set((state) => ({ tables: { ...state.tables, [key]: previous } }));
+            reportError(error, { context: 'named-list.delete' });
+        }
     },
 
     setActiveKey: (key) => set({ activeKey: key }),

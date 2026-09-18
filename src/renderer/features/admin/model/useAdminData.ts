@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import type { AccountDTO, RoleDTO } from '../../../../shared/auth/types';
-import { errorMessage, unwrap } from '../../../shared/api/call';
+import { errorMessage } from '../../../shared/api/call';
+import { accountsApi, rolesApi } from '../../../shared/api/security';
 import { useI18nStore } from '../../../stores/i18nStore';
 
 /** Loads accounts and/or roles for the administration screens. */
@@ -22,8 +23,8 @@ export function useAdminData({
         setError(null);
         try {
             const [nextAccounts, nextRoles] = await Promise.all([
-                loadAccounts ? unwrap(window.electronAPI.accounts.list()) : Promise.resolve(null),
-                loadRoles ? unwrap(window.electronAPI.roles.list()) : Promise.resolve(null),
+                loadAccounts ? accountsApi.list() : Promise.resolve(null),
+                loadRoles ? rolesApi.list() : Promise.resolve(null),
             ]);
             if (nextAccounts) setAccounts(nextAccounts);
             if (nextRoles) setRoles(nextRoles);

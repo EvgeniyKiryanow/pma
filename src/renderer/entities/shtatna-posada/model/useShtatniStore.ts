@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 
+import { reportError } from '../../../shared/api/errors';
+import { staffingApi } from '../../../shared/api/reports';
+
 export type ShtatnaPosada = {
     shtat_number: string;
     unit_name?: string;
@@ -14,56 +17,53 @@ type ShtatniState = {
     shtatniPosady: ShtatnaPosada[];
     loading: boolean;
 
-    // Actions
     fetchAll: () => Promise<void>;
+    /** Throws ApiError: the import screen reports the outcome itself. */
     importFromExcel: (
         positions: ShtatnaPosada[],
     ) => Promise<{ added: number; skipped: number; total: number }>;
+    /** The actions below report a failure to the user and resolve to false. */
     updatePosada: (pos: ShtatnaPosada) => Promise<boolean>;
     deletePosada: (shtat_number: string) => Promise<boolean>;
     deleteAll: () => Promise<boolean>;
 };
 
-export const useShtatniStore = create<ShtatniState>((set, get) => ({
-    shtatniPosady: [],
-    loading: false,
-
-    fetchAll: async () => {
-        set({ loading: true });
+export const useShtatniStore = create<ShtatniState>((set, get) => {
+    /** Runs a change, reloads the list on success, reports a failure. */
+    const mutate = async (work: () => Promise<unknown>, context: string): Promise<boolean> => {
         try {
-            const list: ShtatnaPosada[] = await window.electronAPI.shtatni.fetchAll();
-            set({ shtatniPosady: list, loading: false });
+            await work();
         } catch (error) {
-            console.error('❌ Failed to fetch shtatni_posady', error);
-            set({ loading: false });
+            reportError(error, { context });
+            return false;
         }
-    },
-    deleteAll: async () => {
-        const res = await window.electronAPI.shtatni.deleteAll();
-        if (res.success) await get().fetchAll();
-        return res.success;
-    },
-
-    importFromExcel: async (positions) => {
-        const result = await window.electronAPI.shtatni.import(positions);
-        // After import → refresh the list
         await get().fetchAll();
-        return result;
-    },
+        return true;
+    };
 
-    updatePosada: async (pos) => {
-        const res = await window.electronAPI.shtatni.update(pos);
-        if (res.success) {
-            await get().fetchAll();
-        }
-        return res.success;
-    },
+    return {
+        shtatniPosady: [],
+        loading: false,
 
-    deletePosada: async (shtat_number) => {
-        const res = await window.electronAPI.shtatni.delete(shtat_number);
-        if (res.success) {
+        fetchAll: async () => {
+            set({ loading: true });
+            try {
+                set({ shtatniPosady: await staffingApi.list() });
+            } catch (error) {
+                reportError(error, { context: 'staffing.list' });
+            } finally {
+                set({ loading: false });
+            }
+        },
+
+        importFromExcel: async (positions) => {
+            const result = await staffingApi.import(positions);
             await get().fetchAll();
-        }
-        return res.success;
-    },
-}));
+            return result;
+        },
+
+        updatePosada: (pos) => mutate(() => staffingApi.update(pos), 'staffing.update'),
+        deletePosada: (number) => mutate(() => staffingApi.remove(number), 'staffing.delete'),
+        deleteAll: () => mutate(() => staffingApi.removeAll(), 'staffing.delete-all'),
+    };
+});

@@ -6,6 +6,7 @@ import {
     ShtatnaPosada,
     useShtatniStore,
 } from '../../../../entities/shtatna-posada/model/useShtatniStore';
+import { historyApi } from '../../../../shared/api/personnel';
 import { useUserStore } from '../../../../stores/userStore';
 const STAFF_COLUMNS = [
     { key: 'shtatNumber', label: '№ посади' },
@@ -52,7 +53,7 @@ export function StaffReportTable() {
                 const result: Record<number, CommentOrHistoryEntry[]> = {};
                 for (const userId of assignedUserIds) {
                     try {
-                        const history = await window.electronAPI.getUserHistory(userId, 'all');
+                        const history = await historyApi.list(userId, 'all');
                         result[userId] = history;
                     } catch (err) {
                         console.warn(`❌ Failed to load history for user ${userId}`, err);

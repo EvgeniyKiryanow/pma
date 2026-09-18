@@ -3,6 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useDocxGenerator } from '../../../../renderer/shared/hooks/useDocxGenerator';
 import type { User } from '../../../../shared/types/user';
+import { reportError } from '../../../shared/api/errors';
+import { personnelApi } from '../../../shared/api/personnel';
+import { reportTemplatesApi } from '../../../shared/api/reports';
+import { downloadFile } from '../../../shared/lib/download';
 import { toast } from '../../../shared/ui/toast';
 import { useReportsStore } from '../../report/model/reportsStore';
 import DocxPreviewModal from './_components/DocxPreviewModal';
@@ -45,8 +49,11 @@ export default function SavedReportsTab() {
 
     useEffect(() => {
         const loadUsers = async () => {
-            const data = await window.electronAPI.fetchUsersMetadata();
-            setUsers(data);
+            try {
+                setUsers(await personnelApi.list());
+            } catch (error) {
+                reportError(error, { context: 'reports.users' });
+            }
         };
         void loadUsers();
     }, []);
@@ -54,10 +61,10 @@ export default function SavedReportsTab() {
     useEffect(() => {
         const loadDefault = async () => {
             try {
-                const template = await window.electronAPI.getAllReportTemplates();
-                useReportsStore.getState().setSavedTemplates([...template]);
-            } catch (e) {
-                console.error('Failed to load default template:', e);
+                const templates = await reportTemplatesApi.listBundled();
+                useReportsStore.getState().setSavedTemplates([...templates]);
+            } catch (error) {
+                reportError(error, { context: 'reports.bundled-templates' });
             }
         };
 
@@ -131,15 +138,7 @@ export default function SavedReportsTab() {
     const handleDownload = () => {
         if (!previewBuffer) return;
 
-        const blob = new Blob([previewBuffer], {
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${selectedTemplate?.name || 'document'}.docx`;
-        link.click();
-        URL.revokeObjectURL(url);
+        downloadFile(previewBuffer, `${selectedTemplate?.name || 'document'}.docx`);
     };
 
     return (

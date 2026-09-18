@@ -17,7 +17,8 @@ import {
     type BackupSettings,
     type SnapshotInfo,
 } from '../../../../shared/backup/types';
-import { ApiError, errorMessage, unwrap } from '../../../shared/api/call';
+import { backupApi, changeLogApi } from '../../../shared/api/backup';
+import { ApiError, errorMessage } from '../../../shared/api/call';
 import {
     Alert,
     Badge,
@@ -130,7 +131,7 @@ function FullBackupSection() {
         setError(null);
         setResult(null);
         try {
-            const exported = await unwrap(window.electronAPI.backup.exportPackage(password));
+            const exported = await backupApi.exportPackage(password);
             setResult(
                 t('backups.full.exported', {
                     file: exported.fileName,
@@ -211,8 +212,8 @@ function AutoBackupSection() {
     const load = useCallback(async () => {
         try {
             const [nextSettings, nextSnapshots] = await Promise.all([
-                unwrap(window.electronAPI.backup.getSettings()),
-                unwrap(window.electronAPI.backup.listSnapshots()),
+                backupApi.getSettings(),
+                backupApi.listSnapshots(),
             ]);
             setSettings(nextSettings);
             setSnapshots(nextSnapshots);
@@ -233,7 +234,7 @@ function AutoBackupSection() {
     const save = async () => {
         setBusy('save');
         try {
-            setSettings(await unwrap(window.electronAPI.backup.updateSettings(auto)));
+            setSettings(await backupApi.updateSettings(auto));
             toast.success(t('backups.auto.saved'));
         } catch (err) {
             toast.error(errorMessage(err, t));
@@ -245,7 +246,7 @@ function AutoBackupSection() {
     const snapshotNow = async () => {
         setBusy('snapshot');
         try {
-            await unwrap(window.electronAPI.backup.createSnapshot());
+            await backupApi.createSnapshot();
             toast.success(t('backups.auto.created'));
             await load();
         } catch (err) {
@@ -264,9 +265,9 @@ function AutoBackupSection() {
                     variant="secondary"
                     icon={<FolderOpen className="h-4 w-4" />}
                     onClick={() =>
-                        void unwrap(window.electronAPI.backup.openBackupsFolder()).catch((err) =>
-                            toast.error(errorMessage(err, t)),
-                        )
+                        void backupApi
+                            .openBackupsFolder()
+                            .catch((err) => toast.error(errorMessage(err, t)))
                     }
                 >
                     {t('backups.auto.openFolder')}
@@ -376,13 +377,13 @@ function ChangeLogSection() {
         setBusy(kind);
         try {
             if (kind === 'export') {
-                const result = await window.electronAPI.exportChangeLogs(password);
+                const result = await changeLogApi.export(password);
                 if (result.canceled) return;
                 if (result.exported > 0)
                     toast.success(t('backups.changeLog.exported', { count: result.exported }));
                 else toast.success(t('backups.changeLog.nothing'));
             } else {
-                const result = await window.electronAPI.importChangeLogs(password);
+                const result = await changeLogApi.import(password);
                 if (result.canceled) return;
                 if (result.error) {
                     toast.error(
@@ -457,7 +458,7 @@ function DangerZoneSection() {
     const reset = async () => {
         setBusy(true);
         try {
-            await unwrap(window.electronAPI.backup.resetAll());
+            await backupApi.resetAll();
             window.location.reload();
         } catch (err) {
             toast.error(errorMessage(err, t));

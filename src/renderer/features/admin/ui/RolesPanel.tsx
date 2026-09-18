@@ -8,7 +8,8 @@ import {
     permissionsByGroup,
 } from '../../../../shared/auth/permissions';
 import type { RoleDTO } from '../../../../shared/auth/types';
-import { errorMessage, unwrap } from '../../../shared/api/call';
+import { errorMessage } from '../../../shared/api/call';
+import { rolesApi } from '../../../shared/api/security';
 import { Alert, Badge, Button, Card, Modal, TextField } from '../../../shared/ui';
 import { confirmAction } from '../../../shared/ui/confirm';
 import { toast } from '../../../shared/ui/toast';
@@ -29,7 +30,7 @@ export default function RolesPanel() {
         });
         if (!confirmed) return;
         try {
-            await unwrap(window.electronAPI.roles.remove(role.id));
+            await rolesApi.remove(role.id);
             toast.success(t('admin.roles.deleted'));
             await reload();
         } catch (err) {
@@ -186,8 +187,8 @@ function RoleEditorDialog({
         setBusy(true);
         const input = { name, description, permissions: [...selected] };
         try {
-            if (role) await unwrap(window.electronAPI.roles.update(role.id, input));
-            else await unwrap(window.electronAPI.roles.create(input));
+            if (role) await rolesApi.update(role.id, input);
+            else await rolesApi.create(input);
             toast.success(t('admin.roles.saved'));
             onSaved();
         } catch (err) {

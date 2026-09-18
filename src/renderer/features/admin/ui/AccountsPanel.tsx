@@ -3,7 +3,8 @@ import { type FormEvent, useState } from 'react';
 
 import type { AccountDTO, RoleDTO } from '../../../../shared/auth/types';
 import { PASSWORD_RULES } from '../../../../shared/auth/types';
-import { errorMessage, unwrap } from '../../../shared/api/call';
+import { errorMessage } from '../../../shared/api/call';
+import { accountsApi } from '../../../shared/api/security';
 import {
     Alert,
     Avatar,
@@ -55,10 +56,7 @@ export default function AccountsPanel() {
             tone: 'danger',
         });
         if (!confirmed) return;
-        void act(
-            () => unwrap(window.electronAPI.accounts.remove(account.id)),
-            t('admin.accounts.deleted'),
-        );
+        void act(() => accountsApi.remove(account.id), t('admin.accounts.deleted'));
     };
 
     return (
@@ -184,11 +182,7 @@ export default function AccountsPanel() {
                                                         onClick={() =>
                                                             void act(
                                                                 () =>
-                                                                    unwrap(
-                                                                        window.electronAPI.accounts.unlock(
-                                                                            account.id,
-                                                                        ),
-                                                                    ),
+                                                                    accountsApi.unlock(account.id),
                                                                 t('admin.accounts.unlocked'),
                                                             )
                                                         }
@@ -284,18 +278,14 @@ function AccountFormDialog({
         setBusy(true);
         try {
             if (account) {
-                await unwrap(
-                    window.electronAPI.accounts.update(account.id, {
-                        displayName,
-                        roleId,
-                        isActive,
-                    }),
-                );
+                await accountsApi.update(account.id, {
+                    displayName,
+                    roleId,
+                    isActive,
+                });
                 toast.success(t('admin.accounts.saved'));
             } else {
-                await unwrap(
-                    window.electronAPI.accounts.create({ username, displayName, roleId, password }),
-                );
+                await accountsApi.create({ username, displayName, roleId, password });
                 toast.success(t('admin.accounts.created'));
             }
             onSaved();
@@ -389,7 +379,7 @@ function ResetPasswordDialog({
         setError(null);
         setBusy(true);
         try {
-            await unwrap(window.electronAPI.accounts.resetPassword(account.id, password));
+            await accountsApi.resetPassword(account.id, password);
             toast.success(t('admin.accounts.passwordReset'));
             onSaved();
         } catch (err) {

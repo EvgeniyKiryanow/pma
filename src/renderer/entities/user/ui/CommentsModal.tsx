@@ -2,6 +2,7 @@ import { FileText, MessageSquareText, Paperclip, Send, Trash2, X } from 'lucide-
 import { useEffect, useMemo, useState } from 'react';
 
 import type { CommentOrHistoryEntry } from '../../../../shared/types/user';
+import { commentsApi } from '../../../shared/api/personnel';
 import { Avatar, Button, EmptyState, IconButton, Modal, SearchInput } from '../../../shared/ui';
 import { confirmAction } from '../../../shared/ui/confirm';
 import { useI18nStore } from '../../../stores/i18nStore';
@@ -32,7 +33,7 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
 
     useEffect(() => {
         const fetch = async () => {
-            const res = await window.electronAPI.getUserComments(userId);
+            const res = await commentsApi.list(userId);
             setComments(res);
         };
         void fetch();
@@ -66,7 +67,7 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
             type: 'text',
         };
 
-        await window.electronAPI.addUserComment(userId, newEntry);
+        await commentsApi.add(userId, newEntry);
         setComments((prev) => [...prev, newEntry]);
         setNewComment('');
         setAuthor('');
@@ -82,7 +83,7 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
         });
         if (!confirmed) return;
 
-        await window.electronAPI.deleteUserComment(id);
+        await commentsApi.remove(id);
         setComments((prev) => prev.filter((c) => c.id !== id));
     };
 

@@ -1,0 +1,42 @@
+import type {
+    AutoBackupSettings,
+    BackupSettings,
+    ExportResult,
+    ImportInspection,
+    ImportSelection,
+    RestoreResult,
+    SnapshotInfo,
+} from '../../../shared/backup/types';
+import type { ChangeLogExportResult, ChangeLogImportResult } from '../../../shared/types/sync';
+import { bridge, call } from './bridge';
+import { unwrap } from './call';
+
+/** Full encrypted backups, restore, automatic snapshots, reset. Throws ApiError. */
+export const backupApi = {
+    /** Asks where to save; CANCELED when the dialog is closed. */
+    exportPackage: (password: string): Promise<ExportResult> =>
+        unwrap(bridge().backup.exportPackage(password)),
+    selectImportFile: (): Promise<ImportSelection> => unwrap(bridge().backup.selectImportFile()),
+    inspect: (password: string): Promise<ImportInspection> =>
+        unwrap(bridge().backup.inspect(password)),
+    restore: (): Promise<RestoreResult> => unwrap(bridge().backup.restore()),
+    getSettings: (): Promise<BackupSettings> => unwrap(bridge().backup.getSettings()),
+    updateSettings: (patch: Partial<AutoBackupSettings>): Promise<BackupSettings> =>
+        unwrap(bridge().backup.updateSettings(patch)),
+    listSnapshots: (): Promise<SnapshotInfo[]> => unwrap(bridge().backup.listSnapshots()),
+    createSnapshot: (): Promise<string> => unwrap(bridge().backup.createSnapshot()),
+    openBackupsFolder: (): Promise<void> => unwrap(bridge().backup.openBackupsFolder()),
+    resetAll: (): Promise<string> => unwrap(bridge().backup.resetAll()),
+};
+
+/**
+ * Change-log exchange (.pmc). Expected outcomes (short or wrong password, unreadable file,
+ * canceled dialog) come back in the result for the screen to explain; only unexpected
+ * failures throw.
+ */
+export const changeLogApi = {
+    export: (password: string): Promise<ChangeLogExportResult> =>
+        call(bridge().exportChangeLogs(password)),
+    import: (password: string): Promise<ChangeLogImportResult> =>
+        call(bridge().importChangeLogs(password)),
+};

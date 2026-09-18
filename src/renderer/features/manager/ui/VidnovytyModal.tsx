@@ -2,6 +2,7 @@ import { UserCheck } from 'lucide-react';
 import { useState } from 'react';
 
 import type { CommentOrHistoryEntry } from '../../../../shared/types/user';
+import { historyApi } from '../../../shared/api/personnel';
 import AttachmentPicker from '../../../shared/components/AttachmentPicker';
 import { FileWithDataUrl } from '../../../shared/components/FilePreviewModal';
 import { Alert, Button, FieldShell, Modal } from '../../../shared/ui';
@@ -46,7 +47,7 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
                 period: { from: periodFrom, to: periodFrom },
             };
 
-            await window.electronAPI.addUserHistory(user.id, historyEntry);
+            await historyApi.add(user.id, historyEntry);
             await updateUser({
                 ...user,
                 shpkNumber: String(user.shpkNumber || '').replace(/_(order|excluded)$/, ''),
