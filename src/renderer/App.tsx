@@ -22,6 +22,7 @@ export default function App() {
     const isUserFormOpen = useUserStore((s) => s.isUserFormOpen);
     const editingUser = useUserStore((s) => s.editingUser);
     const closeUserForm = useUserStore((s) => s.closeUserForm);
+    const editingCategory = useUserStore((s) => s.editingCategory);
 
     const loadAllTables = useNamedListStore((s) => s.loadAllTables);
     const loadedOnce = useNamedListStore((s) => s.loadedOnce);
@@ -96,7 +97,13 @@ export default function App() {
                 )}
             </main>
 
-            {isUserFormOpen && <CardEditor userToEdit={editingUser} onClose={closeUserForm} />}
+            {isUserFormOpen && (
+                <CardEditor
+                    userToEdit={editingUser}
+                    initialCategory={editingCategory}
+                    onClose={closeUserForm}
+                />
+            )}
         </div>
     );
 }
