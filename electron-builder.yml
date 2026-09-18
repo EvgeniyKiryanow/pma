@@ -73,6 +73,8 @@ nsis:
   deleteAppDataOnUninstall: false
   language: '1058'
   installerLanguages: [uk_UA]
+  # Uninstall also removes the .pmb association (see the file).
+  include: scripts/installer.nsh
 
 mac:
   category: public.app-category.productivity
