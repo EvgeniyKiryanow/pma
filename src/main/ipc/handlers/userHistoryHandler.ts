@@ -124,9 +124,10 @@ export function registertUserHistoryHandlers() {
         },
     );
 
+    // Status changes, orders and position moves add history as part of editing a person.
     handle(
         'history:add-entry',
-        edit,
+        access.any('history.edit', 'personnel.edit'),
         async (_event, userIdInput: number, newEntryInput: any) => {
             const userId = requireInt(userIdInput, 'userId');
             const newEntry = requireObject(newEntryInput, 'entry');

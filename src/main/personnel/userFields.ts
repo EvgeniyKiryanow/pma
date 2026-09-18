@@ -82,9 +82,12 @@ export type UserWritableField = (typeof USER_WRITABLE_FIELDS)[number];
 
 const JSON_FIELDS = new Set<string>(USER_JSON_FIELDS);
 
-/** Converts a renderer user object into bind values, in USER_WRITABLE_FIELDS order. */
-export function userToRow(user: Record<string, unknown>): unknown[] {
-    return USER_WRITABLE_FIELDS.map((field) => {
+/** Converts a renderer user object into bind values, in the order of `fields`. */
+export function userToRow(
+    user: Record<string, unknown>,
+    fields: readonly string[] = USER_WRITABLE_FIELDS,
+): unknown[] {
+    return fields.map((field) => {
         const value = user[field];
         if (JSON_FIELDS.has(field)) return JSON.stringify(value || []);
         if (field === 'hasCriminalRecord') return value ? 1 : 0;

@@ -32,11 +32,11 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
         reader.readAsDataURL(f);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!title || !file || !user) return;
 
         // ✅ 1. Save to store
-        addVidnovlennya({
+        await addVidnovlennya({
             userId: user.id,
             title,
             description,
@@ -57,10 +57,10 @@ export default function VidnovytyModal({ onClose }: { onClose: () => void }) {
             period: { from: periodFrom, to: periodFrom },
         };
 
-        updateUser({
+        await window.electronAPI.addUserHistory(user.id, historyEntry);
+        await updateUser({
             ...user,
             shpkNumber: String(user.shpkNumber || '').replace(/_(order|excluded)$/, ''),
-            history: [...(user.history || []), historyEntry],
         });
 
         // ✅ 3. Close modal

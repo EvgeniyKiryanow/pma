@@ -39,7 +39,7 @@ export default function RozporyadzhennyaModal({ onClose }: { onClose: () => void
         const now = new Date().toISOString();
 
         // ✅ 1. Save into store instead of to disk
-        addRozporyadzhennya({
+        await addRozporyadzhennya({
             userId: user.id,
             title,
             description,
@@ -60,9 +60,9 @@ export default function RozporyadzhennyaModal({ onClose }: { onClose: () => void
             period,
         };
 
-        updateUser({
+        await window.electronAPI.addUserHistory(user.id, historyEntry);
+        await updateUser({
             ...user,
-            history: [...(user.history || []), historyEntry],
             shpkNumber: user.shpkNumber ? `${user.shpkNumber}_order` : 'order',
         });
 

@@ -1,7 +1,7 @@
 // components/ShtatniPosadyTable.tsx
 import { Pencil, Trash2 } from 'lucide-react';
 
-import type { CommentOrHistoryEntry, User } from '../../../../shared/types/user';
+import type { User } from '../../../../shared/types/user';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 import {
     getCategoryBadge,
@@ -146,28 +146,20 @@ export default function ShtatniPosadyTable({
                                         <select
                                             className="text-xs border rounded px-1 py-0.5 max-w-[180px]"
                                             value={matchedUser.soldierStatus || ''}
-                                            onChange={(e) => {
+                                            onChange={async (e) => {
                                                 const newStatus = e.target.value;
                                                 const previousStatus = matchedUser.soldierStatus;
 
-                                                const updatedUser = {
-                                                    ...matchedUser,
-                                                    soldierStatus: newStatus,
-                                                    history: [
-                                                        ...(matchedUser.history || []),
-                                                        {
-                                                            id: Date.now(),
-                                                            date: new Date().toISOString(),
-                                                            type: 'statusChange' as const,
-                                                            author: 'System',
-                                                            description: `Статус змінено з "${previousStatus}" → "${newStatus}"`,
-                                                            content: `Статус змінено з "${previousStatus}" на "${newStatus}"`,
-                                                            files: [] as CommentOrHistoryEntry['files'],
-                                                        },
-                                                    ],
-                                                };
-
-                                                updateUser(updatedUser);
+                                                await window.electronAPI.addUserHistory(matchedUser.id, {
+                                                    id: Date.now(),
+                                                    date: new Date().toISOString(),
+                                                    type: 'statusChange',
+                                                    author: 'System',
+                                                    description: `Статус змінено з "${previousStatus}" → "${newStatus}"`,
+                                                    content: `Статус змінено з "${previousStatus}" на "${newStatus}"`,
+                                                    files: [],
+                                                });
+                                                await updateUser({ ...matchedUser, soldierStatus: newStatus });
                                             }}
                                         >
                                             <option value="">-- Обрати статус --</option>

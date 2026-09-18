@@ -1,7 +1,7 @@
 import { Edit3, MessageCircle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-import type { CommentOrHistoryEntry, User } from '../../../../shared/types/user';
+import type { CommentOrHistoryEntry } from '../../../../shared/types/user';
 import CommentsModal from '../../../entities/user/ui/CommentsModal';
 import UserHistory from '../../../entities/user/ui/UserHistory';
 import UserInfoDetails from '../../../entities/user/ui/UserInfoDetails';
@@ -44,39 +44,27 @@ export default function RightBar() {
             files: [],
         };
 
-        const updatedUser: User = {
-            ...user,
-            soldierStatus: newStatus,
-            history: [...(user.history || []), historyEntry],
-        };
-
-        await updateUser(updatedUser);
+        await window.electronAPI.addUserHistory(user.id, historyEntry);
+        await updateUser({ ...user, soldierStatus: newStatus });
         window.location.reload();
     };
 
-    const handleAddHistory = (newEntry: CommentOrHistoryEntry, maybeNewStatus?: StatusExcel) => {
+    const handleAddHistory = async (
+        newEntry: CommentOrHistoryEntry,
+        maybeNewStatus?: StatusExcel,
+    ) => {
         if (!user) return;
-
-        const updatedUser: User = {
-            ...user,
-            soldierStatus:
-                maybeNewStatus && maybeNewStatus !== user.soldierStatus
-                    ? maybeNewStatus
-                    : user.soldierStatus,
-            history: [...(user.history || []), newEntry],
-        };
-
-        updateUser(updatedUser);
+        // Attachments are written to disk by the main process; only their names stay in the entry.
+        await window.electronAPI.addUserHistory(user.id, newEntry);
+        if (maybeNewStatus && maybeNewStatus !== user.soldierStatus) {
+            await updateUser({ ...user, soldierStatus: maybeNewStatus });
+        }
         window.location.reload();
     };
 
-    const handleDeleteHistory = (id: number) => {
+    const handleDeleteHistory = async (id: number) => {
         if (!user) return;
-        const updatedUser: User = {
-            ...user,
-            history: (user.history || []).filter((h: any) => h.id !== id),
-        };
-        updateUser(updatedUser);
+        await window.electronAPI.deleteUserHistory(id);
         window.location.reload();
     };
 

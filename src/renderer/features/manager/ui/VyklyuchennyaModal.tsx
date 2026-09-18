@@ -32,11 +32,11 @@ export default function VyklyuchennyaModal({ onClose }: { onClose: () => void })
         reader.readAsDataURL(f);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!title || !file || !user) return;
 
         // 1. Save to store
-        addVyklyuchennya({
+        await addVyklyuchennya({
             userId: user.id,
             title,
             description,
@@ -46,23 +46,17 @@ export default function VyklyuchennyaModal({ onClose }: { onClose: () => void })
         });
 
         // 2. Add to history
-        updateUser({
-            ...user,
-            shpkNumber: 'excluded',
-            history: [
-                ...(user.history || []),
-                {
-                    id: Date.now(),
-                    type: 'exclude',
-                    date: new Date().toISOString(),
-                    author: 'System',
-                    description: `Користувача виключено: ${title}`,
-                    content: description,
-                    files: [file],
-                    period: { from: periodFrom, to: periodFrom },
-                },
-            ],
+        await window.electronAPI.addUserHistory(user.id, {
+            id: Date.now(),
+            type: 'exclude',
+            date: new Date().toISOString(),
+            author: 'System',
+            description: `Користувача виключено: ${title}`,
+            content: description,
+            files: [file],
+            period: { from: periodFrom, to: periodFrom },
         });
+        await updateUser({ ...user, shpkNumber: 'excluded' });
 
         // 3. Close modal
         onClose();

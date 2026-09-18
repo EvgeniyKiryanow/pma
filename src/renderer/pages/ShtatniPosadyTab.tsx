@@ -49,11 +49,10 @@ export default function ShtatniPosadyTab() {
             shpkCode: null,
             shpkNumber: null, // ключове!
             category: null,
-            shtatNumber: null,
-            history: [...(assignedUser.history || []), historyEntry],
         };
 
         // ✅ Оновлюємо користувача в Zustand/БД
+        await window.electronAPI.addUserHistory(assignedUser.id, historyEntry);
         await updateUser(clearedUser);
 
         // ✅ Якщо цей користувач зараз відкритий у правій панелі – оновлюємо стан
@@ -78,8 +77,7 @@ export default function ShtatniPosadyTab() {
                 u.unitMain !== pos.unit_name ||
                 u.category !== pos.category ||
                 u.shpkCode !== pos.shpk_code ||
-                String(u.shpkNumber) !== String(pos.shtat_number) ||
-                String(u.shtatNumber) !== String(pos.shtat_number);
+                String(u.shpkNumber) !== String(pos.shtat_number);
 
             if (needsUpdate) {
                 usersToFix.push({
@@ -89,7 +87,6 @@ export default function ShtatniPosadyTab() {
                     category: pos.category,
                     shpkCode: pos.shpk_code,
                     shpkNumber: pos.shtat_number,
-                    shtatNumber: pos.shtat_number,
                 });
             }
         }
@@ -157,7 +154,10 @@ export default function ShtatniPosadyTab() {
         const setSelectedUser = useUserStore.getState().setSelectedUser;
 
         // ========= 1️⃣ CLEAR USER WHO CURRENTLY HOLDS THIS POSADA =========
-        const alreadyOnThisPosada = users.find((u) => u.shtatNumber === pos.shtat_number);
+        // The holder is found by shpkNumber: it is the field stored in the database.
+        const alreadyOnThisPosada = users.find(
+            (u) => u.id !== userId && String(u.shpkNumber ?? '') === String(pos.shtat_number),
+        );
 
         if (alreadyOnThisPosada) {
             const clearedHistory: CommentOrHistoryEntry = {
@@ -177,10 +177,9 @@ export default function ShtatniPosadyTab() {
                 shpkCode: null,
                 shpkNumber: null,
                 category: null,
-                shtatNumber: null,
-                history: [...(alreadyOnThisPosada.history || []), clearedHistory],
             };
 
+            await window.electronAPI.addUserHistory(alreadyOnThisPosada.id, clearedHistory);
             await updateUser(clearedUser);
 
             // refresh if currently selected
@@ -191,7 +190,7 @@ export default function ShtatniPosadyTab() {
 
         // ========= 2️⃣ BUILD HISTORY ENTRY FOR MOVEMENT/ASSIGNMENT =========
         let newHistory: CommentOrHistoryEntry;
-        if (selectedUser.shtatNumber) {
+        if (selectedUser.shpkNumber && selectedUser.shpkNumber !== pos.shtat_number) {
             // User already has another posada → movement
             newHistory = {
                 id: Date.now(),
@@ -223,9 +222,8 @@ export default function ShtatniPosadyTab() {
             shpkCode: pos.shpk_code,
             shpkNumber: pos.shtat_number,
             category: pos.category,
-            shtatNumber: pos.shtat_number,
-            history: [...(selectedUser.history || []), newHistory],
         };
+        await window.electronAPI.addUserHistory(selectedUser.id, newHistory);
         await updateUser(updatedUser);
 
         // ✅ Refresh right panel

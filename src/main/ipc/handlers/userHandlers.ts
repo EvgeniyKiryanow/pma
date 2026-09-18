@@ -10,7 +10,13 @@ const logger = createLogger('personnel');
 const INSERT_SQL = `INSERT INTO users (${USER_WRITABLE_FIELDS.join(', ')})
     VALUES (${USER_WRITABLE_FIELDS.map(() => '?').join(', ')})`;
 
-const UPDATE_SQL = `UPDATE users SET ${USER_WRITABLE_FIELDS.map((f) => `${f} = ?`).join(', ')}
+/**
+ * History and comments change only through their own channels. A full-row update used to
+ * write them too, and callers holding the personnel list (loaded without them) wiped both.
+ */
+const UPDATE_FIELDS = USER_WRITABLE_FIELDS.filter((f) => f !== 'history' && f !== 'comments');
+
+const UPDATE_SQL = `UPDATE users SET ${UPDATE_FIELDS.map((f) => `${f} = ?`).join(', ')}
     WHERE id = ?`;
 
 export function registerUserHandlers() {
@@ -40,7 +46,7 @@ export function registerUserHandlers() {
                     const existing = await db.get('SELECT id FROM users WHERE id = ?', userId);
                     if (!existing) return { success: false, message: 'User not found' };
 
-                    await db.run(UPDATE_SQL, [...userToRow(user), userId]);
+                    await db.run(UPDATE_SQL, [...userToRow(user, UPDATE_FIELDS), userId]);
                     const updated = await db.get('SELECT * FROM users WHERE id = ?', userId);
                     await logChange(db, 'users', userId, 'update', updated);
                     return parseUserRow(updated);

@@ -7,7 +7,11 @@ import {
     generateUserKey,
     needsUpdate,
 } from '../../../../shared/helpers/csvImports';
+import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
+import { errorMessage } from '../../../shared/api/call';
 import { HEADER_MAP } from '../../../shared/utils/headerMap';
+import { useI18nStore } from '../../../stores/i18nStore';
+import { useUserStore } from '../../../stores/userStore';
 
 export default function ImportUsersTabContent() {
     const [parsedSheets, setParsedSheets] = useState<Record<string, any[]>>({});
@@ -231,10 +235,15 @@ export default function ImportUsersTabContent() {
             return;
         }
 
-        const result = await window.electronAPI.shtatni.import(positions);
-        alert(
-            `✅ Імпортовано ${result.added} нових позицій\nПропущено ${result.skipped} (вже існували в БД)`,
-        );
+        try {
+            // Through the store, so the БЧС tab and tables update without reloading the window.
+            const result = await useShtatniStore.getState().importFromExcel(positions);
+            alert(
+                `✅ Імпортовано ${result.added} нових позицій\nПропущено ${result.skipped} (вже існували в БД)`,
+            );
+        } catch (err) {
+            alert(`❌ Не вдалося імпортувати БЧС: ${errorMessage(err, useI18nStore.getState().t)}`);
+        }
     };
 
     /** Import USERS sheet (classic logic) */
@@ -244,7 +253,11 @@ export default function ImportUsersTabContent() {
         let skippedCount = 0;
         let failedCount = 0;
 
-        const userLookup = new Map(existingUsers.map((u) => [generateUserKey(u), u]));
+        // Fresh list: people created by an earlier import in this session must be matched too.
+        const currentUsers: any[] = await window.electronAPI
+            .fetchUsersMetadata()
+            .catch(() => existingUsers);
+        const userLookup = new Map(currentUsers.map((u) => [generateUserKey(u), u]));
 
         for (const row of rows) {
             const mappedRow: any = {};
@@ -324,8 +337,10 @@ export default function ImportUsersTabContent() {
             }
         }
 
+        await useUserStore.getState().fetchUsers();
         alert(
-            `✅ Імпорт завершено!\n\nСтворено: ${createdCount}\nОновлено: ${updatedCount}\nПропущено: ${skippedCount}`,
+            `✅ Імпорт завершено!\n\nСтворено: ${createdCount}\nОновлено: ${updatedCount}\nПропущено: ${skippedCount}` +
+                (failedCount ? `\nПомилки: ${failedCount} (немає прав або некоректні дані)` : ''),
         );
     };
 
