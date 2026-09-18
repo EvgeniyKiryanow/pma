@@ -80,6 +80,8 @@ export const USER_WRITABLE_FIELDS = [
     'positionDative',
     'positionInstrumental',
     'soldierStatus',
+    'isAttached',
+    'attachedFrom',
 ] as const;
 
 export type UserWritableField = (typeof USER_WRITABLE_FIELDS)[number];
@@ -94,7 +96,7 @@ export function userToRow(
     return fields.map((field) => {
         const value = user[field];
         if (JSON_FIELDS.has(field)) return JSON.stringify(value || []);
-        if (field === 'hasCriminalRecord') return value ? 1 : 0;
+        if (field === 'hasCriminalRecord' || field === 'isAttached') return value ? 1 : 0;
         // An old spelling from Excel or an older version is stored under the current name.
         if (STATUS_FIELDS.has(field)) return currentStatusName(value);
         return value;

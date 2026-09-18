@@ -190,6 +190,8 @@ export const en = {
         unitNumber: 'Unit Number',
         hasCriminalRecord: 'Criminal Record',
         criminalRecordDetails: 'Criminal Record Details',
+        isAttached: 'Attached from another unit',
+        attachedFrom: 'Attached from (unit)',
         callsign: 'Callsign',
         militaryTicketInfo: 'Military Ticket Info',
         militaryServiceHistory: 'Military Service History',

@@ -14,7 +14,7 @@ import { canonicalUnit } from '../../../shared/utils/plannedTotalsFromShtatni';
 export type ReportPerson = Pick<
     User,
     'id' | 'fullName' | 'rank' | 'position' | 'soldierStatus' | 'category' | 'unitMain'
-> & { shpkNumber?: string | null };
+> & { shpkNumber?: string | null; isAttached?: boolean | number | null };
 
 export type ReportPosition = Pick<
     ShtatnaPosada,
@@ -295,7 +295,9 @@ export function buildAlternateReport(
     for (const person of onList) {
         const pos = person.shpkNumber ? byNumber.get(String(person.shpkNumber)) : undefined;
         if (pos) positionOf.set(person.id, pos);
-        rowNamed(reportUnitOf(pos?.unit_name ?? person.unitMain)).people.push(person);
+        // Attached people are counted apart, whatever position or unit their card names.
+        const row = person.isAttached ? ATTACHED_ROW : reportUnitOf(pos?.unit_name ?? person.unitMain);
+        rowNamed(row).people.push(person);
     }
 
     const units = [...rows.values()]

@@ -271,6 +271,8 @@ export const ua = {
         // ✅ Legal & criminal
         hasCriminalRecord: 'Наявність судимості',
         criminalRecordDetails: 'Деталі судимості',
+        isAttached: 'Прикомандирований',
+        attachedFrom: 'Звідки прикомандирований (підрозділ)',
         personalPrisonFileExists: 'Наявність особової справи',
 
         // ✅ Health & status

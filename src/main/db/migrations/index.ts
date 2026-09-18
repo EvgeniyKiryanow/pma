@@ -6,6 +6,7 @@ import { auditLog } from './005_audit_log';
 import { relaxUserConstraints } from './006_relax_user_constraints';
 import { appSettings } from './007_app_settings';
 import { statusNames } from './008_status_names';
+import { attachedPersonnel } from './009_attached_personnel';
 import { MigrationRunner } from './runner';
 
 /** Append new migrations to the end. Never reorder, edit or remove released ones. */
@@ -18,6 +19,7 @@ export const MIGRATIONS = [
     relaxUserConstraints,
     appSettings,
     statusNames,
+    attachedPersonnel,
 ];
 
 export const migrationRunner = new MigrationRunner(MIGRATIONS);
