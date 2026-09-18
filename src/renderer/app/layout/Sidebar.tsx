@@ -1,7 +1,15 @@
-import { ChevronsUpDown, KeyRound, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import {
+    ChevronsUpDown,
+    Info,
+    KeyRound,
+    LogOut,
+    PanelLeftClose,
+    PanelLeftOpen,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import MyAccountDialog from '../../features/account/ui/MyAccountDialog';
+import AboutDialog from '../../shared/components/AboutDialog';
 import { Avatar, cn } from '../../shared/ui';
 import { useI18nStore } from '../../stores/i18nStore';
 import { usePermissions, useSessionStore } from '../../stores/sessionStore';
@@ -136,6 +144,7 @@ function AccountButton({ collapsed }: { collapsed: boolean }) {
     const logout = useSessionStore((s) => s.logout);
     const [menuOpen, setMenuOpen] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [aboutOpen, setAboutOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -206,6 +215,15 @@ function AccountButton({ collapsed }: { collapsed: boolean }) {
                         {t('shell.account')}
                     </MenuItem>
                     <MenuItem
+                        icon={<Info className="size-4" />}
+                        onClick={() => {
+                            setMenuOpen(false);
+                            setAboutOpen(true);
+                        }}
+                    >
+                        {t('about.title')}
+                    </MenuItem>
+                    <MenuItem
                         icon={<LogOut className="size-4" />}
                         danger
                         onClick={() => void logout()}
@@ -216,6 +234,7 @@ function AccountButton({ collapsed }: { collapsed: boolean }) {
             )}
 
             {dialogOpen && <MyAccountDialog onClose={() => setDialogOpen(false)} />}
+            {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
         </div>
     );
 }
@@ -236,7 +255,9 @@ function MenuItem({
             onClick={onClick}
             className={cn(
                 'flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] transition-colors',
-                danger ? 'text-danger-ink hover:bg-danger-soft' : 'text-ink-2 hover:bg-surface-2 hover:text-ink',
+                danger
+                    ? 'text-danger-ink hover:bg-danger-soft'
+                    : 'text-ink-2 hover:bg-surface-2 hover:text-ink',
             )}
         >
             {icon}

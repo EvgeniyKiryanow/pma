@@ -89,7 +89,9 @@ describe('needsUpdate', () => {
     });
 
     it('reports no update when everything matches', () => {
-        expect(needsUpdate({ rank: 'солдат', position: 'стрілець' }, { rank: 'солдат' })).toBe(false);
+        expect(needsUpdate({ rank: 'солдат', position: 'стрілець' }, { rank: 'солдат' })).toBe(
+            false,
+        );
     });
 
     it('detects a value that is missing locally', () => {

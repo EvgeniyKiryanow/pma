@@ -1,9 +1,14 @@
 import { app, BrowserWindow } from 'electron';
+import fsp from 'fs/promises';
+import path from 'path';
 
 import { APP_CHANNELS, APP_EVENTS } from '../../shared/ipc/channels';
 import { AppError } from '../../shared/ipc/result';
+import { chooseSavePath } from '../core/dialogs';
+import { move } from '../core/fsUtils';
 import type { Logger } from '../core/logger';
 import { access, handle, handleResult, listen } from '../ipc/secureHandle';
+import { aboutInfo, supportLog } from './about';
 import type { AppUpdater } from './updater';
 
 /** Window controls of the custom title bar, version info and updates on request. */
@@ -46,6 +51,28 @@ export function registerSystemIpc(
     });
 
     handle(APP_CHANNELS.getVersion, access.public, () => app.getVersion());
+
+    handleResult(APP_CHANNELS.about, access.authenticated, () => aboutInfo());
+
+    handleResult(
+        APP_CHANNELS.saveLog,
+        access.authenticated,
+        async (event) => {
+            const day = new Date().toISOString().slice(0, 10);
+            const target = await chooseSavePath(event.sender, {
+                title: 'Зберегти журнал програми',
+                defaultPath: `pmanager-zhurnal_${day}.txt`,
+                filters: [{ name: 'Текст', extensions: ['txt'] }],
+            });
+            if (!target) throw new AppError('CANCELED');
+            // Written next to the target and renamed: never half a file on the flash drive.
+            const partial = `${target}.partial`;
+            await fsp.writeFile(partial, await supportLog(), 'utf8');
+            await move(partial, target);
+            return { fileName: path.basename(target) };
+        },
+        { audit: 'system.save-log' },
+    );
 
     handleResult(APP_CHANNELS.checkForUpdates, canUpdate, () =>
         updateStep(logger, 'check', () => updater.check()),

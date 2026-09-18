@@ -7,7 +7,11 @@ function formatUtc(year: number, month: number, day: number): string {
     const date = new Date(Date.UTC(year, month - 1, day));
     if (isNaN(date.getTime())) return '';
     // Reject overflowed values like month 15 or day 32.
-    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+    if (
+        date.getUTCFullYear() !== year ||
+        date.getUTCMonth() !== month - 1 ||
+        date.getUTCDate() !== day
+    ) {
         return '';
     }
     return date.toISOString().slice(0, 10);

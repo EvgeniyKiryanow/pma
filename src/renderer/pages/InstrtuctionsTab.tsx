@@ -5,6 +5,7 @@ import {
     Edit3,
     FilePlus,
     FileSpreadsheet,
+    Info,
     KeyRound,
     LifeBuoy,
     ListTree,
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useMemo, useState } from 'react';
 
+import AboutDialog from '../shared/components/AboutDialog';
 import { Button, EmptyState, Modal, SearchInput } from '../shared/ui';
 import PageHeader from '../shared/ui/PageHeader';
 import { HEADER_MAP } from '../shared/utils/headerMap';
@@ -337,6 +339,7 @@ function matches(topic: Topic, query: string): boolean {
 export default function InstructionsTab() {
     const [query, setQuery] = useState('');
     const [showHeaderMap, setShowHeaderMap] = useState(false);
+    const [showAbout, setShowAbout] = useState(false);
     const found = useMemo(() => TOPICS.filter((topic) => matches(topic, query)), [query]);
 
     return (
@@ -425,12 +428,23 @@ export default function InstructionsTab() {
                                 небезпечні дії завжди перепитують. Якщо щось незрозуміло —
                                 зверніться до адміністратора.
                             </p>
+                            <div className="mt-3">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={<Info className="size-4" />}
+                                    onClick={() => setShowAbout(true)}
+                                >
+                                    Про програму і журнал для підтримки
+                                </Button>
+                            </div>
                         </section>
                     )}
                 </div>
             </div>
 
             {showHeaderMap && <HeaderMapModal onClose={() => setShowHeaderMap(false)} />}
+            {showAbout && <AboutDialog onClose={() => setShowAbout(false)} />}
         </div>
     );
 }

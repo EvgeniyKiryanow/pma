@@ -364,6 +364,19 @@ export const foundationEn: typeof foundationUa = {
             currentPassword: 'Current password',
         },
     },
+    about: {
+        title: 'About',
+        version: 'Version',
+        built: 'Built',
+        system: 'System',
+        data: 'Data on this computer',
+        developer: 'Developer',
+        logHint:
+            'The log helps the developer find the cause of a problem. It holds no names or documents, but look through the file before sending it.',
+        saveLog: 'Save the log for support',
+        logSaved: 'Log saved: {{file}}',
+        close: 'Close',
+    },
     backups: {
         title: 'Backups',
         nav: {

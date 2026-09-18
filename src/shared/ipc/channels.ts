@@ -59,6 +59,10 @@ export const APP_CHANNELS = {
     isMaximized: 'app:is-maximized',
     checkForUpdates: 'check-for-updates',
     installUpdate: 'app:install-update',
+    /** «Про програму»: version, build, system, data folder, developer. */
+    about: 'app:about',
+    /** Saves the program log where the person chooses, to send to the developer. */
+    saveLog: 'app:save-log',
 } as const;
 
 /** One-way messages from the renderer (`ipcRenderer.send`, no reply). */

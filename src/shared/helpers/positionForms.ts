@@ -5,7 +5,9 @@ import type { MorphologyWordData } from './generateAndFlattenTitleForms';
  * them ("повна посада називний/родовий/давальний/орудний"), so reports use the exact wording
  * the unit uses. Missing cases fall back to the closest available form.
  */
-export function buildPositionForms(user: Record<string, any> | null | undefined): MorphologyWordData {
+export function buildPositionForms(
+    user: Record<string, any> | null | undefined,
+): MorphologyWordData {
     const nominative = String(user?.positionNominative || user?.position || '').trim();
     if (!nominative) return {};
 

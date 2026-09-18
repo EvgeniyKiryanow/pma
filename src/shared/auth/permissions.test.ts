@@ -26,7 +26,9 @@ describe('permission registry', () => {
     it('dependencies reference existing permissions', () => {
         for (const permission of PERMISSION_DEFINITIONS) {
             for (const required of permission.requires) {
-                expect(isPermissionKey(required), `${permission.key} requires ${required}`).toBe(true);
+                expect(isPermissionKey(required), `${permission.key} requires ${required}`).toBe(
+                    true,
+                );
             }
         }
     });
