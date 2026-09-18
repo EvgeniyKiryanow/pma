@@ -1,7 +1,7 @@
 {
   "name": "p-manager",
   "productName": "p-manager",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "description": "Облік особового складу підрозділу — працює без мережі",
   "main": ".vite/build/main.js",
   "homepage": "https://github.com/EvgeniyKiryanow/pma",
