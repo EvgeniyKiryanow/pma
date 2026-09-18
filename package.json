@@ -2,8 +2,16 @@
   "name": "p-manager",
   "productName": "p-manager",
   "version": "1.6.0",
-  "description": "PManager for managering",
+  "description": "Облік особового складу підрозділу — працює без мережі",
   "main": ".vite/build/main.js",
+  "homepage": "https://github.com/EvgeniyKiryanow/pma",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EvgeniyKiryanow/pma.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "watch:main": "vite build --watch --config vite.main.ts",
     "watch:preload": "vite build --watch --config vite.preload.ts",
@@ -18,83 +26,20 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src",
     "analyze": "cross-env ANALYZE=1 vite build --config vite.renderer.ts",
-    "pack": "electron-builder --dir",
+    "pack": "npm run build && electron-builder --dir",
     "dist": "electron-builder",
-    "release": "npm run build && npm run dist",
+    "release": "npm run build && electron-builder --publish never",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run typecheck && npm run lint && npm test && npm run build"
-  },
-  "build": {
-    "appId": "com.your.app",
-    "productName": "PManager",
-    "directories": {
-      "buildResources": "assets/icons",
-      "output": "dist"
-    },
-    "files": [
-      "renderer_dist/**/*",
-      ".vite/build/**/*",
-      "assets/icons/**/*",
-      "assets/templates/**/*",
-      "package.json"
-    ],
-    "asarUnpack": [
-      "node_modules/sqlite3/**",
-      "assets/templates/**"
-    ],
-    "mac": {
-      "category": "public.app-category.utilities",
-      "icon": "assets/icons/appIcon.icns",
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "artifactName": "PManager-${version}-mac.${ext}"
-    },
-    "win": {
-      "icon": "assets/icons/appIcon.ico",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "PManager"
-    },
-    "linux": {
-      "icon": "assets/icons/appIcon.png",
-      "target": [
-        "AppImage"
-      ]
-    },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "EvgeniyKiryanow",
-        "repo": "pma",
-        "releaseType": "release"
-      }
-    ]
+    "verify": "npm run typecheck && npm run lint && npm test && npm run build",
+    "smoke": "node scripts/smoke.mjs",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux",
+    "preversion": "npm run verify",
+    "release:patch": "npm version patch -m \"Release v%s\"",
+    "release:minor": "npm version minor -m \"Release v%s\"",
+    "release:major": "npm version major -m \"Release v%s\""
   },
   "keywords": [],
   "author": {

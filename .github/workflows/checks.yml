@@ -1,37 +1,65 @@
 name: Checks
 
-# Runs on every push and pull request so broken types, lint errors or failing tests
-# never reach a release build.
+# Every push and pull request: types, lint, tests and a start of the built app on Windows,
+# macOS and Linux. The release workflow runs the same checks before it builds installers.
 on:
   push:
-    branches-ignore:
-      - 'gh-pages'
+    branches: ['**']
   pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  checks:
-    runs-on: windows-latest
-
+  static:
+    name: Types and lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: .nvmrc
           cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
 
-      - name: Install dependencies
-        run: npm ci
+  test:
+    name: Tests and start (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Windows, os: windows-latest }
+          - { name: macOS, os: macos-14 }
+          - { name: Linux, os: ubuntu-latest }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
 
-      - name: Typecheck
-        run: npm run typecheck
+      # Ubuntu 24.04 forbids the user namespaces Chromium's sandbox needs unless the app has an
+      # AppArmor profile (the .deb installs one); the unpacked dev copy has none.
+      - name: Allow the Chromium sandbox (Linux)
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Tests
-        run: npm test
-
-      - name: Build
-        run: npm run build
+      - name: Start the app (fresh install and upgrade of an old database)
+        if: runner.os != 'Linux'
+        run: npm run smoke
+      - name: Start the app (fresh install and upgrade of an old database)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run smoke

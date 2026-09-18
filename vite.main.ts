@@ -14,7 +14,7 @@ export default defineConfig({
         sourcemap: true,
         rollupOptions: {
             input: path.resolve(__dirname, 'src/main/main.ts'),
-            external: ['electron', 'sqlite3'],
+            external: ['electron'],
             output: {
                 entryFileNames: 'main.js',
                 format: 'cjs',

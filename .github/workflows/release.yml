@@ -1,0 +1,153 @@
+name: Release
+
+# Tag `vX.Y.Z` (npm run release:patch|minor|major, then git push --follow-tags):
+#   checks → draft release → installers for Windows, macOS and Linux uploaded into the draft
+#   → checksums → the release is published. Installed copies see the update only after the
+#   last step, so a failed build never reaches users (the draft stays for inspection).
+# Run manually (Actions → Release → Run workflow): builds every installer as a workflow
+# artifact and publishes nothing — for testing a build on all systems.
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  draft:
+    name: Create draft release
+    if: github.ref_type == 'tag'
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag matches package.json
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+      - name: Create the draft
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists"
+            exit 0
+          fi
+          prerelease=""
+          case "$GITHUB_REF_NAME" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag --generate-notes \
+            --title "PManager ${GITHUB_REF_NAME#v}" $prerelease
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: [checks, draft]
+    if: ${{ !cancelled() && needs.checks.result == 'success' && needs.draft.result != 'failure' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Windows, os: windows-latest, target: --win }
+          - { name: macOS, os: macos-14, target: --mac }
+          - { name: Linux, os: ubuntu-latest, target: --linux }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      # Signing is optional: without these secrets the installers are unsigned. Only secrets
+      # that exist are passed on (electron-builder treats an empty value as a broken one).
+      - name: Code signing
+        shell: bash
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          pass() { if [ -n "${!1}" ]; then echo "$1=${!1}" >> "$GITHUB_ENV"; fi; }
+          case "$RUNNER_OS" in
+            Windows) pass WIN_CSC_LINK; pass WIN_CSC_KEY_PASSWORD ;;
+            macOS)
+              pass CSC_LINK; pass CSC_KEY_PASSWORD
+              pass APPLE_ID; pass APPLE_APP_SPECIFIC_PASSWORD; pass APPLE_TEAM_ID
+              if [ -z "$CSC_LINK" ]; then echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"; fi
+              ;;
+          esac
+
+      - name: Package${{ github.ref_type == 'tag' && ' and upload to the draft' || '' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          npx electron-builder ${{ matrix.target }}
+          --publish ${{ github.ref_type == 'tag' && 'always' || 'never' }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PManager-${{ matrix.name }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.blockmap
+            dist/latest*.yml
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish release
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      # Installers are carried between offline computers; the checksums let the receiving
+      # side confirm the file is the published one.
+      - name: Checksums
+        working-directory: dist
+        run: |
+          sha256sum *.exe *.dmg *.zip *.AppImage *.deb > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Publish
+        run: |
+          gh release upload "$GITHUB_REF_NAME" dist/SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
+          # Installed copies take the release GitHub marks as latest (drafts and pre-releases
+          # are invisible to them).
+          latest="--latest"
+          case "$GITHUB_REF_NAME" in *-*) latest="" ;; esac
+          gh release edit "$GITHUB_REF_NAME" --draft=false $latest --repo "$GITHUB_REPOSITORY"
