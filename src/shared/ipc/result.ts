@@ -23,6 +23,8 @@ export const ERROR_CODES = [
     'NOTHING_SELECTED',
     'DATA_LOCKED',
     'UPDATE_FAILED',
+    /** A disk operation failed for a reason the person can fix (space, write protection...). */
+    'STORAGE',
     'INTERNAL',
 ] as const;
 

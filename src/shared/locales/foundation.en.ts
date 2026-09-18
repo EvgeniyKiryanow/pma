@@ -146,6 +146,7 @@ export const foundationEn: typeof foundationUa = {
         NOTHING_SELECTED: 'Select a file first',
         DATA_LOCKED:
             'The data on this computer is encrypted. Sign in with your PManager login and password to open it',
+        STORAGE: 'Could not read or write the file on the disk or flash drive',
         UPDATE_FAILED:
             'Could not get the update. Check the internet connection or download the installer manually',
         INTERNAL: 'Something went wrong. Details were written to the application log',

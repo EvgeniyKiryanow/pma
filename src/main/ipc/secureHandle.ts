@@ -12,6 +12,7 @@ import {
 import { type Session, sessionManager } from '../auth/SessionManager';
 import { createLogger } from '../core/logger';
 import { isAppPageUrl } from '../core/paths';
+import { storageError } from '../core/storageErrors';
 
 const logger = createLogger('ipc');
 
@@ -215,6 +216,12 @@ export function handleResult<T>(
                 return ok(await handler(event, ...args));
             } catch (err) {
                 if (err instanceof AppError) return fail(err.code, err.message, err.details);
+                // A full or write-protected drive, a file open elsewhere: say so plainly.
+                const storage = storageError(err);
+                if (storage) {
+                    logger.warn(`${channel}: ${String(storage.details?.reason)} on disk`, err);
+                    return fail(storage.code, storage.message, storage.details);
+                }
                 logger.error(`Unhandled error in ${channel}`, err);
                 return fail('INTERNAL');
             }
