@@ -8,6 +8,7 @@ import type {
     ImportSelection,
     ResetOptions,
     ResetResult,
+    RestoreRequest,
     RestoreResult,
     SnapshotInfo,
 } from '../../shared/backup/types';
@@ -22,7 +23,8 @@ export const backupApi = {
     selectImportFile: () => invoke<Result<ImportSelection>>(BACKUP_CHANNELS.selectImportFile),
     inspect: (password: string) =>
         invoke<Result<ImportInspection>>(BACKUP_CHANNELS.inspect, password),
-    restore: () => invoke<Result<RestoreResult>>(BACKUP_CHANNELS.restore),
+    restore: (request?: RestoreRequest) =>
+        invoke<Result<RestoreResult>>(BACKUP_CHANNELS.restore, request),
     getSettings: () => invoke<Result<BackupSettings>>(BACKUP_CHANNELS.getSettings),
     updateSettings: (patch: BackupSettingsPatch) =>
         invoke<Result<BackupSettings>>(BACKUP_CHANNELS.updateSettings, patch),

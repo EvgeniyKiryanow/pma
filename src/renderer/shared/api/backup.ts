@@ -6,6 +6,7 @@ import type {
     ImportSelection,
     ResetOptions,
     ResetResult,
+    RestoreRequest,
     RestoreResult,
     SnapshotInfo,
 } from '../../../shared/backup/types';
@@ -21,7 +22,8 @@ export const backupApi = {
     selectImportFile: (): Promise<ImportSelection> => unwrap(bridge().backup.selectImportFile()),
     inspect: (password: string): Promise<ImportInspection> =>
         unwrap(bridge().backup.inspect(password)),
-    restore: (): Promise<RestoreResult> => unwrap(bridge().backup.restore()),
+    restore: (request?: RestoreRequest): Promise<RestoreResult> =>
+        unwrap(bridge().backup.restore(request)),
     getSettings: (): Promise<BackupSettings> => unwrap(bridge().backup.getSettings()),
     updateSettings: (patch: BackupSettingsPatch): Promise<BackupSettings> =>
         unwrap(bridge().backup.updateSettings(patch)),

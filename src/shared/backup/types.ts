@@ -39,8 +39,18 @@ export type ImportInspection = {
     willMigrate: boolean;
     personnelCount: number;
     accountCount: number;
+    /** Logins of the active accounts in the backup (to know which one to sign in with). */
+    accountLogins?: string[];
     /** Login of the signed-in administrator, who keeps signing in after the restore. */
     keepsAccount?: string | null;
+};
+
+/**
+ * On a computer without accounts (the setup screen) the person restoring names the
+ * administrator who signs in afterwards; they are added to the restored accounts.
+ */
+export type RestoreRequest = {
+    administrator?: { username: string; password: string };
 };
 
 export type RestoreResult = {

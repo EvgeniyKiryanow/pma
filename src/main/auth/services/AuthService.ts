@@ -11,6 +11,7 @@ import type { RecoveryCodes } from '../RecoveryCodes';
 import type { AccountRepository, AccountRow } from '../repositories/AccountRepository';
 import type { RoleRepository } from '../repositories/RoleRepository';
 import { type SessionManager, toSessionInfo } from '../SessionManager';
+import type { KeptAccount } from './AccountService';
 import type { SessionFactory } from './SessionFactory';
 import { normalizeUsername, validateDisplayName, validateUsername } from './validation';
 
@@ -80,6 +81,24 @@ export class AuthService {
         await this.keyring.remember(username, input.password);
         const session = await this.startSession(sender, await this.requireAccount(accountId));
         return { session, recoveryCode };
+    }
+
+    /**
+     * The administrator named on the restore of a computer without accounts: checked like the
+     * first administrator, nothing is written here (BackupService adds it to the restored data).
+     */
+    async prepareAdministrator(input: {
+        username?: unknown;
+        password?: unknown;
+    }): Promise<KeptAccount> {
+        const username = validateUsername(input?.username);
+        this.policy.assertValid(input?.password);
+        return {
+            username,
+            displayName: username,
+            passwordHash: await this.hasher.hash(input.password as string),
+            recoveryCodeHash: null,
+        };
     }
 
     async login(

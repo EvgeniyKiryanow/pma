@@ -55,6 +55,7 @@ export function createContainer() {
             const session = sessionManager.get(sender);
             return session ? auth.accounts.credentials(session.accountId) : null;
         },
+        newAdministrator: (input) => auth.auth.prepareAdministrator(input),
         onDataReplaced: () => settings.settings.forget(),
         clearBrowserData,
         destroyLogs: destroyLogFiles,

@@ -422,6 +422,15 @@ export const foundationEn: typeof foundationUa = {
             keepsAccount:
                 'Your account "{{login}}" stays: after restoring, sign in with your own login and password. The accounts from the backup work too.',
             accountsFromCopy: 'After restoring, sign in with an account from the backup.',
+            administratorTitle: 'Who signs in after the restore',
+            administratorHint:
+                'Set the administrator login and password you will sign in with after the restore. You may use your login from the backup: it gets this new password.',
+            accountLogins: 'Logins in the backup: {{logins}}',
+            administratorLogin: 'Administrator login',
+            administratorPassword: 'Password',
+            administratorConfirm: 'Repeat the password',
+            administratorAfter:
+                'After restoring, sign in as "{{login}}" with this password. The accounts from the backup work too.',
             restore: 'Restore data',
             cancel: 'Cancel',
         },

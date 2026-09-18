@@ -195,6 +195,7 @@ export class BackupService {
             willMigrate: dbInfo.schemaVersion < this.deps.migrations.latestVersion,
             personnelCount: dbInfo.personnel,
             accountCount: dbInfo.accounts,
+            accountLogins: dbInfo.logins,
         };
         return pending.inspection;
     }
@@ -464,7 +465,7 @@ export class BackupService {
     private async validateDatabase(
         file: string,
         key: string | null | undefined,
-    ): Promise<{ schemaVersion: number; personnel: number; accounts: number }> {
+    ): Promise<{ schemaVersion: number; personnel: number; accounts: number; logins: string[] }> {
         let db: Db | undefined;
         try {
             db = this.openCopy(file, key);
@@ -480,12 +481,24 @@ export class BackupService {
                 throw new AppError('SCHEMA_TOO_NEW', undefined, { schemaVersion: version });
             }
             const counts = await this.countRecordsIn(db);
-            return { schemaVersion: version, ...counts };
+            return { schemaVersion: version, ...counts, logins: await this.loginsIn(db) };
         } catch (err) {
             if (err instanceof AppError) throw err;
             throw new AppError('CORRUPTED', 'Файл не є коректною базою даних PManager');
         } finally {
             await db?.close();
+        }
+    }
+
+    /** Active logins of a backup (old copies without the accounts table have none). */
+    private async loginsIn(db: Db): Promise<string[]> {
+        try {
+            const rows = await db.all<{ username: string }[]>(
+                'SELECT username FROM accounts WHERE is_active = 1 ORDER BY id',
+            );
+            return rows.map((row) => row.username);
+        } catch {
+            return [];
         }
     }
 

@@ -2,6 +2,7 @@ import { app, type WebContents } from 'electron';
 import path from 'path';
 
 import type { BackupSettings } from '../../shared/backup/types';
+import { AppError } from '../../shared/ipc/result';
 import { defineModule, type ModuleContext } from '../app/module';
 import type { KeptAccount } from '../auth/services/AccountService';
 import type { SessionManager } from '../auth/SessionManager';
@@ -34,6 +35,8 @@ type BackupModuleDeps = {
     hasAccounts: () => Promise<boolean>;
     /** The administrator restoring a backup keeps their login (see BackupService). */
     accountToKeep?: (sender: WebContents) => Promise<KeptAccount | null>;
+    /** Checks the administrator named on a restore of a computer without accounts. */
+    newAdministrator?: (input: { username?: unknown; password?: unknown }) => Promise<KeptAccount>;
     onDataReplaced?: () => void;
     clearBrowserData?: () => Promise<void>;
     destroyLogs?: () => Promise<number>;
@@ -83,6 +86,11 @@ export function createBackupModule(context: ModuleContext, deps: BackupModuleDep
                 scheduler,
                 hasAccounts: deps.hasAccounts,
                 accountToKeep: deps.accountToKeep ?? (async () => null),
+                newAdministrator:
+                    deps.newAdministrator ??
+                    (async () => {
+                        throw new AppError('INTERNAL', 'No administrator factory');
+                    }),
                 uninstaller,
             }),
     });

@@ -1,10 +1,18 @@
 import { FileSearch, FolderOpen, RotateCcw } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
+import { PASSWORD_RULES } from '../../../../shared/auth/types';
 import type { ImportInspection, ImportSelection } from '../../../../shared/backup/types';
 import { backupApi } from '../../../shared/api/backup';
 import { ApiError, errorMessage } from '../../../shared/api/call';
-import { Alert, Button, formatBytes, formatDateTime, PasswordField } from '../../../shared/ui';
+import {
+    Alert,
+    Button,
+    formatBytes,
+    formatDateTime,
+    PasswordField,
+    TextField,
+} from '../../../shared/ui';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useOpenedBackupStore } from '../model/openedBackup';
 
@@ -20,6 +28,14 @@ export default function RestoreBackupFlow({ onCancel }: { onCancel?: () => void 
     const [inspection, setInspection] = useState<ImportInspection | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState<'select' | 'inspect' | 'restore' | null>(null);
+    // A computer without accounts: the administrator who signs in after the restore.
+    const [adminLogin, setAdminLogin] = useState('');
+    const [adminPassword, setAdminPassword] = useState('');
+    const [adminConfirm, setAdminConfirm] = useState('');
+    const needsAdministrator = !!inspection && !inspection.keepsAccount;
+    const adminMismatch = adminConfirm.length > 0 && adminConfirm !== adminPassword;
+    const adminReady =
+        adminLogin.trim().length > 0 && adminPassword.length > 0 && adminConfirm === adminPassword;
 
     const run = async (step: 'select' | 'inspect' | 'restore', work: () => Promise<void>) => {
         setError(null);
@@ -69,7 +85,11 @@ export default function RestoreBackupFlow({ onCancel }: { onCancel?: () => void 
 
     const restore = () =>
         run('restore', async () => {
-            await backupApi.restore();
+            await backupApi.restore(
+                needsAdministrator
+                    ? { administrator: { username: adminLogin.trim(), password: adminPassword } }
+                    : undefined,
+            );
             // Sessions were ended by the main process; start clean on the login screen.
             window.location.reload();
         });
@@ -163,11 +183,54 @@ export default function RestoreBackupFlow({ onCancel }: { onCancel?: () => void 
                     {inspection.includesFiles && inspection.willMigrate && (
                         <Alert tone="info">{t('backups.full.willMigrate')}</Alert>
                     )}
+                    {needsAdministrator && (
+                        <div className="space-y-3 rounded-lg border border-line bg-surface p-3">
+                            <div>
+                                <p className="text-sm font-semibold text-ink">
+                                    {t('backups.full.administratorTitle')}
+                                </p>
+                                <p className="mt-0.5 text-[13px] text-ink-2">
+                                    {t('backups.full.administratorHint')}
+                                </p>
+                                {!!inspection.accountLogins?.length && (
+                                    <p className="mt-1 text-[13px] text-ink-3">
+                                        {t('backups.full.accountLogins', {
+                                            logins: inspection.accountLogins.join(', '),
+                                        })}
+                                    </p>
+                                )}
+                            </div>
+                            <TextField
+                                label={t('backups.full.administratorLogin')}
+                                value={adminLogin}
+                                onChange={(e) => setAdminLogin(e.target.value)}
+                                autoComplete="off"
+                                required
+                            />
+                            <PasswordField
+                                label={t('backups.full.administratorPassword')}
+                                hint={t('auth.passwordHint', { min: PASSWORD_RULES.minLength })}
+                                value={adminPassword}
+                                minLength={PASSWORD_RULES.minLength}
+                                onChange={(e) => setAdminPassword(e.target.value)}
+                                required
+                            />
+                            <PasswordField
+                                label={t('backups.full.administratorConfirm')}
+                                value={adminConfirm}
+                                error={adminMismatch ? t('auth.passwordMismatch') : null}
+                                onChange={(e) => setAdminConfirm(e.target.value)}
+                                required
+                            />
+                        </div>
+                    )}
                     <Alert tone="warning">
                         {t('backups.full.restoreWarning')}{' '}
                         {inspection.keepsAccount
                             ? t('backups.full.keepsAccount', { login: inspection.keepsAccount })
-                            : t('backups.full.accountsFromCopy')}
+                            : t('backups.full.administratorAfter', {
+                                  login: adminLogin.trim() || '…',
+                              })}
                     </Alert>
                     <div className="flex flex-wrap justify-end gap-2">
                         <Button
@@ -183,6 +246,7 @@ export default function RestoreBackupFlow({ onCancel }: { onCancel?: () => void 
                         <Button
                             variant="danger"
                             onClick={restore}
+                            disabled={needsAdministrator && !adminReady}
                             loading={busy === 'restore'}
                             icon={<RotateCcw className="h-4 w-4" />}
                         >

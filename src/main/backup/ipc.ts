@@ -7,6 +7,7 @@ import {
     type BackupSettings,
     type BackupSettingsPatch,
     type ResetOptions,
+    RestoreRequest,
 } from '../../shared/backup/types';
 import { BACKUP_CHANNELS } from '../../shared/ipc/channels';
 import { AppError } from '../../shared/ipc/result';
@@ -27,6 +28,7 @@ type Deps = {
     hasAccounts: () => Promise<boolean>;
     /** The signed-in account of the window (null on a fresh install: nobody to keep). */
     accountToKeep: (sender: WebContents) => Promise<KeptAccount | null>;
+    newAdministrator: (input: { username?: unknown; password?: unknown }) => Promise<KeptAccount>;
     uninstaller: Uninstaller;
 };
 
@@ -61,6 +63,7 @@ export function registerBackupIpc({
     scheduler,
     hasAccounts,
     accountToKeep,
+    newAdministrator,
     uninstaller,
 }: Deps): void {
     // Restoring is also allowed on a fresh install (no accounts yet), so a new computer can be
@@ -122,10 +125,21 @@ export function registerBackupIpc({
     handleResult(
         BACKUP_CHANNELS.restore,
         canImport,
-        async (event) =>
-            backups.restoreImport(event.sender.id, {
-                keepAccount: await accountToKeep(event.sender),
-            }),
+        async (event, request?: RestoreRequest) => {
+            let keepAccount = await accountToKeep(event.sender);
+            // A computer without accounts (the setup screen): the person restoring names the
+            // administrator. Whoever has the backup password can read all of its data anyway;
+            // without this only the logins and passwords of the backup would open it, and a
+            // forgotten one would lock the restored data away. Checked before anything changes.
+            if (!keepAccount && !(await hasAccounts())) {
+                const administrator = request?.administrator;
+                if (!administrator || typeof administrator !== 'object') {
+                    throw new AppError('VALIDATION', undefined, { field: 'administrator' });
+                }
+                keepAccount = await newAdministrator(administrator);
+            }
+            return backups.restoreImport(event.sender.id, { keepAccount });
+        },
         { audit: 'backup.restore' },
     );
 
