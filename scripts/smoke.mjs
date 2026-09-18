@@ -6,6 +6,8 @@
  *   npm run build && npm run smoke
  *
  * Linux CI needs a display: `xvfb-run -a npm run smoke`.
+ * 32-bit Windows (after scripts/prepare-ia32.mjs): `npm run smoke -- --arch=ia32` downloads
+ * the 32-bit Electron and starts the app in it.
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -14,7 +16,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const electron = (await import('electron')).default; // path to the binary
+const arch = process.argv.find((arg) => arg.startsWith('--arch='))?.slice('--arch='.length);
+const electron =
+    arch && arch !== process.arch ? await electronFor(arch) : (await import('electron')).default;
 const fixtures = path.join(root, 'fixtures', 'db');
 const oldest = fs.readdirSync(fixtures).filter((f) => f.endsWith('.sqlite')).sort()[0];
 
@@ -57,3 +61,30 @@ try {
 }
 
 process.exit(failed ? 1 : 0);
+
+/** Electron of another architecture (same version), unpacked once into the temp folder. */
+async function electronFor(targetArch) {
+    const { createRequire } = await import('node:module');
+    const require = createRequire(import.meta.url);
+    const version = require('electron/package.json').version;
+    const dir = path.join(os.tmpdir(), `pma-electron-${version}-${process.platform}-${targetArch}`);
+    const binary = path.join(dir, process.platform === 'win32' ? 'electron.exe' : 'electron');
+    if (!fs.existsSync(binary)) {
+        const { downloadArtifact } = require('@electron/get');
+        const zip = await downloadArtifact({
+            version,
+            artifactName: 'electron',
+            platform: process.platform,
+            arch: targetArch,
+        });
+        fs.mkdirSync(dir, { recursive: true });
+        // Windows' bsdtar reads zip files (extract-zip hangs on current Node versions).
+        const unpack =
+            process.platform === 'win32'
+                ? spawnSync(path.join(process.env.SystemRoot, 'System32', 'tar.exe'), ['-xf', zip, '-C', dir])
+                : spawnSync('unzip', ['-q', '-o', zip, '-d', dir]);
+        if (unpack.status !== 0) throw new Error(`Cannot unpack ${zip}: ${unpack.stderr}`);
+    }
+    console.log(`Electron ${version} ${targetArch}: ${binary}`);
+    return binary;
+}

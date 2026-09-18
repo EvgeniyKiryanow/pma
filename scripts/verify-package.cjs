@@ -69,8 +69,22 @@ module.exports = async function verifyPackage(context) {
     // SQLite driver: the binary for this system, unpacked (Node cannot load it from asar),
     // and no binaries of other systems.
     const driver = 'node_modules/better-sqlite3-multiple-ciphers/prebuilds';
+    const compiled = 'node_modules/better-sqlite3-multiple-ciphers/build/Release/better_sqlite3.node';
     const binary = `${platform}-${arch}.node`;
-    expect(isUnpacked(`${driver}/${binary}`), `SQLite driver binary ${binary} is missing`);
+    if (COMPILED_DRIVER.has(`${platform}-${arch}`)) {
+        // No prebuilt binary for this system: scripts/prepare-ia32.mjs compiled one.
+        expect(isUnpacked(compiled), `compiled SQLite driver is missing (run scripts/prepare-ia32.mjs)`);
+        if (isUnpacked(compiled)) {
+            const machine = peMachine(path.join(unpacked, compiled));
+            expect(machine === PE_MACHINE[arch], `compiled SQLite driver is not ${arch} (${machine})`);
+        }
+    } else {
+        expect(isUnpacked(`${driver}/${binary}`), `SQLite driver binary ${binary} is missing`);
+        expect(
+            !isUnpacked(compiled) && !inArchive(compiled),
+            `a compiled driver from another build is packaged: delete ${compiled.replace(/\/better_sqlite3.node$/, '')}`,
+        );
+    }
     const shipped = [
         ...packed,
         ...listFiles(path.join(unpacked, driver)).map((file) => `/${driver}/${file}`),
@@ -78,7 +92,12 @@ module.exports = async function verifyPackage(context) {
         .filter((file) => file.startsWith(`/${driver}/`) && file.endsWith('.node'))
         .map((file) => path.posix.basename(file));
     const foreign = [...new Set(shipped)].filter((file) => file !== binary);
+    // (For a compiled driver no prebuilt binary is expected at all.)
     expect(!foreign.length, `binaries of other systems are packaged: ${foreign.join(', ')}`);
+
+    const koffiBinaries = listFiles(path.join(unpacked, 'node_modules', '@koromix'));
+    const otherKoffi = koffiBinaries.filter((name) => name !== `koffi-${platform}-${arch}`);
+    expect(!otherKoffi.length, `koffi binaries of other systems are packaged: ${otherKoffi.join(', ')}`);
 
     // Windows only: DPAPI and the private clipboard go through koffi.
     if (platform === 'win32') {
@@ -97,6 +116,18 @@ module.exports = async function verifyPackage(context) {
     }
     console.log(`  • package check passed  platform=${platform} arch=${arch}`);
 };
+
+/** Systems whose SQLite driver is compiled here because the package has no prebuilt one. */
+const COMPILED_DRIVER = new Set(['win32-ia32']);
+const PE_MACHINE = { ia32: 'x86', x64: 'x64', arm64: 'arm64' };
+
+/** CPU a Windows DLL (.node) was built for, read from its PE header. */
+function peMachine(file) {
+    const bytes = fs.readFileSync(file);
+    const pe = bytes.readUInt32LE(0x3c);
+    const code = bytes.readUInt16LE(pe + 4);
+    return { 0x14c: 'x86', 0x8664: 'x64', 0xaa64: 'arm64' }[code] ?? `0x${code.toString(16)}`;
+}
 
 function listFiles(dir) {
     return fs.existsSync(dir) ? fs.readdirSync(dir) : [];

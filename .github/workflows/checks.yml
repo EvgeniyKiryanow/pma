@@ -21,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -36,14 +36,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: Windows, os: windows-latest }
+          # windows-2022: node-gyp (run by npm ci for the SQLite driver) does not recognise the
+          # newer Visual Studio on windows-latest yet.
+          - { name: Windows, os: windows-2022 }
           - { name: macOS, os: macos-14 }
           - { name: Linux, os: ubuntu-latest }
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -63,3 +65,24 @@ jobs:
       - name: Start the app (fresh install and upgrade of an old database)
         if: runner.os == 'Linux'
         run: xvfb-run -a npm run smoke
+
+  windows-32:
+    name: Start and package (Windows 32-bit)
+    # windows-2022: Visual Studio 2022 compiles the 32-bit SQLite driver (node-gyp does not
+    # recognise the newer Visual Studio on windows-latest yet).
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: 32-bit native modules
+        run: node scripts/prepare-ia32.mjs
+      - name: Start the app in 32-bit Electron
+        run: npm run smoke -- --arch=ia32
+      - name: Package (checks the 32-bit binaries)
+        run: npx electron-builder --win --ia32 --dir --config electron-builder.ia32.yml

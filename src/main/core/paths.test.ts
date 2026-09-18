@@ -19,7 +19,13 @@ describe('resolveInside', () => {
     });
 
     it('refuses an absolute path', () => {
-        expect(() => resolveInside(base, 'C:/windows/system32')).toThrow();
+        // `/windows/system32` on macOS/Linux, `C:\windows\system32` on Windows.
+        const absolute = path.join(path.parse(base).root, 'windows', 'system32');
+        expect(() => resolveInside(base, absolute)).toThrow();
+    });
+
+    it.runIf(process.platform === 'win32')('refuses a path on another drive', () => {
+        expect(() => resolveInside(base, 'D:/windows/system32')).toThrow();
     });
 
     it('refuses the base folder itself', () => {

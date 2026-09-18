@@ -33,7 +33,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Tag matches package.json
         run: |
           version=$(node -p "require('./package.json').version")
@@ -60,7 +60,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: Windows, os: windows-latest, target: --win }
+          # windows-2022: Visual Studio 2022 for node-gyp (32-bit SQLite driver).
+          - { name: Windows, os: windows-2022, target: --win --x64 }
           - { name: macOS, os: macos-14, target: --mac }
           - { name: Linux, os: ubuntu-latest, target: --linux }
     runs-on: ${{ matrix.os }}
@@ -68,8 +69,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -107,7 +108,21 @@ jobs:
           npx electron-builder ${{ matrix.target }}
           --publish ${{ github.ref_type == 'tag' && 'always' || 'never' }}
 
-      - uses: actions/upload-artifact@v4
+      # 32-bit Windows 10: separate installer and update channel (ia32.yml), built after the
+      # x64 one so no 32-bit file can end up in it.
+      - name: 32-bit native modules
+        if: runner.os == 'Windows'
+        run: node scripts/prepare-ia32.mjs
+      - name: Package 32-bit${{ github.ref_type == 'tag' && ' and upload to the draft' || '' }}
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          npx electron-builder --win --ia32 --config electron-builder.ia32.yml
+          --publish ${{ github.ref_type == 'tag' && 'always' || 'never' }}
+
+      - uses: actions/upload-artifact@v7
         with:
           name: PManager-${{ matrix.name }}
           path: |
@@ -118,6 +133,7 @@ jobs:
             dist/*.deb
             dist/*.blockmap
             dist/latest*.yml
+            dist/ia32.yml
           if-no-files-found: error
           retention-days: 14
 
@@ -132,7 +148,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
