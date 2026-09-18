@@ -1,3 +1,7 @@
+import { currentStatusName, STATUS_COLUMNS } from '../../shared/helpers/statusNames';
+
+const STATUS_FIELDS = new Set<string>(STATUS_COLUMNS);
+
 /**
  * Columns of `users` that the application writes. SQL for inserts/updates is generated from
  * this list (never from keys of incoming objects), so it stays safe and in one place.
@@ -91,6 +95,8 @@ export function userToRow(
         const value = user[field];
         if (JSON_FIELDS.has(field)) return JSON.stringify(value || []);
         if (field === 'hasCriminalRecord') return value ? 1 : 0;
+        // An old spelling from Excel or an older version is stored under the current name.
+        if (STATUS_FIELDS.has(field)) return currentStatusName(value);
         return value;
     });
 }

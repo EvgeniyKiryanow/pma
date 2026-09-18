@@ -126,7 +126,7 @@ export const REPORT_COLUMNS: ReportColumn[] = [
     status('oNPostition', 'На позиції', [S.POSITIONS_INFANTRY, S.POSITIONS_BRONEGROUP], {
         fill: '#9fce63',
     }),
-    status('positionsBronegroup', 'Бронєгрупа', [S.POSITIONS_BRONEGROUP], { fill: '#d7dce3' }),
+    status('positionsBronegroup', 'Бронегрупа', [S.POSITIONS_BRONEGROUP], { fill: '#d7dce3' }),
     status('positionsInfantry', 'Позиції піхоти', [S.POSITIONS_INFANTRY], { fill: '#d7dce3' }),
     status('positionsCrew', 'Позиції — екіпаж', [S.POSITIONS_CREW], { fill: '#eab38a' }),
     status('positionsCalc', 'Позиції — розрахунок', [S.POSITIONS_CALCULATION], {

@@ -164,7 +164,7 @@ export async function generateAlternateCombatReportExcelTemplate(report: Alterna
     // === "З НИХ" group ===
     const znukhColumns = [
         { label: 'НА ПОЗИЦІЇ', bg: '#9fce63' },
-        { label: 'БРОНЄГРУПА', bg: '#d7dce3' },
+        { label: 'БРОНЕГРУПА', bg: '#d7dce3' },
         { label: 'ПОЗИЦІЇ ПІХОТИ', bg: '#d7dce3' },
         { label: 'ПОЗИЦІЇ ЕКІПАЖ', bg: '#eab38a' },
         { label: 'ПОЗИЦІЇ РОЗРАХУНОК', bg: '#eab38a' },

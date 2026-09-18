@@ -266,7 +266,7 @@ function AlternateCombatReportHeadDetails() {
         { label: 'Сержанти/Солдати', backgroundColor: '#f8da78', rightBorder: true },
         // З НИХ
         { label: 'НА ПОЗИЦІЇ', backgroundColor: '#9fce63', bold: true, leftBorder: true },
-        { label: 'БРОНЄГРУПА', backgroundColor: '#d7dce3', bold: true },
+        { label: 'БРОНЕГРУПА', backgroundColor: '#d7dce3', bold: true },
         { label: 'ПОЗИЦІЇ ПІХОТИ', backgroundColor: '#d7dce3', bold: true },
         { label: 'ПОЗИЦІЇ ЕКІПАЖ', backgroundColor: '#eab38a', bold: true },
         { label: 'ПОЗИЦІЇ РОЗРАХУНОК', backgroundColor: '#eab38a', bold: true },
@@ -315,7 +315,7 @@ function AlternateCombatReportHeadDetails() {
                     'Всього за списком',
                     'Всього в наявності',
                     'НА ПОЗИЦІЇ',
-                    'БРОНЄГРУПА',
+                    'БРОНЕГРУПА',
                     'РЕЗЕРВ ПІХОТА',
                     'ПОЗИЦІЇ ПІХОТИ',
                     'ПОЗИЦІЇ ЕКІПАЖ',
