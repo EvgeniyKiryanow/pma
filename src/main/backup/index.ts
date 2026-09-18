@@ -21,6 +21,8 @@ import { Uninstaller } from './Uninstaller';
 const DEFAULT_SETTINGS: BackupSettings = {
     autoBackup: { enabled: true, intervalDays: 1, keep: 14 },
     lastAutoBackupAt: null,
+    lastFullBackupAt: null,
+    remindAfterDays: 7,
 };
 
 type BackupModuleDeps = {

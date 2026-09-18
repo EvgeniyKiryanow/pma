@@ -455,6 +455,17 @@ export const foundationEn: typeof foundationUa = {
             word: 'ERASE',
             button: 'Erase all data',
         },
+        reminder: {
+            chipNever: 'No backup on a flash drive',
+            chipDays: 'Backup: {{days}} days ago',
+            chipTitle:
+                'Save a full backup to a flash drive: if the computer breaks, only it can bring the data back',
+            last: 'Last full backup on this computer: {{date}} ({{days}} days ago)',
+            never: 'No full backup has been saved on this computer yet',
+            label: 'Remind about the backup',
+            after: 'After {{days}} days',
+            off: 'Never',
+        },
         uninstall: {
             title: 'Remove the program from this computer',
             description:

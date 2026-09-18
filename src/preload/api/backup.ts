@@ -1,6 +1,6 @@
 import type {
-    AutoBackupSettings,
     BackupSettings,
+    BackupSettingsPatch,
     ExportResult,
     ImportInspection,
     ImportSelection,
@@ -22,7 +22,7 @@ export const backupApi = {
         invoke<Result<ImportInspection>>(BACKUP_CHANNELS.inspect, password),
     restore: () => invoke<Result<RestoreResult>>(BACKUP_CHANNELS.restore),
     getSettings: () => invoke<Result<BackupSettings>>(BACKUP_CHANNELS.getSettings),
-    updateSettings: (patch: Partial<AutoBackupSettings>) =>
+    updateSettings: (patch: BackupSettingsPatch) =>
         invoke<Result<BackupSettings>>(BACKUP_CHANNELS.updateSettings, patch),
     listSnapshots: () => invoke<Result<SnapshotInfo[]>>(BACKUP_CHANNELS.listSnapshots),
     createSnapshot: () => invoke<Result<string>>(BACKUP_CHANNELS.createSnapshot),

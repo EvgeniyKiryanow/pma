@@ -1,6 +1,6 @@
 import type {
-    AutoBackupSettings,
     BackupSettings,
+    BackupSettingsPatch,
     ExportResult,
     ImportInspection,
     ImportSelection,
@@ -23,7 +23,7 @@ export const backupApi = {
         unwrap(bridge().backup.inspect(password)),
     restore: (): Promise<RestoreResult> => unwrap(bridge().backup.restore()),
     getSettings: (): Promise<BackupSettings> => unwrap(bridge().backup.getSettings()),
-    updateSettings: (patch: Partial<AutoBackupSettings>): Promise<BackupSettings> =>
+    updateSettings: (patch: BackupSettingsPatch): Promise<BackupSettings> =>
         unwrap(bridge().backup.updateSettings(patch)),
     listSnapshots: (): Promise<SnapshotInfo[]> => unwrap(bridge().backup.listSnapshots()),
     createSnapshot: (): Promise<string> => unwrap(bridge().backup.createSnapshot()),
