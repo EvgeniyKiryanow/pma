@@ -70,6 +70,6 @@ export function registerDocumentIpc(documents: DocumentService): void {
         documents.load(uuidOf(uuid)),
     );
     handleResult(DOCUMENT_CHANNELS.recent, view, (_event, limit: unknown) =>
-        documents.recent(limit === undefined ? 30 : requireInt(limit, 'limit', { max: 200 })),
+        documents.recent(limit === undefined ? 30 : requireInt(limit, 'limit', { max: 1000 })),
     );
 }

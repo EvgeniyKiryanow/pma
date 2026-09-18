@@ -122,6 +122,35 @@ describe('global search', () => {
         expect(keys('вче', 'people')).toEqual(['person:1', 'person:2']);
     });
 
+    it('finds files by name or by the person they belong to', () => {
+        const hits = globalSearch(
+            'довідка мельник',
+            {
+                files: [
+                    {
+                        key: 'document:1',
+                        source: 'document',
+                        name: 'Довідка ВЛК.pdf',
+                        date: '2026-09-18T10:00:00Z',
+                        userId: 5,
+                        userName: 'Мельник Андрій',
+                        ref: { documentUuid: '1' },
+                    },
+                    {
+                        key: 'report:2',
+                        source: 'report',
+                        name: 'Довідка Мельник.docx',
+                        date: '2026-09-18T10:00:00Z',
+                        ref: { filePath: 'x' },
+                    },
+                ],
+            },
+            { fieldLabel: (f) => f },
+        );
+        // Reports are listed in their own category, not twice.
+        expect(hits.map((hit) => [hit.category, hit.key])).toEqual([['files', 'file:document:1']]);
+    });
+
     it('marks the words to highlight', () => {
         expect(highlightRanges('Шевченко Тарас', 'тарас шев')).toEqual([
             [0, 3],

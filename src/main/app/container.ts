@@ -98,7 +98,7 @@ export function createContainer() {
         createNamedListModule(context),
         reports,
         createRemindersModule(context),
-        createSyncModule(context),
+        createSyncModule(context, { files: personnel.attachments }),
     ];
 
     return {

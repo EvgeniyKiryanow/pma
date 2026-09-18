@@ -56,6 +56,16 @@ export class ChangeApplier {
         if (table === 'named_list_tables') {
             return (await this.applyNamedList(change, data)) ? 'imported' : 'skipped';
         }
+        if (table === 'person_documents' || table === 'journal_entries') {
+            // user_id is local to the computer that wrote the change: find the person by uuid.
+            if (change.operation !== 'delete') {
+                const person = data.user_uuid
+                    ? await this.db.get(`SELECT id FROM users WHERE uuid = ?`, data.user_uuid)
+                    : undefined;
+                if (table === 'person_documents' && !person) return 'skipped';
+                data.user_id = person ? person.id : null;
+            }
+        }
         return this.applyRecord(table, change, data);
     }
 

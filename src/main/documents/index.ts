@@ -11,6 +11,7 @@ export function createDocumentsModule(context: ModuleContext, deps: { files: His
         new DocumentRepository(context.db),
         deps.files,
         context.db,
+        context.journal,
     );
     return defineModule({
         name: 'documents',
