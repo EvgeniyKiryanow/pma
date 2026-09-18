@@ -296,7 +296,9 @@ export function buildAlternateReport(
         const pos = person.shpkNumber ? byNumber.get(String(person.shpkNumber)) : undefined;
         if (pos) positionOf.set(person.id, pos);
         // Attached people are counted apart, whatever position or unit their card names.
-        const row = person.isAttached ? ATTACHED_ROW : reportUnitOf(pos?.unit_name ?? person.unitMain);
+        const row = person.isAttached
+            ? ATTACHED_ROW
+            : reportUnitOf(pos?.unit_name ?? person.unitMain);
         rowNamed(row).people.push(person);
     }
 

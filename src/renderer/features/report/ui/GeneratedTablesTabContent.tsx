@@ -1,6 +1,7 @@
 import {
     ClipboardList,
     FileDown,
+    FileSpreadsheet,
     FileText,
     ListTree,
     Lock,
@@ -18,9 +19,11 @@ import { Button, cn, EmptyState } from '../../../shared/ui';
 import { useUserStore } from '../../../stores/userStore';
 import { exportNamedListTable } from '../excel/exportNamedListTable';
 import { generateAlternateCombatReportExcelTemplate } from '../excel/generateAlternateCombatReportExcelTemplate';
+import { generateImpulseExcel } from '../excel/generateImpulseExcel';
 import { generateStaffReportExcel } from '../excel/generateStaffReportExcel';
 import { buildAlternateReport } from '../model/alternateReport';
 import { AlternateCombatReportTable } from './_components/AlternateCombatReportTable';
+import { ImpulseExportPanel } from './_components/ImpulseExportPanel';
 import { NamedListTable } from './_components/NamedListTable';
 import { ReportCellModal, type ReportCellTarget } from './_components/ReportCellModal';
 import { StaffReportTable } from './_components/StaffReportTable';
@@ -29,9 +32,16 @@ type Props = {
     onRequestImportTab?: () => void;
 };
 
-type TableId = 'staff' | 'alternate' | 'named';
+type TableId = 'staff' | 'alternate' | 'named' | 'impulse';
 
-const TABLES: { id: TableId; title: string; description: string; icon: ReactNode }[] = [
+const TABLES: {
+    id: TableId;
+    title: string;
+    description: string;
+    icon: ReactNode;
+    /** Built from the cards alone: works before the БЧС is imported. */
+    withoutShtat?: boolean;
+}[] = [
     {
         id: 'named',
         title: 'Іменний список',
@@ -49,6 +59,13 @@ const TABLES: { id: TableId; title: string; description: string; icon: ReactNode
         title: 'Штатний звіт',
         description: 'Посади, люди та статуси в районі',
         icon: <ClipboardList />,
+    },
+    {
+        id: 'impulse',
+        title: 'Імпульс',
+        description: 'Особовий склад для імпорту в Імпульс Toolkit',
+        icon: <FileSpreadsheet />,
+        withoutShtat: true,
     },
 ];
 
@@ -84,8 +101,10 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
         if (activeTable === 'named') void exportNamedListTable();
         else if (activeTable === 'alternate')
             void generateAlternateCombatReportExcelTemplate(report);
+        else if (activeTable === 'impulse') return generateImpulseExcel(users);
         else void generateStaffReportExcel();
     };
+    const showsReport = hasShtatni || !!active.withoutShtat;
 
     return (
         <div className="flex min-h-0 flex-1">
@@ -94,7 +113,7 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                 <nav className="flex-1 space-y-1 overflow-y-auto px-2 pb-3">
                     {TABLES.map((table) => {
                         const isActive = activeTable === table.id;
-                        const disabled = !hasShtatni;
+                        const disabled = !hasShtatni && !table.withoutShtat;
                         return (
                             <button
                                 key={table.id}
@@ -142,7 +161,7 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
             </aside>
 
             <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                {!hasShtatni ? (
+                {!showsReport ? (
                     <div className="flex flex-1 items-center justify-center p-8">
                         <EmptyState
                             icon={<ListTree />}
@@ -168,32 +187,42 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                     Дані станом на {new Date().toLocaleDateString('uk-UA')}
                                 </p>
                             </div>
-                            <div className="flex flex-wrap items-center gap-2">
+                            {activeTable === 'impulse' ? (
                                 <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    icon={<Printer className="size-4" />}
-                                    onClick={() => printActive('print')}
-                                >
-                                    Друк
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    icon={<FileText className="size-4" />}
-                                    onClick={() => printActive('pdf')}
-                                >
-                                    Зберегти PDF
-                                </Button>
-                                <Button
-                                    variant="secondary"
                                     size="sm"
                                     icon={<FileDown className="size-4" />}
                                     onClick={exportActive}
                                 >
-                                    Експорт у Excel
+                                    Сформувати Excel
                                 </Button>
-                            </div>
+                            ) : (
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        icon={<Printer className="size-4" />}
+                                        onClick={() => printActive('print')}
+                                    >
+                                        Друк
+                                    </Button>
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        icon={<FileText className="size-4" />}
+                                        onClick={() => printActive('pdf')}
+                                    >
+                                        Зберегти PDF
+                                    </Button>
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        icon={<FileDown className="size-4" />}
+                                        onClick={exportActive}
+                                    >
+                                        Експорт у Excel
+                                    </Button>
+                                </div>
+                            )}
                         </div>
 
                         <div className="min-h-0 flex-1 overflow-auto p-5">
@@ -232,6 +261,8 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                 )}
 
                                 {activeTable === 'staff' && <StaffReportTable />}
+
+                                {activeTable === 'impulse' && <ImpulseExportPanel users={users} />}
                             </div>
                         </div>
                     </>
