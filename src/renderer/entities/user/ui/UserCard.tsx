@@ -50,6 +50,11 @@ export default function UserCard({ user, actions }: { user: User; actions?: Reac
                 )}
                 <div className="mt-2.5 flex flex-wrap items-center gap-2">
                     <StatusBadge status={user.soldierStatus} size="md" />
+                    {!!user.isAttached && (
+                        <span className="rounded-full border border-brass/40 bg-brass-soft px-2.5 py-1 text-[13px] font-medium text-brass-ink">
+                            Прикомандирований{user.attachedFrom ? ` · ${user.attachedFrom}` : ''}
+                        </span>
+                    )}
                     {user.phoneNumber && (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-[13px] text-ink-2">
                             <Phone className="size-3.5 text-ink-3" />

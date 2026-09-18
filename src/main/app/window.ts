@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, screen, session } from 'electron';
 
 import { createLogger } from '../core/logger';
 import { AppPaths, isAppPageUrl } from '../core/paths';
+import { rememberWindowState, usableBounds, type WindowState } from './windowState';
 
 const logger = createLogger('window');
 export const DEV_SERVER_URL = 'http://localhost:5173';
@@ -82,11 +83,19 @@ function restoredSize(workArea: { width: number; height: number }) {
     };
 }
 
-export function createMainWindow(isDev: boolean): BrowserWindow {
+export function createMainWindow(
+    isDev: boolean,
+    state: WindowState = { bounds: null, maximized: true },
+): BrowserWindow {
     const workArea = screen.getPrimaryDisplay().workAreaSize;
+    // The size and place of the last start, if it still fits on a screen.
+    const saved = usableBounds(
+        state.bounds,
+        screen.getAllDisplays().map((display) => display.workArea),
+        MIN_WINDOW,
+    );
     const window = new BrowserWindow({
-        ...restoredSize(workArea),
-        center: true,
+        ...(saved ?? { ...restoredSize(workArea), center: true }),
         minWidth: Math.min(MIN_WINDOW.width, workArea.width),
         minHeight: Math.min(MIN_WINDOW.height, workArea.height),
         show: false,
@@ -105,11 +114,13 @@ export function createMainWindow(isDev: boolean): BrowserWindow {
         },
     });
 
-    // Opens maximized; the title-bar button switches to the smaller window and back.
+    // Opens as it was closed (maximized on the first start); the title-bar button switches
+    // between maximized and the smaller window.
     window.once('ready-to-show', () => {
-        window.maximize();
+        if (state.maximized) window.maximize();
         window.show();
     });
+    rememberWindowState(window);
 
     // Renderer problems end up in the log file that units send back for diagnostics.
     const contents = window.webContents;

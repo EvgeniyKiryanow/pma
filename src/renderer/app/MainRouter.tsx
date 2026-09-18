@@ -5,14 +5,16 @@ import ChangePasswordScreen from '../features/auth/ui/ChangePasswordScreen';
 import LoginScreen from '../features/auth/ui/LoginScreen';
 import RecoveryCodeScreen from '../features/auth/ui/RecoveryCodeScreen';
 import SetupScreen from '../features/auth/ui/SetupScreen';
+import { useOpenedBackupStore, watchOpenedBackups } from '../features/backup/model/openedBackup';
 import CustomTitleBar from '../shared/components/CustomTitleBar';
 import LogoSvg from '../shared/icons/LogoSvg';
 import { BlockingTaskHost } from '../shared/ui/blockingTask';
 import { ConfirmHost } from '../shared/ui/confirm';
 import { PageLoader } from '../shared/ui/loader';
 import { ToastViewport } from '../shared/ui/toast';
-import { useSessionStore } from '../stores/sessionStore';
+import { usePermissions, useSessionStore } from '../stores/sessionStore';
 import { useNavLayout } from '../stores/uiStore';
+import { useUserStore } from '../stores/userStore';
 import { SectionCrumb, ShellAlerts } from './layout/ShellChrome';
 
 /** Chooses what to show from the session state held by the main process. */
@@ -24,7 +26,18 @@ export function Main() {
 
     useEffect(() => {
         void init();
+        watchOpenedBackups();
     }, [init]);
+
+    // A .pmb file opened with the program: once signed in, go to restoring it.
+    const openedBackup = useOpenedBackupStore((s) => s.name);
+    const { can } = usePermissions();
+    const canImport = can('backup.import');
+    useEffect(() => {
+        if (openedBackup && status === 'ready' && canImport) {
+            useUserStore.getState().setCurrentTab('backups');
+        }
+    }, [openedBackup, status, canImport]);
 
     const inApp = status === 'ready' && !pendingRecoveryCode;
 

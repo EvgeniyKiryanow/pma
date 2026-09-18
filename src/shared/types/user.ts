@@ -62,6 +62,10 @@ export type User = {
     fitnessCategory?: string;
     unitNumber?: string;
     hasCriminalRecord?: boolean;
+    /** Прикомандирований: serves with the unit, belongs to another (stored as 0/1). */
+    isAttached?: boolean | number;
+    /** Where an attached person came from. */
+    attachedFrom?: string;
     criminalRecordDetails?: string;
     militaryTicketInfo?: string;
     militaryServiceHistory?: string;

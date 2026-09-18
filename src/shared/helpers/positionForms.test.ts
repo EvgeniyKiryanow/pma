@@ -27,9 +27,10 @@ describe('buildPositionForms', () => {
     });
 
     it('prefers the nominative column over the short position', () => {
-        expect(buildPositionForms({ position: 'стрілець', positionNominative: 'старший стрілець' }).nomn).toBe(
-            'старший стрілець',
-        );
+        expect(
+            buildPositionForms({ position: 'стрілець', positionNominative: 'старший стрілець' })
+                .nomn,
+        ).toBe('старший стрілець');
     });
 
     it('returns nothing when there is no position at all', () => {

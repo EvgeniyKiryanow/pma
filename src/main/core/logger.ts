@@ -20,6 +20,11 @@ export type Logger = {
     error: (...args: unknown[]) => void;
 };
 
+/** The current log file (`<userData>/logs/main.log`). */
+export function logFilePath(): string {
+    return log.transports.file.getFile().path;
+}
+
 export function createLogger(scope: string): Logger {
     return log.scope(scope);
 }

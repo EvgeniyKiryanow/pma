@@ -70,9 +70,21 @@ export type AutoBackupSettings = {
     keep: number;
 };
 
+/** Days after which the app reminds to save a full backup to a flash drive; 0 = never. */
+export const BACKUP_REMINDER_OPTIONS = [0, 3, 7, 14, 30] as const;
+export type BackupReminderDays = (typeof BACKUP_REMINDER_OPTIONS)[number];
+
 export type BackupSettings = {
     autoBackup: AutoBackupSettings;
     lastAutoBackupAt: string | null;
+    /** Last full backup (.pmb) saved on this computer. */
+    lastFullBackupAt: string | null;
+    remindAfterDays: BackupReminderDays;
+};
+
+/** Changes accepted by «Зберегти налаштування» of the backup screen. */
+export type BackupSettingsPatch = Partial<AutoBackupSettings> & {
+    remindAfterDays?: BackupReminderDays;
 };
 
 export type SnapshotKind = 'auto' | 'safety';

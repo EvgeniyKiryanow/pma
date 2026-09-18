@@ -8,7 +8,9 @@ import type { MorphologyWordData } from './generateAndFlattenTitleForms';
  * so a report never shows a mangled rank.
  */
 
-type Forms = Required<Pick<MorphologyWordData, 'nomn' | 'gent' | 'datv' | 'accs' | 'ablt' | 'loct' | 'voct'>>;
+type Forms = Required<
+    Pick<MorphologyWordData, 'nomn' | 'gent' | 'datv' | 'accs' | 'ablt' | 'loct' | 'voct'>
+>;
 
 const ADJECTIVES: Record<string, Forms> = {
     молодший: adjective('молодш'),

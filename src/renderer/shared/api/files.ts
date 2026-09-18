@@ -1,6 +1,7 @@
 import type {
     PickedFile,
     PickFilesRequest,
+    PrintableDocument,
     SaveFileRequest,
     SaveFileResult,
 } from '../../../shared/types/files';
@@ -21,6 +22,12 @@ export const filesApi = {
         unwrap(bridge().files.save(request)),
     /** Copies text; it is cleared from the clipboard when the session ends. */
     copyText: (text: string): Promise<void> => unwrap(bridge().files.copyText(text)),
+    /** Windows print dialog for a report; false when it was cancelled. */
+    print: async (document: PrintableDocument): Promise<boolean> =>
+        (await unwrap(bridge().files.print(document))).printed,
+    /** A report as PDF, saved where the person chooses. */
+    savePdf: (document: PrintableDocument): Promise<SaveFileResult> =>
+        unwrap(bridge().files.savePdf(document)),
 };
 
 /** Settings stored with the data (they travel with backups). */

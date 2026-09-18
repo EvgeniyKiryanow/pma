@@ -146,6 +146,7 @@ export const foundationEn: typeof foundationUa = {
         NOTHING_SELECTED: 'Select a file first',
         DATA_LOCKED:
             'The data on this computer is encrypted. Sign in with your PManager login and password to open it',
+        STORAGE: 'Could not read or write the file on the disk or flash drive',
         UPDATE_FAILED:
             'Could not get the update. Check the internet connection or download the installer manually',
         INTERNAL: 'Something went wrong. Details were written to the application log',
@@ -363,6 +364,19 @@ export const foundationEn: typeof foundationUa = {
             currentPassword: 'Current password',
         },
     },
+    about: {
+        title: 'About',
+        version: 'Version',
+        built: 'Built',
+        system: 'System',
+        data: 'Data on this computer',
+        developer: 'Developer',
+        logHint:
+            'The log helps the developer find the cause of a problem. It holds no names or documents, but look through the file before sending it.',
+        saveLog: 'Save the log for support',
+        logSaved: 'Log saved: {{file}}',
+        close: 'Close',
+    },
     backups: {
         title: 'Backups',
         nav: {
@@ -453,6 +467,17 @@ export const foundationEn: typeof foundationUa = {
             confirmLabel: 'Type {{word}} to confirm',
             word: 'ERASE',
             button: 'Erase all data',
+        },
+        reminder: {
+            chipNever: 'No backup on a flash drive',
+            chipDays: 'Backup: {{days}} days ago',
+            chipTitle:
+                'Save a full backup to a flash drive: if the computer breaks, only it can bring the data back',
+            last: 'Last full backup on this computer: {{date}} ({{days}} days ago)',
+            never: 'No full backup has been saved on this computer yet',
+            label: 'Remind about the backup',
+            after: 'After {{days}} days',
+            off: 'Never',
         },
         uninstall: {
             title: 'Remove the program from this computer',

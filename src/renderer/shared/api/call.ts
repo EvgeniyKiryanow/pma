@@ -47,7 +47,12 @@ export async function unwrap<T>(call: Promise<Result<T>>): Promise<T> {
 }
 
 /** Codes whose server message is already a user-facing Ukrainian sentence. */
-const SERVER_MESSAGE_CODES = new Set<ErrorCode>(['VALIDATION', 'CONFLICT', 'LAST_ADMIN']);
+const SERVER_MESSAGE_CODES = new Set<ErrorCode>([
+    'VALIDATION',
+    'CONFLICT',
+    'LAST_ADMIN',
+    'STORAGE',
+]);
 
 export function errorMessage(
     error: unknown,

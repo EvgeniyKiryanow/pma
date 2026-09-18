@@ -1,16 +1,19 @@
 import {
     ClipboardList,
     FileDown,
+    FileText,
     ListTree,
     Lock,
     MousePointerClick,
+    Printer,
     Swords,
     UserRoundX,
     UsersRound,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
+import { printReport } from '../../../shared/lib/printReport';
 import { Button, cn, EmptyState } from '../../../shared/ui';
 import { useUserStore } from '../../../stores/userStore';
 import { exportNamedListTable } from '../excel/exportNamedListTable';
@@ -68,6 +71,13 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
         [users, shtatniPosady],
     );
     const [cell, setCell] = useState<ReportCellTarget | null>(null);
+    // What is printed: the table on the screen, exactly as it is.
+    const printArea = useRef<HTMLDivElement>(null);
+    const printTitle = () =>
+        `${TABLES.find((table) => table.id === activeTable)?.title ?? ''} — станом на ${new Date().toLocaleDateString('uk-UA')}`;
+    const printActive = (mode: 'print' | 'pdf') => {
+        if (printArea.current) void printReport(printArea.current, printTitle(), mode);
+    };
     const active = TABLES.find((table) => table.id === activeTable) ?? TABLES[0];
 
     const exportActive = () => {
@@ -158,51 +168,71 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                     Дані станом на {new Date().toLocaleDateString('uk-UA')}
                                 </p>
                             </div>
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                icon={<FileDown className="size-4" />}
-                                onClick={exportActive}
-                            >
-                                Експорт у Excel
-                            </Button>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={<Printer className="size-4" />}
+                                    onClick={() => printActive('print')}
+                                >
+                                    Друк
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={<FileText className="size-4" />}
+                                    onClick={() => printActive('pdf')}
+                                >
+                                    Зберегти PDF
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={<FileDown className="size-4" />}
+                                    onClick={exportActive}
+                                >
+                                    Експорт у Excel
+                                </Button>
+                            </div>
                         </div>
 
                         <div className="min-h-0 flex-1 overflow-auto p-5">
-                            {activeTable === 'named' && <NamedListTable />}
+                            <div ref={printArea} className="w-max min-w-full">
+                                {activeTable === 'named' && <NamedListTable />}
 
-                            {activeTable === 'alternate' && (
-                                <div className="space-y-3">
-                                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-ink-2">
-                                        <span className="flex items-center gap-1.5">
-                                            <MousePointerClick className="size-4 text-ink-3" />
-                                            Натисніть на число — побачите, хто саме там, і зможете
-                                            змінити статус або посаду.
-                                        </span>
-                                        {report.withoutStatus.length > 0 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setCell('without-status')}
-                                                className="flex items-center gap-1.5 rounded-lg bg-warning-soft px-2.5 py-1 font-medium text-warning-ink hover:underline"
-                                            >
-                                                <UserRoundX className="size-4" />
-                                                Без статусу: {report.withoutStatus.length} — їх
-                                                немає ні в «В наявності», ні у «Відсутні»
-                                            </button>
-                                        )}
+                                {activeTable === 'alternate' && (
+                                    <div className="space-y-3">
+                                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-ink-2">
+                                            <span className="flex items-center gap-1.5">
+                                                <MousePointerClick className="size-4 text-ink-3" />
+                                                Натисніть на число — побачите, хто саме там, і
+                                                зможете змінити статус або посаду.
+                                            </span>
+                                            {report.withoutStatus.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCell('without-status')}
+                                                    className="flex items-center gap-1.5 rounded-lg bg-warning-soft px-2.5 py-1 font-medium text-warning-ink hover:underline"
+                                                >
+                                                    <UserRoundX className="size-4" />
+                                                    Без статусу: {report.withoutStatus.length} — їх
+                                                    немає ні в «В наявності», ні у «Відсутні»
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="paper overflow-x-auto p-4">
+                                            <table className="min-w-full border-collapse text-center text-sm">
+                                                <AlternateCombatReportTable
+                                                    report={report}
+                                                    onOpenCell={setCell}
+                                                />
+                                            </table>
+                                        </div>
                                     </div>
-                                    <div className="paper overflow-x-auto p-4">
-                                        <table className="min-w-full border-collapse text-center text-sm">
-                                            <AlternateCombatReportTable
-                                                report={report}
-                                                onOpenCell={setCell}
-                                            />
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
+                                )}
 
-                            {activeTable === 'staff' && <StaffReportTable />}
+                                {activeTable === 'staff' && <StaffReportTable />}
+                            </div>
                         </div>
                     </>
                 )}

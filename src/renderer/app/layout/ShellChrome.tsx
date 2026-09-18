@@ -1,6 +1,7 @@
-import { FileWarning, UserRound } from 'lucide-react';
+import { FileWarning, HardDriveDownload, UserRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+import { reminderDue, useBackupSettingsStore } from '../../features/backup/model/backupReminder';
 import { useIncompleteHistoryStore } from '../../features/report/model/useIncompleteHistoryStore';
 import EventsModalLauncher from '../../shared/components/EventsModalLauncher';
 import { Alert, Modal, railChipClass } from '../../shared/ui';
@@ -40,9 +41,42 @@ export function ShellAlerts() {
     if (!can('personnel.view')) return null;
     return (
         <div className="mr-1 flex items-center gap-1.5">
+            <BackupReminderButton />
             <IncompleteRecordsButton />
             <EventsModalLauncher />
         </div>
+    );
+}
+
+/** «Копія: 12 дн. тому» — a full backup on a flash drive is overdue (see backupReminder). */
+function BackupReminderButton() {
+    const { t } = useI18nStore();
+    const { can } = usePermissions();
+    const allowed = can('backup.export');
+    const hasPeople = useUserStore((s) => s.users.length > 0);
+    const setCurrentTab = useUserStore((s) => s.setCurrentTab);
+    const settings = useBackupSettingsStore((s) => s.settings);
+    const load = useBackupSettingsStore((s) => s.load);
+
+    useEffect(() => {
+        if (allowed) void load();
+    }, [allowed, load]);
+
+    const due = reminderDue(settings);
+    if (!allowed || !hasPeople || due === null) return null;
+    return (
+        <button
+            onClick={() => setCurrentTab('backups')}
+            title={t('backups.reminder.chipTitle')}
+            className={railChipClass('brass')}
+        >
+            <HardDriveDownload className="size-3.5" />
+            <span>
+                {due === 'never'
+                    ? t('backups.reminder.chipNever')
+                    : t('backups.reminder.chipDays', { days: due })}
+            </span>
+        </button>
     );
 }
 

@@ -33,5 +33,23 @@ export type SaveFileRequest = {
 /** `saved: false` means the user closed the dialog. */
 export type SaveFileResult = { saved: boolean; fileName: string | null };
 
+/** A report as the window shows it, to print or save as PDF (see DocumentPrinter). */
+export type PrintableDocument = {
+    /** Heading on the page and the suggested file name. */
+    title: string;
+    /** The report element (outerHTML). */
+    html: string;
+    /** The app's style rules, so the page looks as on the screen. */
+    css: string;
+    landscape: boolean;
+    /** Shrinks a wide report to the page width (0.1–1). */
+    scale: number;
+};
+
+export type PrintResult = { printed: boolean };
+
+/** Largest report page accepted for printing (html + css). */
+export const MAX_PRINT_BYTES = 12 * 1024 * 1024;
+
 /** Largest single file accepted from a dialog or saved through one. */
 export const MAX_TRANSFER_BYTES = 150 * 1024 * 1024;

@@ -1,5 +1,8 @@
+import { currentStatusName, STATUS_COLUMNS } from '../../shared/helpers/statusNames';
 import type { Db } from '../db/types';
 import { type ChangeRow, SYNCABLE_TABLES } from './ChangeJournal';
+
+const STATUS_FIELDS = new Set<string>(STATUS_COLUMNS);
 
 export type ApplyOutcome = 'imported' | 'skipped';
 
@@ -83,7 +86,11 @@ export class ChangeApplier {
         }
 
         const fields = Object.keys(data).filter((key) => key !== 'id' && columns.has(key));
-        const values = fields.map((key) => (data[key] === undefined ? null : data[key]));
+        const values = fields.map((key) => {
+            const value = data[key] === undefined ? null : data[key];
+            // A computer that was not updated yet may send an old status name.
+            return table === 'users' && STATUS_FIELDS.has(key) ? currentStatusName(value) : value;
+        });
 
         if (target) {
             if (!fields.length) return 'skipped';

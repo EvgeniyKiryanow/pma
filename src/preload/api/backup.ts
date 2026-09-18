@@ -1,6 +1,8 @@
+import { ipcRenderer } from 'electron';
+
 import type {
-    AutoBackupSettings,
     BackupSettings,
+    BackupSettingsPatch,
     ExportResult,
     ImportInspection,
     ImportSelection,
@@ -9,7 +11,7 @@ import type {
     RestoreResult,
     SnapshotInfo,
 } from '../../shared/backup/types';
-import { BACKUP_CHANNELS, SYNC_CHANNELS } from '../../shared/ipc/channels';
+import { BACKUP_CHANNELS, BACKUP_EVENTS, SYNC_CHANNELS } from '../../shared/ipc/channels';
 import type { Result } from '../../shared/ipc/result';
 import type { ChangeLogExportResult, ChangeLogImportResult } from '../../shared/types/sync';
 import { invoke } from '../invoke';
@@ -22,7 +24,7 @@ export const backupApi = {
         invoke<Result<ImportInspection>>(BACKUP_CHANNELS.inspect, password),
     restore: () => invoke<Result<RestoreResult>>(BACKUP_CHANNELS.restore),
     getSettings: () => invoke<Result<BackupSettings>>(BACKUP_CHANNELS.getSettings),
-    updateSettings: (patch: Partial<AutoBackupSettings>) =>
+    updateSettings: (patch: BackupSettingsPatch) =>
         invoke<Result<BackupSettings>>(BACKUP_CHANNELS.updateSettings, patch),
     listSnapshots: () => invoke<Result<SnapshotInfo[]>>(BACKUP_CHANNELS.listSnapshots),
     createSnapshot: () => invoke<Result<string>>(BACKUP_CHANNELS.createSnapshot),
@@ -31,6 +33,13 @@ export const backupApi = {
         invoke<Result<ResetResult>>(BACKUP_CHANNELS.resetAll, options),
     canUninstall: () => invoke<Result<boolean>>(BACKUP_CHANNELS.canUninstall),
     uninstall: () => invoke<Result<void>>(BACKUP_CHANNELS.uninstall),
+    openedFile: () => invoke<Result<string | null>>(BACKUP_CHANNELS.openedFile),
+    selectOpenedFile: () => invoke<Result<ImportSelection>>(BACKUP_CHANNELS.selectOpenedFile),
+    onFileOpened: (callback: () => void) => {
+        const listener = () => callback();
+        ipcRenderer.on(BACKUP_EVENTS.fileOpened, listener);
+        return () => ipcRenderer.removeListener(BACKUP_EVENTS.fileOpened, listener);
+    },
 };
 
 /** Change-log exchange between computers (offline, encrypted .pmc files). */

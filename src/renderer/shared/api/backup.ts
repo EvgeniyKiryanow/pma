@@ -1,6 +1,6 @@
 import type {
-    AutoBackupSettings,
     BackupSettings,
+    BackupSettingsPatch,
     ExportResult,
     ImportInspection,
     ImportSelection,
@@ -23,7 +23,7 @@ export const backupApi = {
         unwrap(bridge().backup.inspect(password)),
     restore: (): Promise<RestoreResult> => unwrap(bridge().backup.restore()),
     getSettings: (): Promise<BackupSettings> => unwrap(bridge().backup.getSettings()),
-    updateSettings: (patch: Partial<AutoBackupSettings>): Promise<BackupSettings> =>
+    updateSettings: (patch: BackupSettingsPatch): Promise<BackupSettings> =>
         unwrap(bridge().backup.updateSettings(patch)),
     listSnapshots: (): Promise<SnapshotInfo[]> => unwrap(bridge().backup.listSnapshots()),
     createSnapshot: (): Promise<string> => unwrap(bridge().backup.createSnapshot()),
@@ -34,6 +34,11 @@ export const backupApi = {
     canUninstall: (): Promise<boolean> => unwrap(bridge().backup.canUninstall()),
     /** Destroys all data and removes the program; the window closes. */
     uninstall: (): Promise<void> => unwrap(bridge().backup.uninstall()),
+    /** Name of the .pmb file the program was opened with (double-click), or null. */
+    openedFileName: (): Promise<string | null> => unwrap(bridge().backup.openedFile()),
+    /** Selects that file for restore (once). */
+    selectOpenedFile: (): Promise<ImportSelection> => unwrap(bridge().backup.selectOpenedFile()),
+    onFileOpened: (callback: () => void): (() => void) => bridge().backup.onFileOpened(callback),
 };
 
 /**

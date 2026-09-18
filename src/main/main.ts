@@ -1,10 +1,13 @@
 import { app, BrowserWindow, dialog, powerMonitor } from 'electron';
 import path from 'path';
 
+import { BACKUP_EVENTS } from '../shared/ipc/channels';
 import { AppError } from '../shared/ipc/result';
 import { type Container, createContainer } from './app/container';
 import { openDataSet, type OpenedDataSet, prepareDataKey } from './app/dataSet';
 import { applySecurityPolicies, createMainWindow } from './app/window';
+import { readWindowState } from './app/windowState';
+import { openedBackupFile } from './backup/openedFile';
 import { getInstanceId } from './core/instance';
 import { createLogger } from './core/logger';
 import { AppPaths } from './core/paths';
@@ -30,7 +33,17 @@ if (!smokeTest && !app.requestSingleInstanceLock()) {
     // A second copy would write to the same database; focus the running one instead.
     app.quit();
 } else {
-    app.on('second-instance', () => {
+    // Double-click on a .pmb file: the file comes with the start (argv) or, while the
+    // program runs, with a second start that is turned away here.
+    openedBackupFile.offer(process.argv);
+    openedBackupFile.onOffered(() => mainWindow?.webContents.send(BACKUP_EVENTS.fileOpened));
+    app.on('open-file', (event, file) => {
+        event.preventDefault();
+        openedBackupFile.offer([file]);
+    });
+
+    app.on('second-instance', (_event, argv) => {
+        openedBackupFile.offer(argv);
         if (!mainWindow) return;
         if (mainWindow.isMinimized()) mainWindow.restore();
         mainWindow.focus();
@@ -46,7 +59,7 @@ if (!smokeTest && !app.requestSingleInstanceLock()) {
 
     app.on('activate', () => {
         if (!smokeTest && BrowserWindow.getAllWindows().length === 0)
-            mainWindow = createMainWindow(isDev);
+            mainWindow = createMainWindow(isDev, readWindowState());
     });
 }
 
@@ -95,7 +108,7 @@ async function bootstrap(): Promise<void> {
     }
 
     applySecurityPolicies(isDev);
-    mainWindow = createMainWindow(isDev);
+    mainWindow = createMainWindow(isDev, readWindowState());
     mainWindow.on('closed', () => {
         mainWindow = null;
     });

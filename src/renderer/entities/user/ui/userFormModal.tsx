@@ -247,6 +247,24 @@ export default function UserFormModalUpdate({
 
         if (key === 'criminalRecordDetails' && !form.hasCriminalRecord) return null;
 
+        if (key === 'isAttached') {
+            return (
+                <label
+                    key={key}
+                    className="flex items-center gap-2.5 self-end rounded-lg border border-line px-3 py-2.5 text-sm text-ink"
+                >
+                    <input
+                        type="checkbox"
+                        className="size-4"
+                        checked={!!form.isAttached}
+                        onChange={(e) => handleChange('isAttached', e.target.checked)}
+                    />
+                    {t('user.isAttached')}
+                </label>
+            );
+        }
+        if (key === 'attachedFrom' && !form.isAttached) return null;
+
         if (key === 'fitnessCategory') {
             return (
                 <div key={key}>
@@ -479,6 +497,8 @@ export default function UserFormModalUpdate({
                         {renderField('squad')}
                         {renderField('subordination')}
                         {renderField('unitNumber')}
+                        {renderField('isAttached')}
+                        {renderField('attachedFrom')}
                     </>,
                 )}
 

@@ -3,6 +3,8 @@ import type { Result } from '../../shared/ipc/result';
 import type {
     PickedFile,
     PickFilesRequest,
+    PrintableDocument,
+    PrintResult,
     SaveFileRequest,
     SaveFileResult,
 } from '../../shared/types/files';
@@ -14,6 +16,10 @@ export const filesApi = {
     pick: (request: PickFilesRequest) => invoke<Result<PickedFile[]>>(FILE_CHANNELS.pick, request),
     save: (request: SaveFileRequest) => invoke<Result<SaveFileResult>>(FILE_CHANNELS.save, request),
     copyText: (text: string) => invoke<Result<void>>(FILE_CHANNELS.copyText, text),
+    print: (document: PrintableDocument) =>
+        invoke<Result<PrintResult>>(FILE_CHANNELS.print, document),
+    savePdf: (document: PrintableDocument) =>
+        invoke<Result<SaveFileResult>>(FILE_CHANNELS.savePdf, document),
 };
 
 /** Settings stored with the data. */

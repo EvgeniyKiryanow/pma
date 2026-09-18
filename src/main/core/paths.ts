@@ -45,6 +45,11 @@ export const AppPaths = {
         return path.join(this.backupsRoot, 'safety');
     },
 
+    /** Size and place of the window between starts (geometry only). */
+    get windowStateFile(): string {
+        return path.join(this.userData, 'window-state.json');
+    },
+
     get settingsFile(): string {
         return path.join(this.userData, 'settings.json');
     },

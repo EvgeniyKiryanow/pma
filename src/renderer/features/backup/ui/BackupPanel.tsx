@@ -15,6 +15,8 @@ import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from
 import type { PermissionKey } from '../../../../shared/auth/permissions';
 import {
     BACKUP_PASSWORD_MIN_LENGTH,
+    BACKUP_REMINDER_OPTIONS,
+    type BackupReminderDays,
     type BackupSettings,
     type SnapshotInfo,
 } from '../../../../shared/backup/types';
@@ -29,12 +31,15 @@ import {
     formatBytes,
     formatDateTime,
     PasswordField,
+    SelectField,
     TextField,
 } from '../../../shared/ui';
 import SideNav from '../../../shared/ui/SideNav';
 import { toast } from '../../../shared/ui/toast';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { usePermissions } from '../../../stores/sessionStore';
+import { daysSince, useBackupSettingsStore } from '../model/backupReminder';
+import { useOpenedBackupStore } from '../model/openedBackup';
 import RestoreBackupFlow from './RestoreBackupFlow';
 
 type Section = {
@@ -94,6 +99,11 @@ export default function BackupPanel() {
     const sections = SECTIONS.filter((s) => canAny(...s.anyOf));
     const [activeKey, setActiveKey] = useState(sections[0]?.key);
     const active = sections.find((s) => s.key === activeKey) ?? sections[0];
+    // Opened with a backup file: show the restore card.
+    const openedBackup = useOpenedBackupStore((s) => s.name);
+    useEffect(() => {
+        if (openedBackup) setActiveKey('full');
+    }, [openedBackup]);
 
     return (
         <div className="flex min-h-0 flex-1">
@@ -119,6 +129,55 @@ export default function BackupPanel() {
 }
 
 // ------------------------------------------------------------------ Full backup
+
+/** When the last full backup was saved here, and after how many days to remind. */
+function BackupReminderSettings() {
+    const { t } = useI18nStore();
+    const settings = useBackupSettingsStore((s) => s.settings);
+    const load = useBackupSettingsStore((s) => s.load);
+    const replace = useBackupSettingsStore((s) => s.replace);
+
+    useEffect(() => {
+        void load();
+    }, [load]);
+
+    if (!settings) return null;
+    const last = settings.lastFullBackupAt;
+    const change = async (value: string) => {
+        try {
+            replace(
+                await backupApi.updateSettings({
+                    remindAfterDays: Number(value) as BackupReminderDays,
+                }),
+            );
+        } catch (err) {
+            toast.error(errorMessage(err, t));
+        }
+    };
+
+    return (
+        <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-line bg-surface-2 p-3">
+            <p className="text-sm text-ink-2">
+                {last
+                    ? t('backups.reminder.last', {
+                          date: formatDateTime(last),
+                          days: daysSince(last),
+                      })
+                    : t('backups.reminder.never')}
+            </p>
+            <SelectField
+                label={t('backups.reminder.label')}
+                value={settings.remindAfterDays}
+                onChange={(value) => void change(value)}
+                options={BACKUP_REMINDER_OPTIONS.map((days) => ({
+                    value: days,
+                    label: days ? t('backups.reminder.after', { days }) : t('backups.reminder.off'),
+                }))}
+                className="w-48"
+            />
+        </div>
+    );
+}
 
 function FullBackupSection() {
     const { t } = useI18nStore();
@@ -147,6 +206,7 @@ function FullBackupSection() {
             );
             setPassword('');
             setConfirm('');
+            void useBackupSettingsStore.getState().load();
         } catch (err) {
             if (!(err instanceof ApiError && err.code === 'CANCELED'))
                 setError(errorMessage(err, t));
@@ -163,6 +223,7 @@ function FullBackupSection() {
                     description={t('backups.full.exportDescription')}
                 >
                     <form onSubmit={exportBackup} className="space-y-4">
+                        <BackupReminderSettings />
                         {result && <Alert tone="success">{result}</Alert>}
                         {error && <Alert tone="error">{error}</Alert>}
                         <div className="grid gap-4 md:grid-cols-2">

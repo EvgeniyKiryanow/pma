@@ -185,3 +185,20 @@ describe('reportUnitOf', () => {
         expect(reportUnitOf(null)).toBe(NO_UNIT_ROW);
     });
 });
+
+describe('attached personnel', () => {
+    it('counts an attached person in «Прикомандировані», not in the unit or ВСЬОГО', () => {
+        const attached = person({
+            shpkNumber: '11',
+            soldierStatus: StatusExcel.POSITIONS_INFANTRY,
+            isAttached: 1,
+        });
+        const own = person({ shpkNumber: '12', soldierStatus: StatusExcel.POSITIONS_INFANTRY });
+        const report = buildAlternateReport([attached, own], positions);
+        const row = (name: string) => report.rows.find((r) => r.name === name)!;
+        expect(row(ATTACHED_ROW).people).toEqual([attached]);
+        expect(row('1-й взвод').people).toEqual([own]);
+        expect(row(TOTAL_ROW).values.actualTotal).toBe(1);
+        expect(row(ATTACHED_ROW).values.positionsInfantry).toBe(1);
+    });
+});

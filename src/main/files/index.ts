@@ -3,6 +3,7 @@ import { clipboard } from 'electron';
 import { defineModule, type ModuleContext } from '../app/module';
 import { writePrivateClipboardText } from '../core/windows';
 import { ClipboardGuard, type TextClipboard } from './ClipboardGuard';
+import { DocumentPrinter } from './DocumentPrinter';
 import { FileTransfer } from './FileTransfer';
 import { registerFileIpc } from './ipc';
 
@@ -27,6 +28,6 @@ export function createFilesModule(context: ModuleContext) {
         name: 'files',
         transfer,
         clipboard: clipboardGuard,
-        registerIpc: () => registerFileIpc(transfer, clipboardGuard),
+        registerIpc: () => registerFileIpc(transfer, clipboardGuard, new DocumentPrinter()),
     });
 }

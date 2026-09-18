@@ -50,6 +50,16 @@ export const BACKUP_CHANNELS = {
     canUninstall: 'system:can-uninstall',
     /** Destroys every piece of data, then removes the program from the computer. */
     uninstall: 'system:uninstall',
+    /** Name of the .pmb file the program was opened with (double-click), or null. */
+    openedFile: 'backup:opened-file',
+    /** Selects that file for restore, as if chosen in the dialog. */
+    selectOpenedFile: 'backup:select-opened-file',
+} as const;
+
+/** Pushes from the main process about backups. */
+export const BACKUP_EVENTS = {
+    /** The program was given a .pmb file while running (a second double-click). */
+    fileOpened: 'backup:file-opened',
 } as const;
 
 export const APP_CHANNELS = {
@@ -59,6 +69,10 @@ export const APP_CHANNELS = {
     isMaximized: 'app:is-maximized',
     checkForUpdates: 'check-for-updates',
     installUpdate: 'app:install-update',
+    /** «Про програму»: version, build, system, data folder, developer. */
+    about: 'app:about',
+    /** Saves the program log where the person chooses, to send to the developer. */
+    saveLog: 'app:save-log',
 } as const;
 
 /** One-way messages from the renderer (`ipcRenderer.send`, no reply). */
@@ -155,4 +169,8 @@ export const FILE_CHANNELS = {
     pick: 'files:pick',
     save: 'files:save',
     copyText: 'files:copy-text',
+    /** A report on paper: the Windows print dialog. */
+    print: 'files:print',
+    /** A report as PDF, saved where the person chooses. */
+    savePdf: 'files:save-pdf',
 } as const;

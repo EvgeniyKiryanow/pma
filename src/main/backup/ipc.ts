@@ -1,7 +1,13 @@
 import type { WebContents } from 'electron';
 import { shell } from 'electron';
 
-import type { AutoBackupSettings, BackupSettings, ResetOptions } from '../../shared/backup/types';
+import {
+    type AutoBackupSettings,
+    BACKUP_REMINDER_OPTIONS,
+    type BackupSettings,
+    type BackupSettingsPatch,
+    type ResetOptions,
+} from '../../shared/backup/types';
 import { BACKUP_CHANNELS } from '../../shared/ipc/channels';
 import { AppError } from '../../shared/ipc/result';
 import type { KeptAccount } from '../auth/services/AccountService';
@@ -11,6 +17,7 @@ import { AppPaths } from '../core/paths';
 import { access, handleResult } from '../ipc/secureHandle';
 import type { AutoBackupScheduler } from './AutoBackupScheduler';
 import type { BackupService } from './BackupService';
+import { openedBackupFile } from './openedFile';
 import type { Uninstaller } from './Uninstaller';
 
 type Deps = {
@@ -76,7 +83,10 @@ export function registerBackupIpc({
                 filters: [{ name: 'Резервна копія PManager', extensions: ['pmb'] }],
             });
             if (!filePath) throw new AppError('CANCELED');
-            return backups.exportPackage(filePath, password);
+            const result = await backups.exportPackage(filePath, password);
+            // For the reminder «остання повна копія N днів тому».
+            await settings.update({ lastFullBackupAt: new Date().toISOString() });
+            return result;
         },
         { audit: 'backup.export' },
     );
@@ -90,6 +100,16 @@ export function registerBackupIpc({
             ],
         });
         if (!filePath) throw new AppError('CANCELED');
+        return backups.selectImport(event.sender.id, filePath);
+    });
+
+    // A .pmb file opened with the program (double-click in Explorer): its name for the
+    // screen, then the same selection as a file chosen in the dialog.
+    handleResult(BACKUP_CHANNELS.openedFile, access.public, () => openedBackupFile.name());
+
+    handleResult(BACKUP_CHANNELS.selectOpenedFile, canImport, async (event) => {
+        const filePath = openedBackupFile.take();
+        if (!filePath) throw new AppError('NOTHING_SELECTED');
         return backups.selectImport(event.sender.id, filePath);
     });
 
@@ -116,8 +136,18 @@ export function registerBackupIpc({
     handleResult(
         BACKUP_CHANNELS.updateSettings,
         access.any('backup.export'),
-        async (_event, patch: Partial<AutoBackupSettings>) => {
-            const next = await settings.update({ autoBackup: sanitizeAutoBackup(patch ?? {}) });
+        async (_event, input: BackupSettingsPatch) => {
+            const { remindAfterDays, ...patch } = input ?? {};
+            if (
+                remindAfterDays !== undefined &&
+                !(BACKUP_REMINDER_OPTIONS as readonly number[]).includes(remindAfterDays)
+            ) {
+                throw new AppError('VALIDATION', undefined, { field: 'remindAfterDays' });
+            }
+            const next = await settings.update({
+                autoBackup: sanitizeAutoBackup(patch),
+                ...(remindAfterDays !== undefined ? { remindAfterDays } : {}),
+            });
             void scheduler.tick();
             return next;
         },

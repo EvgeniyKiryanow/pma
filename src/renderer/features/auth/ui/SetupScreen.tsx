@@ -1,11 +1,12 @@
 import { ArrowLeft, DatabaseBackup, ShieldCheck } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 
 import { PASSWORD_RULES } from '../../../../shared/auth/types';
 import { errorMessage } from '../../../shared/api/call';
 import { Alert, Button, PasswordField, TextField } from '../../../shared/ui';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useSessionStore } from '../../../stores/sessionStore';
+import { useOpenedBackupStore } from '../../backup/model/openedBackup';
 import RestoreBackupFlow from '../../backup/ui/RestoreBackupFlow';
 import AuthLayout from './AuthLayout';
 
@@ -14,6 +15,11 @@ export default function SetupScreen() {
     const { t } = useI18nStore();
     const setup = useSessionStore((s) => s.setup);
     const [mode, setMode] = useState<'create' | 'restore'>('create');
+    // Opened with a backup file: go straight to restoring it.
+    const openedBackup = useOpenedBackupStore((s) => s.name);
+    useEffect(() => {
+        if (openedBackup) setMode('restore');
+    }, [openedBackup]);
     const [username, setUsername] = useState('');
     const [displayName, setDisplayName] = useState('');
     const [password, setPassword] = useState('');
