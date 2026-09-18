@@ -1,12 +1,13 @@
 import { ListTree } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import type { CommentOrHistoryEntry, User } from '../../shared/types/user';
+import type { User } from '../../shared/types/user';
 import { ShtatnaPosada, useShtatniStore } from '../entities/shtatna-posada/model/useShtatniStore';
 import EditPosadaModal from '../entities/shtatna-posada/ui/EditPosadaModal';
 import ShtatniPosadyHeader from '../entities/shtatna-posada/ui/ShtatniPosadyHeader';
 import ShtatniPosadyTable from '../entities/shtatna-posada/ui/ShtatniPosadyTable';
-import { historyApi, personnelApi } from '../shared/api/personnel';
+import { assignToPosition, removeFromPosition } from '../entities/user/model/personnelActions';
+import { personnelApi } from '../shared/api/personnel';
 import { EmptyState, Spinner } from '../shared/ui';
 import { confirmAction } from '../shared/ui/confirm';
 import { toast } from '../shared/ui/toast';
@@ -17,7 +18,7 @@ export default function ShtatniPosadyTab() {
     const { shtatniPosady, loading, fetchAll, deletePosada, updatePosada, deleteAll } =
         useShtatniStore();
 
-    const { users, fetchUsers, updateUser } = useUserStore();
+    const { users, fetchUsers } = useUserStore();
 
     const [editing, setEditing] = useState<ShtatnaPosada | null>(null);
     const [form, setForm] = useState<Partial<ShtatnaPosada>>({});
@@ -29,47 +30,17 @@ export default function ShtatniPosadyTab() {
     const canEditStaffing = can('staffing.edit');
 
     const unassignUserFromPosada = async (pos: ShtatnaPosada) => {
-        // ✅ знайти користувача, який зараз займає цю посаду (по shpkNumber)
-        const assignedUser = users.find((u) => u.shpkNumber === pos.shtat_number);
-
+        // The holder is found by shpkNumber: it is the field stored in the database.
+        const assignedUser = users.find(
+            (u) => String(u.shpkNumber ?? '') === String(pos.shtat_number),
+        );
         if (!assignedUser) {
             toast.info(
                 `На посаду «${pos.position_name}» (${pos.unit_name}) зараз ніхто не призначений`,
             );
             return;
         }
-
-        // ✅ Запис в історію
-        const historyEntry: CommentOrHistoryEntry = {
-            id: Date.now(),
-            date: new Date().toISOString(),
-            type: 'history',
-            author: 'System',
-            description: `Користувача ${assignedUser.fullName} звільнено з посади ${pos.position_name} (${pos.unit_name})`,
-            content: '',
-            files: [],
-        };
-
-        // ✅ Очищуємо дані посади у користувача
-        const clearedUser: User = {
-            ...assignedUser,
-            position: null,
-            unitMain: null,
-            shpkCode: null,
-            shpkNumber: null, // ключове!
-            category: null,
-        };
-
-        // ✅ Оновлюємо користувача в Zustand/БД
-        await historyApi.add(assignedUser.id, historyEntry);
-        await updateUser(clearedUser);
-
-        // ✅ Якщо цей користувач зараз відкритий у правій панелі – оновлюємо стан
-        const setSelectedUser = useUserStore.getState().setSelectedUser;
-        if (useUserStore.getState().selectedUser?.id === assignedUser.id) {
-            setSelectedUser(clearedUser);
-        }
-
+        await removeFromPosition(assignedUser, pos);
         toast.success(
             `${assignedUser.fullName} знято з посади «${pos.position_name}» (${pos.unit_name})`,
         );
@@ -154,90 +125,7 @@ export default function ShtatniPosadyTab() {
     const assignUserToPosada = async (userId: number, pos: ShtatnaPosada) => {
         const selectedUser = users.find((u) => u.id === userId);
         if (!selectedUser) return;
-
-        const newPosReadable = `${pos.position_name} (${pos.unit_name})`;
-        const oldPosReadable = selectedUser.position
-            ? `${selectedUser.position} (${selectedUser.unitMain})`
-            : null;
-
-        const setSelectedUser = useUserStore.getState().setSelectedUser;
-
-        // ========= 1️⃣ CLEAR USER WHO CURRENTLY HOLDS THIS POSADA =========
-        // The holder is found by shpkNumber: it is the field stored in the database.
-        const alreadyOnThisPosada = users.find(
-            (u) => u.id !== userId && String(u.shpkNumber ?? '') === String(pos.shtat_number),
-        );
-
-        if (alreadyOnThisPosada) {
-            const clearedHistory: CommentOrHistoryEntry = {
-                id: Date.now(),
-                date: new Date().toISOString(),
-                type: 'history',
-                author: 'System',
-                description: `Користувача ${alreadyOnThisPosada.fullName} звільнено з посади ${pos.position_name} (${pos.unit_name})`,
-                content: '',
-                files: [],
-            };
-
-            const clearedUser: User = {
-                ...alreadyOnThisPosada,
-                position: null,
-                unitMain: null,
-                shpkCode: null,
-                shpkNumber: null,
-                category: null,
-            };
-
-            await historyApi.add(alreadyOnThisPosada.id, clearedHistory);
-            await updateUser(clearedUser);
-
-            // refresh if currently selected
-            if (useUserStore.getState().selectedUser?.id === alreadyOnThisPosada.id) {
-                setSelectedUser(clearedUser);
-            }
-        }
-
-        // ========= 2️⃣ BUILD HISTORY ENTRY FOR MOVEMENT/ASSIGNMENT =========
-        let newHistory: CommentOrHistoryEntry;
-        if (selectedUser.shpkNumber && selectedUser.shpkNumber !== pos.shtat_number) {
-            // User already has another posada → movement
-            newHistory = {
-                id: Date.now(),
-                date: new Date().toISOString(),
-                type: 'history',
-                author: 'System',
-                description: `Переміщено з посади ${oldPosReadable} → ${newPosReadable}`,
-                content: '',
-                files: [],
-            };
-        } else {
-            // User had no posada → first assignment
-            newHistory = {
-                id: Date.now(),
-                date: new Date().toISOString(),
-                type: 'history',
-                author: 'System',
-                description: `Призначено на посаду ${newPosReadable}`,
-                content: '',
-                files: [],
-            };
-        }
-
-        // ========= 3️⃣ FINAL UPDATED USER =========
-        const updatedUser: User = {
-            ...selectedUser,
-            position: pos.position_name,
-            unitMain: pos.unit_name,
-            shpkCode: pos.shpk_code,
-            shpkNumber: pos.shtat_number,
-            category: pos.category,
-        };
-        await historyApi.add(selectedUser.id, newHistory);
-        await updateUser(updatedUser);
-
-        // ✅ Refresh right panel
-        setSelectedUser(updatedUser);
-
+        await assignToPosition(selectedUser, pos);
         toast.success(
             `${selectedUser.fullName} призначений на «${pos.position_name}» (${pos.unit_name})`,
         );

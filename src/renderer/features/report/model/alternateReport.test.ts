@@ -17,12 +17,42 @@ import {
 const column = (field: string) => REPORT_COLUMNS.find((c) => c.field === field)!;
 
 const positions: ReportPosition[] = [
-    { shtat_number: '1', unit_name: 'Управління\r\nроти', position_name: 'Командир роти', category: 'оф' },
-    { shtat_number: '2', unit_name: 'Управління\r\nроти', position_name: 'Старшина', category: 'с-т' },
-    { shtat_number: '10', unit_name: 'Управління\r\n1 взвод', position_name: 'Командир взводу', category: 'оф' },
-    { shtat_number: '11', unit_name: '1 взвод\r\n1 відділення', position_name: 'Стрілець', category: 'солд' },
-    { shtat_number: '12', unit_name: '1 взвод\r\n2 відділення', position_name: 'Кулеметник', category: 'солд' },
-    { shtat_number: '20', unit_name: '2 взвод\r\n1 відділення', position_name: 'Стрілець', category: 'солд' },
+    {
+        shtat_number: '1',
+        unit_name: 'Управління\r\nроти',
+        position_name: 'Командир роти',
+        category: 'оф',
+    },
+    {
+        shtat_number: '2',
+        unit_name: 'Управління\r\nроти',
+        position_name: 'Старшина',
+        category: 'с-т',
+    },
+    {
+        shtat_number: '10',
+        unit_name: 'Управління\r\n1 взвод',
+        position_name: 'Командир взводу',
+        category: 'оф',
+    },
+    {
+        shtat_number: '11',
+        unit_name: '1 взвод\r\n1 відділення',
+        position_name: 'Стрілець',
+        category: 'солд',
+    },
+    {
+        shtat_number: '12',
+        unit_name: '1 взвод\r\n2 відділення',
+        position_name: 'Кулеметник',
+        category: 'солд',
+    },
+    {
+        shtat_number: '20',
+        unit_name: '2 взвод\r\n1 відділення',
+        position_name: 'Стрілець',
+        category: 'солд',
+    },
     { shtat_number: '90', unit_name: 'Прикомандировані', position_name: 'Водій', category: 'солд' },
 ];
 
@@ -114,10 +144,21 @@ describe('alternate report', () => {
         expect(total.values.actualTotal).toBe(6);
         expect(total.values.absentAllAlternative).toBe(2);
         expect(total.values.supplyGeneral).toBe(0);
-        expect(row(ATTACHED_ROW).values).toMatchObject({ plannedTotal: 1, actualTotal: 1, supplyGeneral: 1 });
-        for (const field of ['plannedTotal', 'actualTotal', 'inCombatNow', 'absentAllAlternative']) {
+        expect(row(ATTACHED_ROW).values).toMatchObject({
+            plannedTotal: 1,
+            actualTotal: 1,
+            supplyGeneral: 1,
+        });
+        for (const field of [
+            'plannedTotal',
+            'actualTotal',
+            'inCombatNow',
+            'absentAllAlternative',
+        ]) {
             const units = report.rows.filter((r) => r.kind === 'unit');
-            expect(units.reduce((sum, r) => sum + Number(r.values[field]), 0)).toBe(total.values[field]);
+            expect(units.reduce((sum, r) => sum + Number(r.values[field]), 0)).toBe(
+                total.values[field],
+            );
         }
     });
 

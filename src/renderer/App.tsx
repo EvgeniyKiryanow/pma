@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 
 import { useShtatniStore } from '../renderer/entities/shtatna-posada/model/useShtatniStore';
-import { UnitStatsCalculator } from '../renderer/features/report/ui/_components/UnitStatsCalculator';
-import { buildPlannedTotalsFromShtatni } from '../renderer/shared/utils/plannedTotalsFromShtatni';
 import Sidebar from './app/layout/Sidebar';
 import { visibleTabs } from './app/navigation';
 import UserFormModalUpdate from './entities/user/ui/userFormModal';
@@ -43,10 +41,6 @@ export default function App() {
         if (canViewTables) void loadAllTables();
         if (canViewStaffing) void fetchShtatni();
     }, [canViewPersonnel, canViewTables, canViewStaffing]);
-
-    useEffect(() => {
-        UnitStatsCalculator.setPlannedTotals(buildPlannedTotalsFromShtatni(shtatniPosady));
-    }, [shtatniPosady]);
 
     // Fills today's named list column from soldier statuses (only for roles that may edit it).
     useEffect(() => {

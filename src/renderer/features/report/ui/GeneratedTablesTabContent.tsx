@@ -1,5 +1,14 @@
-import { ClipboardList, FileDown, ListTree, Lock, Swords, UsersRound } from 'lucide-react';
-import { type ReactNode, useEffect, useState } from 'react';
+import {
+    ClipboardList,
+    FileDown,
+    ListTree,
+    Lock,
+    MousePointerClick,
+    Swords,
+    UserRoundX,
+    UsersRound,
+} from 'lucide-react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
 import { Button, cn, EmptyState } from '../../../shared/ui';
@@ -7,10 +16,11 @@ import { useUserStore } from '../../../stores/userStore';
 import { exportNamedListTable } from '../excel/exportNamedListTable';
 import { generateAlternateCombatReportExcelTemplate } from '../excel/generateAlternateCombatReportExcelTemplate';
 import { generateStaffReportExcel } from '../excel/generateStaffReportExcel';
+import { buildAlternateReport } from '../model/alternateReport';
 import { AlternateCombatReportTable } from './_components/AlternateCombatReportTable';
 import { NamedListTable } from './_components/NamedListTable';
+import { ReportCellModal, type ReportCellTarget } from './_components/ReportCellModal';
 import { StaffReportTable } from './_components/StaffReportTable';
-import { UnitStatsCalculator } from './_components/UnitStatsCalculator';
 
 type Props = {
     onRequestImportTab?: () => void;
@@ -52,7 +62,12 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
     }, []);
 
     const users = useUserStore((s) => s.users);
-    const report = UnitStatsCalculator.generateFullReport(users, shtatniPosady);
+    // Recounted on every change of a person or a position (also the ones made from the report).
+    const report = useMemo(
+        () => buildAlternateReport(users, shtatniPosady),
+        [users, shtatniPosady],
+    );
+    const [cell, setCell] = useState<ReportCellTarget | null>(null);
     const active = TABLES.find((table) => table.id === activeTable) ?? TABLES[0];
 
     const exportActive = () => {
@@ -157,10 +172,33 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                             {activeTable === 'named' && <NamedListTable />}
 
                             {activeTable === 'alternate' && (
-                                <div className="paper overflow-x-auto p-4">
-                                    <table className="min-w-full border-collapse text-center text-sm">
-                                        <AlternateCombatReportTable />
-                                    </table>
+                                <div className="space-y-3">
+                                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-ink-2">
+                                        <span className="flex items-center gap-1.5">
+                                            <MousePointerClick className="size-4 text-ink-3" />
+                                            Натисніть на число — побачите, хто саме там, і зможете
+                                            змінити статус або посаду.
+                                        </span>
+                                        {report.withoutStatus.length > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setCell('without-status')}
+                                                className="flex items-center gap-1.5 rounded-lg bg-warning-soft px-2.5 py-1 font-medium text-warning-ink hover:underline"
+                                            >
+                                                <UserRoundX className="size-4" />
+                                                Без статусу: {report.withoutStatus.length} — їх
+                                                немає ні в «В наявності», ні у «Відсутні»
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="paper overflow-x-auto p-4">
+                                        <table className="min-w-full border-collapse text-center text-sm">
+                                            <AlternateCombatReportTable
+                                                report={report}
+                                                onOpenCell={setCell}
+                                            />
+                                        </table>
+                                    </div>
                                 </div>
                             )}
 
@@ -169,6 +207,9 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                     </>
                 )}
             </main>
+            {cell && (
+                <ReportCellModal report={report} target={cell} onClose={() => setCell(null)} />
+            )}
         </div>
     );
 }

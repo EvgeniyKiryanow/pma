@@ -1,14 +1,13 @@
 import { Flag, Pencil, Trash2 } from 'lucide-react';
 
 import type { User } from '../../../../shared/types/user';
-import { historyApi } from '../../../shared/api/personnel';
 import { StatusDot } from '../../../shared/components/StatusBadge';
 import { cn, IconButton } from '../../../shared/ui';
 import { toast } from '../../../shared/ui/toast';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 import { getCategoryBadge, getUnitBadge } from '../../../shared/utils/posadyBadgeHelper';
 import { usePermissions } from '../../../stores/sessionStore';
-import { useUserStore } from '../../../stores/userStore';
+import { changeStatus } from '../../user/model/personnelActions';
 import type { ShtatnaPosada } from '../model/useShtatniStore';
 
 type GroupedEntry = {
@@ -35,7 +34,6 @@ export default function ShtatniPosadyTable({
     onAssign,
     onUnassign,
 }: Props) {
-    const updateUser = useUserStore((s) => s.updateUser);
     const { can } = usePermissions();
     const canEditStaffing = can('staffing.edit');
     const canAssign = can('personnel.edit');
@@ -163,23 +161,7 @@ export default function ShtatniPosadyTable({
                                                 value={matchedUser.soldierStatus || ''}
                                                 disabled={!canAssign}
                                                 onChange={async (e) => {
-                                                    const newStatus = e.target.value;
-                                                    const previousStatus =
-                                                        matchedUser.soldierStatus;
-
-                                                    await historyApi.add(matchedUser.id, {
-                                                        id: Date.now(),
-                                                        date: new Date().toISOString(),
-                                                        type: 'statusChange',
-                                                        author: 'System',
-                                                        description: `Статус змінено з "${previousStatus}" → "${newStatus}"`,
-                                                        content: `Статус змінено з "${previousStatus}" на "${newStatus}"`,
-                                                        files: [],
-                                                    });
-                                                    await updateUser({
-                                                        ...matchedUser,
-                                                        soldierStatus: newStatus,
-                                                    });
+                                                    await changeStatus(matchedUser, e.target.value);
                                                     toast.success(
                                                         `${matchedUser.fullName}: статус змінено`,
                                                     );

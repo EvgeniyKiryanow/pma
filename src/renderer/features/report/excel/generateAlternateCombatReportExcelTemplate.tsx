@@ -1,8 +1,10 @@
 import ExcelJS from 'exceljs';
 
 import { downloadFile } from '../../../shared/lib/download';
+import { type AlternateReport, REPORT_COLUMNS, type ReportRow } from '../model/alternateReport';
 
-export async function generateAlternateCombatReportExcelTemplate(report: Record<string, any>) {
+/** «Альтернативний звіт» in Excel: the paper form filled with the numbers of the screen. */
+export async function generateAlternateCombatReportExcelTemplate(report: AlternateReport) {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Alternate Report', { properties: { defaultRowHeight: 100 } });
 
@@ -59,7 +61,7 @@ export async function generateAlternateCombatReportExcelTemplate(report: Record<
     styleHeader(ws.getCell('B1'));
 
     // Set wider width for column B
-    ws.getColumn('B').width = 10;
+    ws.getColumn('B').width = 18;
 
     ws.mergeCells('C1:E1');
     ws.getCell('C1').value = 'За штатом';
@@ -300,106 +302,38 @@ export async function generateAlternateCombatReportExcelTemplate(report: Record<
         }
     });
 
-    // === Dynamic body rows definition
-    type BodyRow = {
-        label: string;
-        values: number[];
-    };
-    const bodyRows: BodyRow[] = [
-        { label: 'Управління роти', values: [] },
-        { label: '1-й взвод', values: [] },
-        { label: '2-й взвод', values: [] },
-        { label: '3-й взвод', values: [] },
-        { label: 'ВСЬОГО', values: [] },
-    ];
+    // === Body: the rows of the model the screen shows (same numbers, same order)
+    const rowFill = (kind: ReportRow['kind']) =>
+        kind === 'total' ? '#d3d3d3' : kind === 'attached' ? '#f7f7f7' : '#9fce63';
 
-    // === Function to insert a body row
-    function addStyledBodyRow(rowIndex: number, label: string, values: number[] = []) {
-        // Column B label
+    function addStyledBodyRow(rowIndex: number, number: number, row: ReportRow) {
+        const numberCell = ws.getCell(`A${rowIndex}`);
+        numberCell.value = number;
+        styleHeader(numberCell, { bold: false });
+
         const labelCell = ws.getCell(`B${rowIndex}`);
-        labelCell.value = label;
-        styleHeader(labelCell, {
-            backgroundColor: '#9fce63',
-            bold: false,
-        });
+        labelCell.value = row.name;
+        styleHeader(labelCell, { backgroundColor: rowFill(row.kind), bold: row.kind !== 'unit' });
 
-        // Fill values with matching bg color
-        for (let col = 3; col <= ws.columnCount; col++) {
-            const colLetter = getExcelColumnLetter(col);
+        REPORT_COLUMNS.forEach((column, index) => {
+            const colLetter = getExcelColumnLetter(index + 3);
             const cell = ws.getCell(`${colLetter}${rowIndex}`);
-            cell.value = values[col - 3] ?? 0;
+            cell.value = row.values[column.field] ?? 0;
             styleHeader(cell, {
                 backgroundColor: headerBgMap.get(colLetter),
-                bold: false,
+                bold: row.kind === 'total',
             });
-        }
+        });
 
-        // ✅ Set normal row height
         ws.getRow(rowIndex).height = 20;
     }
 
-    const exportFields = [
-        'plannedTotal',
-        'plannedOfficer',
-        'plannedSoldier',
-
-        'staffingPercent',
-        'actualTotal',
-        'actualOfficers',
-        'actualSoldiers',
-
-        'percentNowCurrent',
-        'inCombatNow',
-        'inCombatNowOfficer',
-        'inCombatNowSoldier',
-
-        'oNPostition',
-        'positionsBronegroup',
-        'positionsInfantry',
-        'positionsCrew',
-        'positionsCalc',
-        'positionsUav',
-        'positionsReserveInfantry',
-        'totalManagement',
-        'supplyCombat',
-        'supplyGeneral',
-        'nonCombatNewcomers',
-
-        'nonCombatLimited',
-        'nonCombatLimitedInCombat',
-        'nonCombatRefusers',
-        'absentRehabedOn',
-        'haveOfferToJost',
-
-        'nonOnBG',
-        'inCombatNow',
-
-        'absentVLK',
-        'absentHospital',
-        'absentMedCompany',
-        'absentRehabLeave',
-        'absentRehab',
-        'absentBusinessTrip',
-        'absentSZO',
-        'absentWounded',
-        'absent200',
-        'absentMIA',
-        'absentAllAlternative',
-    ];
-    // const reportMap = Object.fromEntries(report.map((r) => [r.unit, r]));
-
-    bodyRows.forEach((row) => {
-        const rowReport = report[row.label] ?? {};
-        row.values = exportFields.map((field) => rowReport[field] ?? 0);
-    });
-
     const startRow = 3;
-    bodyRows.forEach((row, i) => {
-        addStyledBodyRow(startRow + i, row.label, row.values);
-    });
+    report.rows.forEach((row, i) => addStyledBodyRow(startRow + i, i + 1, row));
+
     const buffer = await wb.xlsx.writeBuffer();
     await downloadFile(
         buffer as ArrayBuffer,
-        `alternate_template_${new Date().toISOString().slice(0, 10)}.xlsx`,
+        `Альтернативний_звіт_${new Date().toISOString().slice(0, 10)}.xlsx`,
     );
 }
