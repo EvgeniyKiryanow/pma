@@ -6,6 +6,7 @@ import { database } from '../../db/connection';
 import { historyEntryDir, historyFilePath, saveHistoryFiles } from '../../personnel/historyFiles';
 import { parseUserRow, safeJsonArray } from '../../personnel/userFields';
 import { access, handle } from '../secureHandle';
+import { requireArray, requireInt, requireObject, requireString } from '../validate';
 import { logChange } from './changeLog';
 
 const FILTER_DAYS: Record<string, number> = {
@@ -30,7 +31,9 @@ export function registertUserHistoryHandlers() {
     const view = access.any('personnel.view');
     const edit = access.any('history.edit');
 
-    handle('history:get-user-history', view, async (_event, userId: number, filter: string) => {
+    handle('history:get-user-history', view, async (_event, userIdInput: number, filterInput: string) => {
+        const userId = requireInt(userIdInput, 'userId');
+        const filter = requireString(filterInput, 'filter', { maxLength: 20, allowEmpty: true });
         const db = await database.get();
         const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
         const history = safeJsonArray(user?.history) as CommentOrHistoryEntry[];
@@ -81,7 +84,8 @@ export function registertUserHistoryHandlers() {
         return result;
     });
 
-    handle('users:get-one', view, async (_event, userId: number) => {
+    handle('users:get-one', view, async (_event, userIdInput: number) => {
+        const userId = requireInt(userIdInput, 'userId');
         const db = await database.get();
         const user = await db.get('SELECT * FROM users WHERE id = ?', userId);
         return user ? parseUserRow(user) : null;
@@ -90,7 +94,10 @@ export function registertUserHistoryHandlers() {
     handle(
         'history:load-file',
         view,
-        async (_event, userId: number, entryId: number, filename: string) => {
+        async (_event, userIdInput: number, entryIdInput: number, filenameInput: string) => {
+            const userId = requireInt(userIdInput, 'userId');
+            const entryId = requireInt(entryIdInput, 'entryId');
+            const filename = requireString(filenameInput, 'filename', { maxLength: 260 });
             try {
                 const buffer = await fs.readFile(historyFilePath(userId, entryId, filename));
                 const mimeType = mime.lookup(filename) || 'application/octet-stream';
@@ -104,7 +111,8 @@ export function registertUserHistoryHandlers() {
     handle(
         'history:getByUserAndRange',
         view,
-        async (_event, userId: number, range: '1d' | '7d' | '30d' | 'all') => {
+        async (_event, userIdInput: number, range: '1d' | '7d' | '30d' | 'all') => {
+            const userId = requireInt(userIdInput, 'userId');
             const db = await database.get();
             const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
             const history = safeJsonArray(user?.history) as CommentOrHistoryEntry[];
@@ -119,17 +127,22 @@ export function registertUserHistoryHandlers() {
     handle(
         'history:add-entry',
         edit,
-        async (_event, userId: number, newEntry: any) => {
+        async (_event, userIdInput: number, newEntryInput: any) => {
+            const userId = requireInt(userIdInput, 'userId');
+            const newEntry = requireObject(newEntryInput, 'entry');
+            requireInt(newEntry.id, 'entry.id');
+            requireArray(newEntry.files ?? [], 'entry.files', { maxLength: 100 });
+
             const db = await database.get();
             const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
             if (!user) return { success: false, message: 'User not found' };
 
-            await saveHistoryFiles(userId, newEntry.id, newEntry.files || []);
+            await saveHistoryFiles(userId, newEntry.id as number, (newEntry.files as any[]) || []);
 
             await database.transaction(async (tx) => {
                 const current = await tx.get('SELECT history FROM users WHERE id = ?', userId);
                 const history = safeJsonArray(current?.history);
-                history.push({ ...newEntry, files: fileMeta(newEntry.files) });
+                history.push({ ...newEntry, files: fileMeta(newEntry.files as any[]) });
                 await tx.run(
                     'UPDATE users SET history = ? WHERE id = ?',
                     JSON.stringify(history),
@@ -151,7 +164,11 @@ export function registertUserHistoryHandlers() {
     handle(
         'history:edit-entry',
         edit,
-        async (_event, userId: number, updatedEntry: CommentOrHistoryEntry) => {
+        async (_event, userIdInput: number, updatedEntry: CommentOrHistoryEntry) => {
+            const userId = requireInt(userIdInput, 'userId');
+            requireObject(updatedEntry, 'entry');
+            requireInt(updatedEntry?.id, 'entry.id');
+            requireArray(updatedEntry?.files ?? [], 'entry.files', { maxLength: 100 });
             const db = await database.get();
             const user = await db.get('SELECT history FROM users WHERE id = ?', userId);
             if (!user) return { success: false, message: 'User not found' };
@@ -197,7 +214,8 @@ export function registertUserHistoryHandlers() {
     handle(
         'deleteUserHistory',
         edit,
-        async (_event, historyId: number) => {
+        async (_event, historyIdInput: number) => {
+            const historyId = requireInt(historyIdInput, 'historyId');
             const db = await database.get();
             const users = await db.all('SELECT id, history FROM users');
 

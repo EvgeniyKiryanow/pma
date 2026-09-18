@@ -6,6 +6,14 @@ import path from 'path';
 import { AppPaths, resolveInside, safeFileName } from '../../core/paths';
 import { database } from '../../db/connection';
 import { access, handle } from '../secureHandle';
+import {
+    requireArray,
+    requireBuffer,
+    requireInt,
+    requireMonthKey,
+    requireObject,
+    requireString,
+} from '../validate';
 import { logChange } from './changeLog';
 
 function parseExtraData(row: any): Record<string, unknown> {
@@ -41,11 +49,12 @@ function registerStaffingHandlers() {
     handle(
         'import-shtatni-posady',
         edit,
-        async (_event, positions: any[]) => {
+        async (_event, positionsInput: any[]) => {
+            const positions = requireArray<any>(positionsInput, 'positions', { maxLength: 20_000 });
             let added = 0;
             let skipped = 0;
             await database.transaction(async (db) => {
-                for (const pos of positions ?? []) {
+                for (const pos of positions) {
                     const exists = await db.get(
                         `SELECT 1 FROM shtatni_posady WHERE shtat_number = ?`,
                         pos.shtat_number,
@@ -83,7 +92,9 @@ function registerStaffingHandlers() {
     handle(
         'update-shtatni-posada',
         edit,
-        async (_event, pos: any) => {
+        async (_event, posInput: any) => {
+            const pos = requireObject(posInput, 'position');
+            requireString(pos.shtat_number, 'shtat_number', { maxLength: 50 });
             return database.transaction(async (db) => {
                 const existing = await db.get(
                     `SELECT id FROM shtatni_posady WHERE shtat_number = ?`,
@@ -115,7 +126,8 @@ function registerStaffingHandlers() {
     handle(
         'delete-shtatni-posada',
         edit,
-        async (_event, shtatNumber: string) => {
+        async (_event, shtatNumberInput: string) => {
+            const shtatNumber = requireString(shtatNumberInput, 'shtat_number', { maxLength: 50 });
             return database.transaction(async (db) => {
                 const row = await db.get(
                     `SELECT * FROM shtatni_posady WHERE shtat_number = ?`,
@@ -178,12 +190,13 @@ function registerTemplateHandlers() {
     });
 
     /** Preview through LibreOffice when it is installed. Arguments are passed without a shell. */
-    handle('convert-docx-to-pdf', view, async (_event, buffer: ArrayBuffer, fileName: string) => {
+    handle('convert-docx-to-pdf', view, async (_event, bufferInput: ArrayBuffer, fileName: string) => {
+        const content = requireBuffer(bufferInput, 'buffer', { maxBytes: 100 * 1024 * 1024 });
         const tempDir = path.join(AppPaths.temp, 'docx-previews');
         await fsp.mkdir(tempDir, { recursive: true });
-        const docxPath = resolveInside(tempDir, safeFileName(fileName));
+        const docxPath = resolveInside(tempDir, safeFileName(requireString(fileName, 'fileName', { maxLength: 200 })));
         const pdfPath = docxPath.replace(/\.docx$/i, '.pdf');
-        await fsp.writeFile(docxPath, Buffer.from(buffer));
+        await fsp.writeFile(docxPath, content);
 
         return new Promise<string>((resolve, reject) => {
             execFile(
@@ -201,10 +214,11 @@ function registerTemplateHandlers() {
     handle(
         'save-report-file-to-disk',
         manage,
-        async (_event, buffer: ArrayBuffer, name: string) => {
+        async (_event, bufferInput: ArrayBuffer, name: string) => {
+            const content = requireBuffer(bufferInput, 'buffer', { maxBytes: 100 * 1024 * 1024 });
             await fsp.mkdir(AppPaths.reports, { recursive: true });
-            const fileName = safeFileName(name);
-            await fsp.writeFile(reportFilePath(fileName), Buffer.from(buffer));
+            const fileName = safeFileName(requireString(name, 'name', { maxLength: 200 }));
+            await fsp.writeFile(reportFilePath(fileName), content);
             return fileName;
         },
         { audit: 'reports.upload-template' },
@@ -213,8 +227,9 @@ function registerTemplateHandlers() {
     handle(
         'add-report-template',
         manage,
-        async (_event, name: string, filePath: string) => {
-            const fileName = safeFileName(filePath);
+        async (_event, nameInput: string, filePath: string) => {
+            const name = requireString(nameInput, 'name', { maxLength: 200 });
+            const fileName = safeFileName(requireString(filePath, 'filePath', { maxLength: 200 }));
             await database.transaction(async (db) => {
                 const res = await db.run(
                     'INSERT INTO report_templates (name, filePath) VALUES (?, ?)',
@@ -235,7 +250,8 @@ function registerTemplateHandlers() {
     handle(
         'delete-report-template',
         manage,
-        async (_event, id: number) => {
+        async (_event, idInput: number) => {
+            const id = requireInt(idInput, 'id');
             const row = await database.transaction(async (db) => {
                 const existing = await db.get('SELECT * FROM report_templates WHERE id = ?', id);
                 if (!existing) return null;
@@ -263,7 +279,9 @@ function registerTemplateHandlers() {
     });
 
     handle('read-report-file-buffer', view, async (_event, filePath: string) => {
-        const buffer = await fsp.readFile(reportFilePath(filePath));
+        const buffer = await fsp.readFile(
+            reportFilePath(requireString(filePath, 'filePath', { maxLength: 400 })),
+        );
         return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     });
 }
@@ -276,7 +294,9 @@ function registerNamedListHandlers() {
     handle(
         'named-list:create',
         edit,
-        async (_event, key: string, data: any) => {
+        async (_event, keyInput: string, dataInput: any) => {
+            const key = requireMonthKey(keyInput);
+            const data = requireArray(dataInput, 'data', { maxLength: 5000 });
             return database.transaction(async (db) => {
                 const exists = await db.get(`SELECT 1 FROM named_list_tables WHERE key = ?`, key);
                 if (exists) return { success: false, message: 'Table already exists' };
@@ -295,7 +315,13 @@ function registerNamedListHandlers() {
     handle(
         'named-list:update-cell',
         edit,
-        async (_event, key: string, rowId: number, dayIndex: number, value: string) => {
+        async (_event, keyInput: string, rowIdInput: number, dayIndexInput: number, valueInput: string) => {
+            const key = requireMonthKey(keyInput);
+            const rowId = requireInt(rowIdInput, 'rowId');
+            // Days of a month only: a stray index used to be written into the array as-is.
+            const dayIndex = requireInt(dayIndexInput, 'dayIndex', { min: 0, max: 30 });
+            const value = requireString(valueInput, 'value', { maxLength: 8, allowEmpty: true });
+
             return database.transaction(async (db) => {
                 const row = await db.get(`SELECT data FROM named_list_tables WHERE key = ?`, key);
                 if (!row) return { success: false, message: 'Table not found' };
@@ -303,6 +329,9 @@ function registerNamedListHandlers() {
                 const data = JSON.parse(row.data);
                 const target = data.find((r: any) => r.id === rowId);
                 if (!target) return { success: false, message: 'Row not found' };
+                if (!Array.isArray(target.attendance) || dayIndex >= target.attendance.length) {
+                    return { success: false, message: 'Day is outside this table' };
+                }
                 target.attendance[dayIndex] = value;
 
                 await db.run(
@@ -325,7 +354,8 @@ function registerNamedListHandlers() {
     handle(
         'named-list:delete',
         edit,
-        async (_event, key: string) => {
+        async (_event, keyInput: string) => {
+            const key = requireMonthKey(keyInput);
             return database.transaction(async (db) => {
                 const row = await db.get(`SELECT data FROM named_list_tables WHERE key = ?`, key);
                 if (!row) return { success: false };

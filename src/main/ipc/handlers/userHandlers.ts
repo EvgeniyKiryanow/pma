@@ -2,6 +2,7 @@ import { createLogger } from '../../core/logger';
 import { database } from '../../db/connection';
 import { parseUserRow, USER_WRITABLE_FIELDS, userToRow } from '../../personnel/userFields';
 import { access, handle } from '../secureHandle';
+import { requireArray, requireInt, requireObject } from '../validate';
 import { logChange } from './changeLog';
 
 const logger = createLogger('personnel');
@@ -16,7 +17,8 @@ export function registerUserHandlers() {
     handle(
         'add-user',
         access.any('personnel.create'),
-        async (_event, user) => {
+        async (_event, userInput) => {
+            const user = requireObject(userInput, 'user');
             return database.transaction(async (db) => {
                 const result = await db.run(INSERT_SQL, userToRow(user));
                 const inserted = await db.get('SELECT * FROM users WHERE id = ?', result.lastID);
@@ -30,15 +32,17 @@ export function registerUserHandlers() {
     handle(
         'update-user',
         access.any('personnel.edit'),
-        async (_event, user) => {
+        async (_event, userInput) => {
+            const user = requireObject(userInput, 'user');
+            const userId = requireInt(user.id, 'user.id');
             try {
                 return await database.transaction(async (db) => {
-                    const existing = await db.get('SELECT id FROM users WHERE id = ?', user?.id);
+                    const existing = await db.get('SELECT id FROM users WHERE id = ?', userId);
                     if (!existing) return { success: false, message: 'User not found' };
 
-                    await db.run(UPDATE_SQL, [...userToRow(user), user.id]);
-                    const updated = await db.get('SELECT * FROM users WHERE id = ?', user.id);
-                    await logChange(db, 'users', user.id, 'update', updated);
+                    await db.run(UPDATE_SQL, [...userToRow(user), userId]);
+                    const updated = await db.get('SELECT * FROM users WHERE id = ?', userId);
+                    await logChange(db, 'users', userId, 'update', updated);
                     return parseUserRow(updated);
                 });
             } catch (err) {
@@ -52,7 +56,8 @@ export function registerUserHandlers() {
     handle(
         'delete-user',
         access.any('personnel.delete'),
-        async (_event, userId: number) => {
+        async (_event, userIdInput: number) => {
+            const userId = requireInt(userIdInput, 'userId');
             try {
                 return await database.transaction(async (db) => {
                     const user = await db.get('SELECT * FROM users WHERE id = ?', userId);
@@ -73,10 +78,12 @@ export function registerUserHandlers() {
     handle(
         'bulkUpdateUsers',
         access.any('personnel.edit'),
-        async (_event, updatedUsers: any[]) => {
+        async (_event, updatedUsersInput: any[]) => {
+            const updatedUsers = requireArray<any>(updatedUsersInput, 'users', { maxLength: 20_000 });
             try {
                 await database.transaction(async (db) => {
-                    for (const user of updatedUsers ?? []) {
+                    for (const user of updatedUsers) {
+                        requireInt(user?.id, 'user.id');
                         const res = await db.run(
                             `UPDATE users SET position = ?, unitMain = ?, category = ?, shpkCode = ?, shpkNumber = ?
                              WHERE id = ?`,

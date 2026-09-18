@@ -104,9 +104,12 @@ export class BackupService {
                 throw err;
             });
 
+            // A backup nobody can restore is worthless: read it back before reporting success.
+            await this.verifyPackage(targetPath, password, workDir);
+
             const { size } = await fsp.stat(targetPath);
             this.deps.logger.info(
-                `Backup exported: ${counts.personnel} personnel, ${files} files, ${size} bytes`,
+                `Backup exported and verified: ${counts.personnel} personnel, ${files} files, ${size} bytes`,
             );
             return { fileName: path.basename(targetPath), sizeBytes: size, manifest };
         } finally {
@@ -272,6 +275,32 @@ export class BackupService {
                     field: 'password',
                 },
             );
+        }
+    }
+
+    /**
+     * Decrypts the freshly written package and checks that the database inside opens.
+     * Catches a broken flash drive or a half-written file while the user is still watching.
+     */
+    private async verifyPackage(filePath: string, password: string, workDir: string): Promise<void> {
+        const checkDir = path.join(workDir, 'verify');
+        await fsp.mkdir(checkDir, { recursive: true });
+        const archivePath = path.join(checkDir, 'archive.bin');
+        try {
+            await decryptPackage(filePath, archivePath, password);
+            const stagingDir = path.join(checkDir, 'data');
+            await fsp.mkdir(stagingDir, { recursive: true });
+            await this.extractPackage(archivePath, stagingDir);
+            await this.validateDatabase(path.join(stagingDir, DB_FILE));
+        } catch (err) {
+            await remove(filePath);
+            this.deps.logger.error('Verification of the new backup failed; the file was removed', err);
+            throw new AppError(
+                'CORRUPTED',
+                'Копію створено, але перевірка не пройшла, тому файл видалено. Спробуйте зберегти на інший носій.',
+            );
+        } finally {
+            await remove(checkDir);
         }
     }
 

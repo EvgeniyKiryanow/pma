@@ -67,6 +67,13 @@ async function bootstrap(): Promise<void> {
     );
     const isExistingDatabase = (tables?.n ?? 0) > 0;
 
+    // Never migrate or write into a damaged database: that would turn a recoverable
+    // problem into lost data. The user is told to restore a backup instead.
+    if (isExistingDatabase) {
+        const integrity = await container.database.checkIntegrity();
+        if (!integrity.ok) throw new AppError('CORRUPTED', integrity.details);
+    }
+
     const report = await container.migrations.run(db, {
         log: (message) => logger.info(message),
         beforeMigrate: async (from, to) => {
@@ -151,6 +158,17 @@ function fatal(error: unknown): void {
     }
 
     const logFile = path.join(AppPaths.userData, 'logs', 'main.log');
+    if (error instanceof AppError && error.code === 'CORRUPTED') {
+        dialog.showErrorBox(
+            'База даних пошкоджена',
+            'Файл бази даних на цьому компʼютері пошкоджено, тому програма не запускається, ' +
+                'щоб не зіпсувати дані ще більше.\n\n' +
+                'Відновіть останню резервну копію: запустіть програму на іншому компʼютері або ' +
+                `скопіюйте копію з теки:\n${AppPaths.backupsRoot}\n\nЖурнал: ${logFile}`,
+        );
+        app.exit(1);
+        return;
+    }
     if (error instanceof AppError && error.code === 'SCHEMA_TOO_NEW') {
         dialog.showErrorBox(
             'Потрібна новіша версія програми',

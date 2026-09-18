@@ -1,6 +1,7 @@
 import { database } from '../../db/connection';
 import type { Db } from '../../db/types';
 import { access, handle } from '../secureHandle';
+import { requireInt, requireObject, requireString } from '../validate';
 import { logChange } from './changeLog';
 
 const DIRECTIVE_TYPES = new Set(['order', 'exclude', 'restore']);
@@ -23,8 +24,12 @@ export function registerDirectivesHandler() {
     handle(
         'directives:add',
         edit,
-        async (_event, entry) => {
+        async (_event, entryInput) => {
+            const entry = requireObject(entryInput, 'entry') as any;
             assertType(entry?.type);
+            requireInt(entry.userId, 'entry.userId');
+            requireString(entry.title, 'entry.title', { maxLength: 500 });
+            requireString(entry.date, 'entry.date', { maxLength: 40 });
             await database.transaction(async (db) => {
                 const res = await db.run(
                     `INSERT INTO user_directives (userId, type, title, description, file, period_from, period_to, date)
@@ -51,17 +56,25 @@ export function registerDirectivesHandler() {
     handle(
         'directives:deleteById',
         edit,
-        (_event, id: number) => database.transaction((db) => deleteAndLog(db, 'id = ?', [id])),
+        (_event, idInput: number) => {
+            const id = requireInt(idInput, 'id');
+            return database.transaction((db) => deleteAndLog(db, 'id = ?', [id]));
+        },
         { audit: 'directives.delete' },
     );
 
     handle(
         'directives:delete',
         edit,
-        (_event, { userId, date }) =>
-            database.transaction((db) =>
-                deleteAndLog(db, 'userId = ? AND date = ?', [userId, date]),
-            ),
+        (_event, params) => {
+            const { userId, date } = requireObject(params, 'params') as any;
+            return database.transaction((db) =>
+                deleteAndLog(db, 'userId = ? AND date = ?', [
+                    requireInt(userId, 'userId'),
+                    requireString(date, 'date', { maxLength: 40 }),
+                ]),
+            );
+        },
         { audit: 'directives.delete' },
     );
 

@@ -43,12 +43,30 @@ export class DatabaseManager {
         this.db = null;
         if (!db) return;
         try {
+            // Keeps query plans healthy as the data grows, then flushes the WAL into the file
+            // so the database is a single consistent file when the app is not running.
+            await db.exec('PRAGMA optimize;');
             await db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
         } catch (err) {
-            logger.warn('WAL checkpoint before close failed', err);
+            logger.warn('Optimize/checkpoint before close failed', err);
         }
         await db.close();
         logger.info('Database closed');
+    }
+
+    /**
+     * Cheap structural check of the open database. Reports damage early (disk problems,
+     * a file copied while the app was running) instead of letting it surface as odd errors.
+     */
+    async checkIntegrity(): Promise<{ ok: boolean; details: string; durationMs: number }> {
+        const db = await this.get();
+        const started = Date.now();
+        const row = await db.get<{ quick_check: string }>('PRAGMA quick_check(1)');
+        const details = row?.quick_check ?? 'unknown';
+        const durationMs = Date.now() - started;
+        if (details !== 'ok') logger.error(`Database integrity check failed: ${details}`);
+        else logger.info(`Database integrity check passed in ${durationMs} ms`);
+        return { ok: details === 'ok', details, durationMs };
     }
 
     /**

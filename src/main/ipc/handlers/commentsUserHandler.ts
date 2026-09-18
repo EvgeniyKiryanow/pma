@@ -1,13 +1,15 @@
 import { database } from '../../db/connection';
 import { safeJsonArray } from '../../personnel/userFields';
 import { access, handle } from '../secureHandle';
+import { requireInt, requireObject } from '../validate';
 import { logChange } from './changeLog';
 
 export function registerCommentsHandlers() {
     handle(
         'comments:get-user-comments',
         access.any('personnel.view'),
-        async (_event, userId: number) => {
+        async (_event, userIdInput: number) => {
+            const userId = requireInt(userIdInput, 'userId');
             const db = await database.get();
             const user = await db.get('SELECT comments FROM users WHERE id = ?', userId);
             return safeJsonArray(user?.comments);
@@ -17,7 +19,10 @@ export function registerCommentsHandlers() {
     handle(
         'comments:add-user-comment',
         access.any('history.edit'),
-        async (_event, userId: number, newComment: any) => {
+        async (_event, userIdInput: number, newCommentInput: any) => {
+            const userId = requireInt(userIdInput, 'userId');
+            const newComment = requireObject(newCommentInput, 'comment');
+            requireInt(newComment.id, 'comment.id');
             return database.transaction(async (db) => {
                 const user = await db.get('SELECT comments FROM users WHERE id = ?', userId);
                 if (!user) return { success: false, message: 'User not found' };
@@ -45,7 +50,8 @@ export function registerCommentsHandlers() {
     handle(
         'comments:delete-user-comment',
         access.any('history.edit'),
-        async (_event, id: number) => {
+        async (_event, idInput: number) => {
+            const id = requireInt(idInput, 'id');
             return database.transaction(async (db) => {
                 const users = await db.all('SELECT id, comments FROM users');
                 for (const user of users) {

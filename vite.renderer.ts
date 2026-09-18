@@ -7,6 +7,33 @@ export default defineConfig({
     root: '.',
     plugins: [
         react(),
+        // Content Security Policy for the packaged app only: the page may load its own files,
+        // inline styles (docx preview) and data/blob images, and nothing from the network.
+        // Not applied in development, where Vite injects its own inline scripts.
+        {
+            name: 'content-security-policy',
+            apply: 'build',
+            transformIndexHtml(html: string) {
+                const policy = [
+                    "default-src 'none'",
+                    "script-src 'self'",
+                    "style-src 'self' 'unsafe-inline'",
+                    "img-src 'self' data: blob:",
+                    "font-src 'self' data:",
+                    "media-src 'self' data: blob:",
+                    "connect-src 'self' data: blob:",
+                    "worker-src 'self' blob:",
+                    "object-src 'none'",
+                    "frame-src 'none'",
+                    "base-uri 'none'",
+                    "form-action 'none'",
+                ].join('; ');
+                return html.replace(
+                    '<head>',
+                    `<head>\n    <meta http-equiv="Content-Security-Policy" content="${policy}" />`,
+                );
+            },
+        },
         // Bundle analysis only on demand: `npm run analyze`
         process.env.ANALYZE &&
             visualizer({
