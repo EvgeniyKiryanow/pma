@@ -17,6 +17,7 @@ import {
     type CardField,
     type CardSection,
 } from '../../../../shared/personnel/cardSchema';
+import { staffCategoryName } from '../../../../shared/personnel/staffCategory';
 import type { AwardRecord, User } from '../../../../shared/types/user';
 import { Button, cn, EmptyState, Tabs } from '../../../shared/ui';
 import { useI18nStore } from '../../../stores/i18nStore';
@@ -355,7 +356,9 @@ export default function UserInfoDetails({ user }: { user: User }) {
                                 />
                                 <Fact
                                     label={t('card.fields.category')}
-                                    value={position?.category || liveUser.category}
+                                    value={staffCategoryName(
+                                        position?.category || liveUser.category,
+                                    )}
                                 />
                                 <Fact
                                     label={t('card.fields.shpkCode')}
