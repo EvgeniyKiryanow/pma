@@ -101,7 +101,7 @@ export async function generateAlternateCombatReportExcelTemplate(report: Alterna
     ws.getRow(2).height = 150;
 
     ws.mergeCells('F1:F2');
-    ws.getCell('F1').value = '%\nУКОПМЛЕКТОВАНІСТЬ';
+    ws.getCell('F1').value = '%\nУКОМПЛЕКТОВАНІСТЬ';
     styleHeader(ws.getCell('F1'), { rotate: true });
 
     // Optional: adjust width and height for readability
@@ -163,7 +163,7 @@ export async function generateAlternateCombatReportExcelTemplate(report: Alterna
 
     // === "З НИХ" group ===
     const znukhColumns = [
-        { label: 'НА ПОЗИЦІЯ', bg: '#9fce63' },
+        { label: 'НА ПОЗИЦІЇ', bg: '#9fce63' },
         { label: 'БРОНЄГРУПА', bg: '#d7dce3' },
         { label: 'ПОЗИЦІЇ ПІХОТИ', bg: '#d7dce3' },
         { label: 'ПОЗИЦІЇ ЕКІПАЖ', bg: '#eab38a' },
@@ -171,8 +171,8 @@ export async function generateAlternateCombatReportExcelTemplate(report: Alterna
         { label: 'ПОЗИЦІЇ БПЛА', bg: '#eab38a' },
         { label: 'РЕЗЕРВ ПІХОТИ', bg: '#eab38a' },
         { label: 'УПРАВЛІННЯ', bg: '#eab38a' },
-        { label: 'БОЙОВЕ ЗАБЕСПЕЧЕННЯ', bg: '#eab38a' },
-        { label: 'ЗАБЕСПЕЧЕННЯ', bg: '#eab38a' },
+        { label: 'БОЙОВЕ ЗАБЕЗПЕЧЕННЯ', bg: '#eab38a' },
+        { label: 'ЗАБЕЗПЕЧЕННЯ', bg: '#eab38a' },
         { label: 'НОВОПРИБУЛІ НАВЧАННЯ В ПІДРОЗДІЛІ', bg: '#eab38a' },
         { label: 'Обмежено придатні', bg: '#f8da78' },
         { label: 'Хворі в підрозділі', bg: '#f8da78' },
@@ -243,7 +243,7 @@ export async function generateAlternateCombatReportExcelTemplate(report: Alterna
     // Subheaders with background colors and rotation
     const absentSubheaders = [
         { label: 'ВЛК', bg: '#eab38a' },
-        { label: 'Шпиталь/ЛІкарня', bg: '#eab38a' },
+        { label: 'Шпиталь / Лікарня', bg: '#eab38a' },
         { label: 'Мед.Рота', bg: '#eab38a' },
         { label: 'Відпустка (реабілітація)', bg: '#fcf2cf' },
         { label: 'Відпустка', bg: '#fcf2cf' },
