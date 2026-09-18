@@ -22,7 +22,8 @@
     "dist": "electron-builder",
     "release": "npm run build && npm run dist",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "build": {
     "appId": "com.your.app",
