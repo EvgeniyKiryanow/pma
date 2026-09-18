@@ -46,7 +46,7 @@ export function createMainWindow(isDev: boolean): BrowserWindow {
         width,
         height,
         show: false,
-        backgroundColor: '#f9fafb',
+        backgroundColor: '#f3f3ec',
         icon: AppPaths.windowIcon,
         frame: false,
         titleBarStyle: 'hidden',
