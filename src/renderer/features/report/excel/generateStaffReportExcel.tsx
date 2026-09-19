@@ -1,13 +1,19 @@
 import ExcelJS from 'exceljs';
 
-import { awardsSummary } from '../../../../shared/awards/catalog';
-import classifyStatusForReport from '../../../../shared/helpers/classifyStatusForReport';
 import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
 import { downloadFile } from '../../../shared/lib/download';
 import { useUserStore } from '../../../stores/userStore';
+import { visibleStaffRows } from '../model/staffReportStore';
 
 export async function generateStaffReportExcel() {
-    const shtatniPosady = useShtatniStore.getState().shtatniPosady;
+    // The positions the screen shows (the filters of the report), in the order of the БЧС:
+    // the file keeps its unit headings.
+    const visibleRows = visibleStaffRows();
+    const rowsByNumber = new Map(visibleRows.map((row) => [row.shtatNumber, row]));
+    const visible = new Set(rowsByNumber.keys());
+    const shtatniPosady = useShtatniStore
+        .getState()
+        .shtatniPosady.filter((position) => visible.has(position.shtat_number));
     const users = useUserStore.getState().users;
 
     // === Sort positions ===
@@ -177,26 +183,22 @@ export async function generateStaffReportExcel() {
             currentRow++;
         } else {
             const pos = item.data;
-            const assignedUser = holders.get(String(pos.shtat_number ?? '').trim());
-
-            const extra = pos.extra_data || {};
-            const soldierStatus = assignedUser?.soldierStatus;
-            const classified = classifyStatusForReport(soldierStatus);
-
+            // The row of the screen: the same people, statuses and dates as the table shows.
+            const shown = rowsByNumber.get(pos.shtat_number);
             const rowData = {
                 shtatNumber: pos.shtat_number || '',
                 unit: pos.unit_name || '',
                 position: pos.position_name || '',
-                rank: assignedUser?.rank || '',
-                fullName: assignedUser?.fullName || '',
-                taxId: assignedUser?.taxId || '',
-                statusInArea: extra.statusInArea || classified.statusInArea || '',
-                distanceFromLVZ: extra.distanceFromLVZ || '',
-                absenceReason: extra.absenceReason || classified.absenceReason || '',
-                dateFrom: extra.dateFrom || '',
-                dateTo: extra.dateTo || '',
-                statusNote: extra.statusNote || '',
-                awards: awardsSummary(assignedUser?.awardRecords),
+                rank: shown?.rank ?? '',
+                fullName: shown?.fullName ?? '',
+                taxId: shown?.taxId ?? '',
+                statusInArea: shown?.statusInArea ?? '',
+                distanceFromLVZ: shown?.distanceFromLVZ ?? '',
+                absenceReason: shown?.absenceReason ?? '',
+                dateFrom: shown?.dateFrom ?? '',
+                dateTo: shown?.dateTo ?? '',
+                statusNote: shown?.statusNote ?? '',
+                awards: shown?.awards ?? '',
             };
 
             const row = ws.addRow(rowData);

@@ -70,6 +70,22 @@ export class HistoryIndexRepository {
         );
     }
 
+    /** The period of the last status change (in the order of the history) of each person. */
+    async latestPeriods(): Promise<
+        { userId: number; periodFrom: string; periodTo: string | null }[]
+    > {
+        return (await this.db()).all(
+            `SELECT h.user_id AS userId, h.period_from AS periodFrom, h.period_to AS periodTo
+             FROM history_index h
+             WHERE h.type = 'statusChange' AND h.period_from IS NOT NULL AND h.period_from <> ''
+               AND h.pos = (
+                   SELECT MAX(x.pos) FROM history_index x
+                   WHERE x.user_id = h.user_id AND x.type = 'statusChange'
+                     AND x.period_from IS NOT NULL AND x.period_from <> ''
+               )`,
+        );
+    }
+
     /** Status changes, newest first, a page at a time. */
     async statusChangesNewestFirst(limit: number, offset: number): Promise<HistoryIndexRow[]> {
         return (await this.db()).all<HistoryIndexRow[]>(

@@ -1,15 +1,24 @@
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import { awardsSummary } from '../../../../../shared/awards/catalog';
-import classifyStatusForReport from '../../../../../shared/helpers/classifyStatusForReport';
-import { CommentOrHistoryEntry } from '../../../../../shared/types/user';
 import {
     ShtatnaPosada,
     useShtatniStore,
 } from '../../../../entities/shtatna-posada/model/useShtatniStore';
-import { historyApi } from '../../../../shared/api/personnel';
+import { reportError } from '../../../../shared/api/errors';
+import { useI18nStore } from '../../../../stores/i18nStore';
 import { useUserStore } from '../../../../stores/userStore';
-const STAFF_COLUMNS = [
+import {
+    activeFilterCount,
+    buildStaffRows,
+    filterStaffRows,
+    sortStaffRows,
+    type StaffRow,
+    type StaffSortKey,
+} from '../../model/staffReport';
+import { useStaffReportView } from '../../model/staffReportStore';
+
+const STAFF_COLUMNS: { key: StaffSortKey; label: string; background?: string }[] = [
     { key: 'shtatNumber', label: '№ посади' },
     { key: 'unit', label: 'Підрозділ' },
     { key: 'position', label: 'Посада' },
@@ -25,125 +34,67 @@ const STAFF_COLUMNS = [
     { key: 'awards', label: 'Нагороди', background: '#fff2cc' },
 ];
 
+/** Columns a person fills in the report itself (stored with the position in the БЧС). */
+const EDITABLE = new Set<StaffSortKey>([
+    'statusInArea',
+    'distanceFromLVZ',
+    'absenceReason',
+    'dateFrom',
+    'dateTo',
+    'statusNote',
+]);
+
 export function StaffReportTable() {
+    const { t } = useI18nStore();
     const { shtatniPosady, fetchAll, updatePosada } = useShtatniStore();
-    const { users, fetchUsers } = useUserStore();
-
-    const [editingData, setEditingData] = useState<Record<string, any>>({});
-    const [searchTerm, setSearchTerm] = useState('');
-    const [userHistories, setUserHistories] = useState<Record<number, CommentOrHistoryEntry[]>>({});
+    const users = useUserStore((s) => s.users);
+    const fetchUsers = useUserStore((s) => s.fetchUsers);
+    const historyVersion = useUserStore((s) => s.historyVersion);
+    const { periods, filter, sort, setSort, resetFilter, loadPeriods } = useStaffReportView();
+    const [editingData, setEditingData] = useState<Record<string, Partial<StaffRow>>>({});
 
     useEffect(() => {
-        if (shtatniPosady.length === 0) fetchAll();
-        if (users.length === 0) fetchUsers();
+        if (shtatniPosady.length === 0) void fetchAll();
+        if (users.length === 0) void fetchUsers();
     }, []);
+
+    // The dates of the latest status of everyone: one query, not a history per person.
     useEffect(() => {
-        if (shtatniPosady.length === 0) fetchAll();
-        if (users.length === 0) {
-            fetchUsers();
-        } else {
-            const assignedUserIds = new Set(
-                shtatniPosady
-                    .map((pos) => {
-                        const user = users.find((u) => u.shpkNumber == pos.shtat_number);
-                        return user?.id;
-                    })
-                    .filter(Boolean),
-            );
+        loadPeriods().catch((error) => reportError(error, { context: 'staff-report.periods' }));
+    }, [historyVersion, users]);
 
-            const loadHistories = async () => {
-                const result: Record<number, CommentOrHistoryEntry[]> = {};
-                for (const userId of assignedUserIds) {
-                    try {
-                        const history = await historyApi.list(userId, 'all');
-                        result[userId] = history;
-                    } catch (err) {
-                        console.warn(`❌ Failed to load history for user ${userId}`, err);
-                    }
-                }
-                setUserHistories(result);
-            };
+    const allRows = useMemo(
+        () => buildStaffRows(shtatniPosady, users, periods),
+        [shtatniPosady, users, periods],
+    );
+    const reportRows = useMemo(
+        () => sortStaffRows(filterStaffRows(allRows, filter), sort),
+        [allRows, filter, sort],
+    );
 
-            loadHistories();
-        }
-    }, [users, shtatniPosady]);
+    /** Unsorted → ascending → descending → the order of the БЧС. */
+    const toggleSort = (key: StaffSortKey) => {
+        if (sort?.key !== key) setSort({ key, direction: 'asc' });
+        else if (sort.direction === 'asc') setSort({ key, direction: 'desc' });
+        else setSort(null);
+    };
 
-    const sorted = useMemo(() => {
-        return [...shtatniPosady].sort((a, b) => {
-            const nA = parseInt(a.shtat_number.replace(/\D/g, ''), 10) || 0;
-            const nB = parseInt(b.shtat_number.replace(/\D/g, ''), 10) || 0;
-            return nA - nB;
-        });
-    }, [shtatniPosady]);
-
-    const allRows = useMemo(() => {
-        return sorted.map((pos) => {
-            const assignedUser = users.find((u) => u.shpkNumber == pos.shtat_number);
-            const extra = pos.extra_data || {};
-            const soldierStatus = assignedUser?.soldierStatus;
-
-            const history = assignedUser?.id ? userHistories[assignedUser.id] || [] : [];
-            const latestStatus = [...history]
-                .reverse()
-                .find((h) => h.type === 'statusChange' && h.period?.from);
-            const dateFrom = latestStatus?.period?.from || extra.dateFrom || '';
-            const dateTo = latestStatus?.period?.to || extra.dateTo || '';
-            const classified = classifyStatusForReport(soldierStatus);
-
-            return {
-                shtatNumber: pos.shtat_number,
-                unit: pos.unit_name || '',
-                position: pos.position_name || '',
-                fullName: assignedUser?.fullName || '',
-                rank: assignedUser?.rank || '',
-                taxId: assignedUser?.taxId || '',
-
-                statusInArea: extra.statusInArea || classified.statusInArea,
-                distanceFromLVZ: extra.distanceFromLVZ || '',
-                absenceReason: extra.absenceReason || classified.absenceReason,
-                dateFrom,
-                dateTo,
-                statusNote: extra.statusNote || '',
-                awards: awardsSummary(assignedUser?.awardRecords),
-            };
-        });
-    }, [sorted, users, userHistories]);
-
-    const reportRows = useMemo(() => {
-        if (!searchTerm.trim()) return allRows;
-        const lower = searchTerm.toLowerCase();
-        return allRows.filter((row) =>
-            Object.values(row).some((val) => String(val).toLowerCase().includes(lower)),
-        );
-    }, [allRows, searchTerm]);
-
-    const handleEditChange = (shtatNumber: string, field: string, value: string) => {
+    const handleEditChange = (shtatNumber: string, field: StaffSortKey, value: string) => {
         setEditingData((prev) => ({
             ...prev,
-            [shtatNumber]: {
-                ...prev[shtatNumber],
-                [field]: value,
-            },
+            [shtatNumber]: { ...prev[shtatNumber], [field]: value },
         }));
     };
 
     const saveRowChanges = async (shtatNumber: string) => {
         const changes = editingData[shtatNumber];
         if (!changes) return;
-
         const posada = shtatniPosady.find((p) => p.shtat_number === shtatNumber);
         if (!posada) return;
-
-        const mergedExtra = {
-            ...(posada.extra_data || {}),
-            ...changes,
-        };
-
         const updatedPosada: ShtatnaPosada = {
             ...posada,
-            extra_data: mergedExtra,
+            extra_data: { ...(posada.extra_data || {}), ...changes },
         };
-
         const ok = await updatePosada(updatedPosada);
         if (ok) {
             setEditingData((prev) => {
@@ -153,53 +104,69 @@ export function StaffReportTable() {
             });
         }
     };
+
     return (
-        <div className="paper relative max-h-[calc(100vh-190px)] max-w-full overflow-auto">
-            <table className="min-w-[2000px] text-[12px] border-collapse table-fixed">
+        <div className="paper relative max-h-[calc(100vh-290px)] max-w-full overflow-auto">
+            <table className="min-w-[2000px] table-fixed border-collapse text-[12px]">
                 <thead className="sticky top-0 z-10 bg-gray-100">
                     <tr>
-                        {STAFF_COLUMNS.map((col) => (
-                            <th
-                                key={col.key}
-                                style={{
-                                    backgroundColor: col.background || '#f0f0f0',
-                                    color: '#000',
-                                    border: '1px solid black',
-                                    textAlign: 'center',
-                                    fontWeight: 'bold',
-                                    padding: '10px 6px',
-                                    whiteSpace: 'nowrap',
-                                    fontSize: '13px',
-                                }}
-                            >
-                                {col.label}
-                            </th>
-                        ))}
+                        {STAFF_COLUMNS.map((col) => {
+                            const sorted = sort?.key === col.key ? sort.direction : null;
+                            const Arrow =
+                                sorted === 'asc'
+                                    ? ArrowUp
+                                    : sorted === 'desc'
+                                      ? ArrowDown
+                                      : ArrowUpDown;
+                            return (
+                                <th
+                                    key={col.key}
+                                    aria-sort={
+                                        sorted === 'asc'
+                                            ? 'ascending'
+                                            : sorted === 'desc'
+                                              ? 'descending'
+                                              : 'none'
+                                    }
+                                    style={{
+                                        backgroundColor: col.background || '#f0f0f0',
+                                        color: '#000',
+                                        border: '1px solid black',
+                                        padding: 0,
+                                        fontSize: '13px',
+                                    }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleSort(col.key)}
+                                        title={t('staffFilters.sortHint')}
+                                        className="group flex w-full items-center justify-center gap-1 whitespace-nowrap px-1.5 py-2.5 font-bold hover:bg-black/5"
+                                    >
+                                        {col.label}
+                                        <Arrow
+                                            className={
+                                                sorted
+                                                    ? 'size-3.5 shrink-0'
+                                                    : 'size-3.5 shrink-0 opacity-25 group-hover:opacity-70'
+                                            }
+                                        />
+                                    </button>
+                                </th>
+                            );
+                        })}
                     </tr>
                 </thead>
 
                 <tbody>
                     {reportRows.map((row, idx) => {
                         const edit = editingData[row.shtatNumber] || {};
-                        const isEven = idx % 2 === 0;
-
                         return (
                             <tr
                                 key={row.shtatNumber}
-                                className={isEven ? 'bg-white' : 'bg-gray-50'}
+                                className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
                             >
                                 {STAFF_COLUMNS.map((col) => {
-                                    const value = edit[col.key] ?? (row as any)[col.key];
-
-                                    const editable = [
-                                        'statusInArea',
-                                        'distanceFromLVZ',
-                                        'absenceReason',
-                                        'dateFrom',
-                                        'dateTo',
-                                        'statusNote',
-                                    ].includes(col.key);
-
+                                    const value = String(edit[col.key] ?? row[col.key] ?? '');
                                     return (
                                         <td
                                             key={col.key}
@@ -211,7 +178,7 @@ export function StaffReportTable() {
                                                 verticalAlign: 'top',
                                             }}
                                         >
-                                            {editable ? (
+                                            {EDITABLE.has(col.key) ? (
                                                 <input
                                                     type="text"
                                                     className="w-full rounded border border-gray-300 bg-white px-1 py-[3px] text-[12px] text-gray-900 outline-none focus:border-olive-600 focus:ring-2 focus:ring-olive-300/60"
@@ -223,16 +190,12 @@ export function StaffReportTable() {
                                                             e.target.value,
                                                         )
                                                     }
-                                                    onBlur={() => saveRowChanges(row.shtatNumber)}
+                                                    onBlur={() =>
+                                                        void saveRowChanges(row.shtatNumber)
+                                                    }
                                                 />
                                             ) : (
-                                                <span
-                                                    style={{
-                                                        fontWeight: 'normal',
-                                                    }}
-                                                >
-                                                    {value || ''}
-                                                </span>
+                                                <span>{value}</span>
                                             )}
                                         </td>
                                     );
@@ -245,10 +208,23 @@ export function StaffReportTable() {
                         <tr>
                             <td
                                 colSpan={STAFF_COLUMNS.length}
-                                className="p-6 text-center text-gray-500 italic"
+                                className="p-6 text-center italic text-gray-500"
                                 style={{ border: '1px solid black' }}
                             >
-                                Даних немає або пошук не знайшов збігів
+                                {activeFilterCount(filter) > 0 ? (
+                                    <>
+                                        {t('staffFilters.nothingFound')}{' '}
+                                        <button
+                                            type="button"
+                                            onClick={resetFilter}
+                                            className="font-medium not-italic text-olive-700 underline"
+                                        >
+                                            {t('staffFilters.resetAll')}
+                                        </button>
+                                    </>
+                                ) : (
+                                    t('staffFilters.noPositions')
+                                )}
                             </td>
                         </tr>
                     )}

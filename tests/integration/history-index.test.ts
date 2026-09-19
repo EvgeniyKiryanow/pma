@@ -210,6 +210,14 @@ describe('history summaries from the index', () => {
         expect(october.map((period) => period.status)).toEqual(['Відрядження', 'ВЛК']);
     });
 
+    it('give the period of the latest status change of each person', async () => {
+        const first = await person('Перший', VARIETY());
+        await person('Без історії', []);
+        expect(await history.latestPeriods()).toEqual([
+            { userId: first, from: ' 01.08.2026', to: ' 03.08.2026' },
+        ]);
+    });
+
     it('follow every change of the history', async () => {
         const id = await person('Перший', []);
         await history.add(id, change({ id: 1, status: 'Відпустка' }));

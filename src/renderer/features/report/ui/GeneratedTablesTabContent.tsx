@@ -26,6 +26,7 @@ import { AlternateCombatReportTable } from './_components/AlternateCombatReportT
 import { ImpulseExportPanel } from './_components/ImpulseExportPanel';
 import { NamedListTable } from './_components/NamedListTable';
 import { ReportCellModal, type ReportCellTarget } from './_components/ReportCellModal';
+import { StaffReportFilters } from './_components/StaffReportFilters';
 import { StaffReportTable } from './_components/StaffReportTable';
 
 type Props = {
@@ -224,6 +225,9 @@ export default function GeneratedTablesTabContent({ onRequestImportTab }: Props)
                                 </div>
                             )}
                         </div>
+
+                        {/* Above the printed area: the filters are not printed, their result is. */}
+                        {activeTable === 'staff' && <StaffReportFilters />}
 
                         <div className="min-h-0 flex-1 overflow-auto p-5">
                             <div

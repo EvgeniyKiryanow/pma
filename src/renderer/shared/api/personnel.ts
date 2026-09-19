@@ -2,6 +2,7 @@ import type {
     DayRange,
     HistoryRange,
     IncompleteHistoryEntry,
+    LatestStatusPeriod,
     RecentStatusChange,
     StatusPeriodEntry,
 } from '../../../shared/types/history';
@@ -89,6 +90,8 @@ export const historyApi = {
     statusPeriods: (range?: DayRange): Promise<StatusPeriodEntry[]> =>
         call(bridge().getStatusPeriods(range)),
     /** The latest status changes of everyone, newest first. */
+    /** Per person: the period of their last status change that has one. */
+    latestPeriods: (): Promise<LatestStatusPeriod[]> => call(bridge().getLatestStatusPeriods()),
     recentStatusChanges: (limit?: number): Promise<RecentStatusChange[]> =>
         call(bridge().getRecentStatusChanges(limit)),
 };
