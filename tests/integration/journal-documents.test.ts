@@ -11,6 +11,7 @@ import { DocumentService } from '../../src/main/documents/DocumentService';
 import { JournalService } from '../../src/main/journal/JournalService';
 import { EntryListStore } from '../../src/main/personnel/EntryListStore';
 import { HistoryAttachments } from '../../src/main/personnel/HistoryAttachments';
+import { HistoryIndexRepository } from '../../src/main/personnel/HistoryIndexRepository';
 import { HistoryService } from '../../src/main/personnel/HistoryService';
 import { PersonnelRepository } from '../../src/main/personnel/PersonnelRepository';
 import { PersonnelService } from '../../src/main/personnel/PersonnelService';
@@ -43,8 +44,7 @@ beforeEach(async () => {
     history = new HistoryService(
         database,
         new EntryListStore<CommentOrHistoryEntry>(people, changes, 'history'),
-        files,
-    );
+        files, new HistoryIndexRepository(db));
 });
 
 afterEach(async () => {
@@ -114,12 +114,25 @@ describe('documents of a person', () => {
             previousStatus: 'В районі',
             period: { from: '2026-09-18', to: '2026-09-28' },
         } as CommentOrHistoryEntry);
+        await history.add(id, {
+            id: 2,
+            date: '2026-09-10T10:00:00.000Z',
+            type: 'history',
+            description: 'Старший запис',
+            content: '',
+            files: [{ name: 'старий.pdf', type: 'application/pdf', dataUrl: dataUrl('old') }],
+        } as CommentOrHistoryEntry);
         const recent = await documents.recent();
-        expect(recent.find((f) => f.source === 'history')).toMatchObject({
+        const fromHistory = recent.filter((f) => f.source === 'history');
+        expect(fromHistory.map((f) => f.name)).toEqual(['рапорт.pdf', 'старий.pdf']);
+        expect(fromHistory[0]).toMatchObject({
             name: 'рапорт.pdf',
             userId: id,
+            userName: 'Коваль Ігор',
+            context: 'Статус змінено з "В районі" → "Відпустка"',
             ref: { entryId: 1 },
         });
+        expect(await documents.recent(1)).toHaveLength(1);
         const [change] = await history.recentStatusChanges();
         expect(change).toMatchObject({
             userId: id,

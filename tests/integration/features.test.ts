@@ -16,6 +16,7 @@ import { NamedListService } from '../../src/main/named-list/NamedListService';
 import { CommentService } from '../../src/main/personnel/CommentService';
 import { EntryListStore } from '../../src/main/personnel/EntryListStore';
 import { HistoryAttachments } from '../../src/main/personnel/HistoryAttachments';
+import { HistoryIndexRepository } from '../../src/main/personnel/HistoryIndexRepository';
 import { HistoryService } from '../../src/main/personnel/HistoryService';
 import { PersonnelRepository } from '../../src/main/personnel/PersonnelRepository';
 import { PersonnelService } from '../../src/main/personnel/PersonnelService';
@@ -61,8 +62,7 @@ async function createWorld(dir: string) {
         history: new HistoryService(
             transactor,
             new EntryListStore<CommentOrHistoryEntry>(people, journal, 'history'),
-            attachments,
-        ),
+            attachments, new HistoryIndexRepository(db)),
         settings: new SettingsService(new SettingsRepository(db)),
         comments: new CommentService(
             transactor,
@@ -143,8 +143,9 @@ describe('personnel', () => {
         expect(await world.personnel.remove(created.id)).toBe(false);
         expect(await world.personnel.getOne(created.id)).toBeNull();
 
+        // The update refreshed the waiting insert (a change carries the whole row).
         const operations = (await journalOf('users')).map((c) => c.operation);
-        expect(operations).toEqual(['insert', 'update', 'delete']);
+        expect(operations).toEqual(['insert', 'delete']);
     });
 
     it('never touches history and comments on a full update', async () => {
@@ -283,9 +284,9 @@ describe('personnel', () => {
         await world.personnel.update(id, { awardRecords: [] });
         await world.awardTypes.remove(saved.uuid);
         expect(await world.awardTypes.list()).toEqual([]);
+        // The edit refreshed the waiting insert; the deletion is its own entry.
         expect((await journalOf('award_types')).map((c) => c.operation)).toEqual([
             'insert',
-            'update',
             'delete',
         ]);
         await expect(
@@ -590,6 +591,26 @@ describe('named list', () => {
         await world.namedList.remove('2026-09');
         await expect(world.namedList.remove('2026-09')).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
+
+    it("writes today's marks of everyone at once, skipping rows that are gone", async () => {
+        const many = Array.from({ length: 300 }, (_, i) => ({
+            id: i + 1,
+            fullName: `Особа ${i + 1}`,
+            attendance: ['', '', ''],
+        }));
+        await world.namedList.create('2026-09', many);
+        const cells = many.map((row) => ({ rowId: row.id, dayIndex: 1, value: 'в' }));
+        cells.push({ rowId: 9999, dayIndex: 1, value: 'в' }, { rowId: 1, dayIndex: 7, value: 'x' });
+        expect(await world.namedList.updateCells('2026-09', cells)).toBe(300);
+        const [table] = await world.namedList.list();
+        expect(table.data.every((row: { attendance: string[] }) => row.attendance[1] === 'в')).toBe(
+            true,
+        );
+        expect(table.data[0].attendance).toEqual(['', 'в', '']);
+        await expect(world.namedList.updateCells('2026-10', cells)).rejects.toMatchObject({
+            code: 'NOT_FOUND',
+        });
+    });
 });
 
 describe('report templates', () => {
@@ -636,7 +657,8 @@ describe('change-log exchange', () => {
             await world.namedList.updateCell('2026-09', id, 1, '+');
 
             const file = path.join(root, 'changes.pmc');
-            expect((await world.exchange.exportChanges(PASSWORD, async () => file)).exported).toBe(5);
+            // Person (insert, refreshed by the update), staff position, named list (refreshed).
+            expect((await world.exchange.exportChanges(PASSWORD, async () => file)).exported).toBe(3);
             // Exported entries leave the local journal.
             expect(await world.journal.pendingLocal()).toEqual([]);
 
@@ -645,7 +667,7 @@ describe('change-log exchange', () => {
                 error: 'invalid-password',
             });
             const stats = await other.exchange.importChanges(PASSWORD, async () => file);
-            expect(stats).toEqual({ imported: 5, skipped: 0, failed: 0 });
+            expect(stats).toEqual({ imported: 3, skipped: 0, failed: 0 });
 
             const names = (await other.personnel.list()).map((u) => [u.fullName, u.rank]);
             const moved = (await other.personnel.list()).find((u) => u.fullName === 'Ткаченко Василь');

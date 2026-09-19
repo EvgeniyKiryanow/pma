@@ -5,8 +5,16 @@ import { ChangeApplier } from './ChangeApplier';
 import type { ChangeFiles } from './ChangeFiles';
 import type { ChangeJournal, ChangeRow } from './ChangeJournal';
 import { type ChangeLogFile, InvalidChangeLogPassword } from './ChangeLogFile';
+import type { SentFiles } from './SentFiles';
 
 export const MIN_CHANGE_LOG_PASSWORD_LENGTH = 8;
+
+/**
+ * File content (characters of base64) one change log carries at most. The log is JSON read
+ * whole on the other computer: kept well below what a JavaScript string can hold. More files
+ * go into the next change log.
+ */
+export const FILES_PER_LOG = 150 * 1024 * 1024;
 
 /** Asks the user where to write or read the file; `null` means canceled. */
 export type PathPicker = () => Promise<string | null>;
@@ -23,6 +31,9 @@ export class ChangeExchangeService {
         private readonly logger: Logger,
         /** Files that travel with the changes (documents, journal, awards, history). */
         private readonly files?: ChangeFiles,
+        /** Files of people earlier change logs carried: they are not sent again. */
+        private readonly sentFiles?: SentFiles,
+        private readonly filesPerLog = FILES_PER_LOG,
     ) {}
 
     async exportChanges(
@@ -38,12 +49,21 @@ export class ChangeExchangeService {
         const filePath = await chooseTarget();
         if (!filePath) return { exported: 0, canceled: true };
 
-        const withFiles = this.files ? await this.files.attach(changes) : changes;
-        await this.file.write(filePath, withFiles, password);
-        // Only entries that were actually written are removed from the local journal.
-        await this.journal.removeLocalUpTo(changes[changes.length - 1].id);
-        this.logger.info(`Exported ${changes.length} change(s)`);
-        return { exported: changes.length };
+        const attached = this.files
+            ? await this.files.attach(changes, { budget: this.filesPerLog, sent: this.sentFiles })
+            : { rows: changes, sent: [], incomplete: false };
+        await this.file.write(filePath, attached.rows, password);
+        // Only entries that were written completely leave the local journal.
+        const done = attached.incomplete ? attached.rows.slice(0, -1) : attached.rows;
+        await this.transactor.transaction(async () => {
+            await this.journal.removeExported(done);
+            await this.sentFiles?.remember(attached.sent);
+        });
+        const remaining = changes.length - done.length;
+        this.logger.info(
+            `Exported ${attached.rows.length} change(s)${remaining ? `, ${remaining} wait for the next file` : ''}`,
+        );
+        return { exported: attached.rows.length, ...(remaining ? { remaining } : {}) };
     }
 
     async importChanges(

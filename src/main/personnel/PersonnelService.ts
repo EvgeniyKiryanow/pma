@@ -77,9 +77,9 @@ export class PersonnelService {
         }
     }
 
-    /** Everyone, without the heavy history/comments JSON. */
+    /** Everyone, without the heavy history/comments JSON and photos (lists show `photoThumb`). */
     async list(): Promise<User[]> {
-        return (await this.people.list()).map(
+        return (await this.people.listRoster()).map(
             ({ history: _history, comments: _comments, ...rest }) =>
                 parseUserRow(rest, [
                     'relatives',
@@ -131,6 +131,14 @@ export class PersonnelService {
             const complete: Record<string, unknown> = { ...user };
             for (const field of KEPT_LISTS) {
                 if (!(field in user)) complete[field] = safeJsonArray(current[field]);
+            }
+            // A person taken from the list has no photo: saving it keeps the photo. A new
+            // photo without its small copy gets one later (PhotoThumbnails).
+            if (user.photo === undefined) {
+                complete.photo = current.photo;
+                complete.photoThumb = current.photoThumb;
+            } else if (user.photoThumb === undefined) {
+                complete.photoThumb = user.photo === current.photo ? current.photoThumb : null;
             }
             if ('awardRecords' in user) {
                 before = awardList(safeJsonArray(current.awardRecords));

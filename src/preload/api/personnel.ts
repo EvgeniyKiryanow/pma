@@ -18,6 +18,7 @@ import type {
     RecentFile,
 } from '../../shared/types/documents';
 import type {
+    DayRange,
     HistoryRange,
     IncompleteHistoryEntry,
     RecentStatusChange,
@@ -58,7 +59,8 @@ export const historyApi = {
     loadHistoryFile: (userId: number, entryId: number, filename: string) =>
         invoke<{ dataUrl: string }>(HISTORY_CHANNELS.loadFile, userId, entryId, filename),
     findIncompleteHistory: () => invoke<IncompleteHistoryEntry[]>(HISTORY_CHANNELS.findIncomplete),
-    getStatusPeriods: () => invoke<StatusPeriodEntry[]>(HISTORY_CHANNELS.statusPeriods),
+    getStatusPeriods: (range?: DayRange) =>
+        invoke<StatusPeriodEntry[]>(HISTORY_CHANNELS.statusPeriods, range),
     getRecentStatusChanges: (limit?: number) =>
         invoke<RecentStatusChange[]>(HISTORY_CHANNELS.recentStatusChanges, limit),
 };

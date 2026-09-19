@@ -14,7 +14,9 @@ import type { AwardRecord, User } from '../../../../shared/types/user';
 import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtatniStore';
 import { personnelApi } from '../../../shared/api/personnel';
 import { StatusDot } from '../../../shared/components/StatusBadge';
+import { listPhoto } from '../../../shared/lib/photo';
 import { Avatar, cn, EmptyState, IconButton, SearchInput } from '../../../shared/ui';
+import { InlineLoader, SkeletonRows } from '../../../shared/ui/loader';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useUserStore } from '../../../stores/userStore';
 import StaffView from './StaffView';
@@ -99,6 +101,7 @@ export default function LeftBar({ users }: Props) {
     const [loadingUserId, setLoadingUserId] = useState<number | null>(null);
 
     const selectedUser = useUserStore((s) => s.selectedUser);
+    const usersLoaded = useUserStore((s) => s.usersLoaded);
     const setSelectedUser = useUserStore((s) => s.setSelectedUser);
     const { t } = useI18nStore();
 
@@ -218,7 +221,12 @@ export default function LeftBar({ users }: Props) {
                 </div>
             ) : (
                 <ul className="flex-1 space-y-0.5 overflow-y-auto p-2">
-                    {filteredUsers.length === 0 ? (
+                    {!usersLoaded ? (
+                        <li className="space-y-3 p-2">
+                            <InlineLoader>{t('leftBar.loading')}</InlineLoader>
+                            <SkeletonRows rows={8} />
+                        </li>
+                    ) : filteredUsers.length === 0 ? (
                         <li>
                             <EmptyState
                                 icon={<SearchX />}
@@ -253,7 +261,7 @@ export default function LeftBar({ users }: Props) {
                                         <span className="relative">
                                             <Avatar
                                                 name={user.fullName}
-                                                src={user.photo}
+                                                src={listPhoto(user)}
                                                 size={38}
                                                 rounded="rounded-xl"
                                             />

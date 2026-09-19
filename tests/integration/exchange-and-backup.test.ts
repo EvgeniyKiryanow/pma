@@ -18,6 +18,7 @@ import { DocumentService } from '../../src/main/documents/DocumentService';
 import { JournalService } from '../../src/main/journal/JournalService';
 import { EntryListStore } from '../../src/main/personnel/EntryListStore';
 import { HistoryAttachments } from '../../src/main/personnel/HistoryAttachments';
+import { HistoryIndexRepository } from '../../src/main/personnel/HistoryIndexRepository';
 import { HistoryService } from '../../src/main/personnel/HistoryService';
 import { PersonnelRepository } from '../../src/main/personnel/PersonnelRepository';
 import { PersonnelService } from '../../src/main/personnel/PersonnelService';
@@ -26,6 +27,7 @@ import { ChangeExchangeService } from '../../src/main/sync/ChangeExchangeService
 import { ChangeFiles } from '../../src/main/sync/ChangeFiles';
 import { ChangeJournal } from '../../src/main/sync/ChangeJournal';
 import { ChangeLogFile } from '../../src/main/sync/ChangeLogFile';
+import { SentFiles } from '../../src/main/sync/SentFiles';
 import type { JournalEntryInput } from '../../src/shared/types/journal';
 import type { CommentOrHistoryEntry } from '../../src/shared/types/user';
 
@@ -40,7 +42,11 @@ const dataUrl = (text: string) => `data:text/plain;base64,${Buffer.from(text).to
 
 type Computer = Awaited<ReturnType<typeof computer>>;
 
-async function computer(dir: string, historyRoot = path.join(dir, 'history_files')) {
+async function computer(
+    dir: string,
+    historyRoot = path.join(dir, 'history_files'),
+    filesPerLog?: number,
+) {
     await fsp.mkdir(dir, { recursive: true });
     const database = new DatabaseManager(() => path.join(dir, 'users.db'));
     await migrationRunner.run(await database.get());
@@ -58,6 +64,7 @@ async function computer(dir: string, historyRoot = path.join(dir, 'history_files
             database,
             new EntryListStore<CommentOrHistoryEntry>(people, journal, 'history'),
             files,
+            new HistoryIndexRepository(db),
         ),
         documents: new DocumentService(database, new DocumentRepository(db), files, db, journal),
         journal: new JournalService(database, db, files, journal),
@@ -68,6 +75,8 @@ async function computer(dir: string, historyRoot = path.join(dir, 'history_files
             new ChangeLogFile(() => path.join(dir, '.staging')),
             silentLogger,
             new ChangeFiles(files, silentLogger),
+            new SentFiles(db),
+            filesPerLog,
         ),
     };
 }
@@ -283,6 +292,78 @@ describe('change log between two computers', () => {
     });
 });
 
+describe('files of people in the change log', () => {
+    const entry = (id: number, names: string[]): CommentOrHistoryEntry =>
+        ({
+            id,
+            type: 'statusChange',
+            status: 'Відпустка',
+            date: new Date().toISOString(),
+            description: '',
+            files: names.map((name) => ({ name, dataUrl: dataUrl(`${name}-${'x'.repeat(2000)}`) })),
+        }) as CommentOrHistoryEntry;
+    const carried = async (file: string) => {
+        const log = new ChangeLogFile(() => path.join(root, '.staging'));
+        const rows = (await log.read(file, PASSWORD)) as { files?: { name: string }[] }[];
+        return rows.flatMap((row) => (row.files ?? []).map((f) => f.name)).sort();
+    };
+
+    it('are carried once, not again with every later change of the person', async () => {
+        const { id } = await first.personnel.create({ fullName: 'Файлів багато' });
+        await first.history.add(id, entry(1, ['a.txt', 'b.txt']));
+        const one = path.join(root, '1.pmc');
+        await first.exchange.exportChanges(PASSWORD, async () => one);
+        expect(await carried(one)).toEqual(['a.txt', 'b.txt']);
+
+        await first.history.add(id, entry(2, ['c.txt']));
+        const two = path.join(root, '2.pmc');
+        await first.exchange.exportChanges(PASSWORD, async () => two);
+        expect(await carried(two)).toEqual(['c.txt']);
+
+        await second.exchange.importChanges(PASSWORD, async () => one);
+        await second.exchange.importChanges(PASSWORD, async () => two);
+        const [person] = await second.personnel.list();
+        for (const [entryId, name] of [
+            [1, 'a.txt'],
+            [1, 'b.txt'],
+            [2, 'c.txt'],
+        ] as const) {
+            expect(await second.files.readAsDataUrl(person.id, entryId, name)).toContain('data:');
+        }
+    });
+
+    it('that do not fit into one file go into the next one, none is lost', async () => {
+        const small = await computer(path.join(root, 'small'), undefined, 6000);
+        try {
+            const { id } = await small.personnel.create({ fullName: 'Файлів багато' });
+            const names = ['1.txt', '2.txt', '3.txt', '4.txt', '5.txt'];
+            await small.history.add(id, entry(1, names));
+            await small.personnel.create({ fullName: 'Наступний' });
+
+            const got: string[] = [];
+            let result;
+            let n = 0;
+            do {
+                const file = path.join(root, `part-${n++}.pmc`);
+                result = await small.exchange.exportChanges(PASSWORD, async () => file);
+                got.push(...(await carried(file)));
+                await second.exchange.importChanges(PASSWORD, async () => file);
+            } while (result.remaining && n < 10);
+
+            expect(n).toBeGreaterThan(1);
+            expect(got.sort()).toEqual(names);
+            const people = await second.personnel.list();
+            expect(people.map((p) => p.fullName).sort()).toEqual(['Наступний', 'Файлів багато']);
+            const person = people.find((p) => p.fullName === 'Файлів багато')!;
+            for (const name of names) {
+                expect(await second.files.readAsDataUrl(person.id, 1, name)).toContain('data:');
+            }
+        } finally {
+            await small.database.close();
+        }
+    });
+});
+
 describe('full backup', () => {
     it('brings back documents, categories, the journal, own awards and all their files', async () => {
         app.setPath('userData', path.join(root, 'userData'));
@@ -308,6 +389,7 @@ describe('full backup', () => {
                 database,
                 new EntryListStore<CommentOrHistoryEntry>(people, journal, 'history'),
                 files,
+                new HistoryIndexRepository(db),
             ),
             documents: new DocumentService(
                 database,

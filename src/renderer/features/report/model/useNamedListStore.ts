@@ -24,6 +24,11 @@ type NamedListStore = {
     createTable: (key: string, rows: AttendanceRow[]) => Promise<void>;
     getTable: (key: string) => AttendanceRow[] | undefined;
     updateCell: (key: string, rowId: number, dayIndex: number, value: string) => Promise<void>;
+    /** Many cells in one write (today's marks for everyone); returns how many were set. */
+    updateCells: (
+        key: string,
+        cells: { rowId: number; dayIndex: number; value: string }[],
+    ) => Promise<number>;
     deleteTable: (key: string) => Promise<void>;
     setActiveKey: (key: string) => void;
     loadAllTables: () => Promise<void>;
@@ -111,6 +116,34 @@ export const useNamedListStore = create<NamedListStore>((set, get) => ({
                     : state,
             );
             reportError(error, { context: 'named-list.update-cell' });
+        }
+    },
+
+    updateCells: async (key, cells) => {
+        const current = get().tables[key];
+        if (!current || !cells.length) return 0;
+        const byRow = new Map<number, Map<number, string>>();
+        for (const cell of cells) {
+            if (!byRow.has(cell.rowId)) byRow.set(cell.rowId, new Map());
+            byRow.get(cell.rowId)!.set(cell.dayIndex, cell.value);
+        }
+        const updated = current.map((row) => {
+            const days = byRow.get(row.id);
+            return days
+                ? { ...row, attendance: row.attendance.map((v, i) => days.get(i) ?? v) }
+                : row;
+        });
+        set((state) => ({ tables: { ...state.tables, [key]: updated } }));
+        try {
+            return await namedListApi.updateCells(key, cells);
+        } catch (error) {
+            set((state) =>
+                state.tables[key] === updated
+                    ? { tables: { ...state.tables, [key]: current } }
+                    : state,
+            );
+            reportError(error, { context: 'named-list.update-cells' });
+            return 0;
         }
     },
 

@@ -28,7 +28,10 @@ export async function runBlocking<T>(message: string, work: () => Promise<T>): P
     }
 }
 
-/** Overlay for `runBlocking`. Appears after a short delay so instant tasks do not flash. */
+/**
+ * Overlay for `runBlocking`. Appears after a short delay so instant tasks do not flash.
+ * It stops below the title bar: the window can always be minimized or closed.
+ */
 export function BlockingTaskHost({ delay = 150 }: { delay?: number }) {
     const tasks = useBlockingStore((state) => state.tasks);
     const active = tasks.length > 0;
@@ -48,7 +51,7 @@ export function BlockingTaskHost({ delay = 150 }: { delay?: number }) {
 
     return createPortal(
         <div
-            className="fixed inset-0 z-[80] grid animate-fade-in place-items-center bg-canvas/70 backdrop-blur-sm"
+            className="fixed inset-x-0 bottom-0 top-10 z-[70] grid animate-fade-in place-items-center bg-canvas/70 backdrop-blur-sm"
             aria-busy="true"
             aria-live="polite"
         >

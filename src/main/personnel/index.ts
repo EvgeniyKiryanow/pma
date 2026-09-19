@@ -5,10 +5,13 @@ import { fileCipher } from '../security';
 import { CommentService } from './CommentService';
 import { EntryListStore } from './EntryListStore';
 import { HistoryAttachments } from './HistoryAttachments';
+import { HistoryIndexRepository } from './HistoryIndexRepository';
 import { HistoryService } from './HistoryService';
 import { registerCommentIpc, registerHistoryIpc, registerPersonnelIpc } from './ipc';
+import { shrinkWithNativeImage } from './nativePhotoShrinker';
 import { PersonnelRepository } from './PersonnelRepository';
 import { PersonnelService } from './PersonnelService';
+import { PhotoThumbnails } from './PhotoThumbnails';
 
 /** Personnel records with their history (and attachments) and comments. */
 export function createPersonnelModule(context: ModuleContext) {
@@ -22,15 +25,19 @@ export function createPersonnelModule(context: ModuleContext) {
         transactor,
         new EntryListStore<CommentOrHistoryEntry>(people, journal, 'history'),
         attachments,
+        new HistoryIndexRepository(context.db),
     );
     const comments = new CommentService(
         transactor,
         new EntryListStore<CommentOrHistoryEntry>(people, journal, 'comments'),
     );
 
+    const photos = new PhotoThumbnails(people, shrinkWithNativeImage, logger);
+
     return defineModule({
         name: 'personnel',
         personnel,
+        photos,
         attachments,
         history,
         comments,

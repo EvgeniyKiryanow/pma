@@ -26,6 +26,9 @@ export type RecentStatusChange = {
 };
 
 /** A status change with a period (відпустка з … по …): what the named list marks by day. */
+/** Calendar days "YYYY-MM-DD", both included. */
+export type DayRange = { from: string; to: string };
+
 export type StatusPeriodEntry = {
     userId: number;
     entryId: number;

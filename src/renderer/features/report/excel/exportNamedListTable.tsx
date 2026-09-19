@@ -6,7 +6,7 @@ import { toast } from '../../../shared/ui/toast';
 import { useUserStore } from '../../../stores/userStore';
 import { useRozporyadzhennyaStore } from '../../manager/model/useRozporyadzhennyaStore';
 import { useVyklyuchennyaStore } from '../../manager/model/useVyklyuchennyaStore';
-import { periodCodes, rowClosure } from '../model/namedListDays';
+import { monthRange, periodCodes, rowClosure } from '../model/namedListDays';
 import { useNamedListStore } from '../model/useNamedListStore';
 export async function exportNamedListTable() {
     const { activeKey, tables } = useNamedListStore.getState();
@@ -19,10 +19,12 @@ export async function exportNamedListTable() {
 
     const users = useUserStore.getState().users;
     // Status periods (відпустка з … по …) mark the days nobody typed anything into.
-    const periods = await historyApi.statusPeriods().catch(() => []);
     const tableData = tables[activeKey];
     const [year, monthStr] = activeKey.split('-');
     const month = parseInt(monthStr, 10);
+    const periods = await historyApi
+        .statusPeriods(monthRange(Number(year), month - 1))
+        .catch(() => []);
     const dayCount = new Date(Number(year), month, 0).getDate();
 
     const monthNames = [

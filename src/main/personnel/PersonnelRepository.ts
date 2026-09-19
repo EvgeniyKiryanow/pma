@@ -27,6 +27,9 @@ export type Assignment = { id: number } & Partial<
     Record<(typeof ASSIGNMENT_FIELDS)[number], unknown>
 >;
 
+/** Heavy columns the personnel list leaves out. */
+const ROSTER_OMITS = new Set(['history', 'comments', 'photo']);
+
 const INSERT_SQL = `INSERT INTO users (${USER_WRITABLE_FIELDS.join(', ')})
     VALUES (${USER_WRITABLE_FIELDS.map(() => '?').join(', ')})`;
 
@@ -42,6 +45,21 @@ export class PersonnelRepository {
 
     async list(): Promise<UserRow[]> {
         return (await this.db()).all<UserRow[]>('SELECT * FROM users');
+    }
+
+    /**
+     * Everyone without the history, the comments and the photo (lists show `photoThumb`):
+     * those can be megabytes per person and the list is read on every screen. Columns come
+     * from the table itself (migrations add more), never from input.
+     */
+    async listRoster(): Promise<UserRow[]> {
+        const db = await this.db();
+        const columns = (await db.all<{ name: string }[]>(`PRAGMA table_info(users)`))
+            .map((column) => column.name)
+            .filter((name) => !ROSTER_OMITS.has(name));
+        return db.all<UserRow[]>(
+            `SELECT ${columns.map((name) => `"${name.replace(/"/g, '""')}"`).join(', ')} FROM users`,
+        );
     }
 
     async findById(id: number): Promise<UserRow | undefined> {
@@ -72,6 +90,44 @@ export class PersonnelRepository {
         return Boolean(result.changes);
     }
 
+    /** People whose photo has no small copy yet (see migration 16). */
+    async photosWithoutThumb(limit: number): Promise<number[]> {
+        const rows = await (
+            await this.db()
+        ).all<{ id: number }[]>(
+            `SELECT id FROM users INDEXED BY ix_users_photo_without_thumb
+             WHERE photoThumb IS NULL AND photo IS NOT NULL AND photo <> '' LIMIT ?`,
+            limit,
+        );
+        return rows.map((row) => row.id);
+    }
+
+    async readPhoto(id: number): Promise<string | null> {
+        const row = await (
+            await this.db()
+        ).get<{ photo: string | null }>('SELECT photo FROM users WHERE id = ?', id);
+        return row?.photo ?? null;
+    }
+
+    /** Only if the photo is still `expected` (the card may have been saved meanwhile). */
+    async replacePhoto(
+        id: number,
+        expected: string,
+        photo: string,
+        thumb: string,
+    ): Promise<boolean> {
+        const result = await (
+            await this.db()
+        ).run(
+            'UPDATE users SET photo = ?, photoThumb = ? WHERE id = ? AND photo = ?',
+            photo,
+            thumb,
+            id,
+            expected,
+        );
+        return result.changes > 0;
+    }
+
     async delete(id: number): Promise<void> {
         await (await this.db()).run('DELETE FROM users WHERE id = ?', id);
     }
@@ -93,6 +149,17 @@ export class PersonnelRepository {
 
     async writeEntryList(id: number, field: EntryListField, json: string): Promise<void> {
         await (await this.db()).run(`UPDATE users SET ${field} = ? WHERE id = ?`, json, id);
+    }
+
+    /** Entry lists whose JSON contains `needle` (a cheap filter before parsing). */
+    async listEntryListsContaining(
+        field: EntryListField,
+        needle: string,
+    ): Promise<{ id: number; shpkNumber: string | null; value: string | null }[]> {
+        return (await this.db()).all(
+            `SELECT id, shpkNumber, ${field} AS value FROM users WHERE instr(${field}, ?) > 0`,
+            needle,
+        );
     }
 
     async listEntryLists(

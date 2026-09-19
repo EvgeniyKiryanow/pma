@@ -91,6 +91,7 @@ export const en = {
         total: 'Total Personnel',
         searchPlaceholder: 'Search by name, rank, or ID...',
         noUsersFound: 'No users found',
+        loading: 'Loading the personnel…',
     },
     reminders: {
         title: 'Reminders',
@@ -165,15 +166,25 @@ export const en = {
         updateManual:
             'Version {{version}} is available. Download the installer from the releases page and install it over this version — your data stays.',
         updateRestarting: 'Update downloaded. PManager is restarting…',
+        updateDownloadingTitle: 'Updating to version {{version}}',
+        updateDownloadingHint:
+            'When the download is done the program closes for 20–60 seconds and opens by itself. Your data does not change.',
+        updateConnecting: 'Connecting to the update server…',
+        updateProgress: 'Downloaded {{done}} of {{total}} MB ({{speed}} MB/s)',
+        updateCancel: 'Cancel',
+        updateCanceled: 'Update canceled. The program keeps working in the current version.',
         restoreNoUser: 'You must have a registered user to restore a backup.',
-        restoreFail: '✅ Restored! Please restart.',
-        restoreSuccess: 'Restore failed. Try again.',
+        restoreFail: 'Restore failed. Try again.',
+        restoreSuccess: '✅ Restored! Please restart.',
         resetConfirm:
             'Are you sure you want to reset the app?\nThis will delete all users and data!',
         resetSuccess: 'App has been reset. Restarting...',
         resetFail: 'Failed to reset database.',
     },
     history: {
+        loading: 'Loading the history…',
+        marksLoading: 'Status marks from the history are loading…',
+        showMore: 'Show {{count}} more ({{left}} left)',
         title: 'User History',
         add: 'Add History',
         searchPlaceholder: 'Search by description, author, date, or file...',

@@ -1,4 +1,9 @@
-import type { AboutInfo, SavedLog, UpdateCheckResult } from '../../../shared/types/system';
+import type {
+    AboutInfo,
+    SavedLog,
+    UpdateCheckResult,
+    UpdateProgress,
+} from '../../../shared/types/system';
 import { bridge, call } from './bridge';
 import { unwrap } from './call';
 
@@ -8,6 +13,11 @@ export const systemApi = {
     checkForUpdates: (): Promise<UpdateCheckResult> => unwrap(bridge().checkForUpdates()),
     /** Downloads the update and restarts into it. */
     installUpdate: (): Promise<void> => unwrap(bridge().installUpdate()),
+    /** Stops the download started by `installUpdate` (which then fails with CANCELED). */
+    cancelUpdate: (): Promise<boolean> => unwrap(bridge().cancelUpdate()),
+    /** Progress of the download; returns the unsubscribe function. */
+    onUpdateProgress: (callback: (progress: UpdateProgress) => void): (() => void) =>
+        bridge().onUpdateProgress(callback),
     about: (): Promise<AboutInfo> => unwrap(bridge().about()),
     /** Saves the log where the person chooses; ApiError CANCELED when the dialog was closed. */
     saveLog: (): Promise<SavedLog> => unwrap(bridge().saveLog()),

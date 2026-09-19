@@ -28,8 +28,18 @@ export class EntryListStore<T extends { id: number }> {
         await this.journal.recordRow('users', userId, 'update');
     }
 
+    /** Lists that may hold the entry with this id (their JSON mentions the number). */
+    async mayContain(entryId: number): Promise<EntryOwner<T>[]> {
+        return this.owners(await this.people.listEntryListsContaining(this.field, String(entryId)));
+    }
+
     async all(): Promise<EntryOwner<T>[]> {
-        const rows = await this.people.listEntryLists(this.field);
+        return this.owners(await this.people.listEntryLists(this.field));
+    }
+
+    private owners(
+        rows: { id: number; shpkNumber: string | null; value: string | null }[],
+    ): EntryOwner<T>[] {
         return rows.map((row) => ({
             userId: row.id,
             shpkNumber: row.shpkNumber,

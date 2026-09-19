@@ -71,6 +71,7 @@ export const APP_CHANNELS = {
     isMaximized: 'app:is-maximized',
     checkForUpdates: 'check-for-updates',
     installUpdate: 'app:install-update',
+    cancelUpdate: 'app:cancel-update',
     /** «Про програму»: version, build, system, data folder, developer. */
     about: 'app:about',
     /** Saves the program log where the person chooses, to send to the developer. */
@@ -82,6 +83,12 @@ export const APP_EVENTS = {
     close: 'app:close',
     /** Title-bar button: maximized window ⇄ a smaller one. */
     toggleMaximize: 'app:toggle-maximize',
+} as const;
+
+/** Main → window. */
+export const UPDATE_EVENTS = {
+    /** How far the download of an update is. */
+    progress: 'app:update-progress',
 } as const;
 
 export const PERSONNEL_CHANNELS = {
@@ -176,6 +183,7 @@ export const NAMED_LIST_CHANNELS = {
     list: 'named-list:get-all',
     create: 'named-list:create',
     updateCell: 'named-list:update-cell',
+    updateCells: 'named-list:update-cells',
     remove: 'named-list:delete',
 } as const;
 

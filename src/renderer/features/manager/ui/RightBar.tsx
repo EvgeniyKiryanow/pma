@@ -221,7 +221,8 @@ export default function RightBar() {
     );
 
     return (
-        <section className="@container min-w-0 flex-1 overflow-y-auto">
+        // A new person's card fades in instead of jumping over the previous one.
+        <section key={user.id} className="@container min-w-0 flex-1 animate-tab-in overflow-y-auto">
             <header className="border-b border-line bg-surface px-6 pb-4 pt-5">
                 <UserCard user={user} actions={actions} />
             </header>

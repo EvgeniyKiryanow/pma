@@ -27,7 +27,7 @@ export class CommentService {
     /** Removes the comment with this id from everyone who has it. */
     async remove(commentId: number): Promise<void> {
         await this.transactor.transaction(async () => {
-            for (const { userId, entries } of await this.comments.all()) {
+            for (const { userId, entries } of await this.comments.mayContain(commentId)) {
                 const remaining = entries.filter((entry) => entry.id !== commentId);
                 if (remaining.length !== entries.length)
                     await this.comments.write(userId, remaining);

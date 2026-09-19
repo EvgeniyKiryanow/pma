@@ -25,7 +25,9 @@ import FilePreviewModal, {
     type FileWithDataUrl,
 } from '../../../shared/components/FilePreviewModal';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { listPhoto } from '../../../shared/lib/photo';
 import { Avatar, Button, cn, EmptyState } from '../../../shared/ui';
+import { InlineLoader, SkeletonRows } from '../../../shared/ui/loader';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useSearchJump } from '../../../stores/searchJumpStore';
 import { useUserStore } from '../../../stores/userStore';
@@ -56,6 +58,7 @@ export function DashCard({
     children,
     className,
     tone,
+    loading,
 }: {
     icon: ReactNode;
     title: string;
@@ -64,6 +67,8 @@ export function DashCard({
     children: ReactNode;
     className?: string;
     tone?: 'danger';
+    /** The data is still on its way: a loader instead of «nothing here». */
+    loading?: boolean;
 }) {
     return (
         <section className={cn('card flex h-[440px] min-h-0 flex-col overflow-hidden', className)}>
@@ -80,7 +85,7 @@ export function DashCard({
                 </span>
                 <h2 className="min-w-0 flex-1 truncate text-[15px] font-semibold text-ink">
                     {title}
-                    {count !== undefined && (
+                    {count !== undefined && !loading && (
                         <span className="ml-2 font-mono text-[13px] font-normal text-ink-3">
                             {count}
                         </span>
@@ -88,7 +93,16 @@ export function DashCard({
                 </h2>
                 {action}
             </header>
-            <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+                {loading ? (
+                    <div className="space-y-4 px-4 py-4">
+                        <InlineLoader />
+                        <SkeletonRows rows={4} />
+                    </div>
+                ) : (
+                    children
+                )}
+            </div>
         </section>
     );
 }
@@ -102,7 +116,7 @@ const KIND_ICONS: Record<UpcomingKind, ReactNode> = {
 
 // ------------------------------------------------------------------------ upcoming dates
 
-export function UpcomingCard({ events }: { events: UpcomingEvent[] }) {
+export function UpcomingCard({ events, loading }: { events: UpcomingEvent[]; loading?: boolean }) {
     const { t } = useI18nStore();
     const [kind, setKind] = useState<UpcomingKind | 'all'>('all');
     const kinds = (['all', 'status-end', 'order-end', 'birthday', 'journal'] as const).filter(
@@ -115,6 +129,7 @@ export function UpcomingCard({ events }: { events: UpcomingEvent[] }) {
             icon={<CalendarClock />}
             title={t('dashboard.upcoming.title')}
             count={events.length}
+            loading={loading}
         >
             {kinds.length > 2 && (
                 <div className="flex flex-wrap gap-1.5 border-b border-line px-4 py-2">
@@ -216,7 +231,7 @@ export function UpcomingCard({ events }: { events: UpcomingEvent[] }) {
 
 // ------------------------------------------------------------------------ journal
 
-export function JournalCard({ entries }: { entries: JournalEntry[] }) {
+export function JournalCard({ entries, loading }: { entries: JournalEntry[]; loading?: boolean }) {
     const { t } = useI18nStore();
     const counts = useMemo(() => journalCounts(entries), [entries]);
     const shown = useMemo(
@@ -242,6 +257,7 @@ export function JournalCard({ entries }: { entries: JournalEntry[] }) {
         <DashCard
             icon={<NotebookPen />}
             title={t('dashboard.journal.title')}
+            loading={loading}
             count={counts.active}
             action={
                 <Button
@@ -311,13 +327,24 @@ function relativeTime(iso: string, t: (key: string, vars?: Record<string, unknow
     return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
 }
 
-export function StatusChangesCard({ changes }: { changes: RecentStatusChange[] }) {
+export function StatusChangesCard({
+    changes,
+    loading,
+}: {
+    changes: RecentStatusChange[];
+    loading?: boolean;
+}) {
     const { t } = useI18nStore();
     const users = useUserStore((s) => s.users);
     const byId = useMemo(() => new Map(users.map((u) => [u.id, u])), [users]);
     const shown = changes.filter((c) => byId.has(c.userId)).slice(0, 25);
     return (
-        <DashCard icon={<History />} title={t('dashboard.changes.title')} count={shown.length}>
+        <DashCard
+            icon={<History />}
+            title={t('dashboard.changes.title')}
+            count={shown.length}
+            loading={loading}
+        >
             {shown.length === 0 ? (
                 <EmptyState icon={<History />} title={t('dashboard.changes.empty')} />
             ) : (
@@ -332,7 +359,7 @@ export function StatusChangesCard({ changes }: { changes: RecentStatusChange[] }
                                     onClick={() => openPerson(change.userId)}
                                     className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-surface-2"
                                 >
-                                    <Avatar name={user.fullName} src={user.photo} size={34} />
+                                    <Avatar name={user.fullName} src={listPhoto(user)} size={34} />
                                     <span className="min-w-0 flex-1">
                                         <span className="block truncate text-sm font-medium text-ink">
                                             {user.fullName}
@@ -416,7 +443,7 @@ async function loadRecent(file: RecentFile): Promise<string> {
     }
 }
 
-export function RecentFilesCard({ files }: { files: RecentFile[] }) {
+export function RecentFilesCard({ files, loading }: { files: RecentFile[]; loading?: boolean }) {
     const { t } = useI18nStore();
     const [preview, setPreview] = useState<FileWithDataUrl | null>(null);
     const open = async (file: RecentFile) => {
@@ -428,7 +455,12 @@ export function RecentFilesCard({ files }: { files: RecentFile[] }) {
         }
     };
     return (
-        <DashCard icon={<FolderOpen />} title={t('dashboard.files.title')} count={files.length}>
+        <DashCard
+            icon={<FolderOpen />}
+            title={t('dashboard.files.title')}
+            count={files.length}
+            loading={loading}
+        >
             {files.length === 0 ? (
                 <EmptyState
                     icon={<FolderOpen />}

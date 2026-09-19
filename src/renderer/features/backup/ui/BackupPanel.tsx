@@ -447,7 +447,14 @@ function ChangeLogSection() {
             if (kind === 'export') {
                 const result = await changeLogApi.export(password);
                 if (result.canceled) return;
-                if (result.exported > 0)
+                if (result.remaining)
+                    toast.warning(
+                        t('backups.changeLog.exportedPart', {
+                            count: result.exported,
+                            remaining: result.remaining,
+                        }),
+                    );
+                else if (result.exported > 0)
                     toast.success(t('backups.changeLog.exported', { count: result.exported }));
                 else toast.success(t('backups.changeLog.nothing'));
             } else {

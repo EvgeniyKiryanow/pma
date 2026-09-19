@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, screen, session } from 'electron';
+import { app, BrowserWindow, dialog, Menu, screen, session } from 'electron';
 
 import { createLogger } from '../core/logger';
 import { AppPaths, isAppPageUrl } from '../core/paths';
@@ -65,6 +65,41 @@ export async function clearBrowserData(): Promise<void> {
     await browser.clearStorageData();
     await browser.clearCache();
     await browser.clearCodeCaches({});
+}
+
+/**
+ * The window draws its own title bar, so while the page is frozen its ✕ does not answer.
+ * Then the person is asked: wait, reload the window or close the program. Data is safe
+ * either way — every change is saved when it is made.
+ */
+function offerWayOutWhenFrozen(window: BrowserWindow): void {
+    let asking = false;
+    window.on('unresponsive', async () => {
+        logger.warn('Window stopped responding');
+        if (asking || window.isDestroyed()) return;
+        asking = true;
+        try {
+            const { response } = await dialog.showMessageBox(window, {
+                type: 'warning',
+                title: 'PManager',
+                message: 'Програма не відповідає',
+                detail:
+                    'Можливо, вона ще обробляє великий обсяг даних. Можна зачекати, ' +
+                    'перезавантажити вікно або закрити програму — збережені дані не постраждають.',
+                buttons: ['Зачекати', 'Перезавантажити вікно', 'Закрити програму'],
+                defaultId: 0,
+                cancelId: 0,
+                noLink: true,
+            });
+            if (window.isDestroyed()) return;
+            if (response === 1) window.webContents.forcefullyCrashRenderer();
+            if (response === 1) window.webContents.reload();
+            if (response === 2) app.quit();
+        } finally {
+            asking = false;
+        }
+    });
+    window.on('responsive', () => logger.info('Window responds again'));
 }
 
 /** Smallest window the screens still fit into (sidebar + a readable table). */
@@ -137,6 +172,7 @@ export function createMainWindow(
     contents.on('console-message', (_e, level, message, line, sourceId) => {
         if (level >= 3) logger.error(`Renderer console: ${message} (${sourceId}:${line})`);
     });
+    offerWayOutWhenFrozen(window);
 
     // Development only: use the built renderer instead of the Vite dev server
     // (lets automated UI checks run without starting the dev server).
