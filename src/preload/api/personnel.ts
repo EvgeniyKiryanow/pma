@@ -21,6 +21,7 @@ import type {
     DayRange,
     HistoryRange,
     IncompleteHistoryEntry,
+    LatestStatusPeriod,
     RecentStatusChange,
     StatusPeriodEntry,
 } from '../../shared/types/history';
@@ -63,6 +64,7 @@ export const historyApi = {
         invoke<StatusPeriodEntry[]>(HISTORY_CHANNELS.statusPeriods, range),
     getRecentStatusChanges: (limit?: number) =>
         invoke<RecentStatusChange[]>(HISTORY_CHANNELS.recentStatusChanges, limit),
+    getLatestStatusPeriods: () => invoke<LatestStatusPeriod[]>(HISTORY_CHANNELS.latestPeriods),
 };
 
 export const commentsApi = {

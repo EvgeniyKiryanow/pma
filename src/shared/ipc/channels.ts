@@ -113,6 +113,7 @@ export const HISTORY_CHANNELS = {
     statusPeriods: 'history:status-periods',
     /** The latest status changes of everyone (the desktop). */
     recentStatusChanges: 'history:recent-status-changes',
+    latestPeriods: 'history:latest-periods',
 } as const;
 
 /** «Документи» of a person, their categories, and the files added lately anywhere. */

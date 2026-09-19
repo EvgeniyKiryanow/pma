@@ -6,6 +6,7 @@ import type {
     HistoryFilter,
     HistoryRange,
     IncompleteHistoryEntry,
+    LatestStatusPeriod,
     RecentStatusChange,
     StatusPeriodEntry,
 } from '../../shared/types/history';
@@ -173,6 +174,15 @@ export class HistoryService {
             });
         }
         return result;
+    }
+
+    /** Per person: the period of their last status change that has one. */
+    async latestPeriods(): Promise<LatestStatusPeriod[]> {
+        return (await this.index.latestPeriods()).map((row) => ({
+            userId: row.userId,
+            from: String(row.periodFrom),
+            to: row.periodTo ? String(row.periodTo) : null,
+        }));
     }
 
     /** The latest status changes of everyone, newest first. */

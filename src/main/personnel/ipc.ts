@@ -121,6 +121,7 @@ export function registerHistoryIpc(history: HistoryService): void {
     handle(HISTORY_CHANNELS.statusPeriods, view, (_event, range: unknown) =>
         history.statusPeriods(optionalDayRange(range)),
     );
+    handle(HISTORY_CHANNELS.latestPeriods, view, () => history.latestPeriods());
     handle(HISTORY_CHANNELS.recentStatusChanges, view, (_event, limit: unknown) =>
         history.recentStatusChanges(
             limit === undefined ? 40 : requireInt(limit, 'limit', { max: 500 }),
