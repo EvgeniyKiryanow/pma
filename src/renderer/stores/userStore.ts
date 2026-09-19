@@ -19,6 +19,8 @@ function readLastTab(): TabKey {
 
 type UserStore = {
     users: User[];
+    /** The list came at least once (until then screens show a loader, not «nobody»). */
+    usersLoaded: boolean;
     selectedUser: User | null;
     editingUser: User | null;
     isUserFormOpen: boolean;
@@ -58,6 +60,7 @@ type UserStore = {
 
 export const useUserStore = create<UserStore>((set, get) => ({
     users: [],
+    usersLoaded: false,
     selectedUser: null,
     editingUser: null,
     isUserFormOpen: false,
@@ -81,6 +84,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
     clearUser: () =>
         set({
             users: [],
+            usersLoaded: false,
             selectedUser: null,
             editingUser: null,
             isUserFormOpen: false,
@@ -91,6 +95,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
     historyVersion: 0,
     refreshAfterChange: async () => {
         const users = await personnelApi.list();
+        set({ usersLoaded: true });
         const selectedId = get().selectedUser?.id;
         const selectedUser =
             selectedId !== undefined && users.some((u) => u.id === selectedId)
@@ -110,11 +115,17 @@ export const useUserStore = create<UserStore>((set, get) => ({
     closeUserForm: () => set({ editingUser: null, isUserFormOpen: false }),
 
     refreshUsersFromDb: async () => {
-        set({ users: await personnelApi.list() });
+        set({ users: await personnelApi.list(), usersLoaded: true });
     },
 
     fetchUsers: async () => {
-        set({ users: await personnelApi.list() });
+        try {
+            set({ users: await personnelApi.list(), usersLoaded: true });
+        } catch (error) {
+            // Without the right to see people the list stays empty; the loader must end.
+            set({ usersLoaded: true });
+            throw error;
+        }
     },
 
     // Mutations throw ApiError on failure (the caller shows it); the list is only

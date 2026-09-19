@@ -4,6 +4,7 @@ import {
     REPORT_CHANNELS,
     STAFFING_CHANNELS,
 } from '../../shared/ipc/channels';
+import type { Result } from '../../shared/ipc/result';
 import type { ActionStatus } from '../../shared/types/common';
 import type { Reminder } from '../../shared/types/reminder';
 import type {
@@ -50,6 +51,8 @@ export const namedListApi = {
     create: (key: string, data: any) => invoke<ActionStatus>(NAMED_LIST_CHANNELS.create, key, data),
     updateCell: (key: string, rowId: number, dayIndex: number, value: string) =>
         invoke<ActionStatus>(NAMED_LIST_CHANNELS.updateCell, key, rowId, dayIndex, value),
+    updateCells: (key: string, cells: { rowId: number; dayIndex: number; value: string }[]) =>
+        invoke<Result<number>>(NAMED_LIST_CHANNELS.updateCells, key, cells),
     getAll: () => invoke<NamedListRecord[]>(NAMED_LIST_CHANNELS.list),
     delete: (key: string) => invoke<ActionStatus>(NAMED_LIST_CHANNELS.remove, key),
 };

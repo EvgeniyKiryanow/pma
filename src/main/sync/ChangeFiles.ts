@@ -2,6 +2,7 @@ import type { Logger } from '../core/logger';
 import type { Db } from '../db/types';
 import type { HistoryAttachments } from '../personnel/HistoryAttachments';
 import type { ChangeFile, ChangeRow } from './ChangeJournal';
+import type { SentFile, SentFiles } from './SentFiles';
 
 type FileStore = Pick<
     HistoryAttachments,
@@ -28,10 +29,37 @@ const list = (value: unknown): Record<string, any>[] => {
     const parsed = parse(value);
     return Array.isArray(parsed) ? parsed.filter((x) => x && typeof x === 'object') : [];
 };
-const names = (files: unknown): string[] =>
-    list(files)
-        .map((f: Named) => (typeof f.name === 'string' ? f.name : ''))
-        .filter(Boolean);
+const namedFiles = (files: unknown): { name: string; size?: unknown }[] =>
+    list(files).filter((f: Named) => typeof f.name === 'string' && f.name) as {
+        name: string;
+        size?: unknown;
+    }[];
+const names = (files: unknown): string[] => namedFiles(files).map((f) => f.name);
+
+type WantedFile = {
+    kind: ChangeFile['kind'];
+    key: string;
+    dir: string;
+    name: string;
+    /** Set for files of a person: remembered once a change log carried them. */
+    sent?: SentFile;
+};
+
+export type AttachOptions = {
+    /** Characters of file content one change log may carry. */
+    budget?: number;
+    /** Files earlier change logs carried. */
+    sent?: Pick<SentFiles, 'has'>;
+};
+
+export type Attached = {
+    /** The changes to write, in order: the journal from its start. */
+    rows: ChangeRow[];
+    /** Files of people these rows carry for the first time. */
+    sent: SentFile[];
+    /** The last row carries only part of its files: it stays in the journal. */
+    incomplete: boolean;
+};
 
 /**
  * Files travel with the change log: documents of people, files of journal entries, of awards
@@ -45,8 +73,16 @@ export class ChangeFiles {
         private readonly logger: Logger,
     ) {}
 
-    /** The changes with their files; only the last change of a record carries them. */
-    async attach(changes: ChangeRow[]): Promise<ChangeRow[]> {
+    /**
+     * The changes to write with their files; only the last change of a record carries them.
+     *
+     * Files of people (history, awards) that an earlier change log carried are not sent again.
+     * One change log carries at most `budget` characters of file content: when the files do
+     * not fit, the log ends there and the rest goes into the next one — the change whose
+     * files were cut stays in the journal (`incomplete`), so none of them is lost.
+     */
+    async attach(changes: ChangeRow[], options: AttachOptions = {}): Promise<Attached> {
+        const budget = options.budget ?? Number.POSITIVE_INFINITY;
         const last = new Map<string, number>();
         changes.forEach((change, index) => {
             const data = parse(change.data) as Record<string, any> | null;
@@ -54,21 +90,47 @@ export class ChangeFiles {
                 last.set(`${change.table_name}:${data.uuid}`, index);
             }
         });
-        const result: ChangeRow[] = [];
+        const rows: ChangeRow[] = [];
+        const sent: SentFile[] = [];
+        let used = 0;
         for (const [index, change] of changes.entries()) {
             const data = parse(change.data) as Record<string, any> | null;
             if (!data?.uuid || last.get(`${change.table_name}:${data.uuid}`) !== index) {
-                result.push(change);
+                rows.push(change);
                 continue;
             }
-            const files = await this.read(change.table_name, data);
-            result.push(files.length ? { ...change, files } : change);
+            const files: ChangeFile[] = [];
+            const carried: SentFile[] = [];
+            let cut = false;
+            for (const file of this.wanted(change.table_name, data)) {
+                if (file.sent && (await options.sent?.has(file.sent))) continue;
+                let dataUrl: string;
+                try {
+                    dataUrl = await this.files.readFromDir(file.dir, file.name);
+                } catch {
+                    // Not on this computer (it came by an exchange without its files).
+                    continue;
+                }
+                // The first file always goes, however big: otherwise nothing ever would.
+                if (used + dataUrl.length > budget && (rows.length > 0 || files.length > 0)) {
+                    cut = true;
+                    break;
+                }
+                used += dataUrl.length;
+                files.push({ kind: file.kind, key: file.key, name: file.name, dataUrl });
+                if (file.sent) carried.push(file.sent);
+            }
+            if (cut && !files.length) return { rows, sent, incomplete: false };
+            rows.push(files.length ? { ...change, files } : change);
+            sent.push(...carried);
+            if (cut) return { rows, sent, incomplete: true };
         }
-        return result;
+        return { rows, sent, incomplete: false };
     }
 
-    private async read(table: string, data: Record<string, any>): Promise<ChangeFile[]> {
-        const wanted: { kind: ChangeFile['kind']; key: string; dir: string; name: string }[] = [];
+    /** The files a change carries, where they are on this computer. */
+    private wanted(table: string, data: Record<string, any>): WantedFile[] {
+        const wanted: WantedFile[] = [];
         if (table === 'person_documents' && data.user_id && data.file_name) {
             wanted.push({
                 kind: 'document',
@@ -88,43 +150,43 @@ export class ChangeFiles {
             }
         }
         if (table === 'users' && data.id) {
+            const person = (
+                kind: SentFile['kind'],
+                key: string,
+                file: Named & { size?: unknown },
+            ) => ({
+                owner: String(data.uuid),
+                kind,
+                key,
+                name: String(file.name),
+                size: Number.isInteger(file.size) ? Number(file.size) : -1,
+            });
             for (const record of list(data.awardRecords)) {
                 if (typeof record.id !== 'string' || !/^[\w-]{1,64}$/.test(record.id)) continue;
-                for (const name of names(record.files)) {
+                for (const file of namedFiles(record.files)) {
                     wanted.push({
                         kind: 'award',
                         key: record.id,
                         dir: this.files.awardDir(data.id, record.id),
-                        name,
+                        name: file.name,
+                        sent: person('award', record.id, file),
                     });
                 }
             }
             for (const entry of list(data.history)) {
                 if (!Number.isInteger(entry.id)) continue;
-                for (const name of names(entry.files)) {
+                for (const file of namedFiles(entry.files)) {
                     wanted.push({
                         kind: 'history',
                         key: String(entry.id),
                         dir: this.files.entryDir(data.id, entry.id),
-                        name,
+                        name: file.name,
+                        sent: person('history', String(entry.id), file),
                     });
                 }
             }
         }
-        const result: ChangeFile[] = [];
-        for (const file of wanted) {
-            try {
-                result.push({
-                    kind: file.kind,
-                    key: file.key,
-                    name: file.name,
-                    dataUrl: await this.files.readFromDir(file.dir, file.name),
-                });
-            } catch {
-                // Not on this computer (it came by an exchange without its files): nothing to send.
-            }
-        }
-        return result;
+        return wanted;
     }
 
     /** After a change is applied: its files go into place; a deleted record takes its folder. */

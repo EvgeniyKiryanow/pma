@@ -15,13 +15,14 @@ import { type CSSProperties, type ReactNode, useEffect, useState } from 'react';
 import { useI18nStore } from '../../stores/i18nStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useUiStore } from '../../stores/uiStore';
+import { toApiError } from '../api/call';
 import { reportError } from '../api/errors';
 import { systemApi } from '../api/system';
 import LogoSvg from '../icons/LogoSvg';
 import { cn, IconButton } from '../ui';
-import { runBlocking } from '../ui/blockingTask';
 import { confirmAction } from '../ui/confirm';
 import { toast } from '../ui/toast';
+import { UpdateProgressDialog } from './UpdateProgressDialog';
 
 const drag = { WebkitAppRegion: 'drag' } as CSSProperties;
 const noDrag = { WebkitAppRegion: 'no-drag' } as CSSProperties;
@@ -44,6 +45,10 @@ export default function CustomTitleBar({
     const { t } = useI18nStore();
     const [version, setVersion] = useState('');
     const [checking, setChecking] = useState(false);
+    const [download, setDownload] = useState<{
+        version: string;
+        phase: 'downloading' | 'restarting';
+    } | null>(null);
     // An empty installation (first run, or after everything was destroyed) can update too.
     const canUpdate = useSessionStore((s) => s.status === 'ready' || s.status === 'setup');
     const { resolvedTheme, toggleTheme, zoom, zoomIn, zoomOut, resetZoom } = useUiStore();
@@ -94,13 +99,15 @@ export default function CustomTitleBar({
                 tone: 'primary',
             });
             if (!confirmed) return;
-            // Window-wide: nothing may be edited while the app is about to restart.
-            await runBlocking(t('titleBar.updateDownloading', { version }), () =>
-                systemApi.installUpdate(),
-            );
-            toast.info(t('titleBar.updateRestarting'));
+            // A dialog with the progress and «Скасувати»; the title bar stays usable, so the
+            // window can always be closed.
+            setDownload({ version, phase: 'downloading' });
+            await systemApi.installUpdate();
+            setDownload({ version, phase: 'restarting' });
         } catch (error) {
-            reportError(error);
+            setDownload(null);
+            if (toApiError(error).code === 'CANCELED') toast.info(t('titleBar.updateCanceled'));
+            else reportError(error);
         } finally {
             setChecking(false);
         }
@@ -109,120 +116,136 @@ export default function CustomTitleBar({
     const collapsed = brandWidth !== undefined && brandWidth < 120;
 
     return (
-        <div
-            className="fixed inset-x-0 top-0 z-[80] flex h-10 select-none items-stretch bg-rail text-rail-ink"
-            style={drag}
-        >
-            {/* Brand */}
+        <>
+            {download && (
+                <UpdateProgressDialog
+                    version={download.version}
+                    phase={download.phase}
+                    onCancel={() => void systemApi.cancelUpdate().catch(reportError)}
+                />
+            )}
             <div
-                className={cn(
-                    'flex shrink-0 items-center gap-2.5 transition-[width] duration-200',
-                    collapsed ? 'justify-center px-0' : 'px-4',
-                )}
-                style={brandWidth !== undefined ? { width: brandWidth } : undefined}
+                className="fixed inset-x-0 top-0 z-[80] flex h-10 select-none items-stretch bg-rail text-rail-ink"
+                style={drag}
             >
-                <LogoSvg className="size-[22px] shrink-0 drop-shadow-[0_1px_1px_rgb(0_0_0/0.35)]" />
-                {!collapsed && (
-                    <div className="flex min-w-0 items-baseline gap-2">
-                        <span className="text-[13px] font-semibold tracking-wide">
-                            <span className="text-brass">P</span>Manager
-                        </span>
-                        {version && (
-                            <span className="font-mono text-[10px] text-rail-ink-2">
-                                v{version}
-                            </span>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            <div className="flex min-w-0 flex-1 items-center gap-3 px-3">{leading}</div>
-
-            {/* Tools */}
-            <div className="flex items-center gap-1 pr-2" style={noDrag}>
-                {trailing}
-
+                {/* Brand */}
                 <div
-                    className="ml-1 hidden items-center rounded-lg bg-rail-2/70 p-0.5 sm:flex"
-                    title={t('shell.zoomTitle')}
+                    className={cn(
+                        'flex shrink-0 items-center gap-2.5 transition-[width] duration-200',
+                        collapsed ? 'justify-center px-0' : 'px-4',
+                    )}
+                    style={brandWidth !== undefined ? { width: brandWidth } : undefined}
                 >
-                    <IconButton
-                        variant="rail"
-                        size="xs"
-                        label={t('shell.zoomOut')}
-                        onClick={zoomOut}
-                        icon={<ZoomOut className="size-3.5" />}
-                    />
-                    <button
-                        onClick={resetZoom}
-                        title={t('shell.zoomReset')}
-                        className="h-7 min-w-[46px] rounded-md px-1 font-mono text-[11px] tabular-nums text-rail-ink-2 transition-colors hover:bg-rail-3 hover:text-rail-ink"
-                    >
-                        {Math.round(zoom * 100)}%
-                    </button>
-                    <IconButton
-                        variant="rail"
-                        size="xs"
-                        label={t('shell.zoomIn')}
-                        onClick={zoomIn}
-                        icon={<ZoomIn className="size-3.5" />}
-                    />
+                    <LogoSvg className="size-[22px] shrink-0 drop-shadow-[0_1px_1px_rgb(0_0_0/0.35)]" />
+                    {!collapsed && (
+                        <div className="flex min-w-0 items-baseline gap-2">
+                            <span className="text-[13px] font-semibold tracking-wide">
+                                <span className="text-brass">P</span>Manager
+                            </span>
+                            {version && (
+                                <span className="font-mono text-[10px] text-rail-ink-2">
+                                    v{version}
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                <IconButton
-                    variant="rail"
-                    size="sm"
-                    label={
-                        resolvedTheme === 'dark' ? t('shell.themeToLight') : t('shell.themeToDark')
-                    }
-                    onClick={toggleTheme}
-                    icon={
-                        resolvedTheme === 'dark' ? (
-                            <Sun className="size-4 text-brass" />
-                        ) : (
-                            <Moon className="size-4" />
-                        )
-                    }
-                />
-                {canUpdate && (
+                <div className="flex min-w-0 flex-1 items-center gap-3 px-3">{leading}</div>
+
+                {/* Tools */}
+                <div className="flex items-center gap-1 pr-2" style={noDrag}>
+                    {trailing}
+
+                    <div
+                        className="ml-1 hidden items-center rounded-lg bg-rail-2/70 p-0.5 sm:flex"
+                        title={t('shell.zoomTitle')}
+                    >
+                        <IconButton
+                            variant="rail"
+                            size="xs"
+                            label={t('shell.zoomOut')}
+                            onClick={zoomOut}
+                            icon={<ZoomOut className="size-3.5" />}
+                        />
+                        <button
+                            onClick={resetZoom}
+                            title={t('shell.zoomReset')}
+                            className="h-7 min-w-[46px] rounded-md px-1 font-mono text-[11px] tabular-nums text-rail-ink-2 transition-colors hover:bg-rail-3 hover:text-rail-ink"
+                        >
+                            {Math.round(zoom * 100)}%
+                        </button>
+                        <IconButton
+                            variant="rail"
+                            size="xs"
+                            label={t('shell.zoomIn')}
+                            onClick={zoomIn}
+                            icon={<ZoomIn className="size-3.5" />}
+                        />
+                    </div>
+
                     <IconButton
                         variant="rail"
                         size="sm"
-                        label={t('shell.updates')}
-                        onClick={() => void handleCheckUpdate()}
-                        disabled={checking}
-                        icon={<Download className={cn('size-4', checking && 'animate-pulse')} />}
+                        label={
+                            resolvedTheme === 'dark'
+                                ? t('shell.themeToLight')
+                                : t('shell.themeToDark')
+                        }
+                        onClick={toggleTheme}
+                        icon={
+                            resolvedTheme === 'dark' ? (
+                                <Sun className="size-4 text-brass" />
+                            ) : (
+                                <Moon className="size-4" />
+                            )
+                        }
                     />
-                )}
-                <IconButton
-                    variant="rail"
-                    size="sm"
-                    label={t('shell.reload')}
-                    onClick={() => window.location.reload()}
-                    icon={<RotateCcw className="size-4" />}
-                />
-            </div>
-
-            {/* Window controls */}
-            <div className="flex items-stretch border-l border-rail-line" style={noDrag}>
-                <WindowButton label={t('shell.minimize')} onClick={() => void systemApi.minimize()}>
-                    <Minus className="size-4" />
-                </WindowButton>
-                <WindowButton
-                    label={maximized ? t('shell.restoreDown') : t('shell.maximize')}
-                    onClick={() => systemApi.toggleMaximize()}
-                >
-                    {maximized ? (
-                        <Copy className="size-3.5 -scale-x-100" />
-                    ) : (
-                        <Square className="size-3" />
+                    {canUpdate && (
+                        <IconButton
+                            variant="rail"
+                            size="sm"
+                            label={t('shell.updates')}
+                            onClick={() => void handleCheckUpdate()}
+                            disabled={checking}
+                            icon={
+                                <Download className={cn('size-4', checking && 'animate-pulse')} />
+                            }
+                        />
                     )}
-                </WindowButton>
-                <WindowButton label={t('shell.close')} onClick={() => systemApi.close()} danger>
-                    <X className="size-4" />
-                </WindowButton>
+                    <IconButton
+                        variant="rail"
+                        size="sm"
+                        label={t('shell.reload')}
+                        onClick={() => window.location.reload()}
+                        icon={<RotateCcw className="size-4" />}
+                    />
+                </div>
+
+                {/* Window controls */}
+                <div className="flex items-stretch border-l border-rail-line" style={noDrag}>
+                    <WindowButton
+                        label={t('shell.minimize')}
+                        onClick={() => void systemApi.minimize()}
+                    >
+                        <Minus className="size-4" />
+                    </WindowButton>
+                    <WindowButton
+                        label={maximized ? t('shell.restoreDown') : t('shell.maximize')}
+                        onClick={() => systemApi.toggleMaximize()}
+                    >
+                        {maximized ? (
+                            <Copy className="size-3.5 -scale-x-100" />
+                        ) : (
+                            <Square className="size-3" />
+                        )}
+                    </WindowButton>
+                    <WindowButton label={t('shell.close')} onClick={() => systemApi.close()} danger>
+                        <X className="size-4" />
+                    </WindowButton>
+                </div>
             </div>
-        </div>
+        </>
     );
 }
 

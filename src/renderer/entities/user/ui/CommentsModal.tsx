@@ -8,6 +8,7 @@ import { downloadFile } from '../../../shared/lib/download';
 import { pickFiles, readAsDataUrl } from '../../../shared/lib/pickFiles';
 import { Avatar, Button, EmptyState, IconButton, Modal, SearchInput } from '../../../shared/ui';
 import { confirmAction } from '../../../shared/ui/confirm';
+import { InlineLoader, SkeletonRows } from '../../../shared/ui/loader';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { usePermissions } from '../../../stores/sessionStore';
 import { useUserStore } from '../../../stores/userStore';
@@ -34,12 +35,14 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
     const { can } = usePermissions();
     const canWrite = can('history.edit');
 
+    const [loading, setLoading] = useState(true);
     useEffect(() => {
-        const fetch = async () => {
-            const res = await commentsApi.list(userId);
-            setComments(res);
-        };
-        void fetch();
+        setLoading(true);
+        commentsApi
+            .list(userId)
+            .then(setComments)
+            .finally(() => setLoading(false))
+            .catch((error) => reportError(error, { context: 'comments.load' }));
     }, [userId]);
 
     const filteredComments = useMemo(() => {
@@ -202,7 +205,12 @@ export default function CommentsModal({ userId, onClose }: CommentsModalProps) {
                     />
                 )}
 
-                {filteredComments.length === 0 ? (
+                {loading ? (
+                    <div className="space-y-3">
+                        <InlineLoader />
+                        <SkeletonRows rows={3} />
+                    </div>
+                ) : filteredComments.length === 0 ? (
                     <EmptyState icon={<MessageSquareText />} title={t('comments.none')} />
                 ) : (
                     <ul className="space-y-3">

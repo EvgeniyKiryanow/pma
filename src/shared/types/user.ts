@@ -95,6 +95,8 @@ export type User = {
     shtatNumber: string | boolean; // keep as provided
     id: number;
     photo?: string;
+    /** Small copy of the photo for lists (the list carries it instead of the photo). */
+    photoThumb?: string | null;
     fullName: string;
     phoneNumber: string;
     email?: string;

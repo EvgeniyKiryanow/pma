@@ -14,7 +14,8 @@ import { reportError } from '../../../../shared/api/errors';
 import { historyApi } from '../../../../shared/api/personnel';
 import { useAsyncAction } from '../../../../shared/hooks/useAsyncAction';
 import { personnelEvents } from '../../../../shared/lib/personnelEvents';
-import { pickFile, readAsDataUrl } from '../../../../shared/lib/pickFiles';
+import { preparePhoto } from '../../../../shared/lib/photo';
+import { pickFile } from '../../../../shared/lib/pickFiles';
 import { Avatar, Button, cn, Count, Modal, Tabs } from '../../../../shared/ui';
 import { confirmAction } from '../../../../shared/ui/confirm';
 import { toast } from '../../../../shared/ui/toast';
@@ -147,7 +148,7 @@ export default function CardEditor({
         try {
             const file = await pickFile('images');
             if (!file) return;
-            set({ photo: await readAsDataUrl(file) });
+            set(await preparePhoto(file));
         } catch (err) {
             reportError(err, { context: 'photo-upload' });
         }

@@ -7,6 +7,7 @@ import { historyApi } from '../../../shared/api/personnel';
 import FilePreviewModal from '../../../shared/components/FilePreviewModal';
 import { pickFiles, readAsDataUrl, uniqueFileName } from '../../../shared/lib/pickFiles';
 import { Button, EmptyState, SearchInput, Tabs } from '../../../shared/ui';
+import { InlineLoader, SkeletonRows } from '../../../shared/ui/loader';
 import { StatusExcel } from '../../../shared/utils/excelUserStatuses';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { usePermissions } from '../../../stores/sessionStore';
@@ -27,6 +28,9 @@ type UserHistoryProps = {
     onStatusChange: (status: StatusExcel) => void;
     currentStatus?: string;
 };
+
+/** Entries drawn at once; «Показати ще» adds as many. */
+const HISTORY_PAGE = 100;
 
 const RANGES: { value: DateRange; label: string }[] = [
     { value: '1d', label: '1 день' },
@@ -50,6 +54,9 @@ export default function UserHistory({
     const [initialPeriod, setInitialPeriod] = useState<{ from: string; to: string } | undefined>();
     const [previewFile, setPreviewFile] = useState<FileWithDataUrl | null>(null);
     const [dateRange, setDateRange] = useState<DateRange>('1d');
+    // A long history (hundreds of entries with documents) is drawn a page at a time.
+    const [shown, setShown] = useState(HISTORY_PAGE);
+    useEffect(() => setShown(HISTORY_PAGE), [userId, dateRange, searchTerm]);
 
     const user = useUserStore((s) => s.users.find((u) => u.id === userId));
     const historyVersion = useUserStore((s) => s.historyVersion);
@@ -61,9 +68,16 @@ export default function UserHistory({
     const canAdd = canAny('history.edit', 'personnel.edit') && !isExcluded;
     const canEdit = can('history.edit') && !isExcluded;
 
+    // Another person or another period: a loader until its entries are here.
+    const [loadedFor, setLoadedFor] = useState<string | null>(null);
+    const requested = `${userId}:${dateRange}`;
     const refreshHistory = async () => {
-        const result = await historyApi.listByRange(userId, dateRange);
-        setHistory(result);
+        try {
+            const result = await historyApi.listByRange(userId, dateRange);
+            setHistory(result);
+        } finally {
+            setLoadedFor(requested);
+        }
     };
 
     useEffect(() => {
@@ -237,7 +251,12 @@ export default function UserHistory({
                 <Tabs variant="pills" value={dateRange} onChange={setDateRange} items={RANGES} />
             </div>
 
-            {filteredHistory.length === 0 ? (
+            {loadedFor !== requested ? (
+                <div className="space-y-3 px-5 py-5">
+                    <InlineLoader>{t('history.loading')}</InlineLoader>
+                    <SkeletonRows rows={4} />
+                </div>
+            ) : filteredHistory.length === 0 ? (
                 <EmptyState
                     icon={<ScrollText />}
                     title={t('history.noRecords')}
@@ -249,7 +268,7 @@ export default function UserHistory({
                 />
             ) : (
                 <ol className="px-5 pb-5 pt-5">
-                    {filteredHistory.map((item) => (
+                    {filteredHistory.slice(0, shown).map((item) => (
                         <HistoryItem
                             key={item.id}
                             entry={item}
@@ -260,6 +279,20 @@ export default function UserHistory({
                             onPreviewFile={(file) => setPreviewFile(file)}
                         />
                     ))}
+                    {filteredHistory.length > shown && (
+                        <li className="flex justify-center pt-2">
+                            <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => setShown((count) => count + HISTORY_PAGE)}
+                            >
+                                {t('history.showMore', {
+                                    count: Math.min(HISTORY_PAGE, filteredHistory.length - shown),
+                                    left: filteredHistory.length - shown,
+                                })}
+                            </Button>
+                        </li>
+                    )}
                 </ol>
             )}
 

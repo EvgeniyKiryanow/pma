@@ -57,15 +57,36 @@ export class ChangeJournal {
         operation: ChangeOperation,
         data: unknown,
     ): Promise<void> {
-        await (
-            await this.db()
-        ).run(
+        const db = await this.db();
+        const json = JSON.stringify(data);
+        if (operation !== 'delete') {
+            // Every change carries the whole row, so a newer one makes the waiting one useless:
+            // it is refreshed in place (keeping its place in the order, an insert stays an
+            // insert). Without this every history entry added a copy of the person's entire
+            // history to the journal, and the file grew without bound until the next export.
+            const waiting = await db.get<{ id: number; operation: string }>(
+                `SELECT id, operation FROM change_history
+                 WHERE table_name = ? AND record_id = ? AND (source_id IS NULL OR source_id = 'local')
+                 ORDER BY id DESC LIMIT 1`,
+                table,
+                recordId,
+            );
+            if (waiting && waiting.operation !== 'delete') {
+                await db.run(
+                    `UPDATE change_history SET data = ?, timestamp = CURRENT_TIMESTAMP WHERE id = ?`,
+                    json,
+                    waiting.id,
+                );
+                return;
+            }
+        }
+        await db.run(
             `INSERT INTO change_history (table_name, record_id, operation, data, source_id)
              VALUES (?, ?, ?, ?, 'local')`,
             table,
             recordId,
             operation,
-            JSON.stringify(data),
+            json,
         );
     }
 
@@ -96,13 +117,19 @@ export class ChangeJournal {
         );
     }
 
-    /** Drops local entries up to `maxId` (the ones that were written to an export file). */
-    async removeLocalUpTo(maxId: number): Promise<void> {
-        await (
-            await this.db()
-        ).run(
-            `DELETE FROM change_history WHERE id <= ? AND (source_id IS NULL OR source_id = 'local')`,
-            maxId,
-        );
+    /**
+     * Drops the entries written to an export file — unless one was refreshed with newer data
+     * while the file was being written: that one waits for the next export.
+     */
+    async removeExported(changes: ChangeRow[]): Promise<void> {
+        const db = await this.db();
+        for (const change of changes) {
+            await db.run(
+                `DELETE FROM change_history
+                 WHERE id = ? AND data IS ? AND (source_id IS NULL OR source_id = 'local')`,
+                change.id,
+                change.data,
+            );
+        }
     }
 }

@@ -7,6 +7,7 @@ import type {
 } from '../../../shared/types/reports';
 import type { ShtatnaPosada } from '../../../shared/types/shtatnaPosada';
 import { bridge, call, expectSuccess } from './bridge';
+import { unwrap } from './call';
 
 /** Staffing table (штатні посади, БЧС). */
 export const staffingApi = {
@@ -67,6 +68,11 @@ export const namedListApi = {
             'NOT_FOUND',
         );
     },
+    /** Many cells in one write; returns how many were written. */
+    updateCells: (
+        key: string,
+        cells: { rowId: number; dayIndex: number; value: string }[],
+    ): Promise<number> => unwrap(bridge().namedList.updateCells(key, cells)),
     remove: async (key: string): Promise<void> => {
         await expectSuccess(bridge().namedList.delete(key), 'NOT_FOUND');
     },

@@ -5,6 +5,7 @@ import { ChangeExchangeService } from './ChangeExchangeService';
 import { ChangeFiles } from './ChangeFiles';
 import { ChangeLogFile } from './ChangeLogFile';
 import { registerSyncIpc } from './ipc';
+import { SentFiles } from './SentFiles';
 
 /** Offline change-log exchange (.pmc). The journal itself is shared infrastructure. */
 export function createSyncModule(context: ModuleContext, deps: { files: HistoryAttachments }) {
@@ -15,6 +16,7 @@ export function createSyncModule(context: ModuleContext, deps: { files: HistoryA
         new ChangeLogFile(() => AppPaths.staging),
         logger,
         new ChangeFiles(deps.files, logger),
+        new SentFiles(context.db),
     );
     return defineModule({
         name: 'sync',

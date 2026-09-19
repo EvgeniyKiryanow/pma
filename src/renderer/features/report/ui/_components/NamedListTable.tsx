@@ -6,11 +6,19 @@ import { reportError } from '../../../../shared/api/errors';
 import { historyApi } from '../../../../shared/api/personnel';
 import { Button, cn, EmptyState, IconButton } from '../../../../shared/ui';
 import { confirmAction } from '../../../../shared/ui/confirm';
+import { InlineLoader } from '../../../../shared/ui/loader';
 import { toast } from '../../../../shared/ui/toast';
+import { useI18nStore } from '../../../../stores/i18nStore';
 import { useUserStore } from '../../../../stores/userStore';
 import { useRozporyadzhennyaStore } from '../../../manager/model/useRozporyadzhennyaStore';
 import { useVyklyuchennyaStore } from '../../../manager/model/useVyklyuchennyaStore';
-import { periodCodes, type RowClosure, rowClosure, statusCode } from '../../model/namedListDays';
+import {
+    monthRange,
+    periodCodes,
+    type RowClosure,
+    rowClosure,
+    statusCode,
+} from '../../model/namedListDays';
 import { AttendanceRow, useNamedListStore } from '../../model/useNamedListStore';
 
 const ROWS_PER_TABLE = 14;
@@ -96,7 +104,8 @@ export function startNamedListAutoApply() {
             if (num) byShpk.set(num, u);
         }
 
-        let appliedCount = 0;
+        // One write for everyone: a cell at a time rewrote the whole month per person.
+        const cells: { rowId: number; dayIndex: number; value: string }[] = [];
         for (const row of rows) {
             if (!row.shpkNumber) continue;
             const u = byShpk.get(String(row.shpkNumber));
@@ -105,11 +114,9 @@ export function startNamedListAutoApply() {
             const short = statusCode(u.soldierStatus);
             if (!short) continue;
 
-            if (!row.attendance[dayIndex]) {
-                await nl.updateCell(key, row.id, dayIndex, short);
-                appliedCount++;
-            }
+            if (!row.attendance[dayIndex]) cells.push({ rowId: row.id, dayIndex, value: short });
         }
+        const appliedCount = await nl.updateCells(key, cells);
 
         console.log(
             appliedCount > 0
@@ -131,6 +138,7 @@ export function startNamedListAutoApply() {
 }
 
 export function NamedListTable() {
+    const { t } = useI18nStore();
     const users = useUserStore((s) => s.users);
     const {
         tables,
@@ -242,12 +250,15 @@ export function NamedListTable() {
     // Status periods from the history (відпустка з … по …): marks of the days they cover.
     const historyVersion = useUserStore((s) => s.historyVersion);
     const [periods, setPeriods] = useState<StatusPeriodEntry[]>([]);
+    const [periodsLoading, setPeriodsLoading] = useState(true);
     useEffect(() => {
+        setPeriodsLoading(true);
         historyApi
-            .statusPeriods()
+            .statusPeriods(monthRange(activeYear, activeMonthIndex))
             .then(setPeriods)
+            .finally(() => setPeriodsLoading(false))
             .catch((error) => reportError(error, { context: 'named-list.periods' }));
-    }, [historyVersion, users]);
+    }, [historyVersion, users, activeYear, activeMonthIndex]);
     const plannedByUserId = useMemo(() => {
         const byUser = new Map<number, StatusPeriodEntry[]>();
         for (const period of periods) {
@@ -381,22 +392,20 @@ export function NamedListTable() {
         // було: Map по shpkNumber — видаляємо цей шматок
 
         // нове: просто використовуємо ім’я+звання для пошуку
-        let appliedCount = 0;
+        const byNameRank = new Map(
+            useUserStore.getState().users.map((x) => [keyByNameRank(x.fullName, x.rank), x]),
+        );
+        const cells: { rowId: number; dayIndex: number; value: string }[] = [];
         for (const row of rows) {
-            const uKey = keyByNameRank(row.fullName, row.rank);
-            const u = useUserStore
-                .getState()
-                .users.find((x) => keyByNameRank(x.fullName, x.rank) === uKey);
+            const u = byNameRank.get(keyByNameRank(row.fullName, row.rank));
             if (!u) continue;
 
             const short = statusCode(u.soldierStatus);
             if (!short) continue;
 
-            if (!row.attendance[dayIndex]) {
-                await nl.updateCell(key, row.id, dayIndex, short);
-                appliedCount++;
-            }
+            if (!row.attendance[dayIndex]) cells.push({ rowId: row.id, dayIndex, value: short });
         }
+        const appliedCount = await nl.updateCells(key, cells);
 
         if (appliedCount > 0) {
             toast.success(`Підставлено статусів: ${appliedCount}`);
@@ -516,6 +525,7 @@ export function NamedListTable() {
             {/* Tables of 14 rows, as on the printed form */}
             {activeKey && (
                 <div className="paper space-y-6 overflow-x-auto p-6">
+                    {periodsLoading && <InlineLoader>{t('history.marksLoading')}</InlineLoader>}
                     {tableChunks.map((group, gi) => (
                         <div key={gi} className="space-y-3">
                             {gi > 0 && (

@@ -16,6 +16,14 @@ export type AboutInfo = {
 
 export type SavedLog = { fileName: string };
 
+/** Download of an update (the window shows it; the person may cancel). */
+export type UpdateProgress = {
+    percent: number;
+    transferred: number;
+    total: number;
+    bytesPerSecond: number;
+};
+
 export type UpdateCheckResult =
     | { status: 'current'; version: string }
     | { status: 'available'; version: string; canInstall: boolean };

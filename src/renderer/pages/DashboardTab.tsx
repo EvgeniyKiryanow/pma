@@ -4,7 +4,11 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { DIRECTIVE_TYPES, type DirectiveRecord } from '../../shared/types/directive';
 import type { RecentFile } from '../../shared/types/documents';
 import type { RecentStatusChange, StatusPeriodEntry } from '../../shared/types/history';
-import { upcomingEvents } from '../features/dashboard/model/upcoming';
+import {
+    UPCOMING_AHEAD,
+    UPCOMING_BEHIND,
+    upcomingEvents,
+} from '../features/dashboard/model/upcoming';
 import {
     JournalCard,
     openJournal,
@@ -13,12 +17,14 @@ import {
     UpcomingCard,
 } from '../features/dashboard/ui/DashboardCards';
 import { journalCounts, useJournalStore } from '../features/journal/model/journalStore';
+import { isoDay } from '../features/report/model/namedListDays';
 import { useGlobalSearch } from '../features/search/model/searchStore';
 import { directivesApi } from '../shared/api/directives';
 import { documentsApi } from '../shared/api/documents';
 import { reportError } from '../shared/api/errors';
 import { historyApi } from '../shared/api/personnel';
 import { Button, cn } from '../shared/ui';
+import { Loader } from '../shared/ui/loader';
 import { useI18nStore } from '../stores/i18nStore';
 import { usePermissions, useSessionStore } from '../stores/sessionStore';
 import { useUserStore } from '../stores/userStore';
@@ -30,6 +36,7 @@ function Tile({
     hint,
     tone,
     onClick,
+    loading,
 }: {
     icon: ReactNode;
     label: string;
@@ -37,6 +44,7 @@ function Tile({
     hint?: string;
     tone?: 'danger' | 'warning';
     onClick?: () => void;
+    loading?: boolean;
 }) {
     return (
         <button
@@ -58,7 +66,9 @@ function Tile({
             </span>
             <span className="min-w-0">
                 <span className="block truncate text-xs text-ink-3">{label}</span>
-                <span className="block text-xl font-semibold tabular-nums text-ink">{value}</span>
+                <span className="block text-xl font-semibold tabular-nums text-ink">
+                    {loading ? <Loader size="sm" className="my-1" /> : value}
+                </span>
                 {hint && <span className="block truncate text-[11px] text-ink-3">{hint}</span>}
             </span>
         </button>
@@ -82,6 +92,18 @@ export default function DashboardTab() {
     const [files, setFiles] = useState<RecentFile[]>([]);
     const canPeople = can('personnel.view');
     const canOrders = can('directives.view');
+    const journalLoaded = useJournalStore((s) => s.loaded);
+    const usersLoaded = useUserStore((s) => s.usersLoaded);
+    // The first load of each source shows a loader in its card; later refreshes keep the
+    // content on screen.
+    const [waiting, setWaiting] = useState({
+        periods: true,
+        orders: true,
+        changes: true,
+        files: true,
+    });
+    const loaded = (key: keyof typeof waiting) => () =>
+        setWaiting((state) => (state[key] ? { ...state, [key]: false } : state));
 
     useEffect(() => {
         useJournalStore
@@ -93,13 +115,22 @@ export default function DashboardTab() {
     useEffect(() => {
         if (!canPeople) return;
         const quiet = (err: unknown) => reportError(err, { context: 'dashboard.load' });
-        historyApi.statusPeriods().then(setPeriods).catch(quiet);
-        historyApi.recentStatusChanges(40).then(setChanges).catch(quiet);
-        documentsApi.recent(25).then(setFiles).catch(quiet);
+        // Only the periods that can end within the window of «Найближчі дати».
+        const day = (shift: number) => isoDay(new Date(Date.now() + shift * 86_400_000));
+        historyApi
+            .statusPeriods({ from: day(-UPCOMING_BEHIND - 1), to: day(UPCOMING_AHEAD + 1) })
+            .then(setPeriods)
+            .finally(loaded('periods'))
+            .catch(quiet);
+        historyApi.recentStatusChanges(40).then(setChanges).finally(loaded('changes')).catch(quiet);
+        documentsApi.recent(25).then(setFiles).finally(loaded('files')).catch(quiet);
         if (canOrders) {
             Promise.all(DIRECTIVE_TYPES.map((type) => directivesApi.list(type)))
                 .then((lists) => setOrders(lists.flat()))
+                .finally(loaded('orders'))
                 .catch(quiet);
+        } else {
+            loaded('orders')();
         }
         // Booleans only: `can` is a new function on every render and would reload endlessly.
     }, [canPeople, canOrders, historyVersion, users]);
@@ -109,6 +140,8 @@ export default function DashboardTab() {
         [users, periods, orders, journal, canPeople],
     );
     const counts = useMemo(() => journalCounts(journal), [journal]);
+    const upcomingLoading =
+        !journalLoaded || (canPeople && (!usersLoaded || waiting.periods || waiting.orders));
     const serving = users.filter(
         (u) => u.shpkNumber !== 'excluded' && !String(u.shpkNumber ?? '').includes('order'),
     ).length;
@@ -181,6 +214,7 @@ export default function DashboardTab() {
                             label={t('dashboard.tiles.people')}
                             value={serving}
                             hint={t('dashboard.tiles.peopleHint', { total: users.length })}
+                            loading={!usersLoaded}
                             onClick={() => useUserStore.getState().setCurrentTab('manager')}
                         />
                     )}
@@ -189,6 +223,7 @@ export default function DashboardTab() {
                         label={t('dashboard.tiles.dates')}
                         value={weekEvents}
                         hint={t('dashboard.tiles.datesHint')}
+                        loading={upcomingLoading}
                         tone={
                             events.some((e) => e.daysLeft < 0 && e.kind !== 'journal')
                                 ? 'warning'
@@ -205,6 +240,7 @@ export default function DashboardTab() {
                                 : t('dashboard.tiles.tasksHint')
                         }
                         tone={counts.overdue ? 'danger' : undefined}
+                        loading={!journalLoaded}
                         onClick={() => useUserStore.getState().setCurrentTab('journal')}
                     />
                     {canPeople && (
@@ -213,15 +249,21 @@ export default function DashboardTab() {
                             label={t('dashboard.tiles.files')}
                             value={newFiles}
                             hint={t('dashboard.tiles.filesHint')}
+                            loading={waiting.files}
                         />
                     )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-5 @5xl:grid-cols-2">
-                    <UpcomingCard events={events} />
-                    <JournalCard entries={journal} />
-                    {canPeople && <StatusChangesCard changes={changes} />}
-                    {canPeople && <RecentFilesCard files={files} />}
+                    <UpcomingCard events={events} loading={upcomingLoading} />
+                    <JournalCard entries={journal} loading={!journalLoaded} />
+                    {canPeople && (
+                        <StatusChangesCard
+                            changes={changes}
+                            loading={waiting.changes || !usersLoaded}
+                        />
+                    )}
+                    {canPeople && <RecentFilesCard files={files} loading={waiting.files} />}
                 </div>
             </div>
         </div>

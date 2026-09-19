@@ -177,6 +177,10 @@ export const foundationEn: typeof foundationUa = {
         STORAGE: 'Could not read or write the file on the disk or flash drive',
         UPDATE_FAILED:
             'Could not get the update. Check the internet connection or download the installer manually',
+        UPDATE_OFFLINE:
+            'The update server does not answer. Check the internet connection and try again',
+        UPDATE_STALLED:
+            'The update download stopped — the connection was lost. Try again when the internet is stable',
         INTERNAL: 'Something went wrong. Details were written to the application log',
     },
     auditActions: {
@@ -494,6 +498,8 @@ export const foundationEn: typeof foundationUa = {
             export: 'Export changes…',
             import: 'Import changes…',
             exported: 'Changes exported: {{count}}',
+            exportedPart:
+                'Changes exported: {{count}}. Too many files for one exchange — {{remaining}} more changes go into the next file: export once more.',
             nothing: 'No new changes to export',
             imported: 'Applied: {{imported}}, skipped: {{skipped}}, failed: {{failed}}',
         },
@@ -1033,6 +1039,41 @@ export const foundationEn: typeof foundationUa = {
         removeTitle: 'Delete the document?',
         removeMessage: '«{{name}}» will be deleted.',
     },
+    impulseImport: {
+        title: 'Impulse file',
+        badge: 'Impulse',
+        contents: 'Personnel: {{people}} · Education and courses: {{education}} rows',
+        run: 'Import from Impulse',
+        comparing: 'Comparing with the cards…',
+        created: 'New cards',
+        updated: 'Cards to update',
+        unchanged: 'No changes',
+        attention: 'Need attention',
+        nothing: 'Every card already holds the data of this file — nothing to import.',
+        changes: 'What changes',
+        newCards: 'New cards',
+        ambiguous:
+            'Several people with this name — row skipped (add the tax number or date of birth)',
+        ambiguousRow: '{{name}} ({{sheet}}, row {{row}})',
+        sheetPersonnel: 'Personnel',
+        sheetEducation: 'Education and courses',
+        unmatched: 'Education of people who are not in the program',
+        unmatchedRow: '{{name}} (row {{row}})',
+        createMissing: 'Create cards for them',
+        createMissingHint:
+            'With the name, tax number and education from the file. The rest can be added later.',
+        confirmTitle: 'Import the data from Impulse?',
+        confirmText:
+            'New cards: {{created}}. Cards to update: {{updated}}. Empty cells of the file change nothing; every change is written into the history of the card.',
+        confirm: 'Import',
+        progress: 'Importing from Impulse…',
+        done: 'Import from Impulse finished. Created: {{created}} · Updated: {{updated}}',
+        failed: 'Failed: {{count}} (no permission or an error)',
+        showAll: 'Show all ({{count}} more)',
+        collapse: 'Collapse',
+        previewMore: 'Showing {{shown}} of {{total}} rows',
+    },
+    filePreview: { excelError: 'The Excel file could not be read' },
     excelPreview: { more: 'Showing {{shown}} of {{total}} rows — the file has all of them.' },
     awards: {
         groups: {

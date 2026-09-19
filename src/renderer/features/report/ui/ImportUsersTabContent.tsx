@@ -18,6 +18,11 @@ import { toast } from '../../../shared/ui/toast';
 import { HEADER_MAP } from '../../../shared/utils/headerMap';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { useUserStore } from '../../../stores/userStore';
+import { impulseSheetsOf, type SheetRows } from '../model/impulseImport';
+import { ImpulseImportPanel } from './_components/ImpulseImportPanel';
+
+/** Rows of a sheet drawn in the preview; a big file stays fast to open. */
+const PREVIEW_ROWS = 200;
 
 /** Date columns of the card: Excel gives them as serial numbers. */
 const CARD_DATE_FIELDS = new Set<string>(
@@ -25,6 +30,8 @@ const CARD_DATE_FIELDS = new Set<string>(
 );
 export default function ImportUsersTabContent() {
     const [parsedSheets, setParsedSheets] = useState<Record<string, any[]>>({});
+    /** Every sheet as rows of raw cells (the Impulse forms have their headings in rows 2–4). */
+    const [rawSheets, setRawSheets] = useState<Record<string, SheetRows>>({});
     const [dbColumns, setDbColumns] = useState<string[]>([]);
     const [existingUsers, setExistingUsers] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -97,26 +104,23 @@ export default function ImportUsersTabContent() {
         const dbCols = await personnelApi.columns();
         setDbColumns(dbCols);
 
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            const data = evt.target?.result;
-            if (!data) return;
+        const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+        const sheetsData: Record<string, any[]> = {};
+        const raw: Record<string, SheetRows> = {};
 
-            const workbook = XLSX.read(data, { type: 'binary' });
-            const sheetsData: Record<string, any[]> = {};
-
-            workbook.SheetNames.forEach((sheetName) => {
-                const worksheet = workbook.Sheets[sheetName];
-                const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
-
-                if (rawJson.length === 0) return;
-
-                sheetsData[sheetName] = rawJson; // keep raw rows
+        workbook.SheetNames.forEach((sheetName) => {
+            const worksheet = workbook.Sheets[sheetName];
+            raw[sheetName] = XLSX.utils.sheet_to_json<SheetRows[number]>(worksheet, {
+                header: 1,
+                raw: true,
+                defval: null,
             });
+            const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+            if (rows.length) sheetsData[sheetName] = rows;
+        });
 
-            setParsedSheets(sheetsData);
-        };
-        reader.readAsBinaryString(file);
+        setRawSheets(raw);
+        setParsedSheets(sheetsData);
     };
 
     /** ✅ Чи є таблиця користувачів */
@@ -377,6 +381,8 @@ export default function ImportUsersTabContent() {
         else toast.success(summary);
     };
 
+    const impulseSheets = impulseSheetsOf(rawSheets);
+    const isImpulseFile = impulseSheets.size > 0;
     const hasData = Object.keys(parsedSheets).length > 0;
 
     return (
@@ -429,9 +435,15 @@ export default function ImportUsersTabContent() {
                     />
                 )}
 
+                {isImpulseFile && <ImpulseImportPanel sheets={rawSheets} />}
+
                 {Object.entries(parsedSheets).map(([sheetName, rows]) => {
                     const sheetIsStaff = isShtatniPosadySheet(rows);
                     const sheetIsUsers = isUsersSheet(rows);
+                    // The Impulse forms are imported by the panel above; its dictionaries and
+                    // notes are not data.
+                    if (impulseSheets.has(sheetName)) return null;
+                    if (isImpulseFile && !sheetIsStaff && !sheetIsUsers) return null;
                     const staffKey = `${sheetName}:staff`;
                     const usersKey = `${sheetName}:users`;
 
@@ -525,7 +537,7 @@ export default function ImportUsersTabContent() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredData.map((row, idx) => (
+                                        {filteredData.slice(0, PREVIEW_ROWS).map((row, idx) => (
                                             <tr key={idx}>
                                                 {visibleColumns.map((colKey) => (
                                                     <td key={colKey} className="whitespace-nowrap">
@@ -536,6 +548,14 @@ export default function ImportUsersTabContent() {
                                         ))}
                                     </tbody>
                                 </table>
+                                {filteredData.length > PREVIEW_ROWS && (
+                                    <p className="px-3 py-2 text-xs text-ink-3">
+                                        {useI18nStore.getState().t('impulseImport.previewMore', {
+                                            shown: PREVIEW_ROWS,
+                                            total: filteredData.length,
+                                        })}
+                                    </p>
+                                )}
                             </div>
                         </section>
                     );

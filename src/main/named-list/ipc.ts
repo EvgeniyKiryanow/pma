@@ -1,6 +1,6 @@
 import { NAMED_LIST_CHANNELS } from '../../shared/ipc/channels';
 import { toStatus } from '../ipc/legacy';
-import { access, handle } from '../ipc/secureHandle';
+import { access, handle, handleResult } from '../ipc/secureHandle';
 import { requireArray, requireInt, requireMonthKey, requireString } from '../ipc/validate';
 import type { NamedListService } from './NamedListService';
 
@@ -40,6 +40,23 @@ export function registerNamedListIpc(namedList: NamedListService): void {
                 () => namedList.updateCell(key, rowId, dayIndex, value),
                 ['NOT_FOUND', 'VALIDATION'],
             );
+        },
+    );
+
+    // Today's marks for everyone at once (one write instead of one per person).
+    handleResult(
+        NAMED_LIST_CHANNELS.updateCells,
+        edit,
+        (_event, keyInput: unknown, input: unknown) => {
+            const key = requireMonthKey(keyInput);
+            const cells = requireArray<Record<string, unknown>>(input, 'cells', {
+                maxLength: 20_000,
+            }).map((cell) => ({
+                rowId: requireInt(cell?.rowId, 'rowId'),
+                dayIndex: requireInt(cell?.dayIndex, 'dayIndex', { min: 0, max: 30 }),
+                value: requireString(cell?.value, 'value', { maxLength: 8, allowEmpty: true }),
+            }));
+            return namedList.updateCells(key, cells);
         },
     );
 

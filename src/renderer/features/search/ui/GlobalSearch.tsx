@@ -27,6 +27,7 @@ import { useShtatniStore } from '../../../entities/shtatna-posada/model/useShtat
 import AwardIcon from '../../../entities/user/ui/card/AwardIcon';
 import { directivesApi } from '../../../shared/api/directives';
 import { documentsApi } from '../../../shared/api/documents';
+import { listPhoto } from '../../../shared/lib/photo';
 import { Avatar, cn } from '../../../shared/ui';
 import { useI18nStore } from '../../../stores/i18nStore';
 import { usePermissions } from '../../../stores/sessionStore';
@@ -460,7 +461,7 @@ function HitRow({
 
     let icon: ReactNode;
     if (hit.category === 'people') {
-        icon = <Avatar name={hit.title} src={user?.photo} size={34} />;
+        icon = <Avatar name={hit.title} src={user ? listPhoto(user) : undefined} size={34} />;
     } else if (hit.category === 'awards' && hit.awardId) {
         icon = <AwardIcon awardId={hit.awardId} size={32} />;
     } else {

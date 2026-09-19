@@ -13,6 +13,7 @@ import type { CommentOrHistoryEntry } from '../../shared/types/user';
 import type { Transactor } from '../db/types';
 import type { EntryListStore } from './EntryListStore';
 import type { HistoryAttachments } from './HistoryAttachments';
+import type { HistoryIndexRepository, HistoryIndexRow } from './HistoryIndexRepository';
 
 const FILTER_DAYS: Record<HistoryFilter, number> = {
     '1day': 1,
@@ -30,11 +31,14 @@ function newerThanDays(entries: CommentOrHistoryEntry[], days: number): CommentO
     return entries.filter((entry) => new Date(entry.date) >= threshold);
 }
 
-/** Excluded people and people under an order do not need status documents. */
-function isExemptFromDocuments(shpkNumber: string | null): boolean {
-    const shpk = String(shpkNumber ?? '');
-    return shpk === 'excluded' || shpk.includes('order');
-}
+/** What `statusOfEntry` reads, from an index row. */
+const text = (value: unknown) =>
+    value === null || value === undefined ? undefined : String(value);
+const entryText = (row: HistoryIndexRow) => ({
+    status: text(row.status),
+    description: text(row.description),
+    content: text(row.content),
+});
 
 /** History of a person: status changes, orders, moves — with attachments on disk. */
 export class HistoryService {
@@ -42,6 +46,7 @@ export class HistoryService {
         private readonly transactor: Transactor,
         private readonly history: EntryListStore<CommentOrHistoryEntry>,
         private readonly attachments: HistoryAttachments,
+        private readonly index: HistoryIndexRepository,
     ) {}
 
     /** Entries of the last N days; unknown filters mean 30 days. */
@@ -108,20 +113,18 @@ export class HistoryService {
 
     /** Deletes the entry wherever it is; returns the person it belonged to. Throws NOT_FOUND. */
     async remove(entryId: number): Promise<number> {
-        const owner = (await this.history.all()).find(({ entries }) =>
-            entries.some((entry) => entry.id === entryId),
-        );
-        if (!owner) throw new AppError('NOT_FOUND', 'History entry not found in any user');
+        const owner = await this.index.ownerOf(entryId);
+        if (owner === null) throw new AppError('NOT_FOUND', 'History entry not found in any user');
 
         await this.transactor.transaction(async () => {
-            const entries = await this.requireEntries(owner.userId);
+            const entries = await this.requireEntries(owner);
             await this.history.write(
-                owner.userId,
+                owner,
                 entries.filter((entry) => entry.id !== entryId),
             );
         });
-        await this.attachments.removeEntry(owner.userId, entryId);
-        return owner.userId;
+        await this.attachments.removeEntry(owner, entryId);
+        return owner;
     }
 
     async loadFile(
@@ -138,46 +141,36 @@ export class HistoryService {
 
     /** Status changes without an attached document or period (the red badge in the header). */
     async findIncomplete(): Promise<IncompleteHistoryEntry[]> {
-        const result: IncompleteHistoryEntry[] = [];
-        for (const { userId, shpkNumber, entries } of await this.history.all()) {
-            if (isExemptFromDocuments(shpkNumber)) continue;
-            for (const entry of entries) {
-                if (entry?.type !== 'statusChange') continue;
-                const noFiles = !entry.files || entry.files.length === 0;
-                const noPeriod = !entry.period;
-                if (!noFiles && !noPeriod) continue;
-                result.push({
-                    userId,
-                    entryId: entry.id,
-                    reason:
-                        noFiles && noPeriod
-                            ? 'missing_both'
-                            : noFiles
-                              ? 'missing_file'
-                              : 'missing_period',
-                });
-            }
-        }
-        return result;
+        return (await this.index.incompleteStatusChanges()).map((row) => ({
+            userId: row.userId,
+            entryId: row.entryId,
+            reason:
+                row.fileCount === 0 && !row.hasPeriod
+                    ? 'missing_both'
+                    : row.fileCount === 0
+                      ? 'missing_file'
+                      : 'missing_period',
+        }));
     }
 
-    /** Every status change with a period, of everyone (the named list marks them by day). */
-    async statusPeriods(): Promise<StatusPeriodEntry[]> {
+    /**
+     * Every status change with a period, of everyone (the named list marks them by day).
+     * With `range` ("YYYY-MM-DD") only the periods that may touch those days: a month of the
+     * named list, the fortnight of the desktop.
+     */
+    async statusPeriods(range?: { from: string; to: string }): Promise<StatusPeriodEntry[]> {
         const result: StatusPeriodEntry[] = [];
-        for (const { userId, entries } of await this.history.all()) {
-            for (const entry of entries) {
-                if (entry?.type !== 'statusChange' || !entry.period?.from) continue;
-                const status = statusOfEntry(entry);
-                if (!status) continue;
-                result.push({
-                    userId,
-                    entryId: entry.id,
-                    date: entry.date,
-                    status,
-                    from: entry.period.from,
-                    to: entry.period.to || null,
-                });
-            }
+        for (const row of await this.index.statusPeriods(range)) {
+            const status = statusOfEntry(entryText(row));
+            if (!status) continue;
+            result.push({
+                userId: row.userId,
+                entryId: row.entryId,
+                date: row.date as string,
+                status,
+                from: row.periodFrom as string,
+                to: row.periodTo || null,
+            });
         }
         return result;
     }
@@ -185,27 +178,32 @@ export class HistoryService {
     /** The latest status changes of everyone, newest first. */
     async recentStatusChanges(limit = 40): Promise<RecentStatusChange[]> {
         const result: RecentStatusChange[] = [];
-        for (const { userId, entries } of await this.history.all()) {
-            for (const entry of entries) {
-                if (entry?.type !== 'statusChange') continue;
-                const to = statusOfEntry(entry);
+        const page = Math.max(limit * 2, 50);
+        for (let offset = 0; result.length < limit; offset += page) {
+            const rows = await this.index.statusChangesNewestFirst(page, offset);
+            for (const row of rows) {
+                const to = statusOfEntry(entryText(row));
                 if (!to) continue;
                 const previous =
-                    entry.previousStatus?.trim() ||
-                    /з\s*"([^"]+)"\s*→/.exec(`${entry.description ?? ''}`)?.[1] ||
+                    text(row.previousStatus)?.trim() ||
+                    /з\s*"([^"]+)"\s*→/.exec(`${row.description ?? ''}`)?.[1] ||
                     null;
                 result.push({
-                    userId,
-                    entryId: entry.id,
-                    date: entry.date,
+                    userId: row.userId,
+                    entryId: row.entryId,
+                    date: row.date as string,
                     from: previous && previous !== '—' ? previous : null,
                     to,
-                    period: entry.period?.from ? entry.period : null,
-                    hasFiles: Boolean(entry.files?.length),
+                    period: row.periodFrom
+                        ? { from: row.periodFrom, to: row.periodTo ?? undefined }
+                        : null,
+                    hasFiles: row.fileCount > 0,
                 });
+                if (result.length === limit) break;
             }
+            if (rows.length < page) break;
         }
-        return result.sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, limit);
+        return result;
     }
 
     private async requireEntries(userId: number): Promise<CommentOrHistoryEntry[]> {

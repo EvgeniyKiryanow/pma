@@ -13,8 +13,13 @@ import { createLogger } from './core/logger';
 import { AppPaths } from './core/paths';
 import type { MigrationReport } from './db/migrations/runner';
 import { setAuditSink } from './ipc/secureHandle';
+import { AppUpdater } from './system/updater';
 
 const isDev = !app.isPackaged;
+/** How long closing may take before the program is ended regardless. */
+const QUIT_TIMEOUT_MS = 8000;
+/** How often photos that arrived without a small copy are looked for (a cheap indexed query). */
+const PHOTO_CHECK_MS = 5 * 60_000;
 const logger = createLogger('main');
 
 // Development only: run against a separate data folder (e.g. a copy of a fixture database).
@@ -70,11 +75,16 @@ async function bootstrap(): Promise<void> {
     // Nothing else runs yet (single instance), so leftovers of a crashed export or restore
     // (decrypted archives) can be destroyed safely.
     await container.backups.purgeStaging();
+    // The installer of the last update, left in %LOCALAPPDATA% by the updater.
+    void AppUpdater.removeDownloadedInstaller(logger);
 
     const openData = async (): Promise<OpenedDataSet> => {
         const opened = await openDataSet(container, logger);
         if (opened.setAside) await explainSetAside(opened.setAside);
-        if (!smokeTest) container.scheduler.start();
+        if (!smokeTest) {
+            container.scheduler.start();
+            startPhotoThumbnails(container);
+        }
         return opened;
     };
 
@@ -122,12 +132,24 @@ async function bootstrap(): Promise<void> {
     app.on('before-quit', () => {
         container.idleLock.stop();
         container.scheduler.stop();
+        container.photos.stop();
         container.clipboard.clearIfOurs();
         void container.database.close();
+        // ✕ must always close the program: if a frozen window keeps it alive, end it.
+        setTimeout(() => {
+            logger.warn('Quit did not finish in time, exiting');
+            app.exit(0);
+        }, QUIT_TIMEOUT_MS).unref();
     });
 
     // Development only: drive the running window from a script (automated UI checks).
     if (isDev && process.env.PMA_DEV_SCRIPT) void runDevScript(container, mainWindow);
+}
+
+/** Photos without a small copy (older data, a change log, a backup): now and then again. */
+function startPhotoThumbnails(container: Container): void {
+    void container.photos.run();
+    setInterval(() => void container.photos.run(), PHOTO_CHECK_MS).unref();
 }
 
 async function smokeTestSummary(container: Container, migrations: MigrationReport) {

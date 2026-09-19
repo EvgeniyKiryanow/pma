@@ -150,7 +150,7 @@ function readSheet(ws: ExcelJS.Worksheet, maxRows: number): PreviewSheet {
 
 export default function ExcelPreview({
     workbook,
-    maxRows = 500,
+    maxRows = 200,
     className,
 }: {
     workbook: ExcelJS.Workbook;
@@ -199,7 +199,8 @@ export default function ExcelPreview({
                 className,
             )}
         >
-            <div className="min-h-0 flex-1 overflow-auto bg-white">
+            {/* White paper with black text in both themes, as Excel shows the file. */}
+            <div className="paper min-h-0 flex-1 overflow-auto bg-white [color-scheme:light]">
                 <table
                     className="border-collapse text-[12px] leading-snug text-[#111]"
                     style={{ fontFamily: "'Times New Roman', serif", tableLayout: 'fixed' }}

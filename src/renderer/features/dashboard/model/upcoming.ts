@@ -44,6 +44,10 @@ export type UpcomingOptions = {
     behind?: number;
 };
 
+/** Days ahead «Найближчі дати» look, and days back an unclosed end still shows. */
+export const UPCOMING_AHEAD = 14;
+export const UPCOMING_BEHIND = 3;
+
 export function upcomingEvents(
     sources: {
         users: User[];
@@ -54,8 +58,8 @@ export function upcomingEvents(
     options: UpcomingOptions = {},
 ): UpcomingEvent[] {
     const today = startOfDay(options.today ?? new Date());
-    const ahead = options.ahead ?? 14;
-    const behind = options.behind ?? 3;
+    const ahead = options.ahead ?? UPCOMING_AHEAD;
+    const behind = options.behind ?? UPCOMING_BEHIND;
     const inWindow = (days: number) => days >= -behind && days <= ahead;
     const events: UpcomingEvent[] = [];
     const byId = new Map(sources.users.map((user) => [user.id, user]));

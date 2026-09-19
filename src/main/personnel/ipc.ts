@@ -5,6 +5,7 @@ import type { Logger } from '../core/logger';
 import { recoverFrom, toStatus } from '../ipc/legacy';
 import { access, handle } from '../ipc/secureHandle';
 import {
+    optionalDayRange,
     requireArray,
     requireInt,
     requireObject,
@@ -117,7 +118,9 @@ export function registerHistoryIpc(history: HistoryService): void {
     );
 
     handle(HISTORY_CHANNELS.findIncomplete, view, () => history.findIncomplete());
-    handle(HISTORY_CHANNELS.statusPeriods, view, () => history.statusPeriods());
+    handle(HISTORY_CHANNELS.statusPeriods, view, (_event, range: unknown) =>
+        history.statusPeriods(optionalDayRange(range)),
+    );
     handle(HISTORY_CHANNELS.recentStatusChanges, view, (_event, limit: unknown) =>
         history.recentStatusChanges(
             limit === undefined ? 40 : requireInt(limit, 'limit', { max: 500 }),

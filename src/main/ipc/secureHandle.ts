@@ -78,7 +78,14 @@ export const callActivity = {
     lastLongCallEndedAt: (senderId: number): number => longCallEndedAt.get(senderId) ?? 0,
 };
 
-async function track<T>(senderId: number, work: () => Promise<T>): Promise<T> {
+/**
+ * A call slower than this is written to the log: the support log then says which screen made
+ * the program slow on this unit's data. Development can lower it (PMA_SLOW_IPC_MS).
+ */
+const SLOW_CALL_MS =
+    (!app.isPackaged && Number(process.env.PMA_SLOW_IPC_MS)) || 500;
+
+async function track<T>(senderId: number, channel: string, work: () => Promise<T>): Promise<T> {
     activeCalls.set(senderId, (activeCalls.get(senderId) ?? 0) + 1);
     const started = Date.now();
     try {
@@ -87,7 +94,9 @@ async function track<T>(senderId: number, work: () => Promise<T>): Promise<T> {
         const left = (activeCalls.get(senderId) ?? 1) - 1;
         if (left > 0) activeCalls.set(senderId, left);
         else activeCalls.delete(senderId);
-        if (Date.now() - started >= LONG_CALL_MS) longCallEndedAt.set(senderId, Date.now());
+        const took = Date.now() - started;
+        if (took >= LONG_CALL_MS) longCallEndedAt.set(senderId, Date.now());
+        if (took >= SLOW_CALL_MS) logger.warn(`Slow call ${channel}: ${took} ms`);
     }
 }
 
@@ -155,7 +164,7 @@ export function handle(
             throw err;
         }
 
-        return track(event.sender.id, async () => {
+        return track(event.sender.id, channel, async () => {
             if (!auditAction) return handler(event, ...args);
 
             try {

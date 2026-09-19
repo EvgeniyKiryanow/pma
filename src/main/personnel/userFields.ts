@@ -6,6 +6,9 @@ const STATUS_FIELDS = new Set<string>(STATUS_COLUMNS);
  * Columns of `users` that the application writes. SQL for inserts/updates is generated from
  * this list (never from keys of incoming objects), so it stays safe and in one place.
  * When a new personnel field is added: add a migration with the column, then add it here.
+ * `ALTER TABLE … ADD COLUMN` puts it after `history`/`comments`/`photo`, so reading the list
+ * walks through them again: the same migration moves those three back to the end (see
+ * migration 18, `heavy-columns-last`).
  */
 export const USER_JSON_FIELDS = [
     'relatives',
@@ -173,6 +176,7 @@ export const USER_WRITABLE_FIELDS = [
     'preferentialServiceLength',
     'educationList',
     'awardRecords',
+    'photoThumb',
 ] as const;
 
 export type UserWritableField = (typeof USER_WRITABLE_FIELDS)[number];

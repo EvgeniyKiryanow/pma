@@ -115,6 +115,7 @@ export function createContainer() {
         appSettings: settings.settings,
         backups: backup.backups,
         scheduler: backup.scheduler,
+        photos: personnel.photos,
         clipboard: files.clipboard,
         idleLock,
         vault: dataVault,

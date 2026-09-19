@@ -74,5 +74,11 @@ export function errorMessage(
             }),
         });
     }
+    if (apiError.code === 'UPDATE_FAILED' && apiError.details?.reason === 'offline') {
+        return t('errors.UPDATE_OFFLINE');
+    }
+    if (apiError.code === 'UPDATE_FAILED' && apiError.details?.reason === 'stalled') {
+        return t('errors.UPDATE_STALLED');
+    }
     return t(`errors.${apiError.code}`);
 }

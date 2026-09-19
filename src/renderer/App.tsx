@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef } from 'react';
 
 import { useShtatniStore } from '../renderer/entities/shtatna-posada/model/useShtatniStore';
 import Sidebar from './app/layout/Sidebar';
@@ -9,6 +9,8 @@ import { installNamedListStatusSync } from './features/report/model/namedListSyn
 import { useNamedListStore } from './features/report/model/useNamedListStore';
 import { startNamedListAutoApply } from './features/report/ui/_components/NamedListTable';
 import GlobalSearch from './features/search/ui/GlobalSearch';
+import { cn } from './shared/ui';
+import { ProgressBar } from './shared/ui/loader';
 import { usePermissions } from './stores/sessionStore';
 import { useUserStore } from './stores/userStore';
 
@@ -77,6 +79,11 @@ export default function App() {
         [canAny, shtatniPosady.length],
     );
     const activeTab = tabs.find((tab) => tab.key === currentTab) ?? tabs[0];
+    // The menu answers the click at once; a heavy section (reports, tables) is drawn in the
+    // background, and a thin bar says it is coming instead of the window standing still.
+    const shownKey = useDeferredValue(activeTab?.key);
+    const shownTab = tabs.find((tab) => tab.key === shownKey) ?? activeTab;
+    const switching = Boolean(activeTab && shownTab && shownTab.key !== activeTab.key);
 
     // Keep the stored tab in sync when the role no longer allows it.
     useEffect(() => {
@@ -91,13 +98,20 @@ export default function App() {
                 onSelect={setCurrentTab}
             />
 
-            <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-[18px] bg-canvas">
-                {activeTab && (
+            <main
+                className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-[18px] bg-canvas"
+                aria-busy={switching || undefined}
+            >
+                <ProgressBar active={switching} className="absolute inset-x-0 top-0 z-20" />
+                {shownTab && (
                     <div
-                        key={activeTab.key}
-                        className="flex min-h-0 flex-1 animate-fade-in flex-col"
+                        key={shownTab.key}
+                        className={cn(
+                            'flex min-h-0 flex-1 animate-tab-in flex-col transition-opacity duration-150',
+                            switching && 'pointer-events-none opacity-60',
+                        )}
                     >
-                        {activeTab.render()}
+                        {shownTab.render()}
                     </div>
                 )}
             </main>

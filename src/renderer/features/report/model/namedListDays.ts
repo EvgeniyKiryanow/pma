@@ -58,6 +58,20 @@ export function localDate(value: string | null | undefined): Date | null {
         : null;
 }
 
+/** "YYYY-MM-DD" of a local calendar day. */
+export function isoDay(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** The days of a month as the range the status periods are asked for. */
+export function monthRange(year: number, monthIndex: number): { from: string; to: string } {
+    return {
+        from: isoDay(new Date(year, monthIndex, 1)),
+        to: isoDay(new Date(year, monthIndex + 1, 0)),
+    };
+}
+
 export function formatDay(date: Date): string {
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`;

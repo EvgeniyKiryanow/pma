@@ -22,6 +22,7 @@
     --shadow-inset-line: inset 0 0 0 1px var(--c-line);
 
     --animate-fade-in: fade-in 160ms ease-out;
+    --animate-tab-in: tab-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
     --animate-pop-in: pop-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1.15);
     --animate-slide-in: slide-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
     --animate-slide-up: slide-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -476,6 +477,18 @@
     }
     to {
         opacity: 1;
+    }
+}
+
+/* A section appears: a short fade with a small rise, never a jump. */
+@keyframes tab-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
     }
 }
 

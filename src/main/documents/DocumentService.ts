@@ -222,36 +222,47 @@ export class DocumentService {
             ref: { documentUuid: row.uuid },
         }));
 
-        const people = await conn.all<{ id: number; fullName: string; history: string }[]>(
-            `SELECT id, fullName, history FROM users WHERE history LIKE '%"files":[{%'`,
-        );
-        for (const person of people) {
-            let entries: {
-                id: number;
+        // The newest history entries with files, from the index (migration 15): only their
+        // files are read out of the person's history, never everyone's whole history.
+        const entries = await conn.all<
+            {
+                userId: number;
+                entryId: number;
                 date: string;
-                type?: string;
-                description?: string;
-                files?: { name: string }[];
-            }[] = [];
+                fullName: string;
+                files: string | null;
+                description: string | null;
+            }[]
+        >(
+            `SELECT h.user_id AS userId, h.entry_id AS entryId, h.date, u.fullName,
+                    json_extract(u.history, '$[' || h.pos || '].files') AS files,
+                    json_extract(u.history, '$[' || h.pos || '].description') AS description
+             FROM history_index h INDEXED BY ix_history_index_files
+             JOIN users u ON u.id = h.user_id
+             WHERE h.file_count > 0
+             ORDER BY h.date DESC
+             LIMIT ?`,
+            limit,
+        );
+        for (const entry of entries) {
+            let list: { name?: unknown }[] = [];
             try {
-                entries = JSON.parse(person.history || '[]');
+                list = JSON.parse(entry.files || '[]');
             } catch {
                 continue;
             }
-            for (const entry of Array.isArray(entries) ? entries : []) {
-                for (const file of Array.isArray(entry?.files) ? entry.files : []) {
-                    if (!file?.name) continue;
-                    files.push({
-                        key: `history:${person.id}:${entry.id}:${file.name}`,
-                        source: 'history',
-                        name: file.name,
-                        date: isoOf(entry.date),
-                        userId: person.id,
-                        userName: person.fullName,
-                        context: entry.description?.slice(0, 120),
-                        ref: { entryId: entry.id },
-                    });
-                }
+            for (const file of Array.isArray(list) ? list : []) {
+                if (typeof file?.name !== 'string' || !file.name) continue;
+                files.push({
+                    key: `history:${entry.userId}:${entry.entryId}:${file.name}`,
+                    source: 'history',
+                    name: file.name,
+                    date: isoOf(entry.date),
+                    userId: entry.userId,
+                    userName: entry.fullName,
+                    context: entry.description ? String(entry.description).slice(0, 120) : undefined,
+                    ref: { entryId: entry.entryId },
+                });
             }
         }
 

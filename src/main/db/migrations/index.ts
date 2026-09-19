@@ -12,6 +12,10 @@ import { reportKinds } from './011_report_kinds';
 import { awardTypes } from './012_award_types';
 import { journalAndDocuments } from './013_journal_and_documents';
 import { exchangeIdentity } from './014_exchange_identity';
+import { historyIndex } from './015_history_index';
+import { photoThumbnails } from './016_photo_thumbnails';
+import { exchangeSentFiles } from './017_exchange_sent_files';
+import { heavyColumnsLast } from './018_heavy_columns_last';
 import { MigrationRunner } from './runner';
 
 /** Append new migrations to the end. Never reorder, edit or remove released ones. */
@@ -30,6 +34,10 @@ export const MIGRATIONS = [
     awardTypes,
     journalAndDocuments,
     exchangeIdentity,
+    historyIndex,
+    photoThumbnails,
+    exchangeSentFiles,
+    heavyColumnsLast,
 ];
 
 export const migrationRunner = new MigrationRunner(MIGRATIONS);

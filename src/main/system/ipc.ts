@@ -2,7 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import fsp from 'fs/promises';
 import path from 'path';
 
-import { APP_CHANNELS, APP_EVENTS } from '../../shared/ipc/channels';
+import { APP_CHANNELS, APP_EVENTS, UPDATE_EVENTS } from '../../shared/ipc/channels';
 import { AppError } from '../../shared/ipc/result';
 import { chooseSavePath } from '../core/dialogs';
 import { move } from '../core/fsUtils';
@@ -81,16 +81,31 @@ export function registerSystemIpc(
     handleResult(
         APP_CHANNELS.installUpdate,
         canUpdate,
-        () => updateStep(logger, 'install', () => updater.install()),
+        (event) =>
+            updateStep(logger, 'install', () =>
+                updater.install((progress) => {
+                    if (!event.sender.isDestroyed())
+                        event.sender.send(UPDATE_EVENTS.progress, progress);
+                }),
+            ),
         { audit: 'system.update' },
     );
+
+    handleResult(APP_CHANNELS.cancelUpdate, canUpdate, () => updater.cancel());
 }
 
-/** Network and download failures reach the user as one translated message. */
+/**
+ * Network and download failures reach the user as one translated message; a cancel, no
+ * connection or a stalled download keep their own reason.
+ */
 async function updateStep<T>(logger: Logger, step: string, work: () => Promise<T>): Promise<T> {
     try {
         return await work();
     } catch (err) {
+        if (err instanceof AppError) {
+            logger.warn(`Update ${step}: ${err.code} ${String(err.details?.reason ?? '')}`);
+            throw err;
+        }
         logger.error(`Update ${step} failed`, err);
         throw new AppError('UPDATE_FAILED');
     }
